@@ -15,8 +15,8 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Newtonsoft.Json;
-using Windows.UI.Notifications;
-using Windows.Data.Xml.Dom;
+using Windows.ApplicationModel.Background;
+
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
 
@@ -41,6 +41,8 @@ namespace WilkieHome
         /// This parameter is typically used to configure the page.</param>
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            this.RegisterBackgroundTask();
+
             GetSensorData();
 
             /*
@@ -73,17 +75,27 @@ namespace WilkieHome
             }
         }
 
-        private void UpdateTile()
-        {
-            XmlDocument xml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150ImageAndText01);
+         private async void RegisterBackgroundTask()
+         {
+             var backgroundAccessStatus = await BackgroundExecutionManager.RequestAccessAsync();
+             if (backgroundAccessStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
+                 backgroundAccessStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
+             {
+                 foreach (var task in BackgroundTaskRegistration.AllTasks)
+                 {
+                     if (task.Value.Name == "TemperatureBackgroundTask")
+                     {
+                         task.Value.Unregister(true);
+                     }
+                 }
 
-            //XmlDocument xml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWideText01);
-            XmlNodeList nodes = xml.GetElementsByTagName("text");
-            nodes[0].InnerText = "This is the text";
-
-            TileNotification notification = new TileNotification(xml);
-            TileUpdateManager.CreateTileUpdaterForApplication().Update(notification);
-        }
+                 BackgroundTaskBuilder taskBuilder = new BackgroundTaskBuilder();
+                 taskBuilder.Name = "TemperatureBackgroundTask";
+                 taskBuilder.TaskEntryPoint = "WilkieHome.TemperatureBackgroundTask";
+                 taskBuilder.SetTrigger(new TimeTrigger(15, false));
+                 var registration = taskBuilder.Register();
+             }
+         }
     }
 
     class SensorData
