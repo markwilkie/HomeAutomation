@@ -44,10 +44,13 @@ namespace WorkerRole1
             {
                 IDataRecord record = (IDataRecord)reader;
 
+                //Calc and round temp
+                double flTemp=(Convert.ToDouble(record[1]) * ((double)9 / (double)5)) + 32;
+
                 //Time to serialize our data to json now
                 SensorData sensorData = new SensorData();
                 sensorData.DeviceName = (string)record[0];
-                sensorData.DeviceData1 = (Convert.ToDouble(record[1]) * ((double)9 / (double)5)) + 32;
+                sensorData.DeviceData1 = (int)Math.Round(flTemp, MidpointRounding.AwayFromZero);
                 sensorData.DbDateTime = (string)record[2].ToString();
 
                 currentTemp = SerializeJSon<SensorData>(sensorData);
@@ -104,9 +107,9 @@ namespace WorkerRole1
         [DataMember]
         public string DeviceName { get; set; }
         [DataMember]
-        public double DeviceData1 { get; set; }
+        public int DeviceData1 { get; set; }
         [DataMember]
-        public double DeviceData2 { get; set; }
+        public int DeviceData2 { get; set; }
         [DataMember]
         public string DbDateTime { get; set; }
     }

@@ -18,3 +18,4 @@ C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\ob
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\obj\Debug\qualifiers.txt
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\obj\Debug\qualifiers.txt.intermediate
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\obj\Debug\MultipleQualifiersPerDimensionFound.txt
+C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\obj\Debug\NotificationsExtensions.csprojResolveAssemblyReference.cache

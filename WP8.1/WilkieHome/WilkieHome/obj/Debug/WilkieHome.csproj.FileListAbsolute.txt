@@ -73,3 +73,6 @@ C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\Notif
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\NotificationsExtensions.pdb
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\NotificationsExtensions.xml
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\NotificationsExtensions.pri
+C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\BackgroundTask.winmd
+C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\BackgroundTask.pdb
+C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\Debug\BackgroundTask.pri

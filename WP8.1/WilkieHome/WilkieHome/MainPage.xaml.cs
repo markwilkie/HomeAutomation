@@ -16,6 +16,8 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Newtonsoft.Json;
 using Windows.ApplicationModel.Background;
+using NotificationsExtensions.TileContent;
+using Windows.UI.Notifications;
 
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
@@ -44,17 +46,6 @@ namespace WilkieHome
             this.RegisterBackgroundTask();
 
             GetSensorData();
-
-            /*
-            client.Headers["Accept"] = "application/json";
-            client.DownloadStringAsync(new Uri(uri));
-            client.DownloadStringCompleted += (s1, e1) =>
-            {
-                var data = JsonConvert.DeserializeObject<SensorData>(e1.Result.ToString());
-                DeviceDataTextBox.Text = data.DeviceData1.ToString();
-                DbDateTimeTextBox.Text = data.DbDateTime;
-            };
-             * */
         }
 
          public async void GetSensorData()
@@ -70,10 +61,24 @@ namespace WilkieHome
             {
                 var responseText = await response.Content.ReadAsStringAsync();
                 var data = JsonConvert.DeserializeObject<SensorData>(responseText);
-                DeviceDataTextBox.Text = data.DeviceData1.ToString();
+                DeviceDataTextBox.Text = data.DeviceData1.ToString() + "°";
                 DbDateTimeTextBox.Text = data.DbDateTime;
+
+                //Update tile
+                UpdateTile(data.DeviceData1.ToString(),data.DbDateTime);
             }
         }
+
+         private static void UpdateTile(string temperature,string datetime)
+         {
+             // Create a notification for the Square150x150 tile using one of the available templates for the size.
+             ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
+             square150x150Content.TextHeading.Text = temperature + "°";
+             square150x150Content.TextBody1.Text = datetime;
+
+             // Send the notification to the application? tile.
+             TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
+         }
 
          private async void RegisterBackgroundTask()
          {
@@ -91,11 +96,13 @@ namespace WilkieHome
 
                  BackgroundTaskBuilder taskBuilder = new BackgroundTaskBuilder();
                  taskBuilder.Name = "TemperatureBackgroundTask";
-                 taskBuilder.TaskEntryPoint = "WilkieHome.TemperatureBackgroundTask";
+                 taskBuilder.TaskEntryPoint = "BackgroundTask.TemperatureBackgroundTask";
                  taskBuilder.SetTrigger(new TimeTrigger(15, false));
                  var registration = taskBuilder.Register();
              }
          }
+
+
     }
 
     class SensorData

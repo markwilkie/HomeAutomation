@@ -1,2 +1,4 @@
+C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\BackgroundTask\BackgroundTask.csproj;neutral
+C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\NotificationsExtensions.csproj;neutral
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\NotificationsExtensions.csproj;neutral
 C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\WilkieHome.csproj;neutral
