@@ -15,11 +15,17 @@
         </Grid.RowDefinitions>
 
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-
-            <StackPanel  Orientation=  "Vertical">
-                <TextBox x:Name="DeviceDataTextBox" Text="{Binding DeviceData1}" Foreground="Black" FontSize="30" Margin="10,10,0,0"/>
-                <TextBox x:Name="DbDateTimeTextBox" Text="{Binding DbDateTime}" FontSize="20" Margin="10,10,20,0" TextWrapping="Wrap"/>
+            <StackPanel  Orientation=  "Vertical" Margin="0,22,0,383">
+                <TextBox x:Name="DeviceDataTextBox" Text="{Binding DeviceData1}" Header="Temperature" Foreground="Black" FontSize="20" Margin="10,10,198.833,0"/>
+                <TextBox x:Name="DbDateTimeTextBox" Text="{Binding DbDateTime}" Header="Date/Time" FontSize="20" Margin="10,10,9.833,0" TextWrapping="Wrap"/>
             </StackPanel>
+            <StackPanel  Orientation=  "Vertical" Margin="10,243,0,36">
+                <TextBox x:Name="BGMinutes" Margin="0,0,190.833,0" TextWrapping="Wrap" Header="B/G Increment (minutes)" InputScope="Number" VerticalAlignment="Stretch"/>
+                <TextBox x:Name="ChargeHours" Margin="0,0,190.833,0" TextWrapping="Wrap" Header="Hours last charge check" InputScope="Number" VerticalAlignment="Stretch"/>
+                <TextBox x:Name="CheckHourStart" Margin="0,0,190.833,0" TextWrapping="Wrap" Header="Check hour start" InputScope="Number" VerticalAlignment="Stretch"/>
+                <TextBox x:Name="CheckHourEnd" Margin="0,0,190.833,0" TextWrapping="Wrap" Header="Check hour end" InputScope="Number" VerticalAlignment="Stretch"/>
+                <Button x:ConnectionId='1' Content="Save Settings"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"                                   />
+            </StackPanel>            
         </Grid>
     </Grid>
 </Page>

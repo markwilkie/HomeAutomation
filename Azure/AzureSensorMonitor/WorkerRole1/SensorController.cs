@@ -21,16 +21,24 @@ namespace WorkerRole1
             Sensors sensorData = new Sensors();
             string temperatureData = sensorData.GetCurrentTemperature(id);
 
-            /*
-            return new HttpResponseMessage()
-            {
-                Content = new StringContent(temperatureData)
-            };
-             * */
-
             var resp = new HttpResponseMessage()
             {
                 Content = new StringContent(temperatureData)
+            };
+            resp.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            return resp;
+        }
+
+        [HttpGet]
+        [ActionName("LastCharge")]
+        public HttpResponseMessage GetLastCharge()
+        {
+            Sensors sensorData = new Sensors();
+            string lastCharge = sensorData.GetLastCharge();
+
+            var resp = new HttpResponseMessage()
+            {
+                Content = new StringContent(lastCharge)
             };
             resp.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             return resp;

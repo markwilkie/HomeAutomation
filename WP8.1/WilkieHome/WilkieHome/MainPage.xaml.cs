@@ -18,17 +18,22 @@ using Newtonsoft.Json;
 using Windows.ApplicationModel.Background;
 using NotificationsExtensions.TileContent;
 using Windows.UI.Notifications;
+using Windows.Storage;
 
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
 
 namespace WilkieHome
 {
+
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        static string taskName = "BackgroundTask";
+        static string taskNameSpace = "BackgroundTask";
+
         public MainPage()
         {
             this.InitializeComponent();
@@ -43,13 +48,52 @@ namespace WilkieHome
         /// This parameter is typically used to configure the page.</param>
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            //Grab application data
+            GetAppData();
+
+            //Register background task
             this.RegisterBackgroundTask();
 
+            //Get sensor data to seed values
             GetSensorData();
         }
 
-         public async void GetSensorData()
+        private void GetAppData()
         {
+            Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values.ContainsKey("BGMinutes"))
+            {
+                BGMinutes.Text=(string)localSettings.Values["BGMinutes"];
+            }
+            if (localSettings.Values.ContainsKey("ChargeHours"))
+            {
+                ChargeHours.Text = (string)localSettings.Values["ChargeHours"];
+            }
+            if (localSettings.Values.ContainsKey("CheckHourStart"))
+            {
+                CheckHourStart.Text = (string)localSettings.Values["CheckHourStart"];
+            }
+            if (localSettings.Values.ContainsKey("CheckHourEnd"))
+            {
+                CheckHourEnd.Text = (string)localSettings.Values["CheckHourEnd"];
+            }
+        }
+
+        private void Save_Settings_Button_Click(object sender, RoutedEventArgs e)
+        {
+            //Set settings
+            Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["BGMinutes"] = BGMinutes.Text;
+            localSettings.Values["ChargeHours"] = ChargeHours.Text;
+            localSettings.Values["CheckHourStart"] = CheckHourStart.Text;
+            localSettings.Values["CheckHourEnd"] = CheckHourEnd.Text;
+
+            //Re-register b/g tasks
+            this.RegisterBackgroundTask();
+        }
+
+         private async void GetSensorData()
+         {
             string uri = "http://sensors.cloudapp.net/Sensor/CurrentTemperature";
             HttpClient client = new HttpClient();
 
@@ -67,7 +111,7 @@ namespace WilkieHome
                 //Update tile
                 UpdateTile(data.DeviceData1.ToString(),data.DbDateTime);
             }
-        }
+         }
 
          private static void UpdateTile(string temperature,string datetime)
          {
@@ -82,22 +126,30 @@ namespace WilkieHome
 
          private async void RegisterBackgroundTask()
          {
+             uint minuteIncrements=15;  //default
+
+            //Grab increments from isolated storage
+            var localSettings = ApplicationData.Current.LocalSettings;
+            if (localSettings.Values.ContainsKey("MinuteIncrements"))
+                minuteIncrements = Convert.ToUInt16(localSettings.Values["MinuteIncrements"]);
+
+             //Setup background task
              var backgroundAccessStatus = await BackgroundExecutionManager.RequestAccessAsync();
              if (backgroundAccessStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
                  backgroundAccessStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
              {
                  foreach (var task in BackgroundTaskRegistration.AllTasks)
                  {
-                     if (task.Value.Name == "TemperatureBackgroundTask")
+                     if (task.Value.Name == taskName)
                      {
                          task.Value.Unregister(true);
                      }
                  }
 
                  BackgroundTaskBuilder taskBuilder = new BackgroundTaskBuilder();
-                 taskBuilder.Name = "TemperatureBackgroundTask";
-                 taskBuilder.TaskEntryPoint = "BackgroundTask.TemperatureBackgroundTask";
-                 taskBuilder.SetTrigger(new TimeTrigger(15, false));
+                 taskBuilder.Name = taskName;
+                 taskBuilder.TaskEntryPoint = taskName+"."+taskNameSpace;
+                 taskBuilder.SetTrigger(new TimeTrigger(minuteIncrements, false));
                  var registration = taskBuilder.Register();
              }
          }

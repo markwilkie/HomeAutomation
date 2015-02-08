@@ -14,11 +14,11 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using NotificationsExtensions.TileContent;
-using Windows.UI.Notifications;
+using Windows.Storage;
 
 namespace BackgroundTask
 {
-    public sealed class TemperatureBackgroundTask : IBackgroundTask
+    public sealed class BackgroundTask : IBackgroundTask
     {
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
@@ -26,8 +26,54 @@ namespace BackgroundTask
             // while asynchronous code is still running.
             BackgroundTaskDeferral deferral = taskInstance.GetDeferral();
 
-            // get temp
-            string uri = "http://sensors.cloudapp.net/Sensor/CurrentTemperature";
+            //Get app data
+            int chargeHours = 2; //default
+            int checkHourStart = 21;//default
+            int checkHourEnd = 22;
+
+            var localSettings = ApplicationData.Current.LocalSettings;
+            if (localSettings.Values.ContainsKey("ChargeHours"))
+                chargeHours = Convert.ToInt32(localSettings.Values["ChargeHours"]);
+            if (localSettings.Values.ContainsKey("CheckHourStart"))
+                checkHourStart = Convert.ToInt32(localSettings.Values["CheckHourStart"]);
+            if (localSettings.Values.ContainsKey("CheckHourEnd"))
+                checkHourEnd = Convert.ToInt32(localSettings.Values["CheckHourEnd"]);
+
+            var temperatureData = await CallWebAPI("http://sensors.cloudapp.net/Sensor/CurrentTemperature");
+            if(temperatureData!=null)
+            {
+                //Update tile
+                UpdateTile(temperatureData.DeviceData1.ToString(), temperatureData.DbDateTime);
+            }
+
+            //check for last charge at a certain time
+            TimeSpan start = new TimeSpan(checkHourStart, 0, 0); 
+            TimeSpan end = new TimeSpan(checkHourEnd, 0, 0); 
+            TimeSpan now = DateTime.Now.TimeOfDay;
+            if ((now >= start) && (now <= end))
+            {
+                var lastChargeData = await CallWebAPI("http://sensors.cloudapp.net/Sensor/LastCharge");
+                if (lastChargeData != null)
+                {
+                    //See if last n hours
+                    DateTime lastChargeDateTime = DateTime.Parse(lastChargeData.DbDateTime);
+                    System.TimeSpan diff = DateTime.Now.Subtract(lastChargeDateTime);
+                    if (diff.Hours >= chargeHours)
+                    {
+                        //Toast
+                        Toast("Last Leaf Charge: ", lastChargeDateTime.ToString());
+                    }
+                }
+            }
+
+            // Inform the system that the task is finished.
+            deferral.Complete();
+        }
+
+        private async Task<SensorData> CallWebAPI(string uri)
+        {
+            SensorData data = null;
+
             HttpClient client = new HttpClient();
 
             client.BaseAddress = new Uri(uri);
@@ -37,17 +83,10 @@ namespace BackgroundTask
             if (response.IsSuccessStatusCode)
             {
                 var responseText = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<SensorData>(responseText);
-
-                //Update tile
-                UpdateTile(data.DeviceData1.ToString(),data.DbDateTime);
-
-                //Toast
-                //Toast(data.DeviceData1.ToString(), data.DbDateTime);
+                data = JsonConvert.DeserializeObject<SensorData>(responseText);
             }
 
-            // Inform the system that the task is finished.
-            deferral.Complete();
+            return data;
         }
 
         private static void UpdateTile(string temperature,string datetime)

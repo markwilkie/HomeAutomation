@@ -33,9 +33,8 @@
         <m3:SplashScreen Image="Assets\SplashScreen.png" />
       </m3:VisualElements>
       <Extensions>
-        <Extension Category="windows.backgroundTasks" EntryPoint="BackgroundTask.TemperatureBackgroundTask">
+        <Extension Category="windows.backgroundTasks" EntryPoint="BackgroundTask.BackgroundTask">
           <BackgroundTasks>
-            <Task Type="systemEvent" />
             <Task Type="timer" />
           </BackgroundTasks>
         </Extension>
@@ -49,7 +48,7 @@
     <Extension Category="windows.activatableClass.inProcessServer">
       <InProcessServer>
         <Path>CLRHost.dll</Path>
-        <ActivatableClass ActivatableClassId="BackgroundTask.TemperatureBackgroundTask" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="BackgroundTask.BackgroundTask" ThreadingModel="both" />
         <ActivatableClass ActivatableClassId="NotificationsExtensions.ToastContent.ToastContentFactory" ThreadingModel="both" />
         <ActivatableClass ActivatableClassId="NotificationsExtensions.TileContent.TileContentFactory" ThreadingModel="both" />
         <ActivatableClass ActivatableClassId="NotificationsExtensions.BadgeContent.BadgeNumericNotificationContent" ThreadingModel="both" />
