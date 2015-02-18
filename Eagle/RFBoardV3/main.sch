@@ -4651,6 +4651,7 @@ http://www.zetex.com&lt;p&gt;
 <part name="D7-D8" library="pinhead" deviceset="PINHD-1X2" device=""/>
 <part name="T1" library="zetex" deviceset="NPNSOT323" device=""/>
 <part name="GND9" library="SparkFun" deviceset="GND" device=""/>
+<part name="R3" library="SparkFun" deviceset="RESISTOR" device="0603-RES" value="10K"/>
 </parts>
 <sheets>
 <sheet>
@@ -4720,6 +4721,7 @@ http://www.zetex.com&lt;p&gt;
 <instance part="D7-D8" gate="G$1" x="121.92" y="78.74" rot="R180"/>
 <instance part="T1" gate="A" x="40.64" y="101.6"/>
 <instance part="GND9" gate="1" x="48.26" y="93.98"/>
+<instance part="R3" gate="G$1" x="30.48" y="106.68" rot="R90"/>
 </instances>
 <busses>
 </busses>
@@ -5197,9 +5199,14 @@ http://www.zetex.com&lt;p&gt;
 <segment>
 <pinref part="D2--A0" gate="A" pin="1"/>
 <wire x1="20.32" y1="111.76" x2="30.48" y2="111.76" width="0.1524" layer="91"/>
-<wire x1="30.48" y1="111.76" x2="30.48" y2="101.6" width="0.1524" layer="91"/>
+<pinref part="R3" gate="G$1" pin="2"/>
+</segment>
+</net>
+<net name="N$6" class="0">
+<segment>
 <pinref part="T1" gate="A" pin="B"/>
 <wire x1="30.48" y1="101.6" x2="38.1" y2="101.6" width="0.1524" layer="91"/>
+<pinref part="R3" gate="G$1" pin="1"/>
 </segment>
 </net>
 </nets>
