@@ -17,24 +17,24 @@ byte data[5];  //data buffer to send
 int sleep_cycles_remaining; //var tracking how many sleep cycles we've been through
  
 //Define pins
-#define LED_PIN 13     // LED pin (turns on when reading/transmitting)
+#define LED_PIN 4     // LED pin (turns on when reading/transmitting)
 // which analog pin to connect
-#define THERMISTORPIN A3
-// which pin to turn high for accurate power and to not sync 
-#define POWERPIN 8
+#define THERMISTORPIN A1
 // resistance at 25 degrees C
 #define THERMISTORNOMINAL 10000      
 // temp. for nominal resistance (almost always 25 C)
 #define TEMPERATURENOMINAL 25   
-// how many samples to take and average, more takes longer
-// but is more 'smooth'
+// how many samples to take and average, more takes longer but is more 'smooth'
 #define NUMSAMPLES 10
 // The beta coefficient of the thermistor (usually 3000-4000)
-#define BCOEFFICIENT 4050
+#define BCOEFFICIENT 3610 //For part number NTCS0603E3103HMT
 // the value of the 'other' resistor
-#define SERIESRESISTOR 9994    
+#define SERIESRESISTOR 10000    
 //unit number when there are multiple temp sensors
-#define UNITNUM 0
+//
+// 0-Outside
+// 1-Inside
+#define UNITNUM 1   //This one will need to change for each physical Arduino
 //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
 #define SLEEPCYCLES 75
  
@@ -46,7 +46,6 @@ void setup()
    Serial.begin(57600);
    printf_begin();
    pinMode(LED_PIN, OUTPUT);     
-   pinMode(POWERPIN, OUTPUT);
    
     radio.begin();
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
@@ -109,12 +108,10 @@ float readTemp(int samplePin)
   float average;
  
   // take N samples in a row, with a slight delay
-  digitalWrite(POWERPIN, HIGH);
   for (i=0; i< NUMSAMPLES; i++) {
    samples[i] = analogRead(THERMISTORPIN);
    delay(10);
   }
-  digitalWrite(POWERPIN, LOW);
    
   // average all the samples out
   average = 0;
@@ -142,7 +139,7 @@ float readTemp(int samplePin)
   return steinhart;
 }
 
-//Send Amps
+//Send Temperature
 void sendTemp(float temp)
 {
   //Serial.println(temp);
