@@ -171,7 +171,7 @@
 <wire x1="25.4" y1="77.47" x2="0" y2="77.47" width="0.4064" layer="21"/>
 <text x="32.512" y="48.895" size="1.778" layer="21" rot="R90">REED</text>
 <text x="15.8496" y="0.3556" size="0.8128" layer="21" font="fixed" ratio="15">DTR</text>
-<text x="28.0035" y="37.1475" size="0.8128" layer="21" ratio="15" rot="R270">MicroRF V3.1</text>
+<text x="28.0035" y="37.1475" size="0.8128" layer="21" ratio="15" rot="R270">MicroRF V3.2</text>
 <text x="31.115" y="67.6275" size="1.016" layer="21">D5</text>
 <text x="31.0515" y="4.7625" size="0.8128" layer="22" ratio="15" rot="MR90">VCC</text>
 <text x="31.877" y="17.018" size="0.8128" layer="22" ratio="15" rot="MR270">GND</text>
