@@ -62,9 +62,9 @@ int main()
 
     // Open 6 pipes for readings ( 5 plus pipe0, also can be used for reading )
     radio.openWritingPipe(pipes[0]);
-    radio.openReadingPipe(1,pipes[1]);
-    radio.openReadingPipe(2,pipes[2]);
-    radio.openReadingPipe(3,pipes[3]);
+    radio.openReadingPipe(1,pipes[1]); //Power reading pipe
+    radio.openReadingPipe(2,pipes[2]); //Motion sensor pipe
+    radio.openReadingPipe(3,pipes[3]); //Temperature sensors pipe
     radio.openReadingPipe(4,pipes[4]);
     radio.openReadingPipe(5,pipes[5]);
 
@@ -90,12 +90,19 @@ int main()
         //Send to Azure
         sendDeviceData(authHeader);
 
-        //Free and Flush
+        //Free memory
         free(authHeader);
         flushFileHandles();
       }
 
-      delay(500);
+      //check for carrier
+      delay(150);
+      if (radio.testCarrier())
+      {
+        fprintf(logFile,"^");
+        flushFileHandles();
+      }
+      delay(350);
     }
     return 0;
 }
@@ -119,6 +126,7 @@ void flushFileHandles()
     //If time for a newline, do it now
     if(++newLineCounter > 80)
     {
+       timeStamp(logFile);
        fprintf(logFile,"\n");
        newLineCounter=0;
     }
@@ -171,8 +179,23 @@ int createPostData()
        fflush(logFile);
     }
 
+    //Thermometer
+    if(pipeNo==3)
+    {
+       uint8_t thermNum;
+       float reading;
+
+       thermNum=bytesRecv[0];
+       memcpy(&reading,&bytesRecv[1],4);
+       //fprintf(logFile,"Addr: %d  Reading: %f\n",thermNum,reading);
+       sprintf(postData,"{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}",thermNum,seconds_past_epoch,reading);
+
+       fprintf(logFile,"*");  //Small indication for log file
+       fflush(logFile);
+    }
+
     //Unexpected??
-    if(pipeNo<1 || pipeNo>2)
+    if(pipeNo<1 || pipeNo>3)
     {
        timeStamp(stderr);
        fprintf(stderr, "ERROR: Unexpected pipe number: %d\n",pipeNo);
