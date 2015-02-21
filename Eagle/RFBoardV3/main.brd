@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.1.0">
+<eagle version="7.2.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -1269,7 +1269,6 @@ Please make sure your boards conform to these design rules.</description>
 <wire x1="20.5343375" y1="7.735328125" x2="19.8993375" y2="9.68664375" width="0.254" layer="1"/>
 <wire x1="15.200065625" y1="12.90795625" x2="15.17254375" y2="12.89839375" width="0.254" layer="1"/>
 <wire x1="20.5343375" y1="7.735328125" x2="20.6151625" y2="7.65450625" width="0.254" layer="1"/>
-<contactref element="R1" pad="1"/>
 <contactref element="JP5" pad="9"/>
 <contactref element="T1" pad="3"/>
 <wire x1="2.8956" y1="14.3256" x2="2.8956" y2="14.9352" width="0.254" layer="1"/>
@@ -1288,17 +1287,11 @@ Please make sure your boards conform to these design rules.</description>
 <wire x1="32.6898" y1="2.286" x2="31.9278" y2="3.048" width="0.254" layer="1"/>
 <wire x1="30.48" y1="3.048" x2="30.48" y2="3.0868" width="0.254" layer="1"/>
 <wire x1="32.6898" y1="2.286" x2="32.7025" y2="2.2225" width="0.254" layer="1"/>
-<wire x1="8.2296" y1="6.858" x2="8.2296" y2="8.001" width="0.254" layer="1"/>
-<wire x1="8.2296" y1="4.2672" x2="8.2296" y2="6.858" width="0.254" layer="16"/>
-<wire x1="6.477" y1="2.5146" x2="8.2296" y2="4.2672" width="0.254" layer="16"/>
-<wire x1="8.2296" y1="8.001" x2="8.255" y2="8.04" width="0.254" layer="1"/>
-<wire x1="6.477" y1="2.5146" x2="6.477" y2="2.286" width="0.254" layer="16"/>
 <wire x1="32.6898" y1="15.9258" x2="32.7025" y2="15.875" width="0.254" layer="1"/>
 <wire x1="3.048" y1="3.1242" x2="3.048" y2="6.4008" width="0.254" layer="1"/>
 <wire x1="3.8862" y1="2.286" x2="3.048" y2="3.1242" width="0.254" layer="1"/>
 <wire x1="3.048" y1="6.4008" x2="2.9718" y2="6.477" width="0.254" layer="1"/>
 <wire x1="3.8862" y1="2.286" x2="3.937" y2="2.286" width="0.254" layer="1"/>
-<via x="8.2296" y="6.858" extent="1-16" drill="0.3302"/>
 <wire x1="33.0708" y1="18.9738" x2="33.0835" y2="18.9865" width="0.254" layer="1"/>
 <wire x1="32.766" y1="16.002" x2="32.7025" y2="15.875" width="0.254" layer="1"/>
 <wire x1="33.147" y1="24.5364" x2="33.0835" y2="24.5745" width="0.254" layer="1"/>
@@ -1331,25 +1324,30 @@ Please make sure your boards conform to these design rules.</description>
 <wire x1="27.5844" y1="5.715" x2="26.9748" y2="6.3246" width="0.254" layer="1"/>
 <wire x1="26.9748" y1="6.3246" x2="26.13378125" y2="7.0478625" width="0.254" layer="1"/>
 <wire x1="27.5844" y1="5.715" x2="27.6225" y2="5.715" width="0.254" layer="1"/>
+<contactref element="THERM" pad="2"/>
+<wire x1="9.2964" y1="6.858" x2="10.4394" y2="8.001" width="0.254" layer="1"/>
+<wire x1="9.2964" y1="5.334" x2="9.2964" y2="6.858" width="0.254" layer="16"/>
+<wire x1="6.477" y1="2.5146" x2="9.2964" y2="5.334" width="0.254" layer="16"/>
+<wire x1="10.4394" y1="8.001" x2="10.4775" y2="8.0518" width="0.254" layer="1"/>
+<wire x1="6.477" y1="2.5146" x2="6.477" y2="2.286" width="0.254" layer="16"/>
+<via x="9.2964" y="6.858" extent="1-16" drill="0.3302"/>
 </signal>
 <signal name="AREF">
 <contactref element="C1" pad="2"/>
 <contactref element="U1" pad="20"/>
-<contactref element="THERM" pad="2"/>
-<wire x1="9.6012" y1="8.0772" x2="10.4394" y2="8.0772" width="0.1524" layer="1"/>
-<wire x1="8.763" y1="8.9154" x2="9.6012" y2="8.0772" width="0.1524" layer="1"/>
-<wire x1="7.6962" y1="8.9154" x2="8.763" y2="8.9154" width="0.1524" layer="1"/>
-<wire x1="7.4676" y1="9.144" x2="7.6962" y2="8.9154" width="0.1524" layer="1"/>
-<wire x1="7.4676" y1="10.3632" x2="7.4676" y2="9.144" width="0.1524" layer="1"/>
-<wire x1="12.7254" y1="15.621" x2="7.4676" y2="10.3632" width="0.1524" layer="1"/>
-<wire x1="14.3256" y1="15.621" x2="12.7254" y2="15.621" width="0.1524" layer="1"/>
-<wire x1="10.4394" y1="8.0772" x2="10.4775" y2="8.0518" width="0.1524" layer="1"/>
-<wire x1="14.3256" y1="15.621" x2="14.38824375" y2="15.6941625" width="0.1524" layer="1"/>
 <wire x1="15.6972" y1="13.8684" x2="15.6972" y2="13.4874" width="0.1524" layer="1"/>
 <wire x1="14.3256" y1="15.24" x2="15.6972" y2="13.8684" width="0.1524" layer="1"/>
 <wire x1="14.3256" y1="15.5448" x2="14.3256" y2="15.24" width="0.1524" layer="1"/>
 <wire x1="15.6972" y1="13.4874" x2="15.73823125" y2="13.46408125" width="0.1524" layer="1"/>
 <wire x1="14.3256" y1="15.5448" x2="14.38824375" y2="15.6941625" width="0.1524" layer="1"/>
+<contactref element="R1" pad="1"/>
+<wire x1="8.2296" y1="8.382" x2="8.2296" y2="8.0772" width="0.1524" layer="1"/>
+<wire x1="7.4676" y1="9.144" x2="8.2296" y2="8.382" width="0.1524" layer="1"/>
+<wire x1="7.4676" y1="10.3632" x2="7.4676" y2="9.144" width="0.1524" layer="1"/>
+<wire x1="12.6492" y1="15.5448" x2="7.4676" y2="10.3632" width="0.1524" layer="1"/>
+<wire x1="14.2494" y1="15.5448" x2="12.6492" y2="15.5448" width="0.1524" layer="1"/>
+<wire x1="8.2296" y1="8.0772" x2="8.255" y2="8.04" width="0.1524" layer="1"/>
+<wire x1="14.2494" y1="15.5448" x2="14.38824375" y2="15.6941625" width="0.1524" layer="1"/>
 </signal>
 <signal name="RESET">
 <contactref element="R2" pad="1"/>

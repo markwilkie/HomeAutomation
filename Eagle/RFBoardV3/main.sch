@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.1.0">
+<eagle version="7.2.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -4714,7 +4714,7 @@ http://www.zetex.com&lt;p&gt;
 <instance part="R1" gate="G$1" x="256.54" y="111.76" rot="R270"/>
 <instance part="THERM" gate="A" x="256.54" y="83.82" rot="R90"/>
 <instance part="D2--A0" gate="A" x="17.78" y="114.3" rot="R180"/>
-<instance part="GND2" gate="1" x="256.54" y="129.54" rot="R180"/>
+<instance part="GND2" gate="1" x="256.54" y="68.58"/>
 <instance part="JP5" gate="A" x="73.66" y="119.38"/>
 <instance part="P+3" gate="G$1" x="60.96" y="124.46" rot="R90"/>
 <instance part="GND6" gate="1" x="58.42" y="114.3" rot="R270"/>
@@ -4795,11 +4795,6 @@ http://www.zetex.com&lt;p&gt;
 <wire x1="48.26" y1="154.94" x2="48.26" y2="149.86" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="R1" gate="G$1" pin="1"/>
-<wire x1="256.54" y1="116.84" x2="256.54" y2="127" width="0.1524" layer="91"/>
-<pinref part="GND2" gate="1" pin="GND"/>
-</segment>
-<segment>
 <pinref part="GND6" gate="1" pin="GND"/>
 <pinref part="JP5" gate="A" pin="9"/>
 <wire x1="60.96" y1="114.3" x2="71.12" y2="114.3" width="0.1524" layer="91"/>
@@ -4811,6 +4806,11 @@ http://www.zetex.com&lt;p&gt;
 <pinref part="T1" gate="A" pin="E"/>
 <pinref part="GND9" gate="1" pin="GND"/>
 <wire x1="43.18" y1="96.52" x2="48.26" y2="96.52" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="THERM" gate="A" pin="2"/>
+<pinref part="GND2" gate="1" pin="GND"/>
+<wire x1="256.54" y1="83.82" x2="256.54" y2="71.12" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="AREF" class="0">
@@ -4824,9 +4824,9 @@ http://www.zetex.com&lt;p&gt;
 <label x="129.54" y="139.7" size="1.27" layer="95" rot="R90" xref="yes"/>
 </segment>
 <segment>
-<pinref part="THERM" gate="A" pin="2"/>
-<wire x1="256.54" y1="83.82" x2="256.54" y2="76.2" width="0.1524" layer="91"/>
-<label x="256.54" y="76.2" size="1.27" layer="95" rot="R270" xref="yes"/>
+<label x="256.54" y="127" size="1.27" layer="95" rot="R90" xref="yes"/>
+<pinref part="R1" gate="G$1" pin="1"/>
+<wire x1="256.54" y1="116.84" x2="256.54" y2="127" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="RESET" class="0">
