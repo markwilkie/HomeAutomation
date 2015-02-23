@@ -1,0 +1,4 @@
+C:\Users\mawilkie\Desktop\HomeAutomation\WP8.1\WilkieHome\BackgroundTask\BackgroundTask.csproj;x86
+C:\Users\mawilkie\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\NotificationsExtensions.csproj;x86
+C:\Users\mawilkie\Desktop\HomeAutomation\WP8.1\WilkieHome\NotificationsExtensions\NotificationsExtensions.csproj;x86
+C:\Users\mawilkie\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\WilkieHome.csproj;x86

@@ -58,6 +58,11 @@ namespace WilkieHome
             GetSensorData();
         }
 
+        private void Refresh_Button_Click(object sender, RoutedEventArgs e)
+        {
+            GetSensorData();
+        }
+
         private void GetAppData()
         {
             Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
@@ -94,7 +99,7 @@ namespace WilkieHome
 
          private async void GetSensorData()
          {
-            string uri = "http://sensors.cloudapp.net/Sensor/CurrentTemperature";
+             string uri = "http://sensors.cloudapp.net/Sensor/CurrentTemperature/" + DeviceNumberTextBox.Text;
             HttpClient client = new HttpClient();
 
             client.BaseAddress = new Uri(uri);
