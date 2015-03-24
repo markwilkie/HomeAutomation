@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.2.0">
+<eagle version="7.1.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -5167,8 +5167,13 @@ http://www.zetex.com&lt;p&gt;
 <net name="SCREW_TERM" class="0">
 <segment>
 <pinref part="JP2" gate="G$1" pin="2"/>
-<wire x1="210.82" y1="170.18" x2="200.66" y2="170.18" width="0.1524" layer="91"/>
+<wire x1="210.82" y1="170.18" x2="205.74" y2="170.18" width="0.1524" layer="91"/>
 <label x="200.66" y="170.18" size="1.27" layer="95" rot="R180" xref="yes"/>
+<junction x="205.74" y="170.18"/>
+<wire x1="205.74" y1="170.18" x2="200.66" y2="170.18" width="0.1524" layer="91"/>
+<pinref part="S3" gate="G$1" pin="1"/>
+<wire x1="228.6" y1="162.56" x2="205.74" y2="162.56" width="0.1524" layer="91"/>
+<wire x1="205.74" y1="162.56" x2="205.74" y2="170.18" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="D2--A0" gate="A" pin="2"/>
@@ -5180,13 +5185,9 @@ http://www.zetex.com&lt;p&gt;
 <segment>
 <pinref part="U1" gate="G$1" pin="PD5(T1)"/>
 <wire x1="195.58" y1="119.38" x2="208.28" y2="119.38" width="0.1524" layer="91"/>
-<wire x1="208.28" y1="119.38" x2="208.28" y2="162.56" width="0.1524" layer="91"/>
+<wire x1="208.28" y1="119.38" x2="208.28" y2="172.72" width="0.1524" layer="91"/>
 <pinref part="JP2" gate="G$1" pin="1"/>
-<wire x1="208.28" y1="162.56" x2="208.28" y2="172.72" width="0.1524" layer="91"/>
 <wire x1="208.28" y1="172.72" x2="210.82" y2="172.72" width="0.1524" layer="91"/>
-<junction x="208.28" y="162.56"/>
-<pinref part="S3" gate="G$1" pin="1"/>
-<wire x1="228.6" y1="162.56" x2="208.28" y2="162.56" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$4" class="0">
