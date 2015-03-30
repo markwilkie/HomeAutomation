@@ -28,6 +28,7 @@ const uint64_t pipes[6] = { 0xF0F0F0F0D2LL, 0xF0F0F0F0E1LL,
 const uint8_t MAX_PAYLOAD_SIZE = 32;  
 const uint8_t MAX_POSTDATA_SIZE = 128+1; 
 uint8_t pipeNo;
+int lastPayloadLen;
 uint8_t bytesRecv[MAX_PAYLOAD_SIZE+1];
 char postData[MAX_POSTDATA_SIZE];
 
@@ -184,13 +185,31 @@ int createPostData()
     {
        uint8_t thermNum;
        float reading;
+       uint8_t doorOpenFlag=-1; //0 is closed, 1 is open for garage door
 
        thermNum=bytesRecv[0];
        memcpy(&reading,&bytesRecv[1],4);
-       //fprintf(logFile,"Addr: %d  Reading: %f\n",thermNum,reading);
+       if(lastPayloadLen>5)
+       {
+          doorOpenFlag=bytesRecv[5];
+       }
+
+       //fprintf(logFile,"Len: %d Addr: %d  Reading: %f OpenFlag: %d \n",lastPayloadLen,thermNum,reading,doorOpenFlag);
        sprintf(postData,"{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}",thermNum,seconds_past_epoch,reading);
 
-       fprintf(logFile,"*");  //Small indication for log file
+       if(doorOpenFlag<0)
+       {
+          fprintf(logFile,"*");  //temp only
+       }
+       if(doorOpenFlag==0)
+       {
+          fprintf(logFile,"C");  //garage open + temp
+       }
+       if(doorOpenFlag==1)
+       {
+          fprintf(logFile,"O");  //garage closed + temp
+       }
+
        fflush(logFile);
     }
 
@@ -215,10 +234,10 @@ void readDeviceData()
    radio.flush_tx();							 	
   				  
    //Read now
-   int len = radio.getDynamicPayloadSize();
-   //fprintf(logFile,"Now reading %d bytes on pipe: %d\n",len,pipeNo);
+   lastPayloadLen = radio.getDynamicPayloadSize();
+   //fprintf(logFile,"Now reading %d bytes on pipe: %d\n",lastPayloadLen ,pipeNo);
    //fflush(logFile);  
-   radio.read(bytesRecv,len);
+   radio.read(bytesRecv,lastPayloadLen);
 
    // Since this is a call-response. Respond directly with an ack payload.
    // Ack payloads are much more efficient than switching to transmit mode to respond to a call

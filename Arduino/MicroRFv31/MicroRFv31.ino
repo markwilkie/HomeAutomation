@@ -8,50 +8,65 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 
-//sleep decrarations
-typedef enum { wdt_16ms = 0, wdt_32ms, wdt_64ms, wdt_128ms, wdt_250ms, wdt_500ms, wdt_1s, wdt_2s, wdt_4s, wdt_8s } wdt_prescalar_e;
-
-// Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
-RF24 radio(9,10);
-byte data[5];  //data buffer to send
-int sleep_cycles_remaining; //var tracking how many sleep cycles we've been through
- 
-//Define pins
-#define LED_PIN 4     // LED pin (turns on when reading/transmitting)
-// which analog pin to connect
-#define THERMISTORPIN A1
-// resistance at 25 degrees C
-#define THERMISTORNOMINAL 10000      
-// temp. for nominal resistance (almost always 25 C)
-#define TEMPERATURENOMINAL 25   
-// how many samples to take and average, more takes longer but is more 'smooth'
-#define NUMSAMPLES 10
-// The beta coefficient of the thermistor (usually 3000-4000)
-#define BCOEFFICIENT 3610 //For part number NTCS0603E3103HMT
-// the value of the 'other' resistor
-#define SERIESRESISTOR 10000    
 //unit number when there are multiple temp sensors
 //
 // 0-Outside
 // 1-Inside
-#define UNITNUM 1   //This one will need to change for each physical Arduino
-//Sleep cycles wanted  (75 is 10 min assuming 8s timer)
-#define SLEEPCYCLES 75
- 
-int samples[NUMSAMPLES];
+// 2-Garage
+#define UNITNUM 2   //This one will need to change for each physical Arduino
+
+//
+// Pin Assignments
+//
+#define LED_PIN 4     // LED pin (turns on when reading/transmitting)
+#define THERMISTORPIN A1  // which analog pin for reading thermistor
+#define REEDPIN 3  // which pin powers the reed switch 
+#define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
+#define INTERRUPTNUM 0 //Interrupt number  (make sure matches interrupt pin)
+
+//
+// Config
+//
+#define SLEEPCYCLES 75  //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
+#define TRIGGERTYPE 1   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
+#define OPENSTATE LOW //set pin (interrupt) state for what defines "open".  LOW is triggered
+#define PAYLOADSIZE 6 //Size of package we're sending over the wire
+
+//
+// Termistor setup
+//
+#define THERMISTORNOMINAL 10000    // resistance at 25 degrees C
+#define TEMPERATURENOMINAL 25   // temp. for nominal resistance (almost always 25 C)
+#define NUMSAMPLES 10  // how many samples to take and average, more takes longer but is more 'smooth'
+#define BCOEFFICIENT 3610 //For part number NTCS0603E3103HMT  - he beta coefficient of the thermistor (usually 3000-4000)
+#define SERIESRESISTOR 10000  // the value of the 'other' resistor   
+
+//
+// Definitions
+//
+RF24 radio(9,10);  // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
+typedef enum { wdt_16ms = 0, wdt_32ms, wdt_64ms, wdt_128ms, wdt_250ms, wdt_500ms, wdt_1s, wdt_2s, wdt_4s, wdt_8s } wdt_prescalar_e; //sleep decrarations
+byte data[6]; //payload
+
+//
+// Flags and counters
+//
+int sleep_cycles_remaining; //var tracking how many sleep cycles we've been through
+boolean enableInterruptFlag;  //Turn off/on interruptsn - used to for not having interrupts trigger over and over
+boolean interruptType=-1; //Set to 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
 
 //Set things up
 void setup()
 {
-   Serial.begin(57600);
-   printf_begin();
-   pinMode(LED_PIN, OUTPUT);     
-   
+    Serial.begin(57600);
+    printf_begin(); //used by radio.printDetails()
+    
+    //Setup radio
     radio.begin();
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
     radio.enableAckPayload();               // Allow optional ack payloads
     radio.setRetries(0,5);                  // Smallest time between retries, max no. of retries
-    radio.setPayloadSize(5);                // Here we are sending 5-byte payloads 
+    radio.setPayloadSize(PAYLOADSIZE);      // Here we are sending 5-byte payloads 
     radio.openWritingPipe(0xF0F0F0F0E3LL);  // Write to "Temperature" pipe
     radio.startListening();                 // Start listening
     radio.powerUp();
@@ -59,53 +74,77 @@ void setup()
   
     //Setup sleep and watchdog
     setup_watchdog(wdt_8s); //wdt_8s
+    
+    //Setup pins
+    pinMode(LED_PIN, OUTPUT);  
+    pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
+    pinMode(REEDPIN, OUTPUT);
+    
+    //Power reed
+    digitalWrite(REEDPIN, HIGH);
 }
  
 //Get ADC readings and send them out via transmitter 
 void loop()
 {
-   //Read adc, calculate amps, then send for each sensor
-   readSendTemp(THERMISTORPIN);
+   //turn on LED because we're about to read and transmit
+   digitalWrite(LED_PIN, HIGH);
+   
+   float temperature = readTemp(THERMISTORPIN);  //Read temperature sensor
+   byte interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state
+   buildPayload(temperature,interruptPinState);
+   radioSend(data,6); //Send payload
+   
+   digitalWrite(LED_PIN, LOW);
+   
+   if(interruptType == 0)
+     Serial.println("timer dinged");
+   if(interruptType == 1)
+     Serial.println("interrupt");
+   if(interruptType == 2)
+     Serial.println("interrupt reset");     
 
    //power down radio as we get ready to sleep  
    radio.powerDown();
    
-   //Wait for a minute (not sure why)
+   //Wait for a minute (not sure why, but the timers/interrupts are unstable if not here)
    delay(50);
 
-   // Sleep the MCU.  The watchdog timer will awaken in a short while, and
-   // continue execution here.
-   sleep_cycles_remaining=SLEEPCYCLES;
-   while(sleep_cycles_remaining)
-   {
-     do_sleep();   
-     delay(50);  //again, this seems to be needed
-   }
+   //Go to low power state and wait for timer and/or interrupt
+   sleep();
      
    //Now that we're awake, turn the radio back on
    radio.powerUp();
 }
 
-//Read and send w/ blinky LED
-void readSendTemp(int pin)
+//Send Temperature
+void buildPayload(float temp,byte interruptPinState)
 {
-  //turn on LED
-  digitalWrite(LED_PIN, HIGH);
-
-  //Read, then send temeperature
-  float temp = readTemp(pin);  //pin to read
-  //Serial.println(temp);
-  sendTemp(temp);              //temp to transmit
- 
-  //turn off LED
-  digitalWrite(LED_PIN, LOW);
+  //Determine if open or closed
+  byte isOpen;
+  if(OPENSTATE == interruptPinState)
+  {
+    isOpen=1;
+  }
+  else
+  {
+    isOpen=0;
+  }
+  
+  Serial.print("isOpen: ");
+  Serial.println(isOpen);
+  
+  data[0]=(byte)UNITNUM;
+  memcpy(&data[1],&temp,4);
+  data[5]=isOpen;
 }
 
-//Read Amps
+//Read Temperature
 float readTemp(int samplePin)
 {
   uint8_t i;
   float average;
+  static int samples[NUMSAMPLES];
  
   // take N samples in a row, with a slight delay
   for (i=0; i< NUMSAMPLES; i++) {
@@ -139,20 +178,7 @@ float readTemp(int samplePin)
   return steinhart;
 }
 
-//Send Temperature
-void sendTemp(float temp)
-{
-  //Serial.println(temp);
-  //printf("Sending temp: %f\n",temp);
-    
-  //Fill data buffer
-  data[0]=(byte)UNITNUM;
-  memcpy(&data[1],&temp,4);
-    
-  //Send it
-  radioSend(data,5);
-}
-
+//Send raw payload
 void radioSend(const void *payload,int len)
 {
   byte gotByte;
@@ -203,12 +229,78 @@ ISR(WDT_vect)
   --sleep_cycles_remaining;
 }
 
-void do_sleep(void)
+void sleep()
+{
+   //reset flags
+   enableInterruptFlag=true;
+   interruptType=-1;
+  
+   //track state change
+   static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
+   
+   sleep_cycles_remaining=SLEEPCYCLES; //setup how cycles
+   while(sleep_cycles_remaining)
+   {
+     sleepNow(); //Remember, this will only seep for 8 seconds
+     delay(50);  //again, this seems to be needed for stability - not entirely sure why
+     
+     //Set interrupt type as timer, knowing that pin interrupt will override if necessary
+     interruptType=0;
+     
+     //Check if our interrupt pin is triped before looping again if enabled
+     if(TRIGGERTYPE != 0)
+     {
+       boolean pinState = digitalRead(INTERRUPTPIN);
+       if(pinState != lastPinState)
+       {
+         lastPinState=pinState;
+         if(pinState == LOW)
+         {
+             enableInterruptFlag=false;  //turn off interrupt until state change so we don't keep repeating endlessly
+             interruptType=1;
+             break; //let's get out of here
+         }
+         else
+         {
+             enableInterruptFlag=true;  //reset interrupt for next time
+             if(TRIGGERTYPE == 1) //both on trigger and release
+             {
+                 interruptType=2;
+                 break; //falls out and returns
+             }
+         }
+       }
+     }
+   }
+}
+
+//Puts things to sleep and sets the interrupt pin
+void sleepNow()
 {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // sleep mode is set here
   sleep_enable();
+  if(enableInterruptFlag)
+    attachInterrupt();                   // Attach interrupt
   sleep_mode();                        // System sleeps here
-  sleep_disable();                     // System continues execution here when watchdog timed out
+  sleep_disable();                     // System continues execution here when watchdog timed out or interrupt is tripped
+  if(enableInterruptFlag)
+    detachInterrupt();                   // Tear down interrupt
+}
+
+void attachInterrupt()
+{
+    attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
+    delay(100);   
+}
+
+void detachInterrupt()
+{
+    detachInterrupt(INTERRUPTNUM);
+}
+
+void interruptHandler(void)
+{
+  //No need to do anything here...
 }
 
 
