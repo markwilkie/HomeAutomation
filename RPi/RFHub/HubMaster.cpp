@@ -7,12 +7,11 @@
 #include <RF24/RF24.h>
 #include <sys/resource.h> 
 
-void sendDeviceData(char *authHeader);
 void readDeviceData();
 void callWebAPI(char *urlRaw,char *authHeader);
 void createAuthHeader (char *key,char *keyName,char *url,char *authHeader);
 char * base64encode (const void *b64_encode_me, int encode_this_many_bytes,int *resLen);
-int createPostData();
+int createAndPostData(char *authHeader);
 void timeStamp(FILE *file);
 void flushFileHandles();
 
@@ -28,6 +27,7 @@ const uint64_t pipes[6] = { 0xF0F0F0F0D2LL, 0xF0F0F0F0E1LL,
 const uint8_t MAX_PAYLOAD_SIZE = 32;  
 const uint8_t MAX_POSTDATA_SIZE = 128+1; 
 uint8_t pipeNo;
+int lastPayloadLen;
 uint8_t bytesRecv[MAX_PAYLOAD_SIZE+1];
 char postData[MAX_POSTDATA_SIZE];
 
@@ -88,7 +88,7 @@ int main()
         createAuthHeader((char*)"3RdEfuPG4TeMbsBRhLgaCnyoq5ZttZpJWFdxajN0rZM=",(char*)"saspolicy",baseUrl,authHeader);
 
         //Send to Azure
-        sendDeviceData(authHeader);
+        createAndPostData(authHeader);
 
         //Free memory
         free(authHeader);
@@ -136,17 +136,7 @@ void flushFileHandles()
     fflush(stdout); 
 }
 
-void sendDeviceData(char *authHeader)
-{
-    //Based on pipe, determine message type and create post data for web api calls
-    if(createPostData()>-1)
-    {
-       //Web API Call
-       callWebAPI(url,authHeader);
-    }
-}
-
-int createPostData()
+int createAndPostData(char *authHeader)
 {
     time_t seconds_past_epoch = time(0);
     int retVal=0;
@@ -182,15 +172,47 @@ int createPostData()
     //Thermometer
     if(pipeNo==3)
     {
+       static uint8_t lastDoorOpenFlag=-1;
+       bool openStateChangedFlag=false;
        uint8_t thermNum;
        float reading;
+       uint8_t doorOpenFlag=-1; //0 is closed, 1 is open for door
 
        thermNum=bytesRecv[0];
        memcpy(&reading,&bytesRecv[1],4);
-       //fprintf(logFile,"Addr: %d  Reading: %f\n",thermNum,reading);
-       sprintf(postData,"{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}",thermNum,seconds_past_epoch,reading);
+       if(lastPayloadLen>5)
+       {
+          doorOpenFlag=bytesRecv[5];
 
-       fprintf(logFile,"*");  //Small indication for log file
+          openStateChangedFlag=false;
+          if(doorOpenFlag!=lastDoorOpenFlag)
+          {
+              lastDoorOpenFlag=doorOpenFlag; 
+              openStateChangedFlag=true;
+          }
+       }
+
+       //fprintf(logFile,"Len: %d Addr: %d  Reading: %f OpenFlag: %d \n",lastPayloadLen,thermNum,reading,doorOpenFlag);
+       sprintf(postData,"{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}",thermNum,seconds_past_epoch,reading);
+       callWebAPI(url,authHeader);
+
+       if(doorOpenFlag<0 || openStateChangedFlag==false)
+       {
+          fprintf(logFile,"*");  //temp only
+       }
+       if(doorOpenFlag==0 && openStateChangedFlag)
+       {
+          fprintf(logFile,"C");  //garage open + temp
+          sprintf(postData,"{'DeviceName':'Door%d','DeviceDate':'%ld','DeviceData1':'C'}",thermNum,seconds_past_epoch);
+          callWebAPI(url,authHeader);
+       }
+       if(doorOpenFlag==1 && openStateChangedFlag)
+       {
+          fprintf(logFile,"O");  //garage closed + temp
+          sprintf(postData,"{'DeviceName':'Door%d','DeviceDate':'%ld','DeviceData1':'O'}",thermNum,seconds_past_epoch);
+          callWebAPI(url,authHeader);
+       }
+
        fflush(logFile);
     }
 
@@ -215,10 +237,10 @@ void readDeviceData()
    radio.flush_tx();							 	
   				  
    //Read now
-   int len = radio.getDynamicPayloadSize();
-   //fprintf(logFile,"Now reading %d bytes on pipe: %d\n",len,pipeNo);
+   lastPayloadLen = radio.getDynamicPayloadSize();
+   //fprintf(logFile,"Now reading %d bytes on pipe: %d\n",lastPayloadLen ,pipeNo);
    //fflush(logFile);  
-   radio.read(bytesRecv,len);
+   radio.read(bytesRecv,lastPayloadLen);
 
    // Since this is a call-response. Respond directly with an ack payload.
    // Ack payloads are much more efficient than switching to transmit mode to respond to a call
