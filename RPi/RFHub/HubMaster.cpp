@@ -7,12 +7,16 @@
 #include <RF24/RF24.h>
 #include <sys/resource.h> 
 
-void sendDeviceData(char *authHeader);
 void readDeviceData();
 void callWebAPI(char *urlRaw,char *authHeader);
 void createAuthHeader (char *key,char *keyName,char *url,char *authHeader);
 char * base64encode (const void *b64_encode_me, int encode_this_many_bytes,int *resLen);
-int createPostData();
+void buildPipeOne();
+void buildPipeTwo();
+void buildPipeThree();
+void buildPipeFour();
+void buildPipeFive();
+int createAndPostData(char *authHeader);
 void timeStamp(FILE *file);
 void flushFileHandles();
 
@@ -22,7 +26,7 @@ RF24 radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
 // First pipe is for writing, 2nd, 3rd, 4th, 5th & 6th is for reading...
 const uint64_t pipes[6] = { 0xF0F0F0F0D2LL, 0xF0F0F0F0E1LL, 
                             0xF0F0F0F0E2LL, 0xF0F0F0F0E3LL, 
-                            0xF0F0F0F0F1,   0xF0F0F0F0F2 };
+                            0xF0F0F0F0F1LL, 0xF0F0F0F0F2LL };
 
 // Payload size - 32 is the default.  Must be the same on transmitter
 const uint8_t MAX_PAYLOAD_SIZE = 32;  
@@ -56,18 +60,18 @@ int main()
     radio.begin();
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
     radio.enableAckPayload();               // Allow optional ack payloads
+    radio.enableDynamicPayloads();
     radio.setRetries(15,15);                // Smallest time between retries, max no. of retries
-    //radio.setPayloadSize(5);                // Here we are sending 1-byte payloads to test the call-response speed
-    radio.printDetails();                   // Dump the configuration of the rf unit for debugging
     radio.enableDynamicPayloads();          // Read size off chip
+    radio.printDetails();                   // Dump the configuration of the rf unit for debugging
 
     // Open 6 pipes for readings ( 5 plus pipe0, also can be used for reading )
     radio.openWritingPipe(pipes[0]);
     radio.openReadingPipe(1,pipes[1]); //Power reading pipe
-    radio.openReadingPipe(2,pipes[2]); //Motion sensor pipe
+    radio.openReadingPipe(2,pipes[2]); //Event pipe
     radio.openReadingPipe(3,pipes[3]); //Temperature sensors pipe
-    radio.openReadingPipe(4,pipes[4]);
-    radio.openReadingPipe(5,pipes[5]);
+    radio.openReadingPipe(4,pipes[4]); //State protocol
+    radio.openReadingPipe(5,pipes[5]); //Context
 
     //Start listening!
     radio.startListening();
@@ -88,8 +92,8 @@ int main()
         char *authHeader=(char*)malloc(256);
         createAuthHeader((char*)"3RdEfuPG4TeMbsBRhLgaCnyoq5ZttZpJWFdxajN0rZM=",(char*)"saspolicy",baseUrl,authHeader);
 
-        //Send to Azure
-        sendDeviceData(authHeader);
+        //Parse data and send to Azure if appropriate
+        createAndPostData(authHeader);
 
         //Free memory
         free(authHeader);
@@ -137,95 +141,190 @@ void flushFileHandles()
     fflush(stdout); 
 }
 
-void sendDeviceData(char *authHeader)
+int createAndPostData(char *authHeader)
 {
-    //Based on pipe, determine message type and create post data for web api calls
-    if(createPostData()>-1)
-    {
-       //Web API Call
-       callWebAPI(url,authHeader);
-    }
-}
-
-int createPostData()
-{
-    time_t seconds_past_epoch = time(0);
     int retVal=0;
 
     //Init postData
     for(int i=0;i<MAX_POSTDATA_SIZE;i++)
       postData[i]=0;
 
-    //Power
-    if(pipeNo==1)
-    {
-       uint8_t addr;
-       float reading;
-
-	addr=bytesRecv[0];
-       memcpy(&reading,&bytesRecv[1],4);
-       //fprintf(logFile,"Addr: %d  Reading: %f\n",addr,reading);
-       sprintf(postData,"{'DeviceName':'Power%d','DeviceDate':'%ld','DeviceData1':'%f'}",addr,seconds_past_epoch,reading);
-
-       fprintf(logFile,".");  //Small indication for log file
-       fflush(logFile);
-    }
-
-    //Motion
-    if(pipeNo==2)
-    {
-      sprintf(postData,"{'DeviceName':'%s','DeviceDate':'%ld','DeviceData1':'0'}","Motion",seconds_past_epoch);
-
-       fprintf(logFile,"|");  //Small indication for log file
-       fflush(logFile);
-    }
-
-    //Thermometer
-    if(pipeNo==3)
-    {
-       uint8_t thermNum;
-       float reading;
-       uint8_t doorOpenFlag=-1; //0 is closed, 1 is open for garage door
-
-       thermNum=bytesRecv[0];
-       memcpy(&reading,&bytesRecv[1],4);
-       if(lastPayloadLen>5)
-       {
-          doorOpenFlag=bytesRecv[5];
-       }
-
-       //fprintf(logFile,"Len: %d Addr: %d  Reading: %f OpenFlag: %d \n",lastPayloadLen,thermNum,reading,doorOpenFlag);
-       sprintf(postData,"{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}",thermNum,seconds_past_epoch,reading);
-
-       if(doorOpenFlag<0)
-       {
-          fprintf(logFile,"*");  //temp only
-       }
-       if(doorOpenFlag==0)
-       {
-          fprintf(logFile,"C");  //garage open + temp
-       }
-       if(doorOpenFlag==1)
-       {
-          fprintf(logFile,"O");  //garage closed + temp
-       }
-
-       fflush(logFile);
-    }
-
-    //Unexpected??
-    if(pipeNo<1 || pipeNo>3)
-    {
-       timeStamp(stderr);
-       fprintf(stderr, "ERROR: Unexpected pipe number: %d\n",pipeNo);
-       fflush(stderr);
-       retVal=-1;
+	switch (pipeNo)
+	{ 
+	case 1: //Power
+		buildPipeOne();
+		callWebAPI(url, authHeader);
+		break;
+	case 2: //Motion
+		buildPipeTwo();
+		callWebAPI(url, authHeader);
+		break;
+	case 3: //Thermometer  -- deprecated
+		buildPipeThree();
+		callWebAPI(url, authHeader);
+		break;
+	case 4: //state protocol
+		buildPipeFour();
+		callWebAPI(url, authHeader);
+		break;
+	case 5: //context protocol
+		buildPipeFive();
+		//No need to send anything to Azure
+		break;
+	default: //Unexpected??
+              timeStamp(stderr);
+              fprintf(stderr, "ERROR: Unexpected pipe number: %d\n",pipeNo);
+              fflush(stderr);
+              retVal=-1;
     }
 
     //fprintf(logFile,"DATA: %s\n",postData);
     //fflush(logFile);  
 
     return retVal;
+}
+
+//Build post message for pipe 1
+void buildPipeOne()
+{
+	time_t seconds_past_epoch = time(0);
+       uint8_t addr;
+	float reading;
+
+	addr = bytesRecv[0];
+	memcpy(&reading, &bytesRecv[1], 4);
+	sprintf(postData, "{'DeviceName':'Power%d','DeviceDate':'%ld','DeviceData1':'%f'}", addr, seconds_past_epoch, reading);
+	//fprintf(logFile,"Addr: %d  Reading: %f\n",addr,reading);
+
+	fprintf(logFile, ".");  //Small indication for log file
+	fflush(logFile);
+}
+
+//Build post message for pipe 2
+void buildPipeTwo()
+{
+	//
+	// Over-the-air event packet definition/spec
+	//
+	// 1 byte:  unit number (uint8)
+	// 1 byte:  Payload type (S=state, C=context, E=event  
+	// 1 byte:  eventCodeType (O-opening change)
+	// 1 byte:  eventCode (O-opened, C-closed)
+	//
+
+	time_t seconds_past_epoch = time(0);
+       char eventCodeType,eventCode;
+       int unitNum;
+
+       //Deal with legacy messages
+       if(lastPayloadLen==4)
+       {
+         unitNum=bytesRecv[0];
+         eventCodeType=bytesRecv[2];
+         eventCode=bytesRecv[3];
+
+	  sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, eventCodeType, eventCode, seconds_past_epoch);
+	  fprintf(logFile, "%c",eventCode);  //Small indication for log file
+       }
+       else  //legacy
+       {
+	  sprintf(postData, "{'DeviceName':'%s','DeviceDate':'%ld','DeviceData1':'0'}", "Motion", seconds_past_epoch);
+	  fprintf(logFile, "|");  //Small indication for log file
+       }
+
+
+	fflush(logFile);
+}
+
+//Build post message for pipe 3  (legacy)
+void buildPipeThree()
+{
+	time_t seconds_past_epoch = time(0);
+	uint8_t thermNum;
+	float reading;
+
+	thermNum = bytesRecv[0];
+	memcpy(&reading, &bytesRecv[1], 4);
+
+	//fprintf(logFile,"Len: %d Addr: %d  Reading: %f OpenFlag: %d \n",lastPayloadLen,thermNum,reading,doorOpenFlag);
+	sprintf(postData, "{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}", thermNum, seconds_past_epoch, reading);
+
+	fprintf(logFile, "*");  //Small indication for log file
+	fflush(logFile);
+}
+
+//Build post message for pipe 4
+void buildPipeFour()
+{
+	//
+	// Over-the-air state packet definition/spec
+	//
+	// 1 byte:  unit number (uint8)
+	// 1 byte:  Payload type (S=state, C=context, E=event
+	// 4 bytes: VCC (float)
+	// 4 bytes: Temperature (float)
+	// 1 byte:  Pin State (using bits, abcdefgh where 
+	//                                 h=interrupt pin (usually reed switch)
+	//                                 g=digital signal in from screw terminal
+	//                                 f=D7
+	//                                 e=D8
+	//                                 d=sending interrupt  (h)
+	//                                 c=sending digital signal (g)
+	//                                 b=sending D7 (f)
+	//                                 a=sending D8 (e)
+	// 1 byte:  Number (uint8) of uint8 types and uint16 numbers coming (used for extra data from adc or whatever)
+	//  ....these two lines for each extra indicated above...
+	// 1 byte:  Data Type  (l=long, f=float, a=ascii)
+	// 4 bytes: Data
+	//
+
+	float vcc, reading;
+	time_t seconds_past_epoch = time(0);
+       int interruptPinState=-1;
+
+	//read known values
+	int unitNum = bytesRecv[0];
+	memcpy(&vcc, &bytesRecv[2], 4);
+	memcpy(&reading, &bytesRecv[6], 4);
+
+	//read pin state and create post data accordingly
+	uint8_t pinState = bytesRecv[10];
+	if (pinState & 128) //B10000000, or pin sent 
+	{
+         interruptPinState=(pinState & 16)>>4;  //temp until arduino is updated
+         //interruptPinState=(pinState & 8)>>4;  //mask then shift 
+         //fprintf(logFile, "pinstate: %d\n",pinState);
+         sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
+	}
+
+       //build default post data (no pin state)
+       if (pinState == 0)
+       {
+         sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
+       }
+
+	fprintf(logFile, "#");  //Small indication for log file
+	fflush(logFile);
+}
+
+//Build post message for pipe 5
+void buildPipeFive()
+{
+	//
+	// Over-the-air context packet definition/spec
+	//
+	// 1 byte:  unit number (uint8)
+	// 1 byte:  Payload type (S=state, C=context, E=event  
+	// 1 byte:  location (byte)
+	//
+
+	//read known values
+	int unitNum = bytesRecv[0];
+	char location = bytesRecv[2];
+
+	//Log file
+	//fprintf(logFile, "location: %c\n", location);
+	//fflush(logFile);
 }
 
 void readDeviceData()
@@ -235,13 +334,15 @@ void readDeviceData()
   				  
    //Read now
    lastPayloadLen = radio.getDynamicPayloadSize();
-   //fprintf(logFile,"Now reading %d bytes on pipe: %d\n",lastPayloadLen ,pipeNo);
-   //fflush(logFile);  
    radio.read(bytesRecv,lastPayloadLen);
 
    // Since this is a call-response. Respond directly with an ack payload.
    // Ack payloads are much more efficient than switching to transmit mode to respond to a call
-   radio.writeAckPayload(pipeNo,&pipeNo,1);   
+   radio.writeAckPayload(pipeNo,&pipeNo,1);
+
+
+   //fprintf(logFile,"Now reading %d bytes on pipe: %d with ACK: %d\n",lastPayloadLen ,pipeNo, pipeNo);
+   //fflush(logFile);   
 }
 
 void callWebAPI(char *urlRaw,char *authHeader)
