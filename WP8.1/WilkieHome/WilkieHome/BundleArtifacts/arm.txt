@@ -1,0 +1,4 @@
+MainPackage=C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\ARM\Release\WilkieHome_1.1.0.12_Bundle\WilkieHome_1.1.0.12_ARM.appx
+SymbolPackage=C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\AppPackages\WilkieHome_1.1.0.12_Test\WilkieHome_1.1.0.12_ARM.appxsym
+ResourcePack=C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\ARM\Release\WilkieHome_1.1.0.12_Bundle\WilkieHome_1.1.0.12_scale-100.appx
+ResourcePack=C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\bin\ARM\Release\WilkieHome_1.1.0.12_Bundle\WilkieHome_1.1.0.12_scale-140.appx

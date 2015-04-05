@@ -4,3 +4,6 @@ WP8.1/WilkieHome/BackgroundTask/obj/ARM/Debug/BackgroundTask.csproj.FileListAbso
 *.cache
 WP8.1/WilkieHome/NotificationsExtensions/obj/ARM/Debug/NotificationsExtensions.csproj.FileListAbsolute.txt
 *.winmdobj
+*.pdb
+*.pri
+*.intermediate

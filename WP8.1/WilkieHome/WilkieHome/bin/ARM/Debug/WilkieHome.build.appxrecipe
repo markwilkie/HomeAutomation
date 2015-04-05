@@ -6,7 +6,7 @@
     <TargetPlatformIdentifier>WindowsPhoneApp</TargetPlatformIdentifier>
     <SolutionConfiguration>Debug|ARM</SolutionConfiguration>
     <PackageArchitecture>arm</PackageArchitecture>
-    <PackageIdentityName>14899721-a543-4a6f-8ce5-5649dc0c9120</PackageIdentityName>
+    <PackageIdentityName>2ee4b40f-5cdf-4ce1-846b-d0603ac1c885</PackageIdentityName>
     <IntermediateOutputPath>C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\obj\ARM\Debug\</IntermediateOutputPath>
   </PropertyGroup>
   <ItemGroup>
@@ -28,8 +28,8 @@
     <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\packages\Newtonsoft.Json.6.0.8\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll">
       <PackagePath>Newtonsoft.Json.dll</PackagePath>
     </AppxPackagedFile>
-    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\BadgeLogo.scale-100.png">
-      <PackagePath>Assets\BadgeLogo.scale-100.png</PackagePath>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\BadgeLogo.png">
+      <PackagePath>Assets\BadgeLogo.png</PackagePath>
       <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
     </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Logo.scale-240.png">
@@ -41,17 +41,26 @@
     <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\SmallLogo.scale-240.png">
       <PackagePath>Assets\SmallLogo.scale-240.png</PackagePath>
     </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\HomeSplashScreen.scale-240.png">
+      <PackagePath>Assets\HomeSplashScreen.scale-240.png</PackagePath>
+      <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\SplashScreen.scale-100.png">
+      <PackagePath>Assets\SplashScreen.scale-100.png</PackagePath>
+    </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\SplashScreen.scale-240.png">
       <PackagePath>Assets\SplashScreen.scale-240.png</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Square150x150Logo.png">
+      <PackagePath>Assets\Square150x150Logo.png</PackagePath>
       <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
     </AppxPackagedFile>
-    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Square150x150Logo.scale-100.png">
-      <PackagePath>Assets\Square150x150Logo.scale-100.png</PackagePath>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Square44x44Logo.png">
+      <PackagePath>Assets\Square44x44Logo.png</PackagePath>
       <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
     </AppxPackagedFile>
-    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Square44x44Logo.scale-100.png">
-      <PackagePath>Assets\Square44x44Logo.scale-100.png</PackagePath>
-      <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Square71x71HomeLogo.scale-100.png">
+      <PackagePath>Assets\Square71x71HomeLogo.scale-100.png</PackagePath>
     </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Square71x71Logo.scale-100.png">
       <PackagePath>Assets\Square71x71Logo.scale-100.png</PackagePath>
@@ -69,8 +78,8 @@
       <PackagePath>Assets\StoreLogo.scale-240.png</PackagePath>
       <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
     </AppxPackagedFile>
-    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Wide310x150Logo.scale-100.png">
-      <PackagePath>Assets\Wide310x150Logo.scale-100.png</PackagePath>
+    <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\Wide310x150Logo.png">
+      <PackagePath>Assets\Wide310x150Logo.png</PackagePath>
       <ReRegisterAppIfChanged>true</ReRegisterAppIfChanged>
     </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\Assets\WideLogo.scale-240.png">

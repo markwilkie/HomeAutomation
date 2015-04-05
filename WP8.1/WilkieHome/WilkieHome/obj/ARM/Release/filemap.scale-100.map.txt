@@ -1,0 +1,10 @@
+﻿[ResourceMetadata]
+"ResourceId"			"filemap.scale-100"
+"ResourceDimensions"		"scale-100"
+
+[Files]
+"C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\obj\ARM\Release\filemap.scale-100.pri"			"resources.pri"
+"C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\obj\ARM\Release\PackageLayout\Assets\StoreLogo.scale-100.png"			"Assets\StoreLogo.scale-100.png"
+"C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\obj\ARM\Release\PackageLayout\Assets\Square71x71Logo.scale-100.png"			"Assets\Square71x71Logo.scale-100.png"
+"C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\obj\ARM\Release\PackageLayout\Assets\Square71x71HomeLogo.scale-100.png"			"Assets\Square71x71HomeLogo.scale-100.png"
+"C:\Users\Mark\Desktop\HomeAutomation\WP8.1\WilkieHome\WilkieHome\obj\ARM\Release\PackageLayout\Assets\SplashScreen.scale-100.png"			"Assets\SplashScreen.scale-100.png"
