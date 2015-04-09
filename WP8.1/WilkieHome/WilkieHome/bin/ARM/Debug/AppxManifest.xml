@@ -7,7 +7,7 @@
 
     For more information on package manifest files, see http://go.microsoft.com/fwlink/?LinkID=241727
   -->
-  <Identity Name="62861Wilkie.HomeHub" Publisher="CN=341D459A-8870-4F88-B1E9-2F7AE22C4F75" Version="1.1.0.10" ProcessorArchitecture="arm" />
+  <Identity Name="62861Wilkie.HomeHub" Publisher="CN=341D459A-8870-4F88-B1E9-2F7AE22C4F75" Version="1.1.0.12" ProcessorArchitecture="arm" />
   <mp:PhoneIdentity PhoneProductId="2ee4b40f-5cdf-4ce1-846b-d0603ac1c885" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>HomeHub</DisplayName>
@@ -49,10 +49,9 @@
       <InProcessServer>
         <Path>CLRHost.dll</Path>
         <ActivatableClass ActivatableClassId="BackgroundTask.BackgroundTask" ThreadingModel="both" />
-        <ActivatableClass ActivatableClassId="NotificationsExtensions.ToastContent.ToastContentFactory" ThreadingModel="both" />
-        <ActivatableClass ActivatableClassId="NotificationsExtensions.BadgeContent.BadgeGlyphNotificationContent" ThreadingModel="both" />
-        <ActivatableClass ActivatableClassId="NotificationsExtensions.BadgeContent.BadgeNumericNotificationContent" ThreadingModel="both" />
         <ActivatableClass ActivatableClassId="NotificationsExtensions.TileContent.TileContentFactory" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="NotificationsExtensions.BadgeContent.BadgeNumericNotificationContent" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="NotificationsExtensions.BadgeContent.BadgeGlyphNotificationContent" ThreadingModel="both" />
       </InProcessServer>
     </Extension>
   </Extensions>
@@ -61,8 +60,10 @@
     <build:Item Name="VisualStudio" Version="12.0" />
     <build:Item Name="VisualStudioEdition" Value="Microsoft Visual Studio Ultimate 2013" />
     <build:Item Name="OperatingSystem" Version="6.3.9600.16384 (winblue_rtm.130821-1623)" />
-    <build:Item Name="Microsoft.Build.AppxPackage.dll" Version="12.0.30501.0" />
+    <build:Item Name="Microsoft.Build.AppxPackage.dll" Version="12.0.31101.0" />
+    <build:Item Name="ProjectGUID" Value="{F02758B9-D003-4CFE-8954-AD501932E95E}" />
+    <build:Item Name="ilc.exe" Version="1.0.22514.11 built by: PROJECTNREL" />
     <build:Item Name="Microsoft.Windows.UI.Xaml.Build.Tasks.dll" Version="12.0.30501.0" />
-    <build:Item Name="MakePri.exe" Version="6.3.9600.17029 (winblue_gdr.140219-1702)" />
+    <build:Item Name="MakePri.exe" Version="6.3.9600.17336 (winblue.150226-1500)" />
   </build:Metadata>
 </Package>

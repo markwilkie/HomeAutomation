@@ -35,7 +35,8 @@ namespace WorkerRole1
             string currentTemp = "unknown";
 
             //Now that we've woken up, let's read database
-            String sqlCommmand = String.Format("select top 1 DeviceName,DeviceData1,DbDateTime from sensordata where devicename = 'Therm{0}' order by id desc",id); 
+            String sqlCommmand = String.Format("select top 1 unitnum, vcc, temperature, intpinstate, devicedatetime from statedata where unitnum = {0} order by devicedatetime desc", id); 
+            //String sqlCommmand = String.Format("select top 1 DeviceName,DeviceData1,DbDateTime from sensordata where devicename = 'Therm{0}' order by id desc",id); 
             SqlCommand command = new SqlCommand(sqlCommmand,sqlConnection);
             SqlDataReader reader = command.ExecuteReader();
 
@@ -44,13 +45,15 @@ namespace WorkerRole1
                 IDataRecord record = (IDataRecord)reader;
 
                 //Calc and round temp
-                double flTemp=(Convert.ToDouble(record[1]) * ((double)9 / (double)5)) + 32;
+                //double flTemp=(Convert.ToDouble(record[1]) * ((double)9 / (double)5)) + 32;
 
                 //Time to serialize our data to json now
                 SensorData sensorData = new SensorData();
-                sensorData.DeviceName = (string)record[0];
-                sensorData.DeviceData1 = (int)Math.Round(flTemp, MidpointRounding.AwayFromZero);
-                sensorData.DbDateTime = (string)record[2].ToString();
+                sensorData.UnitNum = (int)record[0];
+                if (!reader.IsDBNull(1)) sensorData.VCC = Convert.ToDouble(record[1]);
+                sensorData.Temperature = (int)Math.Round(Convert.ToDouble(record[2]), MidpointRounding.AwayFromZero);
+                if (!reader.IsDBNull(3)) sensorData.IntPinState = (int)record[3];
+                sensorData.DeviceDateTime = (string)record[4].ToString();
 
                 currentTemp = SerializeJSon<SensorData>(sensorData);
             }
@@ -65,6 +68,7 @@ namespace WorkerRole1
         {
             string lastCharge = "unknown";
 
+            /*
             //Now that we've woken up, let's read database
             String sqlCommmand = "select top 1 DeviceName,DeviceData1,DbDateTime from sensordata where devicename = 'power2' and cast(devicedata1 as float) > 10 order by id desc";
             SqlCommand command = new SqlCommand(sqlCommmand, sqlConnection);
@@ -75,19 +79,22 @@ namespace WorkerRole1
                 IDataRecord record = (IDataRecord)reader;
 
                 //Calc and round temp
-                double flTemp = Convert.ToDouble(record[1]);
+                //double flTemp = Convert.ToDouble(record[1]);
 
                 //Time to serialize our data to json now
                 SensorData sensorData = new SensorData();
-                sensorData.DeviceName = (string)record[0];
-                sensorData.DeviceData1 = (int)Math.Round(flTemp, MidpointRounding.AwayFromZero);
-                sensorData.DbDateTime = (string)record[2].ToString();
+                sensorData.UnitNum = (int)record[0];
+                sensorData.VCC = (float)record[1];
+                sensorData.Temperature = (int)Math.Round(Convert.ToDouble(record[2]), MidpointRounding.AwayFromZero);
+                sensorData.IntPinState = (int)record[3];
+                sensorData.DeviceDateTime = (string)record[4].ToString();
 
                 lastCharge = SerializeJSon<SensorData>(sensorData);
             }
 
             //Close up sql connection
             reader.Close();
+             * */
 
             return lastCharge;
         }
@@ -107,12 +114,14 @@ namespace WorkerRole1
     class SensorData
     {
         [DataMember]
-        public string DeviceName { get; set; }
+        public int UnitNum { get; set; }
         [DataMember]
-        public double DeviceData1 { get; set; }
+        public double VCC { get; set; }
         [DataMember]
-        public double DeviceData2 { get; set; }
+        public double Temperature { get; set; }
         [DataMember]
-        public string DbDateTime { get; set; }
+        public int IntPinState { get; set; }
+        [DataMember]
+        public string DeviceDateTime { get; set; }
     }
 }

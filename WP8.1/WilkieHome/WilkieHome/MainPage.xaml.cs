@@ -110,11 +110,11 @@ namespace WilkieHome
             {
                 var responseText = await response.Content.ReadAsStringAsync();
                 var data = JsonConvert.DeserializeObject<SensorData>(responseText);
-                DeviceDataTextBox.Text = data.DeviceData1.ToString() + "°";
-                DbDateTimeTextBox.Text = data.DbDateTime;
+                DeviceDataTextBox.Text = data.Temperature.ToString() + "°";
+                DbDateTimeTextBox.Text = data.DeviceDateTime;
 
                 //Update tile
-                UpdateTile(data.DeviceData1.ToString(),data.DbDateTime);
+                UpdateTile(data.Temperature.ToString(), data.DeviceDateTime);
             }
          }
 
@@ -164,9 +164,10 @@ namespace WilkieHome
 
     class SensorData
     {
-        public String DeviceName { get; set; }
-        public Double DeviceData1 { get; set; }
-        public Double DeviceData2 { get; set; }
-        public String DbDateTime { get; set; }
+        public int UnitNum { get; set; }
+        public double VCC { get; set; }
+        public double Temperature { get; set; }
+        public int IntPinState { get; set; }
+        public string DeviceDateTime { get; set; }
     }
 }

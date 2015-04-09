@@ -43,9 +43,10 @@ namespace BackgroundTask
             if(temperatureData!=null)
             {
                 //Update tile
-                UpdateTile(temperatureData.DeviceData1.ToString(), temperatureData.DbDateTime);
+                UpdateTile(temperatureData.Temperature.ToString(), temperatureData.DeviceDateTime);
             }
 
+            /*
             //check for last charge at a certain time
             TimeSpan start = new TimeSpan(checkHourStart, 0, 0); 
             TimeSpan end = new TimeSpan(checkHourEnd, 0, 0); 
@@ -65,6 +66,7 @@ namespace BackgroundTask
                     }
                 }
             }
+             * */
 
             // Inform the system that the task is finished.
             deferral.Complete();
@@ -132,11 +134,12 @@ namespace BackgroundTask
         }
         class SensorData
         {
-            public String DeviceName { get; set; }
-            public Double DeviceData1 { get; set; }
-            public Double DeviceData2 { get; set; }
-            public String DbDateTime { get; set; }
-        }   
+            public int UnitNum { get; set; }
+            public double VCC { get; set; }
+            public double Temperature { get; set; }
+            public int IntPinState { get; set; }
+            public string DeviceDateTime { get; set; }
+        }
 
     }
 }
