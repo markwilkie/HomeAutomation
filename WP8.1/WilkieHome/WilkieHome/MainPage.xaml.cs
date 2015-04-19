@@ -61,15 +61,17 @@ namespace WilkieHome
         private void Refresh_Button_Click(object sender, RoutedEventArgs e)
         {
             GetSensorData();
+            GetEventData();
         }
 
         private void GetAppData()
         {
             Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            if (localSettings.Values.ContainsKey("BGMinutes"))
+            if (localSettings.Values.ContainsKey("MinuteIncrements"))
             {
-                BGMinutes.Text=(string)localSettings.Values["BGMinutes"];
+                BGMinutes.Text = (string)localSettings.Values["MinuteIncrements"];
             }
+            /*
             if (localSettings.Values.ContainsKey("ChargeHours"))
             {
                 ChargeHours.Text = (string)localSettings.Values["ChargeHours"];
@@ -82,16 +84,16 @@ namespace WilkieHome
             {
                 CheckHourEnd.Text = (string)localSettings.Values["CheckHourEnd"];
             }
+             * */
         }
 
         private void Save_Settings_Button_Click(object sender, RoutedEventArgs e)
         {
             //Set settings
             Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            localSettings.Values["BGMinutes"] = BGMinutes.Text;
-            localSettings.Values["ChargeHours"] = ChargeHours.Text;
-            localSettings.Values["CheckHourStart"] = CheckHourStart.Text;
-            localSettings.Values["CheckHourEnd"] = CheckHourEnd.Text;
+            localSettings.Values["MinuteIncrements"] = BGMinutes.Text;
+            //localSettings.Values["CheckHourStart"] = CheckHourStart.Text;
+            //localSettings.Values["CheckHourEnd"] = CheckHourEnd.Text;
 
             //Re-register b/g tasks
             this.RegisterBackgroundTask();
@@ -118,11 +120,51 @@ namespace WilkieHome
             }
          }
 
+         private async void GetEventData()
+         {
+             string uri = "http://sensors.cloudapp.net/Sensor/LastEvent/" + EventDeviceNumberTextBox.Text;
+             HttpClient client = new HttpClient();
+
+             client.BaseAddress = new Uri(uri);
+             client.DefaultRequestHeaders.Accept.Clear();
+             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+             var response = await client.GetAsync(uri);
+             if (response.IsSuccessStatusCode)
+             {
+
+                 var responseText = await response.Content.ReadAsStringAsync();
+                 var data = JsonConvert.DeserializeObject<EventData>(responseText);
+                 if (data.EventCodeType == 'O') DoorStatus.Text = "Open";
+                 if (data.EventCode == 'C') DoorStatus.Text = "Closed";
+                 if (data.EventCode == '-') DoorStatus.Text = "No Events";
+                 DoorStatusDate.Text = data.DeviceDateTime;
+
+                 //Update tile
+                 //UpdateTile2(data.EventCode, data.DeviceDateTime);
+             }
+         }
+
          private static void UpdateTile(string temperature,string datetime)
          {
              // Create a notification for the Square150x150 tile using one of the available templates for the size.
              ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
              square150x150Content.TextHeading.Text = temperature + "°";
+             square150x150Content.TextBody1.Text = datetime;
+
+             // Send the notification to the application? tile.
+             TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
+         }
+
+         private static void UpdateTile2(char EventCode, string datetime)
+         {
+             string doorStatus="";
+             if (EventCode == 'O') doorStatus = "Open";
+             if (EventCode == 'C') doorStatus = "Closed";
+             if (EventCode == '-') doorStatus = "No Events";
+       
+             // Create a notification for the Square150x150 tile using one of the available templates for the size.
+             ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
+             square150x150Content.TextHeading.Text = doorStatus;
              square150x150Content.TextBody1.Text = datetime;
 
              // Send the notification to the application? tile.
@@ -158,8 +200,6 @@ namespace WilkieHome
                  var registration = taskBuilder.Register();
              }
          }
-
-
     }
 
     class SensorData
@@ -168,6 +208,14 @@ namespace WilkieHome
         public double VCC { get; set; }
         public double Temperature { get; set; }
         public int IntPinState { get; set; }
+        public string DeviceDateTime { get; set; }
+    }
+
+    class EventData
+    {
+        public int UnitNum { get; set; }
+        public char EventCodeType { get; set; }
+        public char EventCode { get; set; }
         public string DeviceDateTime { get; set; }
     }
 }

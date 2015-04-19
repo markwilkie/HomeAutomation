@@ -1,8 +1,0 @@
-<XamlCompilerSaveState>
-  <ReferenceAssemblyList>
-    <LocalAssembly PathName="c:\users\mark\desktop\homeautomation\wp8.1\wilkiehome\wilkiehome\obj\arm\release\intermediatexaml\wilkiehome.exe" HashGuid="947b46df-758c-55c8-ef1f-6b10f2425617" />
-    <ReferenceAssembly PathName="c:\users\mark\desktop\homeautomation\wp8.1\wilkiehome\backgroundtask\bin\arm\release\backgroundtask.winmd" HashGuid="c99f2c4b-db6c-ed0f-786d-991b7a7a2803" />
-    <ReferenceAssembly PathName="c:\users\mark\desktop\homeautomation\wp8.1\wilkiehome\packages\newtonsoft.json.6.0.8\lib\portable-net40+sl5+wp80+win8+wpa81\newtonsoft.json.dll" HashGuid="225745d8-3693-ad6f-ebd5-8845d81f8e0f" />
-    <ReferenceAssembly PathName="c:\users\mark\desktop\homeautomation\wp8.1\wilkiehome\notificationsextensions\bin\arm\release\notificationsextensions.winmd" HashGuid="d2440c94-4aff-a8de-6918-9bc0da0bb08a" />
-  </ReferenceAssemblyList>
-</XamlCompilerSaveState>

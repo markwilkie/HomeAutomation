@@ -1,10 +1,24 @@
-*.pdb
-*.winmd
-WP8.1/WilkieHome/BackgroundTask/obj/ARM/Debug/BackgroundTask.csproj.FileListAbsolute.txt
+#Libraries
+Newtonsoft.Json.6.0.8/
+#
+#ignore thumbnails created by windows
+Thumbs.db
+#Ignore files build by Visual Studio
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.suo
+*.bak
 *.cache
-WP8.1/WilkieHome/NotificationsExtensions/obj/ARM/Debug/NotificationsExtensions.csproj.FileListAbsolute.txt
-*.winmdobj
-*.pdb
-*.pri
-*.intermediate
-Arduino/MicroRFv31/MicroRFv31.ino
+*.ilk
+*.log
+[Bb]in
+[Dd]ebug*/
+*.sbr
+obj/
+[Rr]elease*/
+_ReSharper*/
