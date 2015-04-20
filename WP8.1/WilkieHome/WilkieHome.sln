@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationsExtensions", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackgroundTask", "BackgroundTask\BackgroundTask.csproj", "{98C1786A-BC99-4DD3-86AA-14CE81E016D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "ClassLibrary1\Common.csproj", "{181E81D5-1713-466D-B7CD-DA2EC25A763B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,24 @@ Global
 		{98C1786A-BC99-4DD3-86AA-14CE81E016D2}.Release|x64.ActiveCfg = Release|Any CPU
 		{98C1786A-BC99-4DD3-86AA-14CE81E016D2}.Release|x86.ActiveCfg = Release|x86
 		{98C1786A-BC99-4DD3-86AA-14CE81E016D2}.Release|x86.Build.0 = Release|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|ARM.ActiveCfg = Debug|ARM
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|ARM.Build.0 = Debug|ARM
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|Win32.ActiveCfg = Debug|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|Win32.Build.0 = Debug|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|x86.ActiveCfg = Debug|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Debug|x86.Build.0 = Debug|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|ARM.ActiveCfg = Release|ARM
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|ARM.Build.0 = Release|ARM
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|Win32.ActiveCfg = Release|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|Win32.Build.0 = Release|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|x64.ActiveCfg = Release|Any CPU
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|x86.ActiveCfg = Release|x86
+		{181E81D5-1713-466D-B7CD-DA2EC25A763B}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -13,11 +13,11 @@ using System.Diagnostics;
 
 namespace WorkerRole1
 {
-    class Sensors
+    class Events
     {
         SqlConnection sqlConnection;
 
-        public Sensors()
+        public Events()
         {
             try
             {
@@ -31,29 +31,22 @@ namespace WorkerRole1
                 throw e;
             }
         }
-
-        public string GetLastSensor(int id)
+        public string GetEventList(char eventType, int id)
         {
-            return GetSensorList(id,1);
+            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata where eventcodetype = '{1}' and unitnum = {0} order by devicedatetime desc", id, eventType);
+            string eventJSon = SerializeSqlData(sqlCommand);
+            return eventJSon;
+        }
+        public string GetEventList(char eventType)
+        {
+            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata where eventcodetype = '{0}' order by devicedatetime desc", eventType);
+            string eventJSon = SerializeSqlData(sqlCommand);
+            return eventJSon;
         }
 
-        public string GetSensorList()
+        public string GetEventList()
         {
-            string sqlCommand = String.Format("select top {0} unitnum, vcc, temperature, intpinstate, devicedatetime from statedata order by devicedatetime desc", 10);
-            string sensorJSon = SerializeSqlData(sqlCommand);
-            return sensorJSon;
-        }
-
-        public string GetSensorList(int id,int rows)
-        {
-            string sqlCommand = String.Format("select top {1} unitnum, vcc, temperature, intpinstate, devicedatetime from statedata where unitnum = {0} order by devicedatetime desc", id, rows);
-            string sensorJSon = SerializeSqlData(sqlCommand);
-            return sensorJSon;
-        }
-
-        public string GetLastEvent(char eventType, int id)
-        {
-            string sqlCommand = String.Format("select top 1 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata where eventcodetype = '{1}' and unitnum = {0} order by devicedatetime desc", id, eventType);
+            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata order by devicedatetime desc");
             string eventJSon = SerializeSqlData(sqlCommand);
             return eventJSon;
         }

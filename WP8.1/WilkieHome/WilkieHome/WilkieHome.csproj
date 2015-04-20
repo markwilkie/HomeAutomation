@@ -42,7 +42,7 @@
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>full</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
@@ -84,6 +84,13 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Common\NavigationHelper.cs" />
+    <Compile Include="Common\ObservableDictionary.cs" />
+    <Compile Include="Common\RelayCommand.cs" />
+    <Compile Include="Common\SuspensionManager.cs" />
+    <Compile Include="DeviceDetail.xaml.cs">
+      <DependentUpon>DeviceDetail.xaml</DependentUpon>
+    </Compile>
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -118,6 +125,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="DeviceDetail.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -127,6 +138,10 @@
     <ProjectReference Include="..\BackgroundTask\BackgroundTask.csproj">
       <Project>{98c1786a-bc99-4dd3-86aa-14ce81e016d2}</Project>
       <Name>BackgroundTask</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ClassLibrary1\Common.csproj">
+      <Project>{181e81d5-1713-466d-b7cd-da2ec25a763b}</Project>
+      <Name>Common</Name>
     </ProjectReference>
     <ProjectReference Include="..\NotificationsExtensions\NotificationsExtensions.csproj">
       <Project>{6e87464b-b064-40ca-8161-7c18c337adff}</Project>

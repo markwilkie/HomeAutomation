@@ -8,7 +8,8 @@ namespace WorkerRole1
         public void Configuration(IAppBuilder app)
         {
             HttpConfiguration config = new HttpConfiguration();
-            config.Routes.MapHttpRoute("Default","{controller}/{action}/{id}",new { id = RouteParameter.Optional });
+            config.Routes.MapHttpRoute("SensorRoute", "Sensor/{action}/{id}/{rows}", new { controller = "Sensor", id = RouteParameter.Optional, rows = RouteParameter.Optional });
+            config.Routes.MapHttpRoute("EventRoute", "Event/{action}/{eventType}/{id}", new { controller = "Event", id = RouteParameter.Optional, eventType = RouteParameter.Optional });
 
             app.UseWebApi(config);
         }

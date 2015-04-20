@@ -16,6 +16,8 @@ using Newtonsoft.Json;
 using NotificationsExtensions.TileContent;
 using Windows.Storage;
 
+using Common;
+
 namespace BackgroundTask
 {
     public sealed class BackgroundTask : IBackgroundTask
@@ -26,6 +28,8 @@ namespace BackgroundTask
             // while asynchronous code is still running.
             BackgroundTaskDeferral deferral = taskInstance.GetDeferral();
 
+
+            /*
             //Get app data
             int chargeHours = 2; //default
             int checkHourStart = 21;//default
@@ -38,13 +42,23 @@ namespace BackgroundTask
                 checkHourStart = Convert.ToInt32(localSettings.Values["CheckHourStart"]);
             if (localSettings.Values.ContainsKey("CheckHourEnd"))
                 checkHourEnd = Convert.ToInt32(localSettings.Values["CheckHourEnd"]);
+             * */
 
-            var temperatureData = await CallWebAPI("http://sensors.cloudapp.net/Sensor/CurrentTemperature");
+            SensorData temperatureData = await CallSensorWebAPI("http://sensors.cloudapp.net/Sensor/LastSensor");
             if(temperatureData!=null)
             {
                 //Update tile
-                UpdateTile(temperatureData.Temperature.ToString(), temperatureData.DeviceDateTime);
+                UpdateTile(temperatureData.GetFormattedTemperature(), temperatureData.DeviceDateTime.ToString());
             }
+
+            /*
+            EventData eventData = await CallEventWebAPI("http://sensors.cloudapp.net/Event/LastEvent/O/2");
+            if (eventData != null)
+            {
+                //Update tile
+                UpdateTile2(eventData.EventCode, eventData.DeviceDateTime);
+            }
+             * */
 
             /*
             //check for last charge at a certain time
@@ -72,7 +86,7 @@ namespace BackgroundTask
             deferral.Complete();
         }
 
-        private async Task<SensorData> CallWebAPI(string uri)
+        private async Task<SensorData> CallSensorWebAPI(string uri)
         {
             SensorData data = null;
 
@@ -85,7 +99,28 @@ namespace BackgroundTask
             if (response.IsSuccessStatusCode)
             {
                 var responseText = await response.Content.ReadAsStringAsync();
-                data = JsonConvert.DeserializeObject<SensorData>(responseText);
+                List<SensorData> sensorDataList = JsonConvert.DeserializeObject<List<SensorData>>(responseText);
+                data = sensorDataList.First();
+            }
+
+            return data;
+        }
+
+        private async Task<EventData> CallEventWebAPI(string uri)
+        {
+            EventData data = null;
+
+            HttpClient client = new HttpClient();
+
+            client.BaseAddress = new Uri(uri);
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            var response = await client.GetAsync(uri);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseText = await response.Content.ReadAsStringAsync();
+                List<EventData> eventDataList = JsonConvert.DeserializeObject<List<EventData>>(responseText);
+                data = eventDataList.First();
             }
 
             return data;
@@ -95,7 +130,22 @@ namespace BackgroundTask
         {
             // Create a notification for the Square150x150 tile using one of the available templates for the size.
             ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
-            square150x150Content.TextHeading.Text = temperature+"°";
+            square150x150Content.TextHeading.Text = temperature;
+            square150x150Content.TextBody1.Text = datetime;
+
+            // Send the notification to the application? tile.
+            TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
+        }
+
+        private static void UpdateTile2(char EventCode, string datetime)
+        {
+            string doorStatus = "";
+            if (EventCode == 'C') doorStatus = "Closed";
+            if (EventCode == '-') doorStatus = "No Events";
+
+            // Create a notification for the Square150x150 tile using one of the available templates for the size.
+            ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
+            square150x150Content.TextHeading.Text = doorStatus;
             square150x150Content.TextBody1.Text = datetime;
 
             // Send the notification to the application? tile.
@@ -132,14 +182,5 @@ namespace BackgroundTask
             // Send the toast.
             ToastNotificationManager.CreateToastNotifier().Show(toast);
         }
-        class SensorData
-        {
-            public int UnitNum { get; set; }
-            public double VCC { get; set; }
-            public double Temperature { get; set; }
-            public int IntPinState { get; set; }
-            public string DeviceDateTime { get; set; }
-        }
-
     }
 }

@@ -20,6 +20,8 @@ using NotificationsExtensions.TileContent;
 using Windows.UI.Notifications;
 using Windows.Storage;
 
+using Common;
+
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
 
@@ -56,6 +58,7 @@ namespace WilkieHome
 
             //Get sensor data to seed values
             GetSensorData();
+            GetEventData();
         }
 
         private void Refresh_Button_Click(object sender, RoutedEventArgs e)
@@ -101,7 +104,8 @@ namespace WilkieHome
 
          private async void GetSensorData()
          {
-             string uri = "http://sensors.cloudapp.net/Sensor/CurrentTemperature/" + DeviceNumberTextBox.Text;
+            string uri = "http://sensors.cloudapp.net/Sensor/SensorList/" + DeviceNumberTextBox.Text + "/1";
+            //string uri = "http://localhost/Sensor/SensorList/" + DeviceNumberTextBox.Text;
             HttpClient client = new HttpClient();
 
             client.BaseAddress = new Uri(uri);
@@ -111,18 +115,20 @@ namespace WilkieHome
             if (response.IsSuccessStatusCode)
             {
                 var responseText = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<SensorData>(responseText);
-                DeviceDataTextBox.Text = data.Temperature.ToString() + "°";
-                DbDateTimeTextBox.Text = data.DeviceDateTime;
+                List<SensorData> sensorDataList = JsonConvert.DeserializeObject<List<SensorData>>(responseText);
+
+                DeviceDataTextBox.Text = sensorDataList.First().GetFormattedTemperature();
+                DbDateTimeTextBox.Text = sensorDataList.First().DeviceDateTime.ToString();
 
                 //Update tile
-                UpdateTile(data.Temperature.ToString(), data.DeviceDateTime);
+                UpdateTile(sensorDataList.First().GetFormattedTemperature(), sensorDataList.First().DeviceDateTime.ToString());
             }
          }
 
          private async void GetEventData()
          {
-             string uri = "http://sensors.cloudapp.net/Sensor/LastEvent/" + EventDeviceNumberTextBox.Text;
+             string uri = "http://sensors.cloudapp.net/Event/EventList/O/" + EventDeviceNumberTextBox.Text;
+             //string uri = "http://localhost/Event/EventList/O/" + EventDeviceNumberTextBox.Text;
              HttpClient client = new HttpClient();
 
              client.BaseAddress = new Uri(uri);
@@ -133,14 +139,13 @@ namespace WilkieHome
              {
 
                  var responseText = await response.Content.ReadAsStringAsync();
-                 var data = JsonConvert.DeserializeObject<EventData>(responseText);
-                 if (data.EventCodeType == 'O') DoorStatus.Text = "Open";
-                 if (data.EventCode == 'C') DoorStatus.Text = "Closed";
-                 if (data.EventCode == '-') DoorStatus.Text = "No Events";
-                 DoorStatusDate.Text = data.DeviceDateTime;
+                 List<EventData> eventDataList = JsonConvert.DeserializeObject<List<EventData>>(responseText);
+                 List<EventData> sortedEventDataList = eventDataList.OrderByDescending(x => x.DeviceDateTime).ToList();
 
-                 //Update tile
-                 //UpdateTile2(data.EventCode, data.DeviceDateTime);
+                 if (sortedEventDataList.First().EventCodeType == 'O') DoorStatus.Text = "Open";
+                 if (sortedEventDataList.First().EventCode == 'C') DoorStatus.Text = "Closed";
+                 if (sortedEventDataList.First().EventCode == '-') DoorStatus.Text = "No Events";
+                 DoorStatusDate.Text = sortedEventDataList.First().DeviceDateTime.ToString();
              }
          }
 
@@ -148,7 +153,7 @@ namespace WilkieHome
          {
              // Create a notification for the Square150x150 tile using one of the available templates for the size.
              ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
-             square150x150Content.TextHeading.Text = temperature + "°";
+             square150x150Content.TextHeading.Text = temperature;
              square150x150Content.TextBody1.Text = datetime;
 
              // Send the notification to the application? tile.
@@ -200,22 +205,5 @@ namespace WilkieHome
                  var registration = taskBuilder.Register();
              }
          }
-    }
-
-    class SensorData
-    {
-        public int UnitNum { get; set; }
-        public double VCC { get; set; }
-        public double Temperature { get; set; }
-        public int IntPinState { get; set; }
-        public string DeviceDateTime { get; set; }
-    }
-
-    class EventData
-    {
-        public int UnitNum { get; set; }
-        public char EventCodeType { get; set; }
-        public char EventCode { get; set; }
-        public string DeviceDateTime { get; set; }
     }
 }

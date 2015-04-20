@@ -4,7 +4,7 @@
     <DeviceId>30F105C9-681E-420b-A277-7C086EAD8A4E</DeviceId>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
-    <DeviceId>30F105C9-681E-420b-A277-7C086EAD8A4E</DeviceId>
+    <DeviceId>184901A8-DC44-4CED-869E-DC7733D048D6</DeviceId>
   </PropertyGroup>
   <PropertyGroup>
     <AppxPackageIsForStore>True</AppxPackageIsForStore>
