@@ -1,4 +1,3 @@
-
 itemsShown="both"; // [both,box,lid]
 boxLength=86;
 boxWidth=41;
@@ -71,11 +70,11 @@ module roundBoxLid(l=40,w=30,h=3,wt=2,t=2,et=0.5,r=5,notch=true){
 	translate ([l, 0, 0]) 
 	rotate (a = [0, 0, 180]) 
 	difference(){
-		round_cube(l=l-1,w=w,h=h,t=t,r=r);
+		round_cube(l=l-1-3,w=w,h=h,t=t,r=r);
 
-		translate ([-1, 0, et]) rotate (a = [45, 0, 0])  cube (size = [l+2, h*2, h*2]); 
-		translate ([-1, w, et]) rotate (a = [45, 0, 0])  cube (size = [l+2, h*2, h*2]); 
-		translate ([l-1, -1, et]) rotate (a = [45, 0, 90]) cube (size = [w+2, h*2, h*2]); 
+		translate ([-1, 0, et]) rotate (a = [45, 0, 0])  cube (size = [l+2-3, h*2, h*2]); 
+		translate ([-1, w, et]) rotate (a = [45, 0, 0])  cube (size = [l+2-3, h*2, h*2]); 
+		translate ([l-1-3, -1, et]) rotate (a = [45, 0, 90]) cube (size = [w+2, h*2, h*2]); 
 		if (notch==true){
 			translate([2,w/2,h+0.001]) thumbNotch(10/2,72,t);
 		}
