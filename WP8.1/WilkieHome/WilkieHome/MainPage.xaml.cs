@@ -118,6 +118,7 @@ namespace WilkieHome
                 List<SensorData> sensorDataList = JsonConvert.DeserializeObject<List<SensorData>>(responseText);
 
                 DeviceDataTextBox.Text = sensorDataList.First().GetFormattedTemperature();
+                VCCTextBox.Text = sensorDataList.First().VCC.ToString();
                 DbDateTimeTextBox.Text = sensorDataList.First().DeviceDateTime.ToString();
 
                 //Update tile
