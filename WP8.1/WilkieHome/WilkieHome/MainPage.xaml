@@ -14,20 +14,21 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <StackPanel  Orientation=  "Vertical" Margin="10,10,0,365">
+            <StackPanel x:Name="DevicePanel" Orientation=  "Vertical" Margin="10,10,0,365">
                 <TextBox x:Name="DeviceNumberTextBox" Text="0" InputScope="Number" Header="State Device #" Foreground="Black" FontSize="15" Margin="0,10,198.833,0" Height="54"/>
                 <StackPanel  Orientation=  "Horizontal" >
-                    <TextBox x:Name="DeviceDataTextBox" Text="{Binding DeviceData1}" Header="Temperature:" Foreground="Black" FontSize="15" Margin="0,10,10,0"  Height="54" Width="165"/>
+                    <TextBox x:Name="DeviceDataTextBox" Text="{Binding FormattedTemperature}" Header="Temperature:" Foreground="Black" FontSize="15" Margin="0,10,10,0"  Height="54" Width="165"/>
                     <TextBox x:Name="VCCTextBox" Text="{Binding VCC}" Header="Voltage:" FontSize="15" Margin="0,10,0,0" TextWrapping="Wrap"  Height="54" Width="165"/>
                 </StackPanel>
-                <TextBox x:Name="DbDateTimeTextBox" Text="{Binding DbDateTime}" Header="Date/Time" FontSize="15" Margin="0,10,198.833,0" TextWrapping="Wrap"  Height="54"/>
+                <TextBox x:Name="DbDateTimeTextBox" Text="{Binding DeviceDateTime}" Header="Date/Time" FontSize="15" Margin="0,10,198.833,0" TextWrapping="Wrap" Width="165"  Height="54"/>
             </StackPanel>
-            <StackPanel  Orientation=  "Vertical" Margin="10,275,0,36">
+            <StackPanel x:Name="EventPanel"  Orientation=  "Vertical" Margin="10,275,0,36">
                 <TextBox x:Name="EventDeviceNumberTextBox" Text="2" InputScope="Number" Header="Event Device #" Foreground="Black" FontSize="15" Margin="0,10,198.833,0" Height="54"/>
                 <StackPanel  Orientation=  "Horizontal" >
-                    <TextBox x:Name="DoorStatus" FontSize="15" Margin="0,0,10,0" Height="54" TextWrapping="Wrap" Header="Current Door Status" VerticalAlignment="Stretch" Width="165"/>
-                    <TextBox x:Name="DoorStatusDate" FontSize="15" Margin="0,0,10,0" Height="54" TextWrapping="Wrap" Header="Status Date" VerticalAlignment="Stretch" Width="165"/>
+                    <TextBox x:Name="DoorStatus" Text="{Binding FormattedEventCode}" FontSize="15" Margin="0,0,10,0" Height="54" TextWrapping="Wrap" Header="Current Door Status" VerticalAlignment="Stretch" Width="165"/>
+                    <TextBox x:Name="DoorStatusDate" Text="{Binding DeviceDateTime}" FontSize="15" Margin="0,0,10,0" Height="54" TextWrapping="Wrap" Header="Status Date" VerticalAlignment="Stretch" Width="165"/>
                 </StackPanel>
                 <Button Content="Refresh"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Refresh_Button_Click"/>
             </StackPanel>

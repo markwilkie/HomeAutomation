@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
@@ -14,13 +12,13 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
-using Newtonsoft.Json;
 using Windows.ApplicationModel.Background;
 using NotificationsExtensions.TileContent;
 using Windows.UI.Notifications;
 using Windows.Storage;
 
-using Common;
+using WilkieHome.Model;
+using WilkieHome.VM;
 
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
@@ -35,10 +33,12 @@ namespace WilkieHome
     {
         static string taskName = "BackgroundTask";
         static string taskNameSpace = "BackgroundTask";
+        private ViewModel vm;
 
         public MainPage()
         {
             this.InitializeComponent();
+            vm = new ViewModel();
 
             this.NavigationCacheMode = NavigationCacheMode.Required;
         }
@@ -48,7 +48,7 @@ namespace WilkieHome
         /// </summary>
         /// <param name="e">Event data that describes how this page was reached.
         /// This parameter is typically used to configure the page.</param>
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             //Grab application data
             GetAppData();
@@ -57,14 +57,26 @@ namespace WilkieHome
             this.RegisterBackgroundTask();
 
             //Get sensor data to seed values
-            GetSensorData();
-            GetEventData();
+            await vm.GetSensorData(DeviceNumberTextBox.Text);
+            await vm.GetEventData(EventDeviceNumberTextBox.Text);
+
+            //Set data context
+            //this.DataContext = from SensorData in vm.sensorDataList where SensorData.UnitNum >= 0 select SensorData;
+            DevicePanel.DataContext = vm.sensorData;
+            EventPanel.DataContext = vm.eventData;
         }
 
-        private void Refresh_Button_Click(object sender, RoutedEventArgs e)
+        private async void Refresh_Button_Click(object sender, RoutedEventArgs e)
         {
-            GetSensorData();
-            GetEventData();
+            await vm.GetSensorData(DeviceNumberTextBox.Text);
+            await vm.GetEventData(EventDeviceNumberTextBox.Text);
+
+            //Reset data context
+            DevicePanel.DataContext = vm.sensorData;
+            EventPanel.DataContext = vm.eventData;
+
+            //Update tile
+            UpdateTile(vm.sensorData.FormattedTemperature, vm.sensorData.DeviceDateTime.ToString());
         }
 
         private void GetAppData()
@@ -102,54 +114,6 @@ namespace WilkieHome
             this.RegisterBackgroundTask();
         }
 
-         private async void GetSensorData()
-         {
-            string uri = "http://sensors.cloudapp.net/Sensor/SensorList/" + DeviceNumberTextBox.Text + "/1";
-            //string uri = "http://localhost/Sensor/SensorList/" + DeviceNumberTextBox.Text;
-            HttpClient client = new HttpClient();
-
-            client.BaseAddress = new Uri(uri);
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            var response = await client.GetAsync(uri);
-            if (response.IsSuccessStatusCode)
-            {
-                var responseText = await response.Content.ReadAsStringAsync();
-                List<SensorData> sensorDataList = JsonConvert.DeserializeObject<List<SensorData>>(responseText);
-
-                DeviceDataTextBox.Text = sensorDataList.First().GetFormattedTemperature();
-                VCCTextBox.Text = sensorDataList.First().VCC.ToString();
-                DbDateTimeTextBox.Text = sensorDataList.First().DeviceDateTime.ToString();
-
-                //Update tile
-                UpdateTile(sensorDataList.First().GetFormattedTemperature(), sensorDataList.First().DeviceDateTime.ToString());
-            }
-         }
-
-         private async void GetEventData()
-         {
-             string uri = "http://sensors.cloudapp.net/Event/EventList/O/" + EventDeviceNumberTextBox.Text;
-             //string uri = "http://localhost/Event/EventList/O/" + EventDeviceNumberTextBox.Text;
-             HttpClient client = new HttpClient();
-
-             client.BaseAddress = new Uri(uri);
-             client.DefaultRequestHeaders.Accept.Clear();
-             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-             var response = await client.GetAsync(uri);
-             if (response.IsSuccessStatusCode)
-             {
-
-                 var responseText = await response.Content.ReadAsStringAsync();
-                 List<EventData> eventDataList = JsonConvert.DeserializeObject<List<EventData>>(responseText);
-                 List<EventData> sortedEventDataList = eventDataList.OrderByDescending(x => x.DeviceDateTime).ToList();
-
-                 if (sortedEventDataList.First().EventCodeType == 'O') DoorStatus.Text = "Open";
-                 if (sortedEventDataList.First().EventCode == 'C') DoorStatus.Text = "Closed";
-                 if (sortedEventDataList.First().EventCode == '-') DoorStatus.Text = "No Events";
-                 DoorStatusDate.Text = sortedEventDataList.First().DeviceDateTime.ToString();
-             }
-         }
-
          private static void UpdateTile(string temperature,string datetime)
          {
              // Create a notification for the Square150x150 tile using one of the available templates for the size.
@@ -176,7 +140,6 @@ namespace WilkieHome
              // Send the notification to the application? tile.
              TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
          }
-
          private async void RegisterBackgroundTask()
          {
              uint minuteIncrements=15;  //default

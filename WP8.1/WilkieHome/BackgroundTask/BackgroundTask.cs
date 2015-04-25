@@ -16,12 +16,19 @@ using Newtonsoft.Json;
 using NotificationsExtensions.TileContent;
 using Windows.Storage;
 
-using Common;
+using WilkieHome.Model;
+using WilkieHome.VM;
 
 namespace BackgroundTask
 {
     public sealed class BackgroundTask : IBackgroundTask
     {
+        private ViewModel vm;
+
+        public BackgroundTask()
+        {
+            vm = new ViewModel();
+        }
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
             // Get a deferral, to prevent the task from closing prematurely 
@@ -44,11 +51,11 @@ namespace BackgroundTask
                 checkHourEnd = Convert.ToInt32(localSettings.Values["CheckHourEnd"]);
              * */
 
-            SensorData temperatureData = await CallSensorWebAPI("http://sensors.cloudapp.net/Sensor/LastSensor");
-            if(temperatureData!=null)
+            SensorData sensorData = vm.GetLastSensorRead();
+            if (sensorData != null)
             {
                 //Update tile
-                UpdateTile(temperatureData.GetFormattedTemperature(), temperatureData.DeviceDateTime.ToString());
+                UpdateTile(sensorData.FormattedTemperature, sensorData.DeviceDateTime.ToString());
             }
 
             /*
@@ -84,46 +91,6 @@ namespace BackgroundTask
 
             // Inform the system that the task is finished.
             deferral.Complete();
-        }
-
-        private async Task<SensorData> CallSensorWebAPI(string uri)
-        {
-            SensorData data = null;
-
-            HttpClient client = new HttpClient();
-
-            client.BaseAddress = new Uri(uri);
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            var response = await client.GetAsync(uri);
-            if (response.IsSuccessStatusCode)
-            {
-                var responseText = await response.Content.ReadAsStringAsync();
-                List<SensorData> sensorDataList = JsonConvert.DeserializeObject<List<SensorData>>(responseText);
-                data = sensorDataList.First();
-            }
-
-            return data;
-        }
-
-        private async Task<EventData> CallEventWebAPI(string uri)
-        {
-            EventData data = null;
-
-            HttpClient client = new HttpClient();
-
-            client.BaseAddress = new Uri(uri);
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            var response = await client.GetAsync(uri);
-            if (response.IsSuccessStatusCode)
-            {
-                var responseText = await response.Content.ReadAsStringAsync();
-                List<EventData> eventDataList = JsonConvert.DeserializeObject<List<EventData>>(responseText);
-                data = eventDataList.First();
-            }
-
-            return data;
         }
 
         private static void UpdateTile(string temperature,string datetime)

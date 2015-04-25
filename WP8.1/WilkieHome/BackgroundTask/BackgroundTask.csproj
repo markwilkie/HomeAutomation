@@ -91,9 +91,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ClassLibrary1\Common.csproj">
+    <ProjectReference Include="..\ModelViewModel\ModelViewModel.csproj">
       <Project>{181e81d5-1713-466d-b7cd-da2ec25a763b}</Project>
-      <Name>Common</Name>
+      <Name>ModelViewModel</Name>
     </ProjectReference>
     <ProjectReference Include="..\NotificationsExtensions\NotificationsExtensions.csproj">
       <Project>{6e87464b-b064-40ca-8161-7c18c337adff}</Project>
