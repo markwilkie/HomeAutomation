@@ -82,5 +82,13 @@ namespace WilkieHome.VM
              eventData = eventDataList.First();
              return eventDataList;
          }
+
+         public EventData GetLastEvent()
+         {
+             if (eventDataList != null)
+                 return eventDataList.First();
+             else
+                 return null;
+         }
     }
 }

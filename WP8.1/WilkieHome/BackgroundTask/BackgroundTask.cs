@@ -51,11 +51,14 @@ namespace BackgroundTask
                 checkHourEnd = Convert.ToInt32(localSettings.Values["CheckHourEnd"]);
              * */
 
+            await vm.GetSensorData("0");
+            await vm.GetEventData("2","O");
             SensorData sensorData = vm.GetLastSensorRead();
+            EventData eventData = vm.GetLastEvent();
             if (sensorData != null)
             {
                 //Update tile
-                UpdateTile(sensorData.FormattedTemperature, sensorData.DeviceDateTime.ToString());
+                UpdateTile(sensorData.FormattedTemperature, sensorData.DeviceDateTime.ToString(),eventData.FormattedEventCode,eventData.DeviceDateTime.ToString());
             }
 
             /*
@@ -93,27 +96,23 @@ namespace BackgroundTask
             deferral.Complete();
         }
 
-        private static void UpdateTile(string temperature,string datetime)
+        private static void UpdateTile(string temperature,string sensorDatetime,string eventCode,string eventDateTime)
         {
+            TileUpdateManager.CreateTileUpdaterForApplication().Clear();
+            TileUpdateManager.CreateTileUpdaterForApplication().EnableNotificationQueue(true);
+
             // Create a notification for the Square150x150 tile using one of the available templates for the size.
             ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
             square150x150Content.TextHeading.Text = temperature;
-            square150x150Content.TextBody1.Text = datetime;
+            square150x150Content.TextBody1.Text = sensorDatetime;
 
             // Send the notification to the application? tile.
             TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
-        }
-
-        private static void UpdateTile2(char EventCode, string datetime)
-        {
-            string doorStatus = "";
-            if (EventCode == 'C') doorStatus = "Closed";
-            if (EventCode == '-') doorStatus = "No Events";
 
             // Create a notification for the Square150x150 tile using one of the available templates for the size.
-            ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
-            square150x150Content.TextHeading.Text = doorStatus;
-            square150x150Content.TextBody1.Text = datetime;
+            //square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
+            square150x150Content.TextHeading.Text = eventCode;
+            square150x150Content.TextBody1.Text = eventDateTime;
 
             // Send the notification to the application? tile.
             TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());

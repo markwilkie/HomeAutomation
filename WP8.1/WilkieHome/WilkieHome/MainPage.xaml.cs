@@ -32,7 +32,7 @@ namespace WilkieHome
     public sealed partial class MainPage : Page
     {
         static string taskName = "BackgroundTask";
-        static string taskNameSpace = "BackgroundTask";
+        static string taskNameSpace = "BackgroundTask"; 
         private ViewModel vm;
 
         public MainPage()
@@ -41,6 +41,9 @@ namespace WilkieHome
             vm = new ViewModel();
 
             this.NavigationCacheMode = NavigationCacheMode.Required;
+
+            //Register background task
+            this.RegisterBackgroundTask();
         }
 
         /// <summary>
@@ -70,6 +73,36 @@ namespace WilkieHome
         {
             EventData eventData = e.ClickedItem as EventData;
             Frame.Navigate(typeof(DetailPage), eventData);
+        }
+
+        private async void RegisterBackgroundTask()
+        {
+            uint minuteIncrements = 15;  //default
+
+            //Grab increments from isolated storage
+            var localSettings = ApplicationData.Current.LocalSettings;
+            if (localSettings.Values.ContainsKey("MinuteIncrements"))
+                minuteIncrements = Convert.ToUInt16(localSettings.Values["MinuteIncrements"]);
+
+            //Setup background task
+            var backgroundAccessStatus = await BackgroundExecutionManager.RequestAccessAsync();
+            if (backgroundAccessStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
+                backgroundAccessStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
+            {
+                foreach (var task in BackgroundTaskRegistration.AllTasks)
+                {
+                    if (task.Value.Name == taskName)
+                    {
+                        task.Value.Unregister(true);
+                    }
+                }
+
+                BackgroundTaskBuilder taskBuilder = new BackgroundTaskBuilder();
+                taskBuilder.Name = taskName;
+                taskBuilder.TaskEntryPoint = taskName + "." + taskNameSpace;
+                taskBuilder.SetTrigger(new TimeTrigger(minuteIncrements, false));
+                var registration = taskBuilder.Register();
+            }
         }
     }
 }
