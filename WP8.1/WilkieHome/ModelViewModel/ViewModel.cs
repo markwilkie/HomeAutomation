@@ -18,10 +18,17 @@ namespace WilkieHome.VM
         public SensorData sensorData { get; set; }
         public EventData eventData { get; set; }
 
-
+        public async Task<List<SensorData>> GetSensorData()
+        {
+            return await GetSensorData(null);
+        }
          public async Task<List<SensorData>> GetSensorData(string deviceNumber)
          {
-             string uri = "http://sensors.cloudapp.net/Sensor/SensorList/" + deviceNumber;// +"/1";
+             string uri = "http://sensors.cloudapp.net/Sensor/SensorList/";
+             if (deviceNumber != null)
+             {
+                 uri = uri + deviceNumber;
+             }
 
             HttpClient client = new HttpClient();
 
@@ -47,9 +54,17 @@ namespace WilkieHome.VM
                  return null;
          }
 
-         public async Task<List<EventData>> GetEventData(string deviceNumber)
+         public async Task<List<EventData>> GetEventData()
          {
-             string uri = "http://sensors.cloudapp.net/Event/EventList/O/" + deviceNumber;
+             return await GetEventData(null,null);
+         }
+         public async Task<List<EventData>> GetEventData(string deviceNumber,string eventType)
+         {
+             string uri = "http://sensors.cloudapp.net/Event/EventList/";
+             if (eventType != null && deviceNumber != null)
+             {
+                 uri = uri + eventType + "/" + deviceNumber; ;
+             } 
              HttpClient client = new HttpClient();
 
              client.BaseAddress = new Uri(uri);

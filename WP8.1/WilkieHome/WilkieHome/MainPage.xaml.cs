@@ -50,124 +50,26 @@ namespace WilkieHome
         /// This parameter is typically used to configure the page.</param>
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            //Grab application data
-            GetAppData();
-
-            //Register background task
-            this.RegisterBackgroundTask();
-
             //Get sensor data to seed values
-            await vm.GetSensorData(DeviceNumberTextBox.Text);
-            await vm.GetEventData(EventDeviceNumberTextBox.Text);
+            await vm.GetSensorData();
+            await vm.GetEventData();
 
             //Set data context
             //this.DataContext = from SensorData in vm.sensorDataList where SensorData.UnitNum >= 0 select SensorData;
-            DevicePanel.DataContext = vm.sensorData;
-            EventPanel.DataContext = vm.eventData;
+            SensorList.DataContext = vm.sensorDataList;
+            EventList.DataContext = vm.eventDataList;
         }
 
-        private async void Refresh_Button_Click(object sender, RoutedEventArgs e)
+        private void SensorList_ItemClick(object sender, ItemClickEventArgs e)
         {
-            await vm.GetSensorData(DeviceNumberTextBox.Text);
-            await vm.GetEventData(EventDeviceNumberTextBox.Text);
-
-            //Reset data context
-            DevicePanel.DataContext = vm.sensorData;
-            EventPanel.DataContext = vm.eventData;
-
-            //Update tile
-            UpdateTile(vm.sensorData.FormattedTemperature, vm.sensorData.DeviceDateTime.ToString());
+            SensorData sensorData = e.ClickedItem as SensorData;
+            Frame.Navigate(typeof(DetailPage),sensorData);
         }
 
-        private void GetAppData()
+        private void EventList_ItemClick(object sender, ItemClickEventArgs e)
         {
-            Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            if (localSettings.Values.ContainsKey("MinuteIncrements"))
-            {
-                BGMinutes.Text = (string)localSettings.Values["MinuteIncrements"];
-            }
-            /*
-            if (localSettings.Values.ContainsKey("ChargeHours"))
-            {
-                ChargeHours.Text = (string)localSettings.Values["ChargeHours"];
-            }
-            if (localSettings.Values.ContainsKey("CheckHourStart"))
-            {
-                CheckHourStart.Text = (string)localSettings.Values["CheckHourStart"];
-            }
-            if (localSettings.Values.ContainsKey("CheckHourEnd"))
-            {
-                CheckHourEnd.Text = (string)localSettings.Values["CheckHourEnd"];
-            }
-             * */
+            EventData eventData = e.ClickedItem as EventData;
+            Frame.Navigate(typeof(DetailPage), eventData);
         }
-
-        private void Save_Settings_Button_Click(object sender, RoutedEventArgs e)
-        {
-            //Set settings
-            Windows.Storage.ApplicationDataContainer localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            localSettings.Values["MinuteIncrements"] = BGMinutes.Text;
-            //localSettings.Values["CheckHourStart"] = CheckHourStart.Text;
-            //localSettings.Values["CheckHourEnd"] = CheckHourEnd.Text;
-
-            //Re-register b/g tasks
-            this.RegisterBackgroundTask();
-        }
-
-         private static void UpdateTile(string temperature,string datetime)
-         {
-             // Create a notification for the Square150x150 tile using one of the available templates for the size.
-             ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
-             square150x150Content.TextHeading.Text = temperature;
-             square150x150Content.TextBody1.Text = datetime;
-
-             // Send the notification to the application? tile.
-             TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
-         }
-
-         private static void UpdateTile2(char EventCode, string datetime)
-         {
-             string doorStatus="";
-             if (EventCode == 'O') doorStatus = "Open";
-             if (EventCode == 'C') doorStatus = "Closed";
-             if (EventCode == '-') doorStatus = "No Events";
-       
-             // Create a notification for the Square150x150 tile using one of the available templates for the size.
-             ITileSquare150x150Text01 square150x150Content = TileContentFactory.CreateTileSquare150x150Text01();
-             square150x150Content.TextHeading.Text = doorStatus;
-             square150x150Content.TextBody1.Text = datetime;
-
-             // Send the notification to the application? tile.
-             TileUpdateManager.CreateTileUpdaterForApplication().Update(square150x150Content.CreateNotification());
-         }
-         private async void RegisterBackgroundTask()
-         {
-             uint minuteIncrements=15;  //default
-
-            //Grab increments from isolated storage
-            var localSettings = ApplicationData.Current.LocalSettings;
-            if (localSettings.Values.ContainsKey("MinuteIncrements"))
-                minuteIncrements = Convert.ToUInt16(localSettings.Values["MinuteIncrements"]);
-
-             //Setup background task
-             var backgroundAccessStatus = await BackgroundExecutionManager.RequestAccessAsync();
-             if (backgroundAccessStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
-                 backgroundAccessStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
-             {
-                 foreach (var task in BackgroundTaskRegistration.AllTasks)
-                 {
-                     if (task.Value.Name == taskName)
-                     {
-                         task.Value.Unregister(true);
-                     }
-                 }
-
-                 BackgroundTaskBuilder taskBuilder = new BackgroundTaskBuilder();
-                 taskBuilder.Name = taskName;
-                 taskBuilder.TaskEntryPoint = taskName+"."+taskNameSpace;
-                 taskBuilder.SetTrigger(new TimeTrigger(minuteIncrements, false));
-                 var registration = taskBuilder.Register();
-             }
-         }
     }
 }

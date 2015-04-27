@@ -33,8 +33,9 @@ namespace WilkieHome.Model
 
         private string GetFormattedEventCodeType()
         {
-            string typeText = "na";
-            if (EventCodeType == 'O') typeText = "Open";
+            string typeText = EventCodeType.ToString();
+            if (EventCodeType == 'O') typeText = "Door";
+            if (EventCodeType == 'M') typeText = "Motion";
 
             return typeText;
 
@@ -42,9 +43,10 @@ namespace WilkieHome.Model
 
         private string GetFormattedEventCode()
         {
-            string statusText = "na";
+            string statusText = EventCode.ToString();
             if (EventCode == 'C') statusText = "Closed";
             if (EventCode == '-') statusText = "No Events";
+            if (EventCode == 'D') statusText = "Detected";
 
             return statusText;
         }

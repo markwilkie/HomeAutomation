@@ -7,36 +7,159 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
+    
+    
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="300"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <Grid x:Name="ListViewSensorHeaders" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="30"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="165"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="20"/>
+            </Grid.RowDefinitions>
 
-        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <StackPanel x:Name="DevicePanel" Orientation=  "Vertical" Margin="10,10,0,365">
-                <TextBox x:Name="DeviceNumberTextBox" Text="0" InputScope="Number" Header="State Device #" Foreground="Black" FontSize="15" Margin="0,10,198.833,0" Height="54"/>
-                <StackPanel  Orientation=  "Horizontal" >
-                    <TextBox x:Name="DeviceDataTextBox" Text="{Binding FormattedTemperature}" Header="Temperature:" Foreground="Black" FontSize="15" Margin="0,10,10,0"  Height="54" Width="165"/>
-                    <TextBox x:Name="VCCTextBox" Text="{Binding VCC}" Header="Voltage:" FontSize="15" Margin="0,10,0,0" TextWrapping="Wrap"  Height="54" Width="165"/>
-                </StackPanel>
-                <TextBox x:Name="DbDateTimeTextBox" Text="{Binding DeviceDateTime}" Header="Date/Time" FontSize="15" Margin="0,10,198.833,0" TextWrapping="Wrap" Width="165"  Height="54"/>
-            </StackPanel>
-            <StackPanel x:Name="EventPanel"  Orientation=  "Vertical" Margin="10,275,0,36">
-                <TextBox x:Name="EventDeviceNumberTextBox" Text="2" InputScope="Number" Header="Event Device #" Foreground="Black" FontSize="15" Margin="0,10,198.833,0" Height="54"/>
-                <StackPanel  Orientation=  "Horizontal" >
-                    <TextBox x:Name="DoorStatus" Text="{Binding FormattedEventCode}" FontSize="15" Margin="0,0,10,0" Height="54" TextWrapping="Wrap" Header="Current Door Status" VerticalAlignment="Stretch" Width="165"/>
-                    <TextBox x:Name="DoorStatusDate" Text="{Binding DeviceDateTime}" FontSize="15" Margin="0,0,10,0" Height="54" TextWrapping="Wrap" Header="Status Date" VerticalAlignment="Stretch" Width="165"/>
-                </StackPanel>
-                <Button Content="Refresh"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Refresh_Button_Click"/>
-            </StackPanel>
-            <StackPanel  Orientation=  "Vertical" Margin="10,453,0,36">
-                <TextBox x:Name="BGMinutes" Margin="0,0,190,0" TextWrapping="Wrap" Header="B/G Increment (minutes)" InputScope="Number" VerticalAlignment="Stretch"/>
-                <Button Content="Save Settings"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Save_Settings_Button_Click"/>
-            </StackPanel>
+            <TextBlock 
+                                Text="#"
+                                Grid.Column="0"
+                                Margin="10,0,0,0"
+                                FontSize="15"/>
+            <TextBlock 
+                                Text="VCC"
+                                Grid.Column="1"
+                                FontSize="15"/>
+            <TextBlock
+                                Text="Temp"
+                                Grid.Column="2"
+                                FontSize="15"/>
+            <TextBlock
+                                Text="Date"
+                                Grid.Column="3"
+                                FontSize="15"/>
         </Grid>
+
+        <ListView x:Name="SensorList" Grid.Row="0" Grid.Column="0" 
+                            ItemsSource="{Binding}"
+                            IsItemClickEnabled="True"
+                            ItemClick="SensorList_ItemClick" Margin="0,30,0,22"  >
+
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="165"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock 
+                                Text="{Binding UnitNum}"
+                                Grid.Column="0"
+                                Margin="10,0,0,0"
+                                FontSize="15"
+                                TextWrapping="Wrap"/>
+                        <TextBlock 
+                                Text="{Binding VCC}"
+                                Grid.Column="1"
+                                FontSize="15"
+                                TextWrapping="Wrap"/>
+                        <TextBlock
+                                Text="{Binding FormattedTemperature}"
+                                Grid.Column="2"
+                                FontSize="15"
+                                TextWrapping="Wrap"/>
+                        <TextBlock
+                                Text="{Binding DeviceDateTime}"
+                                Grid.Column="3"
+                                FontSize="15"
+                                TextWrapping="Wrap"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <Grid x:Name="ListViewEventHeaders" Grid.Row="1"  >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="30"/>
+                <ColumnDefinition Width="70"/>
+                <ColumnDefinition Width="70"/>
+                <ColumnDefinition Width="165"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="20"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock 
+                                Text="#"
+                                Grid.Column="0"
+                                Margin="10,0,0,0"
+                                FontSize="15"/>
+            <TextBlock 
+                                Text="Type"
+                                Grid.Column="1"
+                                FontSize="15"/>
+            <TextBlock 
+                                Text="Event"
+                                Grid.Column="2"
+                                FontSize="15"/>
+            <TextBlock
+                                Text="Date"
+                                Grid.Column="3"
+                                FontSize="15"/>
+        </Grid>
+
+        <ListView x:Name="EventList" Grid.Row="1" Grid.Column="0" 
+                            ItemsSource="{Binding}"
+                            IsItemClickEnabled="True"
+                            ItemClick="EventList_ItemClick" Margin="0,36,0,0"  >
+
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="165"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="20"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock 
+                                Text="{Binding UnitNum}"
+                                Grid.Column="0"
+                                Margin="10,0,0,0"
+                                FontSize="15"/>
+                        <TextBlock 
+                                Text="{Binding FormattedEventCodeType}"
+                                Grid.Column="1"
+                                FontSize="15"/>
+                        <TextBlock 
+                                Text="{Binding FormattedEventCode}"
+                                Grid.Column="2"
+                                FontSize="15"/>
+                        <TextBlock
+                                Text="{Binding DeviceDateTime}"
+                                Grid.Column="3"
+                                FontSize="15"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+
     </Grid>
 </Page>
 
