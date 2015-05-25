@@ -18,7 +18,8 @@
 //
 int sleep_cycles_remaining; //var tracking how many sleep cycles we've been through
 boolean enableInterruptFlag;  //Turn off/on interruptsn - used to for not having interrupts trigger over and over
-int interruptType=-1; //Set to 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
+int interruptType; //Will be set to 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
+boolean sentSinceTimerFlag=false;  //Used to determine if we need to send again
 
 //
 // Definitions
@@ -47,15 +48,15 @@ void setup()
     setup_watchdog(wdt_8s); //wdt_8s
     
     //Setup pins
-    pinMode(LED_PIN, OUTPUT);  
+    pinMode(LED_PIN, OUTPUT); 
+    #ifdef INTERRUPTPIN
     pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
-    pinMode(REEDPIN, OUTPUT);
+    #endif 
     
-    //Power reed if turned on
-    if(TRIGGERTYPE != 0)  
-    {
-      digitalWrite(REEDPIN, HIGH);
-    }
+    #ifdef REEDPIN
+    pinMode(REEDPIN, OUTPUT);
+    digitalWrite(REEDPIN, HIGH);      //Power reed if turned on
+    #endif
     
     //Send context for PI to use upon reset or startup
     digitalWrite(LED_PIN, HIGH);   
@@ -75,27 +76,55 @@ void loop()
    if(interruptType == 2)
      Serial.println("interrupt reset");    
      
+   //Reset flag if timer dings
+   if(interruptType == 0)
+     sentSinceTimerFlag=false;
+     
    //Send Event if necessary
-   if(interruptType>0) //woken up based on interrupt
+   if(interruptType>0 && (SENDFREQ || !sentSinceTimerFlag)) //woken up based on interrupt
    {
-     digitalWrite(LED_PIN, HIGH);   
-     if(interruptType == 1) 
-       buildEventPayload('O','O'); //opening changed, Opened
-     if(interruptType == 2)
-       buildEventPayload('O','C'); //opening changed, Closed
-
+     digitalWrite(LED_PIN, HIGH);
+     
+     if(EVENTTYPE==1)
+       buildEventPayload('M','D'); //motion detected, motion detected
+  
+     if(EVENTTYPE==0)
+     {
+       if(interruptType == 1) 
+         buildEventPayload('O','O'); //opening changed, Opened
+       if(interruptType == 2)
+         buildEventPayload('O','C'); //opening changed, Closed
+     }
+     
+     Serial.println("Sending Event");
+     sentSinceTimerFlag=true;
      radioSend(eventData); //Send event payload
+
      digitalWrite(LED_PIN, LOW);
    }
    
-   //Gather and send State.  We do this everytime
-   digitalWrite(LED_PIN, HIGH);
-   float vcc = readVcc(); //Read voltage (battery monitoring)
-   float temperature = readTemp(THERMISTORPIN);  //Read temperature sensor
-   byte interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
-   buildStatePayload(vcc,temperature,interruptPinState); //build state payload
-   radioSend(stateData); //Send state payload
-   digitalWrite(LED_PIN, LOW);
+   //Only send state on timer, not interrupt
+   if(interruptType==0)
+   {
+     float temperature;
+     byte interruptPinState;
+     
+     //Gather and send State.  We do this everytime
+     digitalWrite(LED_PIN, HIGH);
+     float vcc = readVcc(); //Read voltage (battery monitoring)
+     #ifdef THERMISTORPIN
+     temperature = readTemp(THERMISTORPIN);  //Read temperature sensor
+     #endif
+     #ifdef INTERRUPTPIN
+     interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
+     #endif
+  
+     Serial.println("Sending State");   
+     buildStatePayload(vcc,temperature,interruptPinState); //build state payload
+     radioSend(stateData); //Send state payload
+     
+     digitalWrite(LED_PIN, LOW);
+   }
 
    //Go to low power state and wait for timer and/or interrupt
    sleep();
@@ -194,7 +223,9 @@ float readVcc()
   return result/1000.0;
 }
 
+
 //Read Temperature
+#ifdef THERMISTORPIN
 float readTemp(int samplePin)
 {
   uint8_t i;
@@ -231,6 +262,7 @@ float readTemp(int samplePin)
   //Convert to F and return
   return steinhart*(9.0/5.0)+32.0;;
 }
+#endif
 
 //Send raw payload
 void radioSend(byte *payload)
@@ -313,20 +345,30 @@ ISR(WDT_vect)
 void sleep()
 {
    //reset flags
-   enableInterruptFlag=true;
+   //enableInterruptFlag=true;
    interruptType=-1;
   
    //track state change
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
    
-   sleep_cycles_remaining=SLEEPCYCLES; //setup how cycles
+   //Reset cycles if necessary
+   if(sleep_cycles_remaining == 0)
+   {
+     sleep_cycles_remaining=SLEEPCYCLES; //setup how cycles
+   }
+   
+   //Loop for sleep cycles
    while(sleep_cycles_remaining)
    {
      sleepNow(); //Remember, this will only seep for 8 seconds
      delay(50);  //again, this seems to be needed for stability - not entirely sure why
      
-     //Set interrupt type as timer, knowing that pin interrupt will override if necessary
-     interruptType=0;
+     //Check if timer.  If so, set type to 0 and return
+     if(sleep_cycles_remaining == 0)
+     {
+       interruptType=0;
+       break;
+     }
      
      //Check if we got woken up because of an interrupt before looping again
      if(TRIGGERTYPE != 0)
@@ -341,7 +383,7 @@ void sleep()
            enableInterruptFlag=true;  //turn back on interrupt for next time
          
          lastPinState=pinState;
-         if(pinState == OPENSTATE)
+         if(pinState == LOW)  //must be LOW to trip interrupt
          {
              interruptType=1; //"open" event trigger interrupt
              break; //let's get out of the sleep cycle loop

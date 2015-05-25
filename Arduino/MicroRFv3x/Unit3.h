@@ -3,14 +3,15 @@
 // 0-Outside
 // 1-Inside
 // 2-Garage
-#define UNITNUM 1   //This one will need to change for each physical Arduino
+// 3-Motion dectector (X10)
+#define UNITNUM 3   //This one will need to change for each physical Arduino
 
 //
 // Pin Assignments
 //
-#define LED_PIN 4     // LED pin (turns on when reading/transmitting)
-#define THERMISTORPIN A1  // which analog pin for reading thermistor
-#define REEDPIN 3  // which pin powers the reed switch (don't define if you don't want to use reed)
+#define LED_PIN 13    // LED pin (turns on when reading/transmitting)
+//#define THERMISTORPIN A1  // which analog pin for reading thermistor
+//#define REEDPIN 3  // which pin powers the reed switch 
 #define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
 #define INTERRUPTNUM 0 //Interrupt number  (make sure matches interrupt pin)
 
@@ -28,9 +29,9 @@
 // Config
 //
 #define SLEEPCYCLES 75  //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
-#define TRIGGERTYPE 0   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
-#define SENDFREQ 1      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
-#define EVENTTYPE 0     //O-opening, 1-motion
+#define TRIGGERTYPE 2   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
+#define SENDFREQ 0      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
+#define EVENTTYPE 1     //O-opening, 1-motion
 
 //
 // Termistor setup

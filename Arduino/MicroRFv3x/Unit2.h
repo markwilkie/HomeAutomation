@@ -29,8 +29,8 @@
 //
 #define SLEEPCYCLES 75  //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
 #define TRIGGERTYPE 1   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
-#define OPENSTATE LOW   //set pin (interrupt) state for what defines "open".  LOW is triggered   (only looked at if TRIGGERTYPE is non zero)
-#define OPENINGTYPE 3   //0-not an opening, 1-generic door, 2-window, 3-garage door
+#define SENDFREQ 1      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
+#define EVENTTYPE 0     //O-opening, 1-motion
 
 //
 // Termistor setup
