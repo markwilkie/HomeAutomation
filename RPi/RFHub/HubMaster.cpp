@@ -18,6 +18,7 @@ void buildPipeFour();
 void buildPipeFive();
 int createAndPostData(char *authHeader);
 void timeStamp(FILE *file);
+long getLocalEpoch();
 void flushFileHandles();
 
 // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
@@ -60,7 +61,6 @@ int main()
     radio.begin();
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
     radio.enableAckPayload();               // Allow optional ack payloads
-    radio.enableDynamicPayloads();
     radio.setRetries(15,15);                // Smallest time between retries, max no. of retries
     radio.enableDynamicPayloads();          // Read size off chip
     radio.printDetails();                   // Dump the configuration of the rf unit for debugging
@@ -122,6 +122,15 @@ void timeStamp(FILE *file)
     time[(strlen(time))-1]=0;
     fprintf(file,"Mem:%lu %s: ",memInfo.ru_maxrss,time);
     fflush(file);  
+}
+
+long getLocalEpoch()
+{
+  time_t t = time(NULL);
+  struct tm lt = {0};
+  localtime_r(&t, &lt);
+
+  return (t+lt.tm_gmtoff);
 }
 
 void flushFileHandles()
@@ -187,7 +196,7 @@ int createAndPostData(char *authHeader)
 //Build post message for pipe 1
 void buildPipeOne()
 {
-	time_t seconds_past_epoch = time(0);
+	time_t seconds_past_epoch = getLocalEpoch();
        uint8_t addr;
 	float reading;
 
@@ -208,11 +217,11 @@ void buildPipeTwo()
 	//
 	// 1 byte:  unit number (uint8)
 	// 1 byte:  Payload type (S=state, C=context, E=event  
-	// 1 byte:  eventCodeType (O-opening change)
-	// 1 byte:  eventCode (O-opened, C-closed)
+	// 1 byte:  eventCodeType (O-opening change, M-Motion detected)
+	// 1 byte:  eventCode (O-opened, C-closed, D-detection)
 	//
 
-	time_t seconds_past_epoch = time(0);
+	time_t seconds_past_epoch = getLocalEpoch();
        char eventCodeType,eventCode;
        int unitNum;
 
@@ -226,9 +235,10 @@ void buildPipeTwo()
 	  sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, eventCodeType, eventCode, seconds_past_epoch);
 	  fprintf(logFile, "%c",eventCode);  //Small indication for log file
        }
-       else  //legacy
+       else  //legacy, which in this case is motion
        {
-	  sprintf(postData, "{'DeviceName':'%s','DeviceDate':'%ld','DeviceData1':'0'}", "Motion", seconds_past_epoch);
+	  //sprintf(postData, "{'DeviceName':'%s','DeviceDate':'%ld','DeviceData1':'0'}", "Motion", seconds_past_epoch);
+         sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, 'M', 'D', seconds_past_epoch);
 	  fprintf(logFile, "|");  //Small indication for log file
        }
 
@@ -239,15 +249,19 @@ void buildPipeTwo()
 //Build post message for pipe 3  (legacy)
 void buildPipeThree()
 {
-	time_t seconds_past_epoch = time(0);
+	time_t seconds_past_epoch = getLocalEpoch();
 	uint8_t thermNum;
 	float reading;
 
 	thermNum = bytesRecv[0];
 	memcpy(&reading, &bytesRecv[1], 4);
 
+       //Convert to F (legacy only)
+       reading = ((9.0/5.0) * reading) + 32;
+
 	//fprintf(logFile,"Len: %d Addr: %d  Reading: %f OpenFlag: %d \n",lastPayloadLen,thermNum,reading,doorOpenFlag);
-	sprintf(postData, "{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}", thermNum, seconds_past_epoch, reading);
+	//sprintf(postData, "{'DeviceName':'Therm%d','DeviceDate':'%ld','DeviceData1':'%f'}", thermNum, seconds_past_epoch, reading);
+       sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','Temperature':'%f','DeviceDate':'%ld'}", "STATE", thermNum, reading, seconds_past_epoch);
 
 	fprintf(logFile, "*");  //Small indication for log file
 	fflush(logFile);
@@ -279,7 +293,7 @@ void buildPipeFour()
 	//
 
 	float vcc, reading;
-	time_t seconds_past_epoch = time(0);
+	time_t seconds_past_epoch = getLocalEpoch();
        int interruptPinState=-1;
 
 	//read known values
