@@ -11,14 +11,14 @@
 //
 // Include the correct config values for the unit we're dealing with
 //
-#include "unit2.h"
+#include "unit3.h"
 
 //
 // Flags and counters
 //
 int sleep_cycles_remaining; //var tracking how many sleep cycles we've been through
 boolean enableInterruptFlag;  //Turn off/on interruptsn - used to for not having interrupts trigger over and over
-int interruptType; //Will be set to 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
+int interruptType; //Will be set to -1 for noise, 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
 boolean sentSinceTimerFlag=false;  //Used to determine if we need to send again
 
 //
@@ -48,7 +48,9 @@ void setup()
     setup_watchdog(wdt_8s); //wdt_8s
     
     //Setup pins
+    #ifdef LED_PIN
     pinMode(LED_PIN, OUTPUT); 
+    #endif
     #ifdef INTERRUPTPIN
     pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
     #endif 
@@ -59,10 +61,14 @@ void setup()
     #endif
     
     //Send context for PI to use upon reset or startup
+    #ifdef LED_PIN
     digitalWrite(LED_PIN, HIGH);   
+    #endif
     buildContextPayload('G');
     radioSend(contextData); //Send event payload
+    #ifdef LED_PIN
     digitalWrite(LED_PIN, LOW);    
+    #endif
 }
  
 //Get ADC readings and send them out via transmitter 
@@ -83,7 +89,9 @@ void loop()
    //Send Event if necessary
    if(interruptType>0 && (SENDFREQ || !sentSinceTimerFlag)) //woken up based on interrupt
    {
+     #ifdef LED_PIN
      digitalWrite(LED_PIN, HIGH);
+     #endif
      
      if(EVENTTYPE==1)
        buildEventPayload('M','D'); //motion detected, motion detected
@@ -100,7 +108,9 @@ void loop()
      sentSinceTimerFlag=true;
      radioSend(eventData); //Send event payload
 
+     #ifdef LED_PIN
      digitalWrite(LED_PIN, LOW);
+     #endif
    }
    
    //Only send state on timer, not interrupt
@@ -110,7 +120,9 @@ void loop()
      byte interruptPinState;
      
      //Gather and send State.  We do this everytime
+     #ifdef LED_PIN
      digitalWrite(LED_PIN, HIGH);
+     #endif
      float vcc = readVcc(); //Read voltage (battery monitoring)
      #ifdef THERMISTORPIN
      temperature = readTemp(THERMISTORPIN);  //Read temperature sensor
@@ -123,7 +135,9 @@ void loop()
      buildStatePayload(vcc,temperature,interruptPinState); //build state payload
      radioSend(stateData); //Send state payload
      
+     #ifdef LED_PIN
      digitalWrite(LED_PIN, LOW);
+     #endif
    }
 
    //Go to low power state and wait for timer and/or interrupt
@@ -346,7 +360,7 @@ void sleep()
 {
    //reset flags
    //enableInterruptFlag=true;
-   interruptType=-1;
+   interruptType=-1;  //noise
   
    //track state change
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
@@ -361,7 +375,9 @@ void sleep()
    while(sleep_cycles_remaining)
    {
      sleepNow(); //Remember, this will only seep for 8 seconds
-     delay(50);  //again, this seems to be needed for stability - not entirely sure why
+     
+     //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why)
+     delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin state farther down
      
      //Check if timer.  If so, set type to 0 and return
      if(sleep_cycles_remaining == 0)

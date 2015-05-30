@@ -9,7 +9,7 @@
 //
 // Pin Assignments
 //
-#define LED_PIN 13    // LED pin (turns on when reading/transmitting)
+//#define LED_PIN 13    // LED pin (turns on when reading/transmitting)
 //#define THERMISTORPIN A1  // which analog pin for reading thermistor
 //#define REEDPIN 3  // which pin powers the reed switch 
 #define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
@@ -32,6 +32,7 @@
 #define TRIGGERTYPE 2   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
 #define SENDFREQ 0      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
 #define EVENTTYPE 1     //O-opening, 1-motion
+#define TRIGGERLEN 100  //ms for how long the interrupt has to be to send (NEEDS TO BE AT LEAST 50 FOR STABILITY)
 
 //
 // Termistor setup

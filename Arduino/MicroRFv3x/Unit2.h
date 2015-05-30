@@ -31,6 +31,7 @@
 #define TRIGGERTYPE 1   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
 #define SENDFREQ 1      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
 #define EVENTTYPE 0     //O-opening, 1-motion
+#define TRIGGERLEN 50  //ms for how long the interrupt has to be to send (NEEDS TO BE AT LEAST 50 FOR STABILITY)
 
 //
 // Termistor setup
