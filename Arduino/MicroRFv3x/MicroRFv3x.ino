@@ -47,6 +47,13 @@ void setup()
     //Setup sleep and watchdog
     setup_watchdog(wdt_8s); //wdt_8s
     
+    //Attached interrupt
+    if(TRIGGERTYPE != 0)
+    {
+      nointerrupts();
+      attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
+    }
+    
     //Setup pins
     #ifdef LED_PIN
     pinMode(LED_PIN, OUTPUT); 
@@ -420,25 +427,30 @@ void sleep()
 //Puts things to sleep and sets the interrupt pin
 void sleepNow()
 {
+  // disable ADC
+  ADCSRA = 0; 
+  
+  //Set mode and enable sleep bit
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // sleep mode is set here
   sleep_enable();
+    
+  // turn off brown-out enable in software
+  MCUCR = bit (BODS) | bit (BODSE);  // turn on brown-out enable select
+  MCUCR = bit (BODS);        // this must be done within 4 clock cycles of above
+
+  //If we're using them, enable interrupts before we go to sleep
   if(enableInterruptFlag)
-    attachInterrupt();                   // Attach interrupt
-  sleep_mode();                        // System sleeps here
+    interrupts();                   // Enable interrupt
+    
+  sleep_cpu();                        // System sleeps here
   sleep_disable();                     // System continues execution here when watchdog timed out or interrupt is tripped
+  
+  //Now that we're awake, turn interrupts back off
   if(enableInterruptFlag)
-    detachInterrupt();                   // Tear down interrupt
-}
-
-void attachInterrupt()
-{
-    attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
-    delay(100);   
-}
-
-void detachInterrupt()
-{
-    detachInterrupt(INTERRUPTNUM);
+    nointerrupts();                   // Tear down interrupt
+    
+  //Turn ADC back on
+  ADCSRA = 0b10001111;
 }
 
 void interruptHandler(void)
