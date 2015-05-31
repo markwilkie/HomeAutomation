@@ -7,10 +7,17 @@
 #include "printf.h"
 #include <avr/sleep.h>
 #include <avr/power.h>
+#include "Debug.h"
 
 //
 // Include the correct config values for the unit we're dealing with
 //
+// 0-Outside
+// 1-Inside
+// 2-Garage
+// 3-Motion
+// 4-Upstairs
+// 5-Unassigned
 #include "unit3.h"
 
 //
@@ -36,6 +43,9 @@ void setup()
     Serial.begin(57600);
     printf_begin(); //used by radio.printDetails()
     
+    //Setup sleep and watchdog
+    setup_watchdog(wdt_8s); //wdt_8s
+    
     //Setup radio
     radio.begin();
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
@@ -44,22 +54,13 @@ void setup()
     radio.setRetries(15,15);                // Smallest time between retries (max is 15 increments of 250us, or 4000us), max no. of retries (15 max)
     radio.printDetails();                   // Dump the configuration of the rf unit for debugging
   
-    //Setup sleep and watchdog
-    setup_watchdog(wdt_8s); //wdt_8s
-    
-    //Attached interrupt
-    if(TRIGGERTYPE != 0)
-    {
-      nointerrupts();
-      attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
-    }
-    
     //Setup pins
     #ifdef LED_PIN
     pinMode(LED_PIN, OUTPUT); 
     #endif
     #ifdef INTERRUPTPIN
     pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
+    attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
     #endif 
     
     #ifdef REEDPIN
@@ -76,18 +77,22 @@ void setup()
     #ifdef LED_PIN
     digitalWrite(LED_PIN, LOW);    
     #endif
+    
+    VERBOSE_PRINTLN("Ready...");
 }
  
 //Get ADC readings and send them out via transmitter 
 void loop()
 {
    //Debug only
+   if(interruptType < 0)
+     VERBOSE_PRINTLN("noise");
    if(interruptType == 0)
-     Serial.println("timer dinged");
+     VERBOSE_PRINTLN("timer dinged");
    if(interruptType == 1)
-     Serial.println("interrupt");
+     VERBOSE_PRINTLN("interrupt");
    if(interruptType == 2)
-     Serial.println("interrupt reset");    
+     VERBOSE_PRINTLN("interrupt reset");    
      
    //Reset flag if timer dings
    if(interruptType == 0)
@@ -111,7 +116,7 @@ void loop()
          buildEventPayload('O','C'); //opening changed, Closed
      }
      
-     Serial.println("Sending Event");
+     VERBOSE_PRINTLN("Sending Event");
      sentSinceTimerFlag=true;
      radioSend(eventData); //Send event payload
 
@@ -138,7 +143,7 @@ void loop()
      interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
      #endif
   
-     Serial.println("Sending State");   
+     VERBOSE_PRINTLN("Sending State");   
      buildStatePayload(vcc,temperature,interruptPinState); //build state payload
      radioSend(stateData); //Send state payload
      
@@ -320,7 +325,7 @@ void radioSend(byte *payload)
     if(!radio.available())
     {                             
       // If nothing in the buffer, we got an ack but it is blank
-      printf("Got blank response.\n");     
+      VERBOSE_PRINTLN("Got blank response.\n");     
     }
     else
     {   
@@ -329,13 +334,14 @@ void radioSend(byte *payload)
       {                      
           // If an ack with payload was received
           radio.read(&gotByte,1);                  // Read it, and display
-          printf("Got response %d\n\r",gotByte);
+          VERBOSE_PRINT("Got response: ");
+          VERBOSE_PRINTLN(gotByte);
       }
     }
   }
   else
   {
-    printf("Sending failed\n");
+    ERROR_PRINTLN("Sending failed\n");
   }
   
   //power down radio
@@ -383,7 +389,7 @@ void sleep()
    {
      sleepNow(); //Remember, this will only seep for 8 seconds
      
-     //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why)
+     //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why, might be just debug print)
      delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin state farther down
      
      //Check if timer.  If so, set type to 0 and return
@@ -420,6 +426,8 @@ void sleep()
              }
          }
        }
+       VERBOSE_PRINT("Interrupt Type: "); 
+       VERBOSE_PRINTLN(interruptType); 
      }
    }
 }
@@ -427,35 +435,57 @@ void sleep()
 //Puts things to sleep and sets the interrupt pin
 void sleepNow()
 {
+  #if defined(ERROR) || defined(VERBOSE)
+  delay(100);  //give time for serial to work when printing
+  #endif
+  
   // disable ADC
+  byte old_ADCSRA=ADCSRA;
   ADCSRA = 0; 
   
   //Set mode and enable sleep bit
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // sleep mode is set here
+  noInterrupts(); 
   sleep_enable();
-    
+
   // turn off brown-out enable in software
   MCUCR = bit (BODS) | bit (BODSE);  // turn on brown-out enable select
   MCUCR = bit (BODS);        // this must be done within 4 clock cycles of above
 
   //If we're using them, enable interrupts before we go to sleep
   if(enableInterruptFlag)
-    interrupts();                   // Enable interrupt
+    attachInterruptPin(); 
     
+  interrupts();
   sleep_cpu();                        // System sleeps here
   sleep_disable();                     // System continues execution here when watchdog timed out or interrupt is tripped
   
+  //Turn ADC back on
+  ADCSRA = old_ADCSRA;
+  
   //Now that we're awake, turn interrupts back off
   if(enableInterruptFlag)
-    nointerrupts();                   // Tear down interrupt
-    
-  //Turn ADC back on
-  ADCSRA = 0b10001111;
+    detachInterruptPin(); 
 }
 
 void interruptHandler(void)
 {
   //No need to do anything here...
+}
+
+void attachInterruptPin()
+{
+  #ifdef INTERRUPTPIN
+  attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
+  delay(100);
+  #endif
+}
+
+void detachInterruptPin()
+{
+  #ifdef INTERRUPTPIN
+  detachInterrupt(INTERRUPTNUM);
+  #endif
 }
 
 
