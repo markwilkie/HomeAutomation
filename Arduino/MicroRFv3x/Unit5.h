@@ -1,16 +1,12 @@
 //unit number when there are multiple temp sensors
 //
-// 0-Outside
-// 1-Inside
-// 2-Garage
-// 3-Motion dectector (X10)
-#define UNITNUM 3   //This one will need to change for each physical Arduino
+#define UNITNUM 5   //This one will need to change for each physical Arduino
 
 //
 // Pin Assignments
 //
-//#define LED_PIN 13    // LED pin (turns on when reading/transmitting)
-//#define THERMISTORPIN A1  // which analog pin for reading thermistor
+#define LED_PIN 4    // LED pin (turns on when reading/transmitting)
+#define THERMISTORPIN A1  // which analog pin for reading thermistor
 //#define REEDPIN 3  // which pin powers the reed switch 
 #define CONTACTPIN 5  //pin which powers the screw contacts
 #define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)

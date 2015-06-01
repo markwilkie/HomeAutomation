@@ -16,7 +16,7 @@
 // 1-Inside
 // 2-Garage
 // 3-Motion
-// 4-Upstairs
+// 4-Front Door??
 // 5-Fire
 #include "unit5.h"
 
