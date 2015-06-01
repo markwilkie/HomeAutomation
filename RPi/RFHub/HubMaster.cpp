@@ -164,7 +164,7 @@ int createAndPostData(char *authHeader)
 		buildPipeOne();
 		callWebAPI(url, authHeader);
 		break;
-	case 2: //Motion
+	case 2: //Motion or Alarm
 		buildPipeTwo();
 		callWebAPI(url, authHeader);
 		break;
@@ -217,8 +217,8 @@ void buildPipeTwo()
 	//
 	// 1 byte:  unit number (uint8)
 	// 1 byte:  Payload type (S=state, C=context, E=event  
-	// 1 byte:  eventCodeType (O-opening change, M-Motion detected)
-	// 1 byte:  eventCode (O-opened, C-closed, D-detection)
+	// 1 byte:  eventCodeType (O-opening change, M-Motion detected, A-Alarm)
+	// 1 byte:  eventCode (O-opened, C-closed, D-detection, F-Fire)
 	//
 
 	time_t seconds_past_epoch = getLocalEpoch();

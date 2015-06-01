@@ -17,8 +17,8 @@
 // 2-Garage
 // 3-Motion
 // 4-Upstairs
-// 5-Unassigned
-#include "unit3.h"
+// 5-Fire
+#include "unit5.h"
 
 //
 // Flags and counters
@@ -40,8 +40,10 @@ byte eventData[EVENT_PAYLOADSIZE];
 //Set things up
 void setup()
 {
+    #if defined(ERROR) || defined(VERBOSE)
     Serial.begin(57600);
     printf_begin(); //used by radio.printDetails()
+    #endif
     
     //Setup sleep and watchdog
     setup_watchdog(wdt_8s); //wdt_8s
@@ -52,7 +54,10 @@ void setup()
     radio.enableAckPayload();               // Allow optional ack payloads
     radio.enableDynamicPayloads();          // Needed for ACK payload
     radio.setRetries(15,15);                // Smallest time between retries (max is 15 increments of 250us, or 4000us), max no. of retries (15 max)
+    
+    #if defined(ERROR) || defined(VERBOSE)
     radio.printDetails();                   // Dump the configuration of the rf unit for debugging
+    #endif
   
     //Setup pins
     #ifdef LED_PIN
@@ -67,6 +72,11 @@ void setup()
     pinMode(REEDPIN, OUTPUT);
     digitalWrite(REEDPIN, HIGH);      //Power reed if turned on
     #endif
+    
+    #ifdef CONTACTPIN
+    pinMode(CONTACTPIN, OUTPUT);
+    digitalWrite(CONTACTPIN, HIGH);      //Power screw contacts if turned on
+    #endif    
     
     //Send context for PI to use upon reset or startup
     #ifdef LED_PIN
@@ -104,6 +114,9 @@ void loop()
      #ifdef LED_PIN
      digitalWrite(LED_PIN, HIGH);
      #endif
+     
+     if(EVENTTYPE==2)
+       buildEventPayload('A','F'); //alarm - fire    
      
      if(EVENTTYPE==1)
        buildEventPayload('M','D'); //motion detected, motion detected
