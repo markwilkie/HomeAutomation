@@ -1004,6 +1004,22 @@ grid 2.54 mm</description>
 </package>
 </packages>
 </library>
+<library name="transistors">
+<packages>
+<package name="SOT-23">
+<description>SOT-23, 3-pin</description>
+<wire x1="-1.362" y1="-0.585" x2="-1.362" y2="0.558" width="0.2032" layer="21"/>
+<wire x1="-1.362" y1="0.558" x2="1.305" y2="0.558" width="0.2032" layer="21"/>
+<wire x1="1.305" y1="0.558" x2="1.305" y2="-0.585" width="0.2032" layer="21"/>
+<wire x1="1.305" y1="-0.585" x2="-1.362" y2="-0.585" width="0.2032" layer="21"/>
+<smd name="3" x="0.0254" y="1.0668" dx="0.762" dy="0.762" layer="1"/>
+<smd name="1" x="-0.9792" y="-1.1014" dx="0.762" dy="0.762" layer="1"/>
+<smd name="2" x="0.9398" y="-1.1014" dx="0.762" dy="0.762" layer="1"/>
+<text x="2.032" y="-0.508" size="1.016" layer="21" ratio="12">&gt;NAME</text>
+<text x="2.032" y="-2.413" size="1.016" layer="21" ratio="12">&gt;VALUE</text>
+</package>
+</packages>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -1257,6 +1273,7 @@ Please make sure your boards conform to these design rules.</description>
 <attribute name="VALUE" x="33.3375" y="65.7225" size="1.27" layer="27" ratio="10" rot="R90"/>
 </element>
 <element name="R4" library="SparkFun" package="0603-RES" value="10K" x="32.385" y="31.75" rot="R270"/>
+<element name="Q3" library="transistors" package="SOT-23" value="" x="15.875" y="62.5475"/>
 </elements>
 <signals>
 <signal name="GND" class="1">
