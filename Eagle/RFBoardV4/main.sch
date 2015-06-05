@@ -4737,6 +4737,50 @@ http://www.zetex.com&lt;p&gt;
 </deviceset>
 </devicesets>
 </library>
+<library name="battery_wilkie">
+<packages>
+<package name="AAABATTERY">
+<pad name="VCC" x="6.985" y="-1.27" drill="2.54" shape="long"/>
+<pad name="GND" x="16.51" y="-1.27" drill="2.54" shape="long"/>
+<wire x1="0" y1="0" x2="22.86" y2="0" width="0.4064" layer="21"/>
+<wire x1="22.86" y1="0" x2="22.86" y2="-50.8" width="0.4064" layer="21"/>
+<wire x1="22.86" y1="-50.8" x2="0" y2="-50.8" width="0.4064" layer="21"/>
+<wire x1="0" y1="-50.8" x2="0" y2="0" width="0.4064" layer="21"/>
+<wire x1="8.255" y1="-31.75" x2="14.605" y2="-31.75" width="0.4064" layer="21"/>
+<wire x1="14.605" y1="-31.75" x2="14.605" y2="-33.02" width="0.4064" layer="21"/>
+<wire x1="14.605" y1="-33.02" x2="8.255" y2="-33.02" width="0.4064" layer="21"/>
+<wire x1="8.255" y1="-33.02" x2="8.255" y2="-31.75" width="0.4064" layer="21"/>
+</package>
+</packages>
+<symbols>
+<symbol name="BAT">
+<wire x1="-33.02" y1="12.7" x2="-12.7" y2="12.7" width="0.254" layer="94"/>
+<wire x1="-12.7" y1="12.7" x2="-12.7" y2="2.54" width="0.254" layer="94"/>
+<wire x1="-12.7" y1="2.54" x2="-33.02" y2="2.54" width="0.254" layer="94"/>
+<wire x1="-33.02" y1="2.54" x2="-33.02" y2="12.7" width="0.254" layer="94"/>
+<pin name="VCC" x="-27.94" y="15.24" length="middle" rot="R270"/>
+<pin name="GND" x="-17.78" y="15.24" length="middle" rot="R270"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="BAT">
+<gates>
+<gate name="G$1" symbol="BAT" x="22.86" y="2.54"/>
+</gates>
+<devices>
+<device name="" package="AAABATTERY">
+<connects>
+<connect gate="G$1" pin="GND" pad="GND"/>
+<connect gate="G$1" pin="VCC" pad="VCC"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -4799,8 +4843,7 @@ http://www.zetex.com&lt;p&gt;
 <part name="R4" library="SparkFun" deviceset="RESISTOR" device="0603-RES" value="10K"/>
 <part name="GND11" library="SparkFun" deviceset="GND" device=""/>
 <part name="Q3" library="transistors" deviceset="2N700*" device="_SOT23" technology="2"/>
-<part name="BATMIN1" library="pinhead" deviceset="PINHD-1X1" device=""/>
-<part name="BATPLUS1" library="pinhead" deviceset="PINHD-1X1" device=""/>
+<part name="U$1" library="battery_wilkie" deviceset="BAT" device=""/>
 <part name="P+6" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="GND12" library="SparkFun" deviceset="GND" device=""/>
 </parts>
@@ -4877,10 +4920,9 @@ http://www.zetex.com&lt;p&gt;
 <instance part="R4" gate="G$1" x="167.64" y="172.72" rot="R180"/>
 <instance part="GND11" gate="1" x="154.94" y="175.26" rot="R180"/>
 <instance part="Q3" gate="G$1" x="177.8" y="190.5" rot="R90"/>
-<instance part="BATMIN1" gate="G$1" x="20.32" y="154.94"/>
-<instance part="BATPLUS1" gate="G$1" x="20.32" y="170.18"/>
-<instance part="P+6" gate="G$1" x="25.4" y="170.18" rot="R270"/>
-<instance part="GND12" gate="1" x="17.78" y="147.32"/>
+<instance part="U$1" gate="G$1" x="43.18" y="147.32"/>
+<instance part="P+6" gate="G$1" x="15.24" y="170.18"/>
+<instance part="GND12" gate="1" x="25.4" y="172.72" rot="R180"/>
 </instances>
 <busses>
 </busses>
@@ -4982,9 +5024,9 @@ http://www.zetex.com&lt;p&gt;
 <wire x1="167.64" y1="190.5" x2="162.56" y2="190.5" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="BATMIN1" gate="G$1" pin="1"/>
 <pinref part="GND12" gate="1" pin="GND"/>
-<wire x1="17.78" y1="154.94" x2="17.78" y2="149.86" width="0.1524" layer="91"/>
+<pinref part="U$1" gate="G$1" pin="GND"/>
+<wire x1="25.4" y1="170.18" x2="25.4" y2="162.56" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="AREF" class="0">
@@ -5139,9 +5181,9 @@ http://www.zetex.com&lt;p&gt;
 <wire x1="213.36" y1="187.96" x2="205.74" y2="187.96" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="BATPLUS1" gate="G$1" pin="1"/>
 <pinref part="P+6" gate="G$1" pin="3.3V"/>
-<wire x1="17.78" y1="170.18" x2="25.4" y2="170.18" width="0.1524" layer="91"/>
+<pinref part="U$1" gate="G$1" pin="VCC"/>
+<wire x1="15.24" y1="170.18" x2="15.24" y2="162.56" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="D8" class="0">
@@ -5417,7 +5459,8 @@ http://www.zetex.com&lt;p&gt;
 <approved hash="102,1,86.36,165.1,3.3V,VCC,,,,"/>
 <approved hash="102,1,55.88,170.18,3.3V,VCC,,,,"/>
 <approved hash="102,1,60.96,124.46,3.3V,VCC,,,,"/>
-<approved hash="102,1,165.1,187.96,3.3V,VCC,,,,"/>
+<approved hash="102,1,205.74,187.96,3.3V,VCC,,,,"/>
+<approved hash="102,1,15.24,170.18,3.3V,VCC,,,,"/>
 <approved hash="106,1,195.58,149.86,A2,,,,,"/>
 <approved hash="106,1,195.58,147.32,A3,,,,,"/>
 <approved hash="113,1,50.466,171.581,BATPLUS,,,,,"/>
@@ -5429,6 +5472,7 @@ http://www.zetex.com&lt;p&gt;
 <approved hash="113,1,124.223,76.0688,D7-D8,,,,,"/>
 <approved hash="113,1,37.4735,101.896,T1,,,,,"/>
 <approved hash="113,1,216.577,186.495,JP4,,,,,"/>
+<approved hash="113,1,177.8,188.604,Q3,,,,,"/>
 </errors>
 </schematic>
 </drawing>
