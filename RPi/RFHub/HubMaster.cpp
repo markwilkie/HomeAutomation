@@ -232,18 +232,27 @@ void buildPipeTwo()
 	//
 
 	time_t seconds_past_epoch = getLocalEpoch();
-    char eventCodeType,eventCode;
+        char eventCodeType,eventCode;
 	int unitNum, lastRetryCount, lastGoodTransCount;
 
-	unitNum=bytesRecv[0];
-	memcpy(&lastRetryCount, &bytesRecv[2], 2);
-	memcpy(&lastGoodTransCount, &bytesRecv[4], 2);
-	eventCodeType=bytesRecv[6];
-	eventCode=bytesRecv[7];
+        if(lastPayloadLen<7) //legacy
+        {
+	  unitNum=(uint8_t)bytesRecv[0];
+	  eventCodeType=bytesRecv[2];
+	  eventCode=bytesRecv[3];
+        }
+        else
+        {
+	  unitNum=(uint8_t)bytesRecv[0];
+          lastRetryCount=(uint16_t)bytesRecv[2];
+          lastGoodTransCount=(uint16_t)bytesRecv[4];
+	  eventCodeType=bytesRecv[6];
+	  eventCode=bytesRecv[7];
 
-	timeStamp(rfFile);
-	fprintf(rfFile, "EVENT: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	fflush(rfFile);
+	  timeStamp(rfFile);
+	  fprintf(rfFile, "EVENT: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+	  fflush(rfFile);
+        }
 
 	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, eventCodeType, eventCode, seconds_past_epoch);
 
@@ -261,27 +270,36 @@ void buildPipeThree()
 	// 1 byte:  Payload type (S=state, C=context, E=event  
 	// 2 bytes: Number of retries on last send (int)
 	// 2 bytes: Number of send attempts since last successful send (int)  
-	// 1 byte:  eventCodeType (O-opening change)
-	// 1 byte:  eventCode (O-opened, C-closed, D-Detection)
+	// 1 byte:  alarmCodeType (A-Alarm)
+	// 1 byte:  alarmCode (W-Water,F-Fire)
 	//
 
 	time_t seconds_past_epoch = getLocalEpoch();
-	char eventCodeType, eventCode;
+	char alarmCodeType, alarmCode;
 	int unitNum, lastRetryCount, lastGoodTransCount;
 
-	unitNum = bytesRecv[0];
-	memcpy(&lastRetryCount, &bytesRecv[2], 2);
-	memcpy(&lastGoodTransCount, &bytesRecv[4], 2);
-	eventCodeType = bytesRecv[6];
-	eventCode = bytesRecv[7];
+        if(lastPayloadLen<7) //legacy
+        {
+	  unitNum = (uint8_t)bytesRecv[0];
+	  alarmCodeType = bytesRecv[2];
+	  alarmCode = bytesRecv[3];
+        }
+        else
+        {
+	  unitNum=(uint8_t)bytesRecv[0];
+          lastRetryCount=(uint16_t)bytesRecv[2];
+          lastGoodTransCount=(uint16_t)bytesRecv[4];
+	  alarmCodeType = bytesRecv[6];
+	  alarmCode = bytesRecv[7];
 
-	timeStamp(rfFile);
-	fprintf(rfFile, "ALARM: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	fflush(rfFile);
+	  timeStamp(rfFile);
+	  fprintf(rfFile, "ALARM: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+	  fflush(rfFile);
+        }
 
-	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, eventCodeType, eventCode, seconds_past_epoch);
+	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, alarmCodeType, alarmCode, seconds_past_epoch);
 
-	fprintf(logFile, "%c", eventCode);  //Small indication for log file
+	fprintf(logFile, "%c", alarmCode);  //Small indication for log file
 	fflush(logFile);
 }
 
@@ -314,35 +332,49 @@ void buildPipeFour()
 
 	float vcc, reading;
 	time_t seconds_past_epoch = getLocalEpoch();
-    int interruptPinState=-1;
+        int interruptPinState=-1;
+        uint8_t pinState;
 	int unitNum, lastRetryCount, lastGoodTransCount;
 
 	//read known values
-	unitNum = bytesRecv[0];
-	memcpy(&lastRetryCount, &bytesRecv[2], 2);
-	memcpy(&lastGoodTransCount, &bytesRecv[4], 2);
-	memcpy(&vcc, &bytesRecv[6], 4);
-	memcpy(&reading, &bytesRecv[10], 4);
+        if(lastPayloadLen<15) //legacy
+        {
+	  unitNum = (uint8_t)bytesRecv[0];
+	  memcpy(&vcc, &bytesRecv[2], 4);
+	  memcpy(&reading, &bytesRecv[6], 4);
 
-	//read pin state and create post data accordingly
-	uint8_t pinState = bytesRecv[14];
+	  //read pin state and create post data accordingly
+	  uint8_t pinState = bytesRecv[10];
+         }
+         else
+        {
+	  unitNum=(uint8_t)bytesRecv[0];
+          lastRetryCount=(uint16_t)bytesRecv[2];
+          lastGoodTransCount=(uint16_t)bytesRecv[4];
+	  memcpy(&vcc, &bytesRecv[6], 4);
+	  memcpy(&reading, &bytesRecv[10], 4);
+
+	  //read pin state and create post data accordingly
+	  pinState = bytesRecv[14];
+
+	  timeStamp(rfFile);
+	  fprintf(rfFile, "STATE: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+	  fflush(rfFile);
+         }
+
 	if (pinState & 128) //B10000000, or pin sent 
 	{
-         interruptPinState=(pinState & 16)>>4;  //temp until arduino is updated
-         //interruptPinState=(pinState & 8)>>4;  //mask then shift 
-         //fprintf(logFile, "pinstate: %d\n",pinState);
-         sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
-	}
+          interruptPinState=(pinState & 16)>>4;  //temp until arduino is updated
+          //interruptPinState=(pinState & 8)>>4;  //mask then shift 
+          //fprintf(logFile, "pinstate: %d\n",pinState);
+          sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
+	 }
 
-    //build default post data (no pin state)
-    if (pinState == 0)
-    {
-        sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
-    }
-
-	timeStamp(rfFile);
-	fprintf(rfFile, "STATE: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	fflush(rfFile);
+         //build default post data (no pin state)
+         if (pinState == 0)
+         {
+             sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
+         }
 
 	fprintf(logFile, "#");  //Small indication for log file
 	fflush(logFile);
