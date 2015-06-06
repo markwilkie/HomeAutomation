@@ -13,12 +13,12 @@
 // Include the correct config values for the unit we're dealing with
 //
 // 0-Outside
-// 1-Inside
+// 1-Laundry - water alarm
 // 2-Garage
 // 3-Motion
 // 4-Front Door??
 // 5-Fire
-#include "unit5.h"
+#include "unit1.h"
 
 //
 // Flags and counters
@@ -27,6 +27,8 @@ int sleep_cycles_remaining; //var tracking how many sleep cycles we've been thro
 boolean enableInterruptFlag;  //Turn off/on interruptsn - used to for not having interrupts trigger over and over
 int interruptType; //Will be set to -1 for noise, 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
 boolean sentSinceTimerFlag=false;  //Used to determine if we need to send again
+int lastRetryCount=0; //Number of retry times on last transmit
+int lastGoodTransCount=0; //Number of times we tried to transmit since last success (does not count retry times - that's "one" transmit)
 
 //
 // Definitions
@@ -115,8 +117,11 @@ void loop()
      digitalWrite(LED_PIN, HIGH);
      #endif
      
-     if(EVENTTYPE==2)
-       buildEventPayload('A','F'); //alarm - fire    
+     if(ALARMTYPE==0)
+       buildAlarmPayload('W','W'); //water    
+       
+     if(ALARMTYPE==1)
+       buildAlarmPayload('F','F'); //fire
      
      if(EVENTTYPE==1)
        buildEventPayload('M','D'); //motion detected, motion detected
@@ -177,6 +182,8 @@ void buildStatePayload(float vcc,float temp,byte interruptPinState)
   //
   // 1 byte:  unit number (uint8)
   // 1 byte:  Payload type (S=state, C=context, E=event
+  // 2 bytes: Number of retries on last send (int)
+  // 2 bytes: Number of send attempts since last successful send (int)
   // 4 bytes: VCC (float)
   // 4 bytes: Temperature (float)
   // 1 byte:  Pin State (using bits, abcdefgh where 
@@ -204,29 +211,46 @@ void buildStatePayload(float vcc,float temp,byte interruptPinState)
   //Create state package
   stateData[0]=(uint8_t)UNITNUM; //unit number
   stateData[1]='S';
-  memcpy(&stateData[2],&vcc,4);  //vcc voltage (mv)
-  memcpy(&stateData[6],&temp,4); //temperature (2 decimals implied)
-  stateData[10]=pinState;        //see protocol above
-  stateData[11]=(uint8_t)0;      //number of option data bits coming
+  memcpy(&stateData[2],&lastRetryCount,2);  //last retry
+  memcpy(&stateData[4],&lastGoodTransCount,2);  //attempts since last successful send
+  memcpy(&stateData[6],&vcc,4);  //vcc voltage (mv)
+  memcpy(&stateData[10],&temp,4); //temperature (2 decimals implied)
+  stateData[14]=pinState;        //see protocol above
+  stateData[15]=(uint8_t)0;      //number of option data bits coming
 }
 
 //Send event
 void buildEventPayload(byte eventCodeType,byte eventCode)
 {
+  buildAlarmOrEventPayload('E',eventCodeType,eventCode);
+}
+
+//Send alarm
+void buildAlarmPayload(byte eventCodeType,byte eventCode)
+{
+    buildAlarmOrEventPayload('A',eventCodeType,eventCode);
+}
+
+void buildAlarmOrEventPayload(byte payloadType,byte eventCodeType,byte eventCode)
+{
   //
   // Over-the-air packet definition/spec
   //
   // 1 byte:  unit number (uint8)
-  // 1 byte:  Payload type (S=state, C=context, E=event  
+  // 1 byte:  Payload type (S=state, C=context, E=event, A=alarm 
+  // 2 bytes: Number of retries on last send (int)
+  // 2 bytes: Number of send attempts since last successful send (int)  
   // 1 byte:  eventCodeType (O-opening change)
   // 1 byte:  eventCode (O-opened, C-closed)
   //
   
   //Create state package
   eventData[0]=(uint8_t)UNITNUM; //unit number
-  eventData[1]='E';
-  eventData[2]=eventCodeType;
-  eventData[3]=eventCode;
+  eventData[1]=payloadType;
+  memcpy(&eventData[2],&lastRetryCount,2);  //last retry
+  memcpy(&eventData[4],&lastGoodTransCount,2);  //attempts since last successful send
+  eventData[6]=eventCodeType;
+  eventData[7]=eventCode;
 }
 
 //Send context
@@ -327,34 +351,59 @@ void radioSend(byte *payload)
     radio.setPayloadSize(EVENT_PAYLOADSIZE);  
     radio.openWritingPipe(EVENT_PIPE);  
   }  
+  if((byte)payload[1]=='A')
+  {
+    radio.setPayloadSize(EVENT_PAYLOADSIZE);  
+    radio.openWritingPipe(ALARM_PIPE);  
+  }  
   
   //Turn radio on
   radio.powerUp();  
   delay(50); //settle down  
 
-  //Write payload out  
-  if(radio.write((const void *)payload,radio.getPayloadSize()))
+  //Loop for max retries
+  boolean retryFlag=true;
+  lastRetryCount=0;
+  lastGoodTransCount++; //increment by one in case we're not successful.  Note this is set to zero upon successful send
+  while(retryFlag)
   {
-    if(!radio.available())
-    {                             
-      // If nothing in the buffer, we got an ack but it is blank
-      VERBOSE_PRINTLN("Got blank response.\n");     
-    }
-    else
-    {   
-  
-      while(radio.available() )
-      {                      
-          // If an ack with payload was received
-          radio.read(&gotByte,1);                  // Read it, and display
-          VERBOSE_PRINT("Got response: ");
-          VERBOSE_PRINTLN(gotByte);
+    //Write payload out  
+    if(radio.write((const void *)payload,radio.getPayloadSize()))
+    {
+      retryFlag=false; //exit loop because we succeeded
+      lastGoodTransCount=0; //since we succeeded, reset this counter to zero
+      
+      if(!radio.available())
+      {                             
+        // If nothing in the buffer, we got an ack but it is blank
+        VERBOSE_PRINTLN("Got blank response.\n");     
+      }
+      else
+      {   
+    
+        while(radio.available() )
+        {                      
+            // If an ack with payload was received
+            radio.read(&gotByte,1);                  // Read it, and display
+            VERBOSE_PRINT("Got response: ");
+            VERBOSE_PRINTLN(gotByte);
+        }
       }
     }
-  }
-  else
-  {
-    ERROR_PRINTLN("Sending failed\n");
+    else
+    {
+      if(lastRetryCount>=MAXRRETRIES)
+      {
+        retryFlag=false;
+      }
+      else
+      {
+        lastRetryCount++;
+        delay(RETRYDELAY);
+      }
+      
+      ERROR_PRINTLN("Sending failed\n");
+    }
   }
   
   //power down radio
@@ -446,6 +495,9 @@ void sleep()
 }
 
 //Puts things to sleep and sets the interrupt pin
+//
+// See http://www.gammon.com.au/forum/?id=11497
+//
 void sleepNow()
 {
   #if defined(ERROR) || defined(VERBOSE)

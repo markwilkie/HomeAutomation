@@ -22,3 +22,5 @@ Thumbs.db
 obj/
 [Rr]elease*/
 _ReSharper*/
+*.s#1
+*.b#1
