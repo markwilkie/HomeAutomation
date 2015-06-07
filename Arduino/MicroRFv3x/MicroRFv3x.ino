@@ -117,10 +117,10 @@ void loop()
      digitalWrite(LED_PIN, HIGH);
      #endif
      
-     if(ALARMTYPE==0)
+     if(EVENTTYPE==2 && ALARMTYPE==0)
        buildAlarmPayload('W','W'); //water    
        
-     if(ALARMTYPE==1)
+     if(EVENTTYPE==2 && ALARMTYPE==1)
        buildAlarmPayload('F','F'); //fire
      
      if(EVENTTYPE==1)
@@ -323,7 +323,9 @@ float readTemp(int samplePin)
   steinhart -= 273.15;                         // convert to C
  
   //Convert to F and return
-  return steinhart*(9.0/5.0)+32.0;;
+  float retVal= steinhart*(9.0/5.0)+32.0;
+  VERBOSE_PRINTLN(retVal);
+  return retVal;
 }
 #endif
 
