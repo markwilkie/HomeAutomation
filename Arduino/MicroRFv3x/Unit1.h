@@ -8,7 +8,7 @@
 //
 // Pin Assignments
 //
-#define LED_PIN 13     // LED pin (turns on when reading/transmitting)
+#define LED_PIN 4     // LED pin (turns on when reading/transmitting)
 #define THERMISTORPIN A1  // which analog pin for reading thermistor
 //#define REEDPIN 3  // which pin powers the reed switch (don't define if you don't want to use reed)
 #define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)

@@ -72,7 +72,7 @@ int main()
     radio.openWritingPipe(pipes[0]);
     radio.openReadingPipe(1,pipes[1]); //Power reading pipe
     radio.openReadingPipe(2,pipes[2]); //Event pipe
-    radio.openReadingPipe(3,pipes[3]); //Temperature sensors pipe
+    radio.openReadingPipe(3,pipes[3]); //Alarm pipe
     radio.openReadingPipe(4,pipes[4]); //State protocol
     radio.openReadingPipe(5,pipes[5]); //Context
 
@@ -249,9 +249,12 @@ void buildPipeTwo()
 	  eventCodeType=bytesRecv[6];
 	  eventCode=bytesRecv[7];
 
-	  timeStamp(rfFile);
-	  fprintf(rfFile, "EVENT: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	  fflush(rfFile);
+          if(lastRetryCount > 0 || lastGoodTransCount>0)
+          {
+	    timeStamp(rfFile);
+	    fprintf(rfFile, "EVENT: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+	    fflush(rfFile);
+          }
         }
 
 	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, eventCodeType, eventCode, seconds_past_epoch);
@@ -292,9 +295,12 @@ void buildPipeThree()
 	  alarmCodeType = bytesRecv[6];
 	  alarmCode = bytesRecv[7];
 
-	  timeStamp(rfFile);
-	  fprintf(rfFile, "ALARM: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	  fflush(rfFile);
+          if(lastRetryCount > 0 || lastGoodTransCount>0)
+          {
+	    timeStamp(rfFile);
+	    fprintf(rfFile, "ALARM: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+	    fflush(rfFile);
+          }
         }
 
 	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, alarmCodeType, alarmCode, seconds_past_epoch);
@@ -337,7 +343,7 @@ void buildPipeFour()
 	int unitNum, lastRetryCount, lastGoodTransCount;
 
 	//read known values
-        if(lastPayloadLen<15) //legacy
+        if(lastPayloadLen<13) //legacy
         {
 	  unitNum = (uint8_t)bytesRecv[0];
 	  memcpy(&vcc, &bytesRecv[2], 4);
@@ -357,9 +363,12 @@ void buildPipeFour()
 	  //read pin state and create post data accordingly
 	  pinState = bytesRecv[14];
 
-	  timeStamp(rfFile);
-	  fprintf(rfFile, "STATE: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	  fflush(rfFile);
+          if(lastRetryCount > 0 || lastGoodTransCount>0)
+          {
+	    timeStamp(rfFile);
+	    fprintf(rfFile, "STATE: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+	    fflush(rfFile);
+           }
          }
 
 	if (pinState & 128) //B10000000, or pin sent 
@@ -367,12 +376,16 @@ void buildPipeFour()
           interruptPinState=(pinState & 16)>>4;  //temp until arduino is updated
           //interruptPinState=(pinState & 8)>>4;  //mask then shift 
           //fprintf(logFile, "pinstate: %d\n",pinState);
+           //fprintf(rfFile, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
+           //fflush(rfFile);
           sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
 	 }
 
          //build default post data (no pin state)
          if (pinState == 0)
          {
+             //fprintf(rfFile, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
+    	     //fflush(rfFile);
              sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
          }
 

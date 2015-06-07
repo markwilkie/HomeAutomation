@@ -18,7 +18,7 @@
 // 3-Motion
 // 4-Front Door??
 // 5-Fire
-#include "unit0.h"
+#include "unit5.h"
 
 //
 // Flags and counters
@@ -323,7 +323,9 @@ float readTemp(int samplePin)
   steinhart -= 273.15;                         // convert to C
  
   //Convert to F and return
-  return steinhart*(9.0/5.0)+32.0;;
+  float retVal= steinhart*(9.0/5.0)+32.0;
+  VERBOSE_PRINTLN(retVal);
+  return retVal;
 }
 #endif
 
