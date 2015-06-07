@@ -49,14 +49,14 @@ int main()
 {
     //open file for logging
     logFile = fopen("/home/pi/code/rfHub/HubMasterLog.txt", "w");
-	rfFile = fopen("/home/pi/code/rfHub/RFLog.txt", "w");
+    rfFile = fopen("/home/pi/code/rfHub/RFLog.txt", "w");
     freopen ("/home/pi/code/rfHub/HubMasterStderr.txt","w",stderr);
     freopen ("/home/pi/code/rfHub/HubMasterStdout.txt","w",stdout);
 
     //tag log files
     time(&rawtime);
     fprintf(logFile,"-\n-\n-\nHubMaster Start - %s-\n\n",ctime(&rawtime));
-	fprintf(rfFile, "-\n-\n-\nHubMaster Start - %s-\n\n", ctime(&rawtime));
+    fprintf(rfFile, "-\n-\n-\nHubMaster Start - %s-\n\n", ctime(&rawtime));
     fprintf(stderr,"-\n-\n-\nHubMaster Start - %s\n-\n",ctime(&rawtime));
     fprintf(stdout,"-\n-\n-\nHubMaster Start - %s\n-\n",ctime(&rawtime));
 
@@ -72,7 +72,7 @@ int main()
     radio.openWritingPipe(pipes[0]);
     radio.openReadingPipe(1,pipes[1]); //Power reading pipe
     radio.openReadingPipe(2,pipes[2]); //Event pipe
-    radio.openReadingPipe(3,pipes[3]); //Temperature sensors pipe
+    radio.openReadingPipe(3,pipes[3]); //Alarm pipe
     radio.openReadingPipe(4,pipes[4]); //State protocol
     radio.openReadingPipe(5,pipes[5]); //Context
 
@@ -146,14 +146,14 @@ void flushFileHandles()
        timeStamp(logFile);
        fprintf(logFile,"\n");
 
-	   //timeStamp(rfFile);
-	   //fprintf(rfFile, "\n");
+       //timeStamp(rfFile);
+       //fprintf(rfFile, "\n");
 
        newLineCounter=0;
     }
 
     fflush(logFile);  
-	fflush(rfFile);
+    fflush(rfFile);
     fflush(stderr); 
     fflush(stdout); 
 }
@@ -166,29 +166,29 @@ int createAndPostData(char *authHeader)
     for(int i=0;i<MAX_POSTDATA_SIZE;i++)
       postData[i]=0;
 
-	switch (pipeNo)
-	{ 
-	case 1: //Power
-		buildPipeOne();
-		callWebAPI(url, authHeader);
-		break;
-	case 2: //Motion
-		buildPipeTwo();
-		callWebAPI(url, authHeader);
-		break;
-	case 3: //Alarm
-		buildPipeThree();
-		callWebAPI(url, authHeader);
-		break;
-	case 4: //state protocol
-		buildPipeFour();
-		callWebAPI(url, authHeader);
-		break;
-	case 5: //context protocol
-		buildPipeFive();
-		//No need to send anything to Azure
-		break;
-	default: //Unexpected??
+    switch (pipeNo)
+    { 
+    case 1: //Power
+        buildPipeOne();
+        callWebAPI(url, authHeader);
+        break;
+    case 2: //Motion
+        buildPipeTwo();
+        callWebAPI(url, authHeader);
+        break;
+    case 3: //Alarm
+        buildPipeThree();
+        callWebAPI(url, authHeader);
+        break;
+    case 4: //state protocol
+        buildPipeFour();
+        callWebAPI(url, authHeader);
+        break;
+    case 5: //context protocol
+        buildPipeFive();
+        //No need to send anything to Azure
+        break;
+    default: //Unexpected??
               timeStamp(stderr);
               fprintf(stderr, "ERROR: Unexpected pipe number: %d\n",pipeNo);
               fflush(stderr);
@@ -202,177 +202,237 @@ int createAndPostData(char *authHeader)
 }
 
 //Build post message for pipe 1
+//
+//Power sensor pipe
+//
 void buildPipeOne()
 {
-	time_t seconds_past_epoch = getLocalEpoch();
+    time_t seconds_past_epoch = getLocalEpoch();
        uint8_t addr;
-	float reading;
+    float reading;
 
-	addr = bytesRecv[0];
-	memcpy(&reading, &bytesRecv[1], 4);
-	sprintf(postData, "{'DeviceName':'Power%d','DeviceDate':'%ld','DeviceData1':'%f'}", addr, seconds_past_epoch, reading);
-	//fprintf(logFile,"Addr: %d  Reading: %f\n",addr,reading);
+    addr = bytesRecv[0];
+    memcpy(&reading, &bytesRecv[1], 4);
+    sprintf(postData, "{'DeviceName':'Power%d','DeviceDate':'%ld','DeviceData1':'%f'}", addr, seconds_past_epoch, reading);
+    //fprintf(logFile,"Addr: %d  Reading: %f\n",addr,reading);
 
-	fprintf(logFile, ".");  //Small indication for log file
-	fflush(logFile);
+    fprintf(logFile, ".");  //Small indication for log file
+    fflush(logFile);
 }
 
 //Build post message for pipe 2
+//
+// Event pipe
+//
 void buildPipeTwo()
 {
-	//
-	// Over-the-air packet definition/spec
-	//
-	// 1 byte:  unit number (uint8)
-	// 1 byte:  Payload type (S=state, C=context, E=event  
-	// 2 bytes: Number of retries on last send (int)
-	// 2 bytes: Number of send attempts since last successful send (int)  
-	// 1 byte:  eventCodeType (O-opening change)
-	// 1 byte:  eventCode (O-opened, C-closed, D-Detection)
-	//
+    //
+    // Over-the-air packet definition/spec
+    //
+    // 1 byte:  unit number (uint8)
+    // 1 byte:  Payload type (S=state, C=context, E=event  
+    // 2 bytes: Number of retries on last send (int)
+    // 2 bytes: Number of send attempts since last successful send (int)  
+    // 1 byte:  eventCodeType (O-opening change)
+    // 1 byte:  eventCode (O-opened, C-closed, D-Detection)
+    //
 
-	time_t seconds_past_epoch = getLocalEpoch();
-    char eventCodeType,eventCode;
-	int unitNum, lastRetryCount, lastGoodTransCount;
+    time_t seconds_past_epoch = getLocalEpoch();
+        char eventCodeType,eventCode;
+    int unitNum, lastRetryCount, lastGoodTransCount;
 
-	unitNum=bytesRecv[0];
-	memcpy(&lastRetryCount, &bytesRecv[2], 2);
-	memcpy(&lastGoodTransCount, &bytesRecv[4], 2);
-	eventCodeType=bytesRecv[6];
-	eventCode=bytesRecv[7];
+        if(lastPayloadLen<7) //legacy
+        {
+      unitNum=(uint8_t)bytesRecv[0];
+      eventCodeType=bytesRecv[2];
+      eventCode=bytesRecv[3];
+        }
+        else
+        {
+      unitNum=(uint8_t)bytesRecv[0];
+          lastRetryCount=(uint16_t)bytesRecv[2];
+          lastGoodTransCount=(uint16_t)bytesRecv[4];
+      eventCodeType=bytesRecv[6];
+      eventCode=bytesRecv[7];
 
-	timeStamp(rfFile);
-	fprintf(rfFile, "EVENT: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	fflush(rfFile);
+          if(lastRetryCount > 0 || lastGoodTransCount>0)
+          {
+        timeStamp(rfFile);
+        fprintf(rfFile, "EVENT: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+        fflush(rfFile);
+          }
+        }
 
-	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, eventCodeType, eventCode, seconds_past_epoch);
+    sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "EVENT", unitNum, eventCodeType, eventCode, seconds_past_epoch);
 
-	fprintf(logFile, "%c",eventCode);  //Small indication for log file
-	fflush(logFile);
+    fprintf(logFile, "%c",eventCode);  //Small indication for log file
+    fflush(logFile);
 }
 
 //Build post message for pipe 3 
+//
+//Alarm pipe
+//
 void buildPipeThree()
 {
-	//
-	// Over-the-air packet definition/spec
-	//
-	// 1 byte:  unit number (uint8)
-	// 1 byte:  Payload type (S=state, C=context, E=event  
-	// 2 bytes: Number of retries on last send (int)
-	// 2 bytes: Number of send attempts since last successful send (int)  
-	// 1 byte:  eventCodeType (O-opening change)
-	// 1 byte:  eventCode (O-opened, C-closed, D-Detection)
-	//
+    //
+    // Over-the-air packet definition/spec
+    //
+    // 1 byte:  unit number (uint8)
+    // 1 byte:  Payload type (S=state, C=context, E=event  
+    // 2 bytes: Number of retries on last send (int)
+    // 2 bytes: Number of send attempts since last successful send (int)  
+    // 1 byte:  alarmCodeType (A-Alarm)
+    // 1 byte:  alarmCode (W-Water,F-Fire)
+    //
 
-	time_t seconds_past_epoch = getLocalEpoch();
-	char eventCodeType, eventCode;
-	int unitNum, lastRetryCount, lastGoodTransCount;
+    time_t seconds_past_epoch = getLocalEpoch();
+    char alarmCodeType, alarmCode;
+    int unitNum, lastRetryCount, lastGoodTransCount;
 
-	unitNum = bytesRecv[0];
-	memcpy(&lastRetryCount, &bytesRecv[2], 2);
-	memcpy(&lastGoodTransCount, &bytesRecv[4], 2);
-	eventCodeType = bytesRecv[6];
-	eventCode = bytesRecv[7];
+        if(lastPayloadLen<7) //legacy
+        {
+      unitNum = (uint8_t)bytesRecv[0];
+      alarmCodeType = bytesRecv[2];
+      alarmCode = bytesRecv[3];
+        }
+        else
+        {
+      unitNum=(uint8_t)bytesRecv[0];
+          lastRetryCount=(uint16_t)bytesRecv[2];
+          lastGoodTransCount=(uint16_t)bytesRecv[4];
+      alarmCodeType = bytesRecv[6];
+      alarmCode = bytesRecv[7];
 
-	timeStamp(rfFile);
-	fprintf(rfFile, "ALARM: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	fflush(rfFile);
+          if(lastRetryCount > 0 || lastGoodTransCount>0)
+          {
+        timeStamp(rfFile);
+        fprintf(rfFile, "ALARM: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+        fflush(rfFile);
+          }
+        }
 
-	sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, eventCodeType, eventCode, seconds_past_epoch);
+    sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, alarmCodeType, alarmCode, seconds_past_epoch);
 
-	fprintf(logFile, "%c", eventCode);  //Small indication for log file
-	fflush(logFile);
+    fprintf(logFile, "%c", alarmCode);  //Small indication for log file
+    fflush(logFile);
 }
 
 //Build post message for pipe 4
+//
+//State pipe
+//
 void buildPipeFour()
 {
-	//
-	// Over-the-air packet definition/spec
-	//
-	// 1 byte:  unit number (uint8)
-	// 1 byte:  Payload type (S=state, C=context, E=event
-	// 2 bytes: Number of retries on last send (int)
-	// 2 bytes: Number of send attempts since last successful send (int)
-	// 4 bytes: VCC (float)
-	// 4 bytes: Temperature (float)
-	// 1 byte:  Pin State (using bits, abcdefgh where 
-	//                                 h=interrupt pin (usually reed switch)
-	//                                 g=digital signal in from screw terminal
-	//                                 f=D7
-	//                                 e=D8
-	//                                 d=sending interrupt  (h)
-	//                                 c=sending digital signal (g)
-	//                                 b=sending D7 (f)
-	//                                 a=sending D8 (e)
-	// 1 byte:  Number (uint8) of uint8 types and uint16 numbers coming (used for extra data from adc or whatever)
-	//  ....these two lines for each extra indicated above...
-	// 1 byte:  Data Type  (l=long, f=float, a=ascii)
-	// 4 bytes: Data
-	//
+    //
+    // Over-the-air packet definition/spec
+    //
+    // 1 byte:  unit number (uint8)
+    // 1 byte:  Payload type (S=state, C=context, E=event
+    // 2 bytes: Number of retries on last send (int)
+    // 2 bytes: Number of send attempts since last successful send (int)
+    // 4 bytes: VCC (float)
+    // 4 bytes: Temperature (float)
+    // 1 byte:  Pin State (using bits, abcdefgh where 
+    //                                 h=interrupt pin (usually reed switch)
+    //                                 g=digital signal in from screw terminal
+    //                                 f=D7
+    //                                 e=D8
+    //                                 d=sending interrupt  (h)
+    //                                 c=sending digital signal (g)
+    //                                 b=sending D7 (f)
+    //                                 a=sending D8 (e)
+    // 1 byte:  Number (uint8) of uint8 types and uint16 numbers coming (used for extra data from adc or whatever)
+    //  ....these two lines for each extra indicated above...
+    // 1 byte:  Data Type  (l=long, f=float, a=ascii)
+    // 4 bytes: Data
+    //
 
-	float vcc, reading;
-	time_t seconds_past_epoch = getLocalEpoch();
-    int interruptPinState=-1;
-	int unitNum, lastRetryCount, lastGoodTransCount;
+    float vcc, reading;
+    time_t seconds_past_epoch = getLocalEpoch();
+        int interruptPinState=-1;
+        uint8_t pinState;
+    int unitNum, lastRetryCount, lastGoodTransCount;
 
-	//read known values
-	unitNum = bytesRecv[0];
-	memcpy(&lastRetryCount, &bytesRecv[2], 2);
-	memcpy(&lastGoodTransCount, &bytesRecv[4], 2);
-	memcpy(&vcc, &bytesRecv[6], 4);
-	memcpy(&reading, &bytesRecv[10], 4);
+    //read known values
+        if(lastPayloadLen<13) //legacy
+        {
+      unitNum = (uint8_t)bytesRecv[0];
+      memcpy(&vcc, &bytesRecv[2], 4);
+      memcpy(&reading, &bytesRecv[6], 4);
 
-	//read pin state and create post data accordingly
-	uint8_t pinState = bytesRecv[14];
-	if (pinState & 128) //B10000000, or pin sent 
-	{
-         interruptPinState=(pinState & 16)>>4;  //temp until arduino is updated
-         //interruptPinState=(pinState & 8)>>4;  //mask then shift 
-         //fprintf(logFile, "pinstate: %d\n",pinState);
-         sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
-	}
+      //read pin state and create post data accordingly
+      uint8_t pinState = bytesRecv[10];
+         }
+         else
+        {
+      unitNum=(uint8_t)bytesRecv[0];
+          lastRetryCount=(uint16_t)bytesRecv[2];
+          lastGoodTransCount=(uint16_t)bytesRecv[4];
+      memcpy(&vcc, &bytesRecv[6], 4);
+      memcpy(&reading, &bytesRecv[10], 4);
 
-    //build default post data (no pin state)
-    if (pinState == 0)
+      //read pin state and create post data accordingly
+      pinState = bytesRecv[14];
+
+          if(lastRetryCount > 0 || lastGoodTransCount>0)
+          {
+        timeStamp(rfFile);
+        fprintf(rfFile, "STATE: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
+        fflush(rfFile);
+           }
+         }
+
+    if (pinState & 128) //B10000000, or pin sent 
     {
-        sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
-    }
+          interruptPinState=(pinState & 16)>>4;  //temp until arduino is updated
+          //interruptPinState=(pinState & 8)>>4;  //mask then shift 
+          //fprintf(logFile, "pinstate: %d\n",pinState);
+           //fprintf(rfFile, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
+           //fflush(rfFile);
+          sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','IntPinState':'%d','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, interruptPinState, seconds_past_epoch);
+     }
 
-	timeStamp(rfFile);
-	fprintf(rfFile, "STATE: U: %d - R: %d, A: %d\n", unitNum, lastRetryCount, lastGoodTransCount);  //Small indication for log file
-	fflush(rfFile);
+         //build default post data (no pin state)
+         if (pinState == 0)
+         {
+             //fprintf(rfFile, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
+             //fflush(rfFile);
+             sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','VCC':'%f','Temperature':'%f','DeviceDate':'%ld'}", "STATE", unitNum, vcc, reading, seconds_past_epoch);
+         }
 
-	fprintf(logFile, "#");  //Small indication for log file
-	fflush(logFile);
+    fprintf(logFile, "#");  //Small indication for log file
+    fflush(logFile);
 }
 
 //Build post message for pipe 5
+//
+//Context pipe
+//
 void buildPipeFive()
 {
-	//
-	// Over-the-air context packet definition/spec
-	//
-	// 1 byte:  unit number (uint8)
-	// 1 byte:  Payload type (S=state, C=context, E=event  
-	// 1 byte:  location (byte)
-	//
+    //
+    // Over-the-air context packet definition/spec
+    //
+    // 1 byte:  unit number (uint8)
+    // 1 byte:  Payload type (S=state, C=context, E=event  
+    // 1 byte:  location (byte)
+    //
 
-	//read known values
-	int unitNum = bytesRecv[0];
-	char location = bytesRecv[2];
+    //read known values
+    int unitNum = bytesRecv[0];
+    char location = bytesRecv[2];
 
-	//Log file
-	//fprintf(logFile, "location: %c\n", location);
-	//fflush(logFile);
+    //Log file
+    //fprintf(logFile, "location: %c\n", location);
+    //fflush(logFile);
 }
 
 void readDeviceData()
 {
    // Clear any unused ACK payloads	     
    radio.flush_tx();							 	
-  				  
+                  
    //Read now
    lastPayloadLen = radio.getDynamicPayloadSize();
    radio.read(bytesRecv,lastPayloadLen);
