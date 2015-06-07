@@ -18,7 +18,7 @@
 // 3-Motion
 // 4-Front Door??
 // 5-Fire
-#include "unit5.h"
+#include "unit1.h"
 
 //
 // Flags and counters
@@ -117,10 +117,10 @@ void loop()
      digitalWrite(LED_PIN, HIGH);
      #endif
      
-     if(ALARMTYPE==0)
+     if(EVENTTYPE==2 && ALARMTYPE==0)
        buildAlarmPayload('W','W'); //water    
        
-     if(ALARMTYPE==1)
+     if(EVENTTYPE==2 && ALARMTYPE==1)
        buildAlarmPayload('F','F'); //fire
      
      if(EVENTTYPE==1)
