@@ -10,7 +10,7 @@ namespace WorkerRole1
             HttpConfiguration config = new HttpConfiguration();
             config.Routes.MapHttpRoute("SensorRoute", "Sensor/{action}/{id}/{rows}", new { controller = "Sensor", id = RouteParameter.Optional, rows = RouteParameter.Optional });
             config.Routes.MapHttpRoute("EventRoute", "Event/{action}/{eventType}/{id}", new { controller = "Event", id = RouteParameter.Optional, eventType = RouteParameter.Optional });
-
+            config.Routes.MapHttpRoute("AlarmRoute", "Alarm/{action}/{alarmType}/{alarmCode}", new { controller = "Alarm", alarmCode = RouteParameter.Optional, alarmType = RouteParameter.Optional });
             app.UseWebApi(config);
         }
     }
