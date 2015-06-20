@@ -24,3 +24,7 @@ obj/
 _ReSharper*/
 *.s#1
 *.b#1
+*.b#2
+Eagle/RFBoardV4/main.b#3
+*.b#5
+Eagle/RFBoardV4/main.b#4
