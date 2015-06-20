@@ -182,10 +182,10 @@
 <wire x1="9.525" y1="38.735" x2="15.875" y2="38.735" width="0.4064" layer="20"/>
 <wire x1="15.875" y1="38.735" x2="15.875" y2="40.64" width="0.4064" layer="20"/>
 <wire x1="15.875" y1="40.64" x2="9.525" y2="40.64" width="0.4064" layer="20"/>
-<wire x1="5.3975" y1="74.422" x2="5.3975" y2="73.4695" width="0.4064" layer="20"/>
-<wire x1="5.3975" y1="73.4695" x2="9.2075" y2="73.4695" width="0.4064" layer="20"/>
-<wire x1="9.2075" y1="73.4695" x2="9.2075" y2="74.422" width="0.4064" layer="20"/>
-<wire x1="9.2075" y1="74.422" x2="5.3975" y2="74.422" width="0.4064" layer="20"/>
+<wire x1="5.9055" y1="74.422" x2="5.9055" y2="73.4695" width="0.4064" layer="20"/>
+<wire x1="5.9055" y1="73.4695" x2="9.7155" y2="73.4695" width="0.4064" layer="20"/>
+<wire x1="9.7155" y1="73.4695" x2="9.7155" y2="74.422" width="0.4064" layer="20"/>
+<wire x1="9.7155" y1="74.422" x2="5.9055" y2="74.422" width="0.4064" layer="20"/>
 <wire x1="15.8115" y1="74.422" x2="15.8115" y2="73.4695" width="0.4064" layer="20"/>
 <wire x1="15.8115" y1="73.4695" x2="19.6215" y2="73.4695" width="0.4064" layer="20"/>
 <wire x1="19.6215" y1="73.4695" x2="19.6215" y2="74.422" width="0.4064" layer="20"/>
@@ -1006,16 +1006,16 @@ http://www.zetex.com&lt;p&gt;
 <library name="battery_wilkie">
 <packages>
 <package name="AAABATTERY">
-<pad name="VCC" x="6.985" y="-1.27" drill="2.54" shape="long"/>
-<pad name="GND" x="16.51" y="-1.27" drill="2.54" shape="long"/>
+<pad name="VCC" x="6.477" y="-1.27" drill="0.8" diameter="3.81" shape="long"/>
+<pad name="GND" x="16.51" y="-1.27" drill="0.8" diameter="3.81" shape="long"/>
 <wire x1="0" y1="0" x2="22.86" y2="0" width="0.4064" layer="21"/>
 <wire x1="22.86" y1="0" x2="22.86" y2="-50.8" width="0.4064" layer="21"/>
 <wire x1="22.86" y1="-50.8" x2="0" y2="-50.8" width="0.4064" layer="21"/>
 <wire x1="0" y1="-50.8" x2="0" y2="0" width="0.4064" layer="21"/>
-<wire x1="8.255" y1="-31.75" x2="14.605" y2="-31.75" width="0.4064" layer="21"/>
-<wire x1="14.605" y1="-31.75" x2="14.605" y2="-33.02" width="0.4064" layer="21"/>
-<wire x1="14.605" y1="-33.02" x2="8.255" y2="-33.02" width="0.4064" layer="21"/>
-<wire x1="8.255" y1="-33.02" x2="8.255" y2="-31.75" width="0.4064" layer="21"/>
+<wire x1="8.255" y1="-34.544" x2="14.605" y2="-34.544" width="0.4064" layer="21"/>
+<wire x1="14.605" y1="-34.544" x2="14.605" y2="-36.576" width="0.4064" layer="21"/>
+<wire x1="14.605" y1="-36.576" x2="8.255" y2="-36.576" width="0.4064" layer="21"/>
+<wire x1="8.255" y1="-36.576" x2="8.255" y2="-34.544" width="0.4064" layer="21"/>
 </package>
 </packages>
 </library>
@@ -1593,7 +1593,7 @@ Please make sure your boards conform to these design rules.</description>
 <wire x1="13.5255" y1="20.8407" x2="16.4592" y2="23.7744" width="0.4064" layer="1"/>
 <wire x1="30.7848" y1="41.2242" x2="30.7975" y2="41.2825" width="0.4064" layer="1"/>
 <wire x1="8.2296" y1="25.2984" x2="8.2296" y2="73.914" width="0.4064" layer="1"/>
-<wire x1="8.2296" y1="73.914" x2="8.255" y2="73.9775" width="0.4064" layer="1"/>
+<wire x1="8.2296" y1="73.914" x2="7.747" y2="73.9775" width="0.4064" layer="1"/>
 </signal>
 <signal name="D8">
 <contactref element="U1" pad="12"/>
@@ -2073,6 +2073,16 @@ Please make sure your boards conform to these design rules.</description>
 <approved hash="18,29,e5210dcb142c693e"/>
 <approved hash="18,29,151be23909df9a2b"/>
 <approved hash="18,29,17950be904441802"/>
+<approved hash="4,1,d975cf0dcfeed996"/>
+<approved hash="4,1,9c76ca0ec62e9056"/>
+<approved hash="4,1,c3fc34843647c13f"/>
+<approved hash="4,1,e3fd04850644e13c"/>
+<approved hash="4,1,f8ee122303d3280b"/>
+<approved hash="4,1,627cd6404fcdd430"/>
+<approved hash="4,16,c3fc34843647c13f"/>
+<approved hash="4,16,d975cf0dcfeed996"/>
+<approved hash="4,16,9c76ca0ec62e9056"/>
+<approved hash="4,16,e3fd04850644e13c"/>
 <approved hash="3,1,120b1afb0e38ef1c"/>
 <approved hash="3,1,10c8cff3c2c1c02a"/>
 <approved hash="3,1,da57b4a9b4d1da2f"/>
@@ -2169,13 +2179,13 @@ Please make sure your boards conform to these design rules.</description>
 <approved hash="3,1,fc587ea87ee1fc11"/>
 <approved hash="3,1,e1179a056870c957"/>
 <approved hash="3,1,b9858fdb894dbffa"/>
-<approved hash="4,1,d975cf0dcfeed996"/>
-<approved hash="4,1,9c76ca0ec62e9056"/>
-<approved hash="4,1,c3fc34843647c13f"/>
-<approved hash="4,1,e3fd04850644e13c"/>
-<approved hash="4,1,f8ee122303d3280b"/>
+<approved hash="4,1,596adf12dff4598c"/>
+<approved hash="4,1,63fc028400406138"/>
+<approved hash="4,1,1c69da11d634104c"/>
+<approved hash="4,1,e3e0da98d858e120"/>
+<approved hash="4,1,cd86af05d5994632"/>
 <approved hash="4,1,5f2129780f786cd9"/>
-<approved hash="4,1,627cd6404fcdd430"/>
+<approved hash="4,1,8e7ade00ddec593c"/>
 <approved hash="4,1,73ae2617e61bb3a2"/>
 <approved hash="4,1,63fd9a8598406138"/>
 <approved hash="4,1,01745b0c5bd401ac"/>
@@ -2185,10 +2195,10 @@ Please make sure your boards conform to these design rules.</description>
 <approved hash="4,1,f39a7a4daa369421"/>
 <approved hash="4,1,a9a4ce159464a88d"/>
 <approved hash="4,1,d039a7ec10132191"/>
-<approved hash="4,16,c3fc34843647c13f"/>
-<approved hash="4,16,d975cf0dcfeed996"/>
-<approved hash="4,16,9c76ca0ec62e9056"/>
-<approved hash="4,16,e3fd04850644e13c"/>
+<approved hash="4,16,596adf12dff4598c"/>
+<approved hash="4,16,63fc028400406138"/>
+<approved hash="4,16,1c69da11d634104c"/>
+<approved hash="4,16,e3e0da98d858e120"/>
 <approved hash="4,16,01745b0c5bd401ac"/>
 <approved hash="4,16,44775e0f5214486c"/>
 <approved hash="4,16,63fd9a8598406138"/>

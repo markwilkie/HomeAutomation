@@ -4740,16 +4740,16 @@ http://www.zetex.com&lt;p&gt;
 <library name="battery_wilkie">
 <packages>
 <package name="AAABATTERY">
-<pad name="VCC" x="6.985" y="-1.27" drill="2.54" shape="long"/>
-<pad name="GND" x="16.51" y="-1.27" drill="2.54" shape="long"/>
+<pad name="VCC" x="6.477" y="-1.27" drill="0.8" diameter="3.81" shape="long"/>
+<pad name="GND" x="16.51" y="-1.27" drill="0.8" diameter="3.81" shape="long"/>
 <wire x1="0" y1="0" x2="22.86" y2="0" width="0.4064" layer="21"/>
 <wire x1="22.86" y1="0" x2="22.86" y2="-50.8" width="0.4064" layer="21"/>
 <wire x1="22.86" y1="-50.8" x2="0" y2="-50.8" width="0.4064" layer="21"/>
 <wire x1="0" y1="-50.8" x2="0" y2="0" width="0.4064" layer="21"/>
-<wire x1="8.255" y1="-31.75" x2="14.605" y2="-31.75" width="0.4064" layer="21"/>
-<wire x1="14.605" y1="-31.75" x2="14.605" y2="-33.02" width="0.4064" layer="21"/>
-<wire x1="14.605" y1="-33.02" x2="8.255" y2="-33.02" width="0.4064" layer="21"/>
-<wire x1="8.255" y1="-33.02" x2="8.255" y2="-31.75" width="0.4064" layer="21"/>
+<wire x1="8.255" y1="-34.544" x2="14.605" y2="-34.544" width="0.4064" layer="21"/>
+<wire x1="14.605" y1="-34.544" x2="14.605" y2="-36.576" width="0.4064" layer="21"/>
+<wire x1="14.605" y1="-36.576" x2="8.255" y2="-36.576" width="0.4064" layer="21"/>
+<wire x1="8.255" y1="-36.576" x2="8.255" y2="-34.544" width="0.4064" layer="21"/>
 </package>
 </packages>
 <symbols>
