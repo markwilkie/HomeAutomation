@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.1.0">
+<eagle version="7.2.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -4819,8 +4819,8 @@ http://www.zetex.com&lt;p&gt;
 <part name="P+4" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="S1" library="Testing" deviceset="SWITCH-MOMENTARY-2" device="SMD-ALT01" value="Reset"/>
 <part name="Q1" library="Testing" deviceset="RESONATOR" device="1:1" value="8/16/20MHz"/>
-<part name="BATPLUS" library="pinhead" deviceset="PINHD-1X1" device=""/>
-<part name="BATMIN" library="pinhead" deviceset="PINHD-1X1" device=""/>
+<part name="VCC(3V)" library="pinhead" deviceset="PINHD-1X1" device=""/>
+<part name="GND" library="pinhead" deviceset="PINHD-1X1" device=""/>
 <part name="P+2" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="GND13" library="SparkFun" deviceset="GND" device=""/>
 <part name="S3" library="switch-reed" deviceset="REED-SWITCH-" device="MK6-10"/>
@@ -4828,7 +4828,7 @@ http://www.zetex.com&lt;p&gt;
 <part name="JP6" library="pinhead" deviceset="PINHD-1X1" device=""/>
 <part name="R1" library="SparkFun" deviceset="RESISTOR" device="0603-RES" value="10K 1%"/>
 <part name="THERM" library="Vishay_By_element14_Batch_1" deviceset="NTCS0603E3103HMT" device="" value="10K Ohms"/>
-<part name="D2--A0" library="pinhead" deviceset="PINHD-1X3" device=""/>
+<part name="A0___D2" library="pinhead" deviceset="PINHD-1X3" device=""/>
 <part name="GND2" library="SparkFun" deviceset="GND" device=""/>
 <part name="JP5" library="pinhead" deviceset="PINHD-2X5" device=""/>
 <part name="P+3" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
@@ -4896,8 +4896,8 @@ http://www.zetex.com&lt;p&gt;
 <attribute name="NAME" x="141.224" y="130.81" size="1.778" layer="95"/>
 <attribute name="VALUE" x="137.922" y="121.412" size="1.778" layer="96"/>
 </instance>
-<instance part="BATPLUS" gate="G$1" x="50.8" y="170.18"/>
-<instance part="BATMIN" gate="G$1" x="50.8" y="154.94"/>
+<instance part="VCC(3V)" gate="G$1" x="50.8" y="170.18"/>
+<instance part="GND" gate="G$1" x="50.8" y="154.94"/>
 <instance part="P+2" gate="G$1" x="55.88" y="170.18" rot="R270"/>
 <instance part="GND13" gate="1" x="48.26" y="147.32"/>
 <instance part="S3" gate="G$1" x="220.98" y="139.7"/>
@@ -4905,7 +4905,7 @@ http://www.zetex.com&lt;p&gt;
 <instance part="JP6" gate="G$1" x="60.96" y="76.2" rot="R180"/>
 <instance part="R1" gate="G$1" x="256.54" y="111.76" rot="R270"/>
 <instance part="THERM" gate="A" x="256.54" y="83.82" rot="R90"/>
-<instance part="D2--A0" gate="A" x="17.78" y="114.3" rot="R180"/>
+<instance part="A0___D2" gate="A" x="17.78" y="114.3" rot="R180"/>
 <instance part="GND2" gate="1" x="256.54" y="68.58"/>
 <instance part="JP5" gate="A" x="73.66" y="119.38"/>
 <instance part="P+3" gate="G$1" x="60.96" y="124.46" rot="R90"/>
@@ -4916,10 +4916,10 @@ http://www.zetex.com&lt;p&gt;
 <instance part="R3" gate="G$1" x="30.48" y="106.68" rot="R90"/>
 <instance part="JP4" gate="G$1" x="220.98" y="187.96" rot="R180"/>
 <instance part="P+5" gate="G$1" x="205.74" y="187.96" rot="R90"/>
-<instance part="GND10" gate="1" x="162.56" y="193.04" rot="R180"/>
-<instance part="R4" gate="G$1" x="167.64" y="172.72" rot="R180"/>
-<instance part="GND11" gate="1" x="154.94" y="175.26" rot="R180"/>
-<instance part="Q3" gate="G$1" x="177.8" y="190.5" rot="R90"/>
+<instance part="GND10" gate="1" x="134.62" y="193.04" rot="R180"/>
+<instance part="R4" gate="G$1" x="147.32" y="175.26" rot="R180"/>
+<instance part="GND11" gate="1" x="134.62" y="177.8" rot="R180"/>
+<instance part="Q3" gate="G$1" x="177.8" y="190.5" rot="R270"/>
 <instance part="U$1" gate="G$1" x="43.18" y="147.32"/>
 <instance part="P+6" gate="G$1" x="15.24" y="170.18"/>
 <instance part="GND12" gate="1" x="25.4" y="172.72" rot="R180"/>
@@ -4991,7 +4991,7 @@ http://www.zetex.com&lt;p&gt;
 <label x="30.48" y="91.44" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
-<pinref part="BATMIN" gate="G$1" pin="1"/>
+<pinref part="GND" gate="G$1" pin="1"/>
 <pinref part="GND13" gate="1" pin="GND"/>
 <wire x1="48.26" y1="154.94" x2="48.26" y2="149.86" width="0.1524" layer="91"/>
 </segment>
@@ -5016,17 +5016,17 @@ http://www.zetex.com&lt;p&gt;
 <segment>
 <pinref part="R4" gate="G$1" pin="2"/>
 <pinref part="GND11" gate="1" pin="GND"/>
-<wire x1="162.56" y1="172.72" x2="154.94" y2="172.72" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="Q3" gate="G$1" pin="D"/>
-<pinref part="GND10" gate="1" pin="GND"/>
-<wire x1="167.64" y1="190.5" x2="162.56" y2="190.5" width="0.1524" layer="91"/>
+<wire x1="142.24" y1="175.26" x2="134.62" y2="175.26" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND12" gate="1" pin="GND"/>
 <pinref part="U$1" gate="G$1" pin="GND"/>
 <wire x1="25.4" y1="170.18" x2="25.4" y2="162.56" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="Q3" gate="G$1" pin="S"/>
+<pinref part="GND10" gate="1" pin="GND"/>
+<wire x1="167.64" y1="190.5" x2="134.62" y2="190.5" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="AREF" class="0">
@@ -5163,7 +5163,7 @@ http://www.zetex.com&lt;p&gt;
 <junction x="83.82" y="162.56"/>
 </segment>
 <segment>
-<pinref part="BATPLUS" gate="G$1" pin="1"/>
+<pinref part="VCC(3V)" gate="G$1" pin="1"/>
 <pinref part="P+2" gate="G$1" pin="3.3V"/>
 <wire x1="48.26" y1="170.18" x2="55.88" y2="170.18" width="0.1524" layer="91"/>
 </segment>
@@ -5384,14 +5384,14 @@ http://www.zetex.com&lt;p&gt;
 <label x="198.12" y="154.94" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
-<pinref part="D2--A0" gate="A" pin="3"/>
+<pinref part="A0___D2" gate="A" pin="3"/>
 <wire x1="20.32" y1="116.84" x2="25.4" y2="116.84" width="0.1524" layer="91"/>
 <label x="25.4" y="116.84" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="SCREW_TERM" class="0">
 <segment>
-<pinref part="D2--A0" gate="A" pin="2"/>
+<pinref part="A0___D2" gate="A" pin="2"/>
 <wire x1="20.32" y1="114.3" x2="25.4" y2="114.3" width="0.1524" layer="91"/>
 <label x="25.4" y="114.3" size="1.27" layer="95" xref="yes"/>
 </segment>
@@ -5408,19 +5408,20 @@ http://www.zetex.com&lt;p&gt;
 <segment>
 <pinref part="U1" gate="G$1" pin="PD5(T1)"/>
 <wire x1="195.58" y1="119.38" x2="208.28" y2="119.38" width="0.1524" layer="91"/>
-<wire x1="180.34" y1="172.72" x2="180.34" y2="160.02" width="0.1524" layer="91"/>
-<wire x1="180.34" y1="160.02" x2="208.28" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="160.02" y1="175.26" x2="160.02" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="160.02" y1="160.02" x2="208.28" y2="160.02" width="0.1524" layer="91"/>
 <wire x1="208.28" y1="160.02" x2="208.28" y2="119.38" width="0.1524" layer="91"/>
 <pinref part="R4" gate="G$1" pin="1"/>
-<wire x1="172.72" y1="172.72" x2="180.34" y2="172.72" width="0.1524" layer="91"/>
+<wire x1="152.4" y1="175.26" x2="160.02" y2="175.26" width="0.1524" layer="91"/>
 <pinref part="Q3" gate="G$1" pin="G"/>
-<wire x1="180.34" y1="180.34" x2="180.34" y2="172.72" width="0.1524" layer="91"/>
-<junction x="180.34" y="172.72"/>
+<junction x="160.02" y="175.26"/>
+<wire x1="160.02" y1="175.26" x2="160.02" y2="200.66" width="0.1524" layer="91"/>
+<wire x1="160.02" y1="200.66" x2="175.26" y2="200.66" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$3" class="0">
 <segment>
-<pinref part="D2--A0" gate="A" pin="1"/>
+<pinref part="A0___D2" gate="A" pin="1"/>
 <wire x1="20.32" y1="111.76" x2="30.48" y2="111.76" width="0.1524" layer="91"/>
 <pinref part="R3" gate="G$1" pin="2"/>
 </segment>
@@ -5442,10 +5443,10 @@ http://www.zetex.com&lt;p&gt;
 <wire x1="213.36" y1="124.46" x2="213.36" y2="160.02" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="SCREW_GND" class="2">
+<net name="N$4" class="2">
 <segment>
 <pinref part="JP4" gate="G$1" pin="1"/>
-<pinref part="Q3" gate="G$1" pin="S"/>
+<pinref part="Q3" gate="G$1" pin="D"/>
 <wire x1="213.36" y1="190.5" x2="187.96" y2="190.5" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -5463,16 +5464,16 @@ http://www.zetex.com&lt;p&gt;
 <approved hash="102,1,15.24,170.18,3.3V,VCC,,,,"/>
 <approved hash="106,1,195.58,149.86,A2,,,,,"/>
 <approved hash="106,1,195.58,147.32,A3,,,,,"/>
-<approved hash="113,1,50.466,171.581,BATPLUS,,,,,"/>
-<approved hash="113,1,49.4262,156.341,BATMIN,,,,,"/>
+<approved hash="113,1,49.7207,171.581,VCC(3V),,,,,"/>
+<approved hash="113,1,48.4971,156.341,GND,,,,,"/>
 <approved hash="113,1,99.2971,94.1112,JP3,,,,,"/>
 <approved hash="113,1,63.2629,74.7988,JP6,,,,,"/>
-<approved hash="113,1,20.0062,112.899,D2--A0,,,,,"/>
+<approved hash="113,1,18.7254,112.899,A0___D2,,,,,"/>
 <approved hash="113,1,74.8877,120.781,JP5,,,,,"/>
 <approved hash="113,1,124.223,76.0688,D7-D8,,,,,"/>
 <approved hash="113,1,37.4735,101.896,T1,,,,,"/>
 <approved hash="113,1,216.577,186.495,JP4,,,,,"/>
-<approved hash="113,1,177.8,188.604,Q3,,,,,"/>
+<approved hash="113,1,177.8,192.396,Q3,,,,,"/>
 </errors>
 </schematic>
 </drawing>

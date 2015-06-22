@@ -18,7 +18,8 @@
 // 3-Motion
 // 4-Front Door??
 // 5-Fire
-#include "unit1.h"
+// 6-Motion 2 (v4.0 board)
+#include "unit6.h"
 
 //
 // Flags and counters
@@ -75,9 +76,9 @@ void setup()
     digitalWrite(REEDPIN, HIGH);      //Power reed if turned on
     #endif
     
-    #ifdef CONTACTPIN
-    pinMode(CONTACTPIN, OUTPUT);
-    digitalWrite(CONTACTPIN, HIGH);      //Power screw contacts if turned on
+    #ifdef POWERPIN
+    pinMode(POWERPIN, OUTPUT);
+    digitalWrite(POWERPIN, HIGH);      //Power screw contacts if turned on
     #endif    
     
     //Send context for PI to use upon reset or startup
@@ -148,7 +149,7 @@ void loop()
    {
      float temperature;
      byte interruptPinState;
-     
+    
      //Gather and send State.  We do this everytime
      #ifdef LED_PIN
      digitalWrite(LED_PIN, HIGH);
@@ -282,6 +283,9 @@ float readVcc()
   result = ADCL;
   result |= ADCH<<8;
   result = 1126400L / result; // Back-calculate AVcc in mV
+  
+  VERBOSE_PRINT("VCC: ");
+  VERBOSE_PRINTLN(result/1000.0);
 
   return result/1000.0;
 }
@@ -324,6 +328,7 @@ float readTemp(int samplePin)
  
   //Convert to F and return
   float retVal= steinhart*(9.0/5.0)+32.0;
+  VERBOSE_PRINT("Temperature: ");
   VERBOSE_PRINTLN(retVal);
   return retVal;
 }
@@ -333,6 +338,10 @@ float readTemp(int samplePin)
 void radioSend(byte *payload)
 {
   byte gotByte;
+  
+  #ifdef RADIO_OFF
+  return;
+  #endif
       
   //Write the payload
   //radio.stopListening();  

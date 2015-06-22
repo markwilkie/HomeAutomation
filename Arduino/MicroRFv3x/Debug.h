@@ -1,5 +1,6 @@
 //#define ERROR
 //#define VERBOSE
+//#define RADIO_OFF
 
 #ifdef ERROR
   #define ERROR_PRINT(x)     Serial.print (x)
