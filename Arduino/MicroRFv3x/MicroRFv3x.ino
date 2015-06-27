@@ -16,10 +16,10 @@
 // 1-Laundry - water alarm
 // 2-Garage
 // 3-Motion
-// 4-Front Door??
+// 4-Outside
 // 5-Fire
 // 6-Motion 2 (v4.0 board)
-#include "unit6.h"
+#include "unit5.h"
 
 //
 // Flags and counters
@@ -81,6 +81,14 @@ void setup()
     digitalWrite(POWERPIN, HIGH);      //Power screw contacts if turned on
     #endif    
     
+    //Indicate which unit this is
+    #ifdef LED_PIN
+    blinkLED(5,100);  //get ready for unit blink
+    delay(2000);
+    blinkLED(UNITNUM,1000);
+    blinkLED(5,100);  //done
+    #endif
+    
     //Send context for PI to use upon reset or startup
     #ifdef LED_PIN
     digitalWrite(LED_PIN, HIGH);   
@@ -92,6 +100,17 @@ void setup()
     #endif
     
     VERBOSE_PRINTLN("Ready...");
+}
+
+void blinkLED(int blinkNum,int delayTime)
+{
+    for(int b=0;b<blinkNum;b++)
+    {
+      digitalWrite(LED_PIN, HIGH);  
+      delay(delayTime);
+      digitalWrite(LED_PIN, LOW);      
+      delay(delayTime);
+    }   
 }
  
 //Get ADC readings and send them out via transmitter 
@@ -447,7 +466,23 @@ void sleep()
    //reset flags
    //enableInterruptFlag=true;
    interruptType=-1;  //noise
-  
+   
+   #ifdef INTERRUPTPIN   
+   //If interrupt pin is already low (triggered), wait until it's not before sleeping
+   //   this is because of noise in certain systems based on the cpu waking up
+   int counter=0;
+   while(enableInterruptFlag && digitalRead(INTERRUPTPIN) == LOW)
+   {
+     delay(250);
+     counter++;
+     if(counter > 50)  //don't lock up
+     {
+       ERROR_PRINTLN("Interrupt not cleareds");
+       break;
+     }
+   }
+   #endif
+   
    //track state change
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
    
@@ -472,6 +507,7 @@ void sleep()
        break;
      }
      
+     #ifdef INTERRUPTPIN     
      //Check if we got woken up because of an interrupt before looping again
      if(TRIGGERTYPE != 0)
      {
@@ -502,6 +538,7 @@ void sleep()
        VERBOSE_PRINT("Interrupt Type: "); 
        VERBOSE_PRINTLN(interruptType); 
      }
+   #endif
    }
 }
 
