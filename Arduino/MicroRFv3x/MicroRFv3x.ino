@@ -16,15 +16,15 @@
 // 1-Laundry - water alarm
 // 2-Garage
 // 3-Motion
-// 4-Outside
+// 4-NA
 // 5-Fire
 // 6-Motion 2 (v4.0 board)
-#include "unit5.h"
+#include "unit0.h"
 
 //
 // Flags and counters
 //
-int sleep_cycles_remaining; //var tracking how many sleep cycles we've been through
+int sleep_cycles_remaining=0; //var tracking how many sleep cycles we've been through
 boolean enableInterruptFlag;  //Turn off/on interruptsn - used to for not having interrupts trigger over and over
 int interruptType; //Will be set to -1 for noise, 0 for timer, 1 for interrupt trip, and 2 for interrupt pin release
 boolean sentSinceTimerFlag=false;  //Used to determine if we need to send again
@@ -118,13 +118,13 @@ void loop()
 {
    //Debug only
    if(interruptType < 0)
-     VERBOSE_PRINTLN("noise");
+     VERBOSE_PRINTLN("Main loop: noise");
    if(interruptType == 0)
-     VERBOSE_PRINTLN("timer dinged");
+     VERBOSE_PRINTLN("Main loop: timer dinged");
    if(interruptType == 1)
-     VERBOSE_PRINTLN("interrupt");
+     VERBOSE_PRINTLN("Main loop: interrupt");
    if(interruptType == 2)
-     VERBOSE_PRINTLN("interrupt reset");    
+     VERBOSE_PRINTLN("Main loop: interrupt reset");    
      
    //Reset flag if timer dings
    if(interruptType == 0)
@@ -406,7 +406,7 @@ void radioSend(byte *payload)
       if(!radio.available())
       {                             
         // If nothing in the buffer, we got an ack but it is blank
-        VERBOSE_PRINTLN("Got blank response.\n");     
+        VERBOSE_PRINTLN("Got blank response.");     
       }
       else
       {   
@@ -424,15 +424,16 @@ void radioSend(byte *payload)
     {
       if(lastRetryCount>=MAXRRETRIES)
       {
+        ERROR_PRINTLN("Sending failed.  Not retrying anymore"); 
         retryFlag=false;
       }
       else
       {
         lastRetryCount++;
+        VERBOSE_PRINT("Send failed, retry # ");        
+        VERBOSE_PRINTLN(lastRetryCount);        
         delay(RETRYDELAY);
       }
-      
-      ERROR_PRINTLN("Sending failed\n");
     }
   }
   
@@ -477,7 +478,7 @@ void sleep()
      counter++;
      if(counter > 50)  //don't lock up
      {
-       ERROR_PRINTLN("Interrupt not cleareds");
+       ERROR_PRINTLN("Interrupt not cleared");
        break;
      }
    }
@@ -487,7 +488,7 @@ void sleep()
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
    
    //Reset cycles if necessary
-   if(sleep_cycles_remaining == 0)
+   if(sleep_cycles_remaining <= 0)
    {
      sleep_cycles_remaining=SLEEPCYCLES; //setup how cycles
    }
@@ -495,15 +496,17 @@ void sleep()
    //Loop for sleep cycles
    while(sleep_cycles_remaining)
    {
+     VERBOSE_PRINTLN("Going to sleep now...");
      sleepNow(); //Remember, this will only seep for 8 seconds
      
-     //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why, might be just debug print)
-     delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin state farther down
+     VERBOSE_PRINT("Woke Up - Sleep Cycles Remaining: ");
+     VERBOSE_PRINTLN(sleep_cycles_remaining);
      
      //Check if timer.  If so, set type to 0 and return
      if(sleep_cycles_remaining == 0)
      {
        interruptType=0;
+       VERBOSE_PRINTLN("Timer Dinged");
        break;
      }
      
@@ -511,6 +514,9 @@ void sleep()
      //Check if we got woken up because of an interrupt before looping again
      if(TRIGGERTYPE != 0)
      {
+       //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why, might be just debug print)
+       delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin state farther down
+
        boolean pinState = digitalRead(INTERRUPTPIN);
        if(pinState != lastPinState)  //if different, then we must have got woken up because of the pin interrupt or reset
        {

@@ -26,8 +26,8 @@
 //
 // Config
 //
-#define MAXRRETRIES 10  //Number of times to retry before giving up
-#define RETRYDELAY 100  //Milliseconds to wait between retries
+#define MAXRRETRIES 50  //Number of times to retry before giving up
+#define RETRYDELAY 250  //Milliseconds to wait between retries
 #define SLEEPCYCLES 75  //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
 #define TRIGGERTYPE 2   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
 #define SENDFREQ 1      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
