@@ -1,0 +1,41 @@
+﻿<div class="events view indent">
+    <div class="container" ng-controller="sensorsController">
+        <header>
+            <h3>Sensors Data</h3>
+        </header>
+
+        <div class="row gridContainer sensorsTable show-hide-animation">
+            <div class="col-md-10">
+                <div>
+                    <table class="table table-striped table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Unit#</th>
+                                <th>Temp</th>
+                                <th>VCC</th>
+                                <th>Date/Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-ng-repeat="sensor in sensors" class="repeat-animation">
+                                <td>{{sensor.unitnum}}</td>
+                                <td>{{sensor.temperature}}</td>
+                                <td>{{sensor.vcc}}</td>
+                                <td>{{sensor.devicedatetime}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row show-hide-animation">
+                <div class="col-span-12">
+                    <h4>No sensor data found</h4>
+                </div>
+            </div>
+        </div>
+        <br /><br /><br />
+    </div>
+</div>

@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html ng-app="sensorWebApp">
+<head>
+    <title>WilkieHome Event Viewer</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="Content/bootstrap.css" rel="stylesheet" />
+    <link href="Content/animations.css" rel="stylesheet" />
+    <link rel="stylesheet" href="Content/mobile-angular-ui-hover.min.css" />
+    <link rel="stylesheet" href="Content/mobile-angular-ui-base.min.css" />
+    <link rel="stylesheet" href="Content/mobile-angular-ui-desktop.min.css" />
+    <link href="Content/styles.css" rel="stylesheet" />
+</head>
+<body ng-cloak>
+
+    <div class="slide-animation-container">
+        <div ng-view id="ng-view" class="slide-animation"></div>
+    </div>
+
+    <div id="footer">
+    </div>
+
+    <!-- 3rd party libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.0/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.0/angular-route.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.0/angular-animate.min.js"></script>
+    <script src="Scripts/angular-ui-bootstrap.js"></script>
+    <script src="Scripts/tweenMax.min.js"></script>
+    <script src="Scripts/mobile-angular-ui.min.js"></script>
+    <!-- Required to use $swipe, $drag and Translate services -->
+    <script src="Scripts/mobile-angular-ui.gestures.min.js"></script>
+    
+    <!-- Custom scripts -->
+    <script src="app/app.js"></script>
+    <script src="app/controllers/sensorsController.js"></script>
+    <script src="app/controllers/eventsController.js"></script>
+    <script src="app/services/sensorsService.js"></script>
+    <script src="app/services/eventsService.js"></script>
+    <script src="app/controllers/aboutController.js"></script>
+
+</body>
+</html>
+
+
