@@ -8,8 +8,9 @@
 #include <sys/resource.h> 
 
 void readDeviceData();
-void callWebAPI(char *urlRaw,char *authHeader);
-void createAuthHeader (char *key,char *keyName,char *url,char *authHeader);
+void callSecureWebAPI(char *urlRaw,char *authHeader);
+void callWebAPI(char *urlRaw); 
+void createAuthHeader(char *key, char *keyName, char *url, char *authHeader);
 char * base64encode (const void *b64_encode_me, int encode_this_many_bytes,int *resLen);
 void buildPipeOne();
 void buildPipeTwo();
@@ -29,6 +30,9 @@ const uint64_t pipes[6] = { 0xF0F0F0F0D2LL, 0xF0F0F0F0E1LL,
                             0xF0F0F0F0E2LL, 0xF0F0F0F0E3LL, 
                             0xF0F0F0F0F1LL, 0xF0F0F0F0F2LL };
 
+//
+// For posting to the Azure events
+//
 // Payload size - 32 is the default.  Must be the same on transmitter
 const uint8_t MAX_PAYLOAD_SIZE = 32;  
 const uint8_t MAX_POSTDATA_SIZE = 128+1; 
@@ -36,8 +40,13 @@ uint8_t pipeNo;
 int lastPayloadLen;
 uint8_t bytesRecv[MAX_PAYLOAD_SIZE+1];
 char postData[MAX_POSTDATA_SIZE];
-
 char *url=(char*)"https://homeautomation-ns.servicebus.windows.net/homeautomation/messages?api-version=2014-01";
+
+//
+// For posting to normal Azure web API
+//
+char *baseURL = (char *)"http://sensors.cloudapp.net";
+char APIWebURL[512];
 
 FILE *logFile;
 FILE *rfFile;
@@ -170,29 +179,30 @@ int createAndPostData(char *authHeader)
     { 
     case 1: //Power
         buildPipeOne();
-        callWebAPI(url, authHeader);
+        callSecureWebAPI(url, authHeader);
         break;
     case 2: //Motion
         buildPipeTwo();
-        callWebAPI(url, authHeader);
+        callSecureWebAPI(url, authHeader);
         break;
     case 3: //Alarm
         buildPipeThree();
-        callWebAPI(url, authHeader);
+        callSecureWebAPI(url, authHeader);  //Azure Event
+        callWebAPI(APIWebURL);  //SMTP --> text web api call in Azure
         break;
     case 4: //state protocol
         buildPipeFour();
-        callWebAPI(url, authHeader);
+        callSecureWebAPI(url, authHeader);
         break;
     case 5: //context protocol
         buildPipeFive();
         //No need to send anything to Azure
         break;
     default: //Unexpected??
-              timeStamp(stderr);
-              fprintf(stderr, "ERROR: Unexpected pipe number: %d\n",pipeNo);
-              fflush(stderr);
-              retVal=-1;
+        timeStamp(stderr);
+        fprintf(stderr, "ERROR: Unexpected pipe number: %d\n",pipeNo);
+        fflush(stderr);
+        retVal=-1;
     }
 
     //fprintf(logFile,"DATA: %s\n",postData);
@@ -312,7 +322,11 @@ void buildPipeThree()
           }
         }
 
+    //Post data for ALARM in Azure event queue
     sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, alarmCodeType, alarmCode, seconds_past_epoch);
+
+    //GET data for SMTP w/ Azure web api
+    sprintf(APIWebURL, "%s/Alarm/SendAlarm/%c/%c", baseURL, alarmCodeType, alarmCode);
 
     fprintf(logFile, "%c", alarmCode);  //Small indication for log file
     fflush(logFile);
@@ -446,7 +460,51 @@ void readDeviceData()
    //fflush(logFile);   
 }
 
-void callWebAPI(char *urlRaw,char *authHeader)
+void callSecureWebAPI(char *urlRaw, char *authHeader)
+{
+    CURL *curl;
+    CURLcode res;
+
+    curl = curl_easy_init();
+    if (curl)
+    {
+        //custom headers
+        struct curl_slist *chunk = NULL;
+        chunk = curl_slist_append(chunk, "Accept:");
+        chunk = curl_slist_append(chunk, "Content-Type: application/json;type=entry;charset=utf-8");
+        chunk = curl_slist_append(chunk, authHeader);
+        res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        //verbose
+        //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        //post data
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData);
+
+        //set timeouts
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15);  //set timeout for 15 seconds
+
+        //set URL
+        curl_easy_setopt(curl, CURLOPT_URL, urlRaw);
+
+        /* Perform the request, res will get the return code */
+        res = curl_easy_perform(curl);
+
+        /* Check for errors */
+        if (res != CURLE_OK)
+        {
+            timeStamp(stderr);
+            fprintf(stderr, "ERROR: curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+            fflush(stderr);
+        }
+
+        /* always cleanup */
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(chunk);
+    }
+}
+
+void callWebAPI(char *urlRaw)
 {
   CURL *curl;
   CURLcode res;
@@ -454,18 +512,8 @@ void callWebAPI(char *urlRaw,char *authHeader)
   curl = curl_easy_init();
   if(curl) 
   {
-     //custom headers
-     struct curl_slist *chunk = NULL;
-     chunk = curl_slist_append(chunk, "Accept:");
-     chunk = curl_slist_append(chunk, "Content-Type: application/json;type=entry;charset=utf-8");  
-     chunk = curl_slist_append(chunk, authHeader);  
-     res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
     //verbose
     //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
-    //post data
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData);
 
     //set timeouts
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15);  //set timeout for 15 seconds
@@ -486,7 +534,7 @@ void callWebAPI(char *urlRaw,char *authHeader)
  
     /* always cleanup */ 
     curl_easy_cleanup(curl);
-    curl_slist_free_all(chunk);
+    //curl_slist_free_all(chunk);
   }
 }
 

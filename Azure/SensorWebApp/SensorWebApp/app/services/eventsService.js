@@ -1,7 +1,7 @@
 ﻿angular.module('sensorWebApp')
     .factory('dataFactory', ['$http', function ($http) {
 
-        var urlBase = 'http://sensors.cloudapp.net/Event/EventList/M/6';
+        var urlBase = 'http://sensors.cloudapp.net/Event/EventList/';
         var dataFactory = {};
 
         dataFactory.getEvents = function () {
