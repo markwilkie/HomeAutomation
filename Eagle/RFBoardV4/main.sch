@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.2.0">
+<eagle version="7.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -88,7 +88,13 @@
 <layer number="111" name="LPC17xx" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="112" name="tSilk" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="113" name="IDFDebug" color="4" fill="1" visible="yes" active="yes"/>
+<layer number="114" name="FRNTMAAT1" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="115" name="FRNTMAAT2" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="116" name="Patch_BOT" color="9" fill="4" visible="yes" active="yes"/>
+<layer number="117" name="BACKMAAT1" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="118" name="Rect_Pads" color="7" fill="1" visible="no" active="no"/>
+<layer number="119" name="KAP_TEKEN" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="120" name="KAP_MAAT1" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="121" name="_tsilk" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="122" name="_bsilk" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="123" name="tTestmark" color="7" fill="1" visible="yes" active="yes"/>
@@ -97,6 +103,7 @@
 <layer number="126" name="_bNames" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="127" name="_tValues" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="128" name="_bValues" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="130" name="SMDSTROOK" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="131" name="tAdjust" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="132" name="bAdjust" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="144" name="Drill_legend" color="7" fill="1" visible="yes" active="yes"/>
@@ -132,11 +139,20 @@
 <layer number="222" name="222bmp" color="23" fill="1" visible="no" active="no"/>
 <layer number="223" name="223bmp" color="24" fill="1" visible="no" active="no"/>
 <layer number="224" name="224bmp" color="25" fill="1" visible="no" active="no"/>
+<layer number="225" name="225bmp" color="7" fill="1" visible="no" active="yes"/>
+<layer number="226" name="226bmp" color="7" fill="1" visible="no" active="yes"/>
+<layer number="227" name="227bmp" color="7" fill="1" visible="no" active="yes"/>
+<layer number="228" name="228bmp" color="7" fill="1" visible="no" active="yes"/>
+<layer number="230" name="230bmp" color="7" fill="1" visible="no" active="yes"/>
+<layer number="231" name="Eagle3D_PG1" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="232" name="Eagle3D_PG2" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="233" name="Eagle3D_PG3" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="248" name="Housing" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="249" name="Edge" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="250" name="Descript" color="3" fill="1" visible="no" active="no"/>
 <layer number="251" name="SMDround" color="12" fill="11" visible="no" active="no"/>
 <layer number="254" name="cooling" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="255" name="Accent" color="7" fill="1" visible="yes" active="yes"/>
 </layers>
 <schematic>
 <libraries>
@@ -1129,6 +1145,10 @@ will be further integrated into the Sparkfun Library for other footprints.  It c
 <text x="-1.016" y="-1.524" size="0.4064" layer="27">&gt;Value</text>
 </package>
 <package name="CAP-PTH-SMALL-KIT">
+<description>&lt;h3&gt;CAP-PTH-SMALL-KIT&lt;/h3&gt;
+Commonly used for small ceramic capacitors. Like our 0.1uF (http://www.sparkfun.com/products/8375) or 22pF caps (http://www.sparkfun.com/products/8571).&lt;br&gt;
+&lt;br&gt;
+&lt;b&gt;Warning:&lt;/b&gt; This is the KIT version of this package. This package has a smaller diameter top stop mask, which doesn't cover the diameter of the pad. This means only the bottom side of the pads' copper will be exposed. You'll only be able to solder to the bottom side.</description>
 <wire x1="0" y1="0.635" x2="0" y2="-0.635" width="0.254" layer="21"/>
 <wire x1="-2.667" y1="1.27" x2="2.667" y2="1.27" width="0.254" layer="21"/>
 <wire x1="2.667" y1="1.27" x2="2.667" y2="-1.27" width="0.254" layer="21"/>
@@ -4781,6 +4801,62 @@ http://www.zetex.com&lt;p&gt;
 </deviceset>
 </devicesets>
 </library>
+<library name="boost">
+<packages>
+<package name="SOT23-5">
+<smd name="2" x="0" y="1.2" dx="0.7" dy="1" layer="1" rot="R180"/>
+<smd name="3" x="-0.95" y="1.2" dx="0.7" dy="1" layer="1" rot="R180"/>
+<smd name="5" x="0.95" y="-1.2" dx="0.7" dy="1" layer="1" rot="R180"/>
+<smd name="4" x="-0.95" y="-1.2" dx="0.7" dy="1" layer="1"/>
+<smd name="1" x="0.95" y="1.2" dx="0.7" dy="1" layer="1"/>
+<wire x1="-1.5" y1="0.75" x2="1.5" y2="0.75" width="0.127" layer="51"/>
+<wire x1="1.5" y1="-0.75" x2="-1.5" y2="-0.75" width="0.127" layer="51"/>
+<wire x1="-1.5" y1="0.75" x2="-1.5" y2="-0.75" width="0.127" layer="51"/>
+<wire x1="1.5" y1="0.75" x2="1.5" y2="-0.75" width="0.2032" layer="51"/>
+<wire x1="-0.25" y1="-0.75" x2="0.25" y2="-0.75" width="0.2032" layer="21"/>
+<wire x1="1.5" y1="0.75" x2="1.5" y2="-0.75" width="0.127" layer="21"/>
+<wire x1="-1.5" y1="0.75" x2="-1.5" y2="-0.75" width="0.2032" layer="21"/>
+<text x="-3" y="2" size="1.27" layer="25">&gt;NAME</text>
+<text x="-3" y="-4" size="1.27" layer="27">&gt;VALUE</text>
+</package>
+</packages>
+<symbols>
+<symbol name="XC9140">
+<wire x1="-10.16" y1="-10.16" x2="-10.16" y2="10.16" width="0.254" layer="94"/>
+<wire x1="-10.16" y1="10.16" x2="10.16" y2="10.16" width="0.254" layer="94"/>
+<wire x1="10.16" y1="10.16" x2="10.16" y2="-10.16" width="0.254" layer="94"/>
+<wire x1="10.16" y1="-10.16" x2="-10.16" y2="-10.16" width="0.254" layer="94"/>
+<text x="-5.08" y="12.7" size="1.778" layer="94">&gt;NAME</text>
+<text x="-5.08" y="-12.7" size="1.778" layer="94">&gt;VALUE</text>
+<pin name="LX" x="-15.24" y="5.08" length="middle"/>
+<pin name="CE" x="-15.24" y="0" length="middle"/>
+<pin name="VBAT" x="-15.24" y="-5.08" length="middle"/>
+<pin name="VOUT" x="15.24" y="5.08" length="middle" rot="R180"/>
+<pin name="GND" x="15.24" y="-5.08" length="middle" rot="R180"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="XC9140">
+<gates>
+<gate name="IC1" symbol="XC9140" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="SOT23-5">
+<connects>
+<connect gate="IC1" pin="CE" pad="2"/>
+<connect gate="IC1" pin="GND" pad="4"/>
+<connect gate="IC1" pin="LX" pad="1"/>
+<connect gate="IC1" pin="VBAT" pad="3"/>
+<connect gate="IC1" pin="VOUT" pad="5"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -4846,6 +4922,10 @@ http://www.zetex.com&lt;p&gt;
 <part name="U$1" library="battery_wilkie" deviceset="BAT" device=""/>
 <part name="P+6" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="GND12" library="SparkFun" deviceset="GND" device=""/>
+<part name="U$2" library="boost" deviceset="XC9140" device=""/>
+<part name="C4" library="SparkFun" deviceset="CAP" device="0603-CAP" value="10uF"/>
+<part name="C5" library="SparkFun" deviceset="CAP" device="0603-CAP" value="4.7uF"/>
+<part name="C6" library="SparkFun" deviceset="CAP" device="0805" value="4.7uH"/>
 </parts>
 <sheets>
 <sheet>
@@ -4923,6 +5003,16 @@ http://www.zetex.com&lt;p&gt;
 <instance part="U$1" gate="G$1" x="43.18" y="147.32"/>
 <instance part="P+6" gate="G$1" x="15.24" y="170.18"/>
 <instance part="GND12" gate="1" x="25.4" y="172.72" rot="R180"/>
+<instance part="U$2" gate="IC1" x="91.44" y="190.5"/>
+<instance part="C4" gate="G$1" x="63.5" y="203.2" smashed="yes" rot="R180">
+<attribute name="NAME" x="64.516" y="203.327" size="1.778" layer="95"/>
+<attribute name="VALUE" x="64.516" y="199.009" size="1.778" layer="96"/>
+</instance>
+<instance part="C5" gate="G$1" x="53.34" y="200.66" smashed="yes" rot="R180">
+<attribute name="NAME" x="54.356" y="200.787" size="1.778" layer="95" rot="R270"/>
+<attribute name="VALUE" x="54.356" y="196.469" size="1.778" layer="96"/>
+</instance>
+<instance part="C6" gate="G$1" x="35.56" y="198.12"/>
 </instances>
 <busses>
 </busses>
