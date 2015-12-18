@@ -4857,6 +4857,69 @@ http://www.zetex.com&lt;p&gt;
 </deviceset>
 </devicesets>
 </library>
+<library name="inductor-tdk">
+<description>&lt;b&gt;TDK&lt;/b&gt; - Inductors and Common Mode Filters&lt;p&gt;
+&lt;p&gt;THIS LIBRARY IS PROVIDED AS IS AND WITHOUT WARRANTY OF ANY KIND, EXPRESSED OR IMPLIED.&lt;br&gt;
+USE AT YOUR OWN RISK!&lt;p&gt;
+&lt;author&gt;Copyright (C) 2008, Bob Starr&lt;br&gt; http://www.bobstarr.net&lt;br&gt;&lt;/author&gt;</description>
+<packages>
+<package name="VLF302510MT">
+<description>POWER INDUCTOR</description>
+<wire x1="-1.5" y1="1.25" x2="1.5" y2="1.25" width="0.0508" layer="51"/>
+<wire x1="1.5" y1="1.25" x2="1.5" y2="-1.25" width="0.0508" layer="51"/>
+<wire x1="1.5" y1="-1.25" x2="-1.5" y2="-1.25" width="0.0508" layer="51"/>
+<wire x1="-1.5" y1="-1.25" x2="-1.5" y2="1.25" width="0.0508" layer="51"/>
+<wire x1="-1.65" y1="1" x2="-1.65" y2="1.4" width="0.2032" layer="21"/>
+<wire x1="-1.65" y1="1.4" x2="1.65" y2="1.4" width="0.2032" layer="21"/>
+<wire x1="1.65" y1="1.4" x2="1.65" y2="1" width="0.2032" layer="21"/>
+<wire x1="-1.65" y1="-1" x2="-1.65" y2="-1.4" width="0.2032" layer="21"/>
+<wire x1="-1.65" y1="-1.4" x2="1.65" y2="-1.4" width="0.2032" layer="21"/>
+<wire x1="1.65" y1="-1.4" x2="1.65" y2="-1" width="0.2032" layer="21"/>
+<circle x="0" y="0" radius="1.188484375" width="0.0508" layer="51"/>
+<smd name="1" x="-1.4" y="0" dx="1.45" dy="0.9" layer="1" rot="R90"/>
+<smd name="2" x="1.4" y="0" dx="1.45" dy="0.9" layer="1" rot="R90"/>
+<text x="-1.651" y="1.651" size="1.016" layer="25" ratio="18">&gt;NAME</text>
+<text x="-1.651" y="-2.413" size="0.8128" layer="27" ratio="10">&gt;VALUE</text>
+</package>
+</packages>
+<symbols>
+<symbol name="L">
+<wire x1="-3.81" y1="0.635" x2="-1.905" y2="0.635" width="0.254" layer="94" curve="-180"/>
+<wire x1="-1.905" y1="0.635" x2="0" y2="0.635" width="0.254" layer="94" curve="-180"/>
+<wire x1="0" y1="0.635" x2="1.905" y2="0.635" width="0.254" layer="94" curve="-180"/>
+<wire x1="1.905" y1="0.635" x2="3.81" y2="0.635" width="0.254" layer="94" curve="-180"/>
+<wire x1="-3.81" y1="0.635" x2="-3.81" y2="0" width="0.254" layer="94"/>
+<wire x1="3.81" y1="0.635" x2="3.81" y2="0" width="0.254" layer="94"/>
+<wire x1="-3.81" y1="0" x2="-5.08" y2="0" width="0.1524" layer="94"/>
+<wire x1="3.81" y1="0" x2="5.08" y2="0" width="0.1524" layer="94"/>
+<wire x1="-3.4925" y1="2.2225" x2="3.4925" y2="2.2225" width="0.254" layer="94"/>
+<wire x1="-3.4925" y1="2.8575" x2="3.4925" y2="2.8575" width="0.254" layer="94"/>
+<text x="-3.81" y="3.81" size="1.778" layer="95">&gt;NAME</text>
+<text x="-3.81" y="-2.54" size="1.778" layer="96">&gt;VALUE</text>
+<pin name="2" x="5.08" y="0" visible="off" length="point" direction="pas" swaplevel="1" rot="R180"/>
+<pin name="1" x="-5.08" y="0" visible="off" length="point" direction="pas" swaplevel="1"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="VLF302510MT" prefix="L">
+<description>POWER INDUCTOR</description>
+<gates>
+<gate name="G$1" symbol="L" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="VLF302510MT">
+<connects>
+<connect gate="G$1" pin="1" pad="1"/>
+<connect gate="G$1" pin="2" pad="2"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -4925,7 +4988,7 @@ http://www.zetex.com&lt;p&gt;
 <part name="U$2" library="boost" deviceset="XC9140" device=""/>
 <part name="C4" library="SparkFun" deviceset="CAP" device="0603-CAP" value="10uF"/>
 <part name="C5" library="SparkFun" deviceset="CAP" device="0603-CAP" value="4.7uF"/>
-<part name="C6" library="SparkFun" deviceset="CAP" device="0805" value="4.7uH"/>
+<part name="L1" library="inductor-tdk" deviceset="VLF302510MT" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -5012,7 +5075,7 @@ http://www.zetex.com&lt;p&gt;
 <attribute name="NAME" x="54.356" y="200.787" size="1.778" layer="95" rot="R270"/>
 <attribute name="VALUE" x="54.356" y="196.469" size="1.778" layer="96"/>
 </instance>
-<instance part="C6" gate="G$1" x="35.56" y="198.12"/>
+<instance part="L1" gate="G$1" x="35.56" y="200.66"/>
 </instances>
 <busses>
 </busses>
