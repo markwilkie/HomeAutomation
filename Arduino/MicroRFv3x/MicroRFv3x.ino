@@ -9,6 +9,7 @@
 #include <avr/power.h>
 #include "Debug.h"
 #include "RF.h"
+#include "Config.h"
 
 //
 // Include the correct config values for the unit we're dealing with
@@ -20,7 +21,7 @@
 // 4-NA
 // 5-Fire
 // 6-Motion 2 (v4.0 board)
-#include "unit0.h"
+#include "unit2.h"
 
 //
 // Flags and counters
@@ -31,6 +32,7 @@ int interruptType; //Will be set to -1 for noise, 0 for timer, 1 for interrupt t
 boolean sentSinceTimerFlag=false;  //Used to determine if we need to send again
 int lastRetryCount=0; //Number of retry times on last transmit
 int lastGoodTransCount=0; //Number of times we tried to transmit since last success (does not count retry times - that's "one" transmit)
+int contextSendCount=0; //Current number for sending context
 
 //
 // Definitions
@@ -38,7 +40,7 @@ int lastGoodTransCount=0; //Number of times we tried to transmit since last succ
 RF24 radio(9,10);  // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
 typedef enum { wdt_16ms = 0, wdt_32ms, wdt_64ms, wdt_128ms, wdt_250ms, wdt_500ms, wdt_1s, wdt_2s, wdt_4s, wdt_8s } wdt_prescalar_e; //sleep decrarations
 byte stateData[STATE_PAYLOADSIZE];
-byte contextData[CONTEXT_PAYLOADSIZE];
+byte contextData[MAX_CONTEXT_PAYLOADSIZE];
 byte eventData[EVENT_PAYLOADSIZE];
 
 //Set things up
@@ -94,8 +96,9 @@ void setup()
     #ifdef LED_PIN
     digitalWrite(LED_PIN, HIGH);   
     #endif
-    buildContextPayload('G');
-    radioSend(contextData); //Send event payload
+    VERBOSE_PRINTLN("Sending Context");
+    int payloadLen=buildContextPayload();
+    radioSend(contextData,payloadLen); //Send event payload
     #ifdef LED_PIN
     digitalWrite(LED_PIN, LOW);    
     #endif
@@ -186,6 +189,23 @@ void loop()
      buildStatePayload(vcc,temperature,interruptPinState); //build state payload
      radioSend(stateData); //Send state payload
      
+     //Send context for PI to use upon reset or startup
+     contextSendCount++;
+     if(contextSendCount > CONTEXT_SEND_FREQ)
+     {
+       contextSendCount=0;
+       VERBOSE_PRINTLN("Sending Context"); 
+
+       #ifdef LED_PIN
+       digitalWrite(LED_PIN, HIGH);   
+       #endif
+       int payloadLen=buildContextPayload();
+       radioSend(contextData,payloadLen); //Send context
+       #ifdef LED_PIN
+       digitalWrite(LED_PIN, LOW);    
+       #endif
+     }     
+     
      #ifdef LED_PIN
      digitalWrite(LED_PIN, LOW);
      #endif
@@ -275,7 +295,7 @@ void buildAlarmOrEventPayload(byte payloadType,byte eventCodeType,byte eventCode
 }
 
 //Send context
-void buildContextPayload(byte location)
+int buildContextPayload()
 {
   //
   // Over-the-air packet definition/spec
@@ -288,7 +308,10 @@ void buildContextPayload(byte location)
   //Create context package
   contextData[0]=(uint8_t)UNITNUM; //unit number
   contextData[1]='C';
-  contextData[2]=location;
+  memcpy(&contextData[2],UNITDESC,strlen(UNITDESC));
+  
+  //return length
+  return strlen(UNITDESC)+2;
 }
 
 //Read voltage to see battery level by using internal 1.1V ref
@@ -354,8 +377,29 @@ float readTemp(int samplePin)
 }
 #endif
 
-//Send raw payload
 void radioSend(byte *payload)
+{
+  int payloadLen=0;
+  
+    //Choose payload size and pipe based on type
+  if((byte)payload[1]=='S')
+  {
+    payloadLen=STATE_PAYLOADSIZE;  
+  }
+  if((byte)payload[1]=='E')
+  {
+    payloadLen=EVENT_PAYLOADSIZE;  
+  }  
+  if((byte)payload[1]=='A')
+  {
+    payloadLen=EVENT_PAYLOADSIZE;
+  }  
+  
+  radioSend(payload,payloadLen);
+}
+
+//Send raw payload
+void radioSend(byte *payload,int payloadLen)
 {
   byte gotByte;
   
@@ -363,28 +407,24 @@ void radioSend(byte *payload)
   return;
   #endif
       
-  //Write the payload
-  //radio.stopListening();  
+  //Set payload size
+  radio.setPayloadSize(payloadLen); 
   
-  //Choose payload size and pipe based on type
+  //Choose pipe based on type
   if((byte)payload[1]=='C')
   {
-    radio.setPayloadSize(CONTEXT_PAYLOADSIZE);  
     radio.openWritingPipe(CONTEXT_PIPE);  
   }
   if((byte)payload[1]=='S')
   {
-    radio.setPayloadSize(STATE_PAYLOADSIZE);  
     radio.openWritingPipe(STATE_PIPE);  
   }
   if((byte)payload[1]=='E')
   {
-    radio.setPayloadSize(EVENT_PAYLOADSIZE);  
     radio.openWritingPipe(EVENT_PIPE);  
   }  
   if((byte)payload[1]=='A')
   {
-    radio.setPayloadSize(EVENT_PAYLOADSIZE);  
     radio.openWritingPipe(ALARM_PIPE);  
   }  
   

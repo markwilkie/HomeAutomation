@@ -3,6 +3,7 @@
 // 0-Outside
 
 #define UNITNUM 0   //This one will need to change for each physical Arduino
+#define UNITDESC "Outside"
 
 //
 // Pin Assignments

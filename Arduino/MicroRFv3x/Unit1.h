@@ -2,6 +2,7 @@
 //
 // 1-Water alarm
 #define UNITNUM 1   //This one will need to change for each physical Arduino
+#define UNITDESC "Laundry Room"
 
 //
 // Pin Assignments

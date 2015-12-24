@@ -1,0 +1,52 @@
+Partlist for RF 4.2
+
+***
+***
+***  NOTE: setup up IC (SC9140) is not available at mouser and was ordered at Digikey.  All other parts below
+***        are part of the RF - Home 4.2 project in Mouser
+***
+***
+
+Exported from main.sch at 12/21/2015 9:08 AM
+
+EAGLE Version 7.5.0 Copyright (c) 1988-2015 CadSoft
+
+Assembly variant: 
+
+Part     Value              Device                    Package               Library                     Sheet
+
+R1       10K 1%             RESISTOR0603-RES          0603-RES              SparkFun                    1
+R2       10K                RESISTOR0603-RES          0603-RES              SparkFun                    1
+R3       10K                RESISTOR0603-RES          0603-RES              SparkFun                    1
+R4       10K                RESISTOR0603-RES          0603-RES              SparkFun                    1
+R6       330                RESISTOR0603-RES          0603-RES              SparkFun                    1
+
+C1       0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
+C2       0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
+C3       0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
+C10      0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
+C4       10uF               CAP0603-CAP               0603-CAP              SparkFun                    1
+C13      10uF               CAP_POL1206               EIA3216               SparkFun                    1
+C5       4.7uF              CAP0603-CAP               0603-CAP              SparkFun                    1
+
+D3       Green              LED                       0603-LED-ALT1         Testing                     1
+S3       REED-SWITCH-MK6-10 ORD324-1520	              MK6-10                switch-reed                 1
+L1       VLF302510MT        VLF302512MT-4R7M	      VLF302512MT-4R7M      inductor-tdk                1
+T1       NPN .2A            BC846BW,135 (trans)       SOT323                zetex                       1
+THERM    10K Ohms           NTCS0603E3103HMT          RESC1608X95N          Vishay_By_element14_Batch_1 1
+U$2      XC9140             XC9140A331MR-G (step up)  SOT23-5               boost			1
+
+U1       ATMEGA328          ATMEGA168                 TQFP32-08             SparkFun                    1
+JP1      FTDI Basic         ARDUINO_SERIAL_PROGRAMPTH 1X06                  SparkFun                    1
+Q1       8MHz         	    CSTCE8M00G55-R0           RESONATOR-SMD-1:1     Testing                     1
+
+U$1      BAT                BAT                       AAABATTERY            battery_wilkie              1
+JP4                         M03SCREW                  SCREWTERMINAL-3.5MM-3 SparkFun-Connectors         1
+
+VCC(3V)                     PINHD-1X1                 1X01                  pinhead                     1
+A0___D2                     PINHD-1X3                 1X03                  pinhead                     1
+D7-D8                       PINHD-1X2                 1X02                  pinhead                     1
+GND                         PINHD-1X1                 1X01                  pinhead                     1
+JP3                         PINHD-1X4                 1X04                  pinhead                     1
+JP5                         PINHD-2X5                 2X05                  pinhead                     1
+JP6                         PINHD-1X1                 1X01                  pinhead                     1

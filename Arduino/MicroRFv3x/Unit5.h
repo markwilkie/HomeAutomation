@@ -1,6 +1,7 @@
 //unit number when there are multiple temp sensors
 //
 #define UNITNUM 5   //This one will need to change for each physical Arduino
+#define UNITDESC "Fire Alarm"
 
 //
 // Pin Assignments

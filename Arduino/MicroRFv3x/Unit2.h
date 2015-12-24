@@ -1,9 +1,8 @@
 //unit number when there are multiple temp sensors
 //
-// 0-Outside
-// 1-Inside
 // 2-Garage
 #define UNITNUM 2   //This one will need to change for each physical Arduino
+#define UNITDESC "Garage"
 
 //
 // Pin Assignments

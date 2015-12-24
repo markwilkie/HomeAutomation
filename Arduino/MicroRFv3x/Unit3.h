@@ -1,10 +1,8 @@
 //unit number when there are multiple temp sensors
 //
-// 0-Outside
-// 1-Inside
-// 2-Garage
 // 3-Motion dectector (X10)
 #define UNITNUM 3   //This one will need to change for each physical Arduino
+#define UNITDESC "Hallway"
 
 //
 // Pin Assignments
