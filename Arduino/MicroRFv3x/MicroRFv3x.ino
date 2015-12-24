@@ -8,6 +8,7 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 #include "Debug.h"
+#include "RF.h"
 
 //
 // Include the correct config values for the unit we're dealing with
