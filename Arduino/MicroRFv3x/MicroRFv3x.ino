@@ -20,8 +20,8 @@
 // 3-Motion
 // 4-NA
 // 5-Fire
-// 6-Motion 2 (v4.0 board)
-#include "unit2.h"
+// 6-Front Door (v4.0 board)
+#include "unit6.h"
 
 //
 // Flags and counters
@@ -108,6 +108,7 @@ void setup()
 
 void blinkLED(int blinkNum,int delayTime)
 {
+    #ifdef LED_PIN
     for(int b=0;b<blinkNum;b++)
     {
       digitalWrite(LED_PIN, HIGH);  
@@ -115,6 +116,7 @@ void blinkLED(int blinkNum,int delayTime)
       digitalWrite(LED_PIN, LOW);      
       delay(delayTime);
     }   
+    #endif
 }
  
 //Get ADC readings and send them out via transmitter 
