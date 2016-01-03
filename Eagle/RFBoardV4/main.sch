@@ -4360,6 +4360,7 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <part name="L1" library="inductor-tdk" deviceset="VLF302510MT" device=""/>
 <part name="P+7" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="GND14" library="SparkFun" deviceset="GND" device=""/>
+<part name="D7-D1" library="pinhead" deviceset="PINHD-1X2" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -4445,6 +4446,7 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <instance part="L1" gate="G$1" x="55.88" y="195.58"/>
 <instance part="P+7" gate="G$1" x="38.1" y="185.42" rot="R90"/>
 <instance part="GND14" gate="1" x="111.76" y="187.96" rot="R180"/>
+<instance part="D7-D1" gate="G$1" x="17.78" y="124.46" rot="R180"/>
 </instances>
 <busses>
 </busses>
@@ -4865,7 +4867,7 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <wire x1="226.06" y1="121.92" x2="195.58" y2="121.92" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="REED/D3" class="0">
+<net name="REED/D6" class="0">
 <segment>
 <label x="220.98" y="134.62" size="1.27" layer="95" xref="yes"/>
 <wire x1="220.98" y1="116.84" x2="220.98" y2="134.62" width="0.1524" layer="91"/>
@@ -4899,11 +4901,6 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 </segment>
 </net>
 <net name="D2" class="0">
-<segment>
-<pinref part="U1" gate="G$1" pin="PD2(INT0)"/>
-<wire x1="195.58" y1="127" x2="198.12" y2="127" width="0.1524" layer="91"/>
-<label x="198.12" y="127" size="1.27" layer="95" xref="yes"/>
-</segment>
 <segment>
 <pinref part="T1" gate="A" pin="C"/>
 <wire x1="43.18" y1="106.68" x2="48.26" y2="106.68" width="0.1524" layer="91"/>
@@ -4956,7 +4953,7 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <wire x1="111.76" y1="200.66" x2="160.02" y2="200.66" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$3" class="0">
+<net name="D2_VIA_FET" class="0">
 <segment>
 <pinref part="A0___D2" gate="A" pin="1"/>
 <wire x1="20.32" y1="111.76" x2="30.48" y2="111.76" width="0.1524" layer="91"/>
@@ -4970,14 +4967,16 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <pinref part="R3" gate="G$1" pin="1"/>
 </segment>
 </net>
-<net name="REED_INT" class="0">
+<net name="D3_INT1" class="0">
 <segment>
-<pinref part="S3" gate="G$1" pin="1"/>
-<wire x1="213.36" y1="160.02" x2="220.98" y2="160.02" width="0.1524" layer="91"/>
-<wire x1="220.98" y1="160.02" x2="220.98" y2="147.32" width="0.1524" layer="91"/>
 <pinref part="U1" gate="G$1" pin="PD3(INT1)"/>
-<wire x1="195.58" y1="124.46" x2="213.36" y2="124.46" width="0.1524" layer="91"/>
-<wire x1="213.36" y1="124.46" x2="213.36" y2="160.02" width="0.1524" layer="91"/>
+<wire x1="195.58" y1="124.46" x2="198.12" y2="124.46" width="0.1524" layer="91"/>
+<label x="198.12" y="124.46" size="1.27" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="D7-D1" gate="G$1" pin="2"/>
+<wire x1="20.32" y1="124.46" x2="25.4" y2="124.46" width="0.1524" layer="91"/>
+<label x="25.4" y="124.46" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="REG_3.3V" class="0">
@@ -4999,6 +4998,25 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <pinref part="U$2" gate="IC1" pin="LX"/>
 <pinref part="L1" gate="G$1" pin="2"/>
 <wire x1="76.2" y1="195.58" x2="60.96" y2="195.58" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="D2_INT0" class="0">
+<segment>
+<pinref part="U1" gate="G$1" pin="PD2(INT0)"/>
+<wire x1="195.58" y1="127" x2="198.12" y2="127" width="0.1524" layer="91"/>
+<label x="198.12" y="127" size="1.27" layer="95" xref="yes"/>
+</segment>
+</net>
+<net name="REED" class="0">
+<segment>
+<pinref part="S3" gate="G$1" pin="1"/>
+<wire x1="220.98" y1="147.32" x2="220.98" y2="152.4" width="0.1524" layer="91"/>
+<label x="220.98" y="152.4" size="1.27" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="D7-D1" gate="G$1" pin="1"/>
+<wire x1="20.32" y1="121.92" x2="25.4" y2="121.92" width="0.1524" layer="91"/>
+<label x="25.4" y="121.92" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 </nets>
