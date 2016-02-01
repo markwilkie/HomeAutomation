@@ -4236,20 +4236,19 @@ http://www.zetex.com&lt;p&gt;
 USE AT YOUR OWN RISK!&lt;p&gt;
 &lt;author&gt;Copyright (C) 2008, Bob Starr&lt;br&gt; http://www.bobstarr.net&lt;br&gt;&lt;/author&gt;</description>
 <packages>
-<package name="VLF302510MT">
-<description>POWER INDUCTOR</description>
-<wire x1="-1.5" y1="1.25" x2="1.5" y2="1.25" width="0.0508" layer="51"/>
-<wire x1="1.5" y1="1.25" x2="1.5" y2="-1.25" width="0.0508" layer="51"/>
-<wire x1="1.5" y1="-1.25" x2="-1.5" y2="-1.25" width="0.0508" layer="51"/>
-<wire x1="-1.5" y1="-1.25" x2="-1.5" y2="1.25" width="0.0508" layer="51"/>
-<wire x1="-1.65" y1="1" x2="-1.65" y2="1.4" width="0.2032" layer="21"/>
-<wire x1="-1.65" y1="1.4" x2="1.65" y2="1.4" width="0.2032" layer="21"/>
-<wire x1="1.65" y1="1.4" x2="1.65" y2="1" width="0.2032" layer="21"/>
-<wire x1="-1.65" y1="-1" x2="-1.65" y2="-1.4" width="0.2032" layer="21"/>
-<wire x1="-1.65" y1="-1.4" x2="1.65" y2="-1.4" width="0.2032" layer="21"/>
-<wire x1="1.65" y1="-1.4" x2="1.65" y2="-1" width="0.2032" layer="21"/>
-<circle x="0" y="0" radius="1.188484375" width="0.0508" layer="51"/>
-<smd name="1" x="-1.4" y="0" dx="1.45" dy="0.9" layer="1" rot="R90"/>
+<package name="VLF302512MT">
+<wire x1="-0.9" y1="1.25" x2="2" y2="1.25" width="0.0508" layer="51"/>
+<wire x1="2" y1="1.25" x2="2" y2="-1.25" width="0.0508" layer="51"/>
+<wire x1="2" y1="-1.25" x2="-0.9" y2="-1.25" width="0.0508" layer="51"/>
+<wire x1="-0.9" y1="-1.25" x2="-0.9" y2="1.25" width="0.0508" layer="51"/>
+<wire x1="-1.05" y1="1" x2="-1.05" y2="1.4" width="0.2032" layer="21"/>
+<wire x1="-1.05" y1="1.4" x2="2.15" y2="1.4" width="0.2032" layer="21"/>
+<wire x1="2.15" y1="1.4" x2="2.15" y2="1" width="0.2032" layer="21"/>
+<wire x1="-1.05" y1="-1" x2="-1.05" y2="-1.4" width="0.2032" layer="21"/>
+<wire x1="-1.05" y1="-1.4" x2="2.05" y2="-1.4" width="0.2032" layer="21"/>
+<wire x1="2.05" y1="-1.4" x2="2.05" y2="-1" width="0.2032" layer="21"/>
+<circle x="0.6" y="0" radius="1.188484375" width="0.0508" layer="51"/>
+<smd name="1" x="-0.4" y="0" dx="1.45" dy="0.9" layer="1" rot="R90"/>
 <smd name="2" x="1.4" y="0" dx="1.45" dy="0.9" layer="1" rot="R90"/>
 <text x="-1.651" y="1.651" size="1.016" layer="25" ratio="18">&gt;NAME</text>
 <text x="-1.651" y="-2.413" size="0.8128" layer="27" ratio="10">&gt;VALUE</text>
@@ -4274,13 +4273,12 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="VLF302510MT" prefix="L">
-<description>POWER INDUCTOR</description>
+<deviceset name="VLF302512MT">
 <gates>
 <gate name="G$1" symbol="L" x="0" y="0"/>
 </gates>
 <devices>
-<device name="" package="VLF302510MT">
+<device name="" package="VLF302512MT">
 <connects>
 <connect gate="G$1" pin="1" pad="1"/>
 <connect gate="G$1" pin="2" pad="2"/>
@@ -4357,7 +4355,7 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <part name="U$2" library="boost" deviceset="XC9140" device=""/>
 <part name="C4" library="SparkFun" deviceset="CAP" device="0603-CAP" value="10uF"/>
 <part name="C5" library="SparkFun" deviceset="CAP" device="0603-CAP" value="4.7uF"/>
-<part name="L1" library="inductor-tdk" deviceset="VLF302510MT" device=""/>
+<part name="L1" library="inductor-tdk" deviceset="VLF302512MT" device=""/>
 <part name="P+7" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="GND14" library="SparkFun" deviceset="GND" device=""/>
 <part name="D7-D1" library="pinhead" deviceset="PINHD-1X2" device=""/>
@@ -4901,13 +4899,6 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <label x="91.44" y="91.44" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="D2" class="0">
-<segment>
-<pinref part="T1" gate="A" pin="C"/>
-<wire x1="43.18" y1="106.68" x2="48.26" y2="106.68" width="0.1524" layer="91"/>
-<label x="48.26" y="106.68" size="1.27" layer="95" xref="yes"/>
-</segment>
-</net>
 <net name="A0" class="0">
 <segment>
 <pinref part="U1" gate="G$1" pin="PC0(ADC0)"/>
@@ -5007,6 +4998,11 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <wire x1="195.58" y1="127" x2="198.12" y2="127" width="0.1524" layer="91"/>
 <label x="198.12" y="127" size="1.27" layer="95" xref="yes"/>
 </segment>
+<segment>
+<pinref part="T1" gate="A" pin="C"/>
+<wire x1="43.18" y1="106.68" x2="48.26" y2="106.68" width="0.1524" layer="91"/>
+<label x="48.26" y="106.68" size="1.27" layer="95" xref="yes"/>
+</segment>
 </net>
 <net name="REED" class="0">
 <segment>
@@ -5030,20 +5026,20 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <approved hash="102,1,86.36,165.1,3.3V,VCC,,,,"/>
 <approved hash="102,1,55.88,170.18,3.3V,VCC,,,,"/>
 <approved hash="102,1,60.96,124.46,3.3V,VCC,,,,"/>
-<approved hash="102,1,205.74,187.96,3.3V,VCC,,,,"/>
 <approved hash="102,1,15.24,170.18,3.3V,VCC,,,,"/>
+<approved hash="102,1,38.1,185.42,3.3V,VCC,,,,"/>
 <approved hash="106,1,195.58,149.86,A2,,,,,"/>
 <approved hash="106,1,195.58,147.32,A3,,,,,"/>
-<approved hash="113,1,49.7207,171.581,VCC(3V),,,,,"/>
+<approved hash="113,1,49.1629,171.581,VCC(3V),,,,,"/>
 <approved hash="113,1,48.4971,156.341,GND,,,,,"/>
 <approved hash="113,1,99.2971,94.1112,JP3,,,,,"/>
 <approved hash="113,1,63.2629,74.7988,JP6,,,,,"/>
-<approved hash="113,1,18.7254,112.899,A0___D2,,,,,"/>
+<approved hash="113,1,19.0244,112.899,A0___D2,,,,,"/>
 <approved hash="113,1,74.8877,120.781,JP5,,,,,"/>
 <approved hash="113,1,124.223,76.0688,D7-D8,,,,,"/>
 <approved hash="113,1,37.4735,101.896,T1,,,,,"/>
 <approved hash="113,1,216.577,186.495,JP4,,,,,"/>
-<approved hash="113,1,177.8,192.396,Q3,,,,,"/>
+<approved hash="113,1,20.0829,121.789,D7-D1,,,,,"/>
 </errors>
 </schematic>
 </drawing>
