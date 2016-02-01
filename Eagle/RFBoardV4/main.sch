@@ -4216,11 +4216,11 @@ http://www.zetex.com&lt;p&gt;
 <devices>
 <device name="" package="SOT23-5">
 <connects>
-<connect gate="IC1" pin="CE" pad="2"/>
-<connect gate="IC1" pin="GND" pad="4"/>
-<connect gate="IC1" pin="LX" pad="1"/>
+<connect gate="IC1" pin="CE" pad="1"/>
+<connect gate="IC1" pin="GND" pad="2"/>
+<connect gate="IC1" pin="LX" pad="5"/>
 <connect gate="IC1" pin="VBAT" pad="3"/>
-<connect gate="IC1" pin="VOUT" pad="5"/>
+<connect gate="IC1" pin="VOUT" pad="4"/>
 </connects>
 <technologies>
 <technology name=""/>
@@ -4543,10 +4543,6 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <wire x1="25.4" y1="170.18" x2="25.4" y2="162.56" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="GND10" gate="1" pin="GND"/>
-<wire x1="213.36" y1="190.5" x2="190.5" y2="190.5" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="U$2" gate="IC1" pin="GND"/>
 <pinref part="GND14" gate="1" pin="GND"/>
 <wire x1="106.68" y1="185.42" x2="111.76" y2="185.42" width="0.1524" layer="91"/>
@@ -4557,6 +4553,11 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <wire x1="66.04" y1="175.26" x2="66.04" y2="177.8" width="0.1524" layer="91"/>
 <pinref part="C4" gate="G$1" pin="1"/>
 <wire x1="119.38" y1="185.42" x2="111.76" y2="185.42" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="JP4" gate="G$1" pin="1"/>
+<pinref part="GND10" gate="1" pin="GND"/>
+<wire x1="213.36" y1="190.5" x2="190.5" y2="190.5" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="AREF" class="0">
