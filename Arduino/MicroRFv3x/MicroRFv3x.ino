@@ -2,7 +2,7 @@
 #include "pins_arduino.h" 
 #include "limits.h"
 #include <SPI.h>
-#include "nRF24L01.h"
+//#include "nRF24L01.h"
 #include "RF24.h"
 #include "printf.h"
 #include <avr/sleep.h>
@@ -21,7 +21,8 @@
 // 4-NA
 // 5-Fire
 // 6-Front Door (v4.0 board)
-#include "unit6.h"
+// 7-Experiemental
+#include "unit7.h"
 
 //
 // Flags and counters
@@ -69,10 +70,6 @@ void setup()
     #ifdef LED_PIN
     pinMode(LED_PIN, OUTPUT); 
     #endif
-    #ifdef INTERRUPTPIN
-    pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
-    attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
-    #endif 
     
     #ifdef REEDPIN
     pinMode(REEDPIN, OUTPUT);
@@ -102,6 +99,12 @@ void setup()
     #ifdef LED_PIN
     digitalWrite(LED_PIN, LOW);    
     #endif
+    
+    #ifdef INTERRUPTPIN
+    pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
+    //enableInterruptFlag=true;
+    attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
+    #endif 
     
     VERBOSE_PRINTLN("Ready...");
 }
@@ -329,6 +332,9 @@ float readVcc()
   result |= ADCH<<8;
   result = 1126400L / result; // Back-calculate AVcc in mV
   
+  //Clear MUX register for deep sleep
+  ADMUX=0;
+  
   VERBOSE_PRINT("VCC: ");
   VERBOSE_PRINTLN(result/1000.0);
 
@@ -349,6 +355,9 @@ float readTemp(int samplePin)
    samples[i] = analogRead(THERMISTORPIN);
    delay(10);
   }
+
+  //Clear MUX register for deep sleep
+  ADMUX=0;
    
   // average all the samples out
   average = 0;
