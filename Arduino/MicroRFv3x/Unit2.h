@@ -5,6 +5,16 @@
 #define UNITDESC "Garage"
 
 //
+//
+// This board is very old and I doubt this software will work on it without modification.  For example,
+// the soft pull up will most likely need to be disabled.  Also, double check the interrupt pin.  
+// Because the interrupt is on pin LOW - the magnet will probably have to be moved for the software to work at all.
+//
+// A 4.2 board (or higher) should be used, but change the magnet physically so that the reed
+// in engaged when door is closed such that the int pin will drop low on open.
+//
+
+//
 // Pin Assignments
 //
 #define LED_PIN 4     // LED pin (turns on when reading/transmitting)

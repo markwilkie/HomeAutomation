@@ -4,9 +4,11 @@
 #include <openssl/pem.h>
 #include <time.h>
 #include <curl/curl.h>
+#include <signal.h>
 #include <RF24/RF24.h>
 #include <sys/resource.h> 
 
+void sigHandler(int s);
 void readDeviceData();
 void callSecureWebAPI(char *urlRaw,char *authHeader);
 void callWebAPI(char *urlRaw); 
@@ -56,6 +58,9 @@ struct rusage memInfo;
 
 int main()
 {
+    //Ignore sig pipe errors.  There's a bug in curl...
+    signal(SIGPIPE, sigHandler);
+
     //open file for logging
     logFile = fopen("/home/pi/code/rfHub/HubMasterLog.txt", "w");
     rfFile = fopen("/home/pi/code/rfHub/RFLog.txt", "w");
@@ -122,6 +127,13 @@ int main()
       delay(350);
     }
     return 0;
+}
+
+void sigHandler(int s) 
+{
+    timeStamp(stderr);
+    fprintf(stderr, "ERROR: Caught SIGPIPE error: %d\n", s);
+    fflush(stderr);
 }
 
 void timeStamp(FILE *file)
@@ -326,7 +338,7 @@ void buildPipeThree()
     sprintf(postData, "{'PayloadType':'%s','UnitNum':'%d','EventCodeType':'%c','EventCode':'%c','DeviceDate':'%ld'}", "ALARM", unitNum, alarmCodeType, alarmCode, seconds_past_epoch);
 
     //GET data for SMTP w/ Azure web api
-    sprintf(APIWebURL, "%s/Alarm/SendAlarm/%c/%c", baseURL, alarmCodeType, alarmCode);
+    sprintf(APIWebURL, "%s/Alarm/SendAlarm/%d/%c/%c", baseURL, unitNum, alarmCodeType, alarmCode);
 
     fprintf(logFile, "%c", alarmCode);  //Small indication for log file
     fflush(logFile);

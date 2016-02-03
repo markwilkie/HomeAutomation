@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.1.0">
+<eagle version="7.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -544,11 +544,11 @@ DALLAS Semiconductor</description>
 <devices>
 <device name="" package="SOT23-5">
 <connects>
-<connect gate="IC1" pin="CE" pad="2"/>
-<connect gate="IC1" pin="GND" pad="4"/>
-<connect gate="IC1" pin="LX" pad="1"/>
+<connect gate="IC1" pin="CE" pad="1"/>
+<connect gate="IC1" pin="GND" pad="2"/>
+<connect gate="IC1" pin="LX" pad="5"/>
 <connect gate="IC1" pin="VBAT" pad="3"/>
-<connect gate="IC1" pin="VOUT" pad="5"/>
+<connect gate="IC1" pin="VOUT" pad="4"/>
 </connects>
 <technologies>
 <technology name=""/>
