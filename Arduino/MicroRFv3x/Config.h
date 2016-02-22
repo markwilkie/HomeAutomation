@@ -20,4 +20,4 @@ DoWorkFunctionPointer doWorkFunction;
 //
 // Misc
 //
-#define CONTEXT_SEND_FREQ 10             // How often to send context  
+#define CONTEXT_SEND_FREQ 10             // How often to send context  (every 'n' state sends)

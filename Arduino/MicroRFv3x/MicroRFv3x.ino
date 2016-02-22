@@ -219,14 +219,8 @@ void loop()
        contextSendCount=0;
        VERBOSE_PRINTLN("Sending Context"); 
 
-       #ifdef LED_PIN
-       digitalWrite(LED_PIN, HIGH);   
-       #endif
        int payloadLen=buildContextPayload();
        radioSend(contextData,payloadLen); //Send context
-       #ifdef LED_PIN
-       digitalWrite(LED_PIN, LOW);    
-       #endif
      }     
      
      #ifdef LED_PIN
