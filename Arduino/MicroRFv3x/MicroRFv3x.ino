@@ -550,14 +550,9 @@ void startInnerLoop()
    //track state change
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
    
-   //Reset cycles if necessary
-   if(sleep_cycles_remaining <= 0)
-   {
-     sleep_cycles_remaining=SLEEPCYCLES; //setup how many cycles for this inner loop
-   }
-   
    //Loop for sleep (or delay) cycles
-   while(sleep_cycles_remaining)
+   sleep_cycles_remaining=SLEEPCYCLES;
+   while(sleep_cycles_remaining)  //We're not using for-next because we're breaking out of the while once we know what kind of interrupt
    {
      //If delay time is specificed, delay instead of sleep.  Useful for doing work that requires board to stay awake (like PWM)
      #ifdef DELAYTIME
