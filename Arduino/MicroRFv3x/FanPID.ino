@@ -11,7 +11,7 @@ void setupFanPID()
 void doFanPID()
 {
   //Read temp and feed it to the PID
-  PIDInput=(double)readTemp(A1);
+  PIDInput=(double)readTemp();
   int pidValue=computePID();
   
   //If less than cutoff, just turn off fan

@@ -202,7 +202,7 @@ void loop()
      #endif
      float vcc = readVcc(); //Read voltage (battery monitoring)
      #ifdef THERMISTORPIN
-     temperature = readTemp(THERMISTORPIN);  //Read temperature sensor
+     temperature = readTemp();  //Read temperature sensor
      #endif
      #ifdef INTERRUPTPIN
      interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
@@ -359,7 +359,7 @@ float readVcc()
 
 //Read Temperature
 #ifdef THERMISTORPIN
-float readTemp(int samplePin)
+float readTemp()
 {
   uint8_t i;
   float average;
