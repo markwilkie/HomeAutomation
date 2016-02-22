@@ -25,9 +25,9 @@ C1       0.1uF              CAP0603-CAP               0603-CAP              Spar
 C2       0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
 C3       0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
 C10      0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
-C4       10uF               CAP0603-CAP               0603-CAP              SparkFun                    1
-C13      10uF               CAP_POL1206               EIA3216               SparkFun                    1
-C5       4.7uF              CAP0603-CAP               0603-CAP              SparkFun                    1
+C4       10uF               LMK107BJ106MALTD          0603-CAP              SparkFun                    1
+C13      10uF               TMK316F106ZL-T            1206-CAP              SparkFun                    1
+C5       4.7uF              LMK107BJ475KA-T           0603-CAP              SparkFun                    1
 
 D3       Green              LED                       0603-LED-ALT1         Testing                     1
 S3       REED-SWITCH-MK6-10 ORD324-1520	              MK6-10                switch-reed                 1

@@ -24,6 +24,7 @@
 // 7-Cabinent Fan
 #include "unit7.h"
 
+
 //
 // Flags and counters
 //
@@ -96,7 +97,7 @@ void setup()
     #ifdef LED_PIN
     blinkLED(5,100);  //get ready for unit blink
     delay(2000);
-    blinkLED(UNITNUM,1000);
+    blinkLED(UNITNUM,500);
     blinkLED(5,100);  //done
     #endif
     
@@ -113,7 +114,6 @@ void setup()
     
     #ifdef INTERRUPTPIN
     pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
-    //enableInterruptFlag=true;
     attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
     #endif 
     
@@ -133,12 +133,14 @@ void blinkLED(int blinkNum,int delayTime)
     #endif
 }
  
-//Get ADC readings and send them out via transmitter 
+//
+// Loop infinitely here...
+//
 void loop()
 {
-   //Debug only
+   //Debug output only
    if(interruptType < 0)
-     VERBOSE_PRINTLN("Main loop: noise");
+     VERBOSE_PRINTLN("Main loop: noise (no meaningful data)");
    if(interruptType == 0)
      VERBOSE_PRINTLN("Main loop: inner loop complete");
    if(interruptType == 1)
@@ -348,9 +350,6 @@ float readVcc()
   result |= ADCH<<8;
   result = 1126400L / result; // Back-calculate AVcc in mV
   
-  //Clear MUX register for deep sleep
-  ADMUX=0;
-  
   VERBOSE_PRINT("VCC: ");
   VERBOSE_PRINTLN(result/1000.0);
 
@@ -372,9 +371,6 @@ float readTemp(int samplePin)
    delay(10);
   }
 
-  //Clear MUX register for deep sleep
-  ADMUX=0;
-   
   // average all the samples out
   average = 0;
   for (i=0; i< NUMSAMPLES; i++) {
@@ -537,7 +533,7 @@ void startInnerLoop()
 {
    //reset flags
    //enableInterruptFlag=true;
-   interruptType=-1;  //noise
+   interruptType=-1;  //noise - not set
    
    #ifdef INTERRUPTPIN   
    //If interrupt pin is already low (triggered), wait until it's not before sleeping
@@ -645,6 +641,7 @@ void sleepNow()
   
   // disable ADC
   byte old_ADCSRA=ADCSRA;
+  ADMUX=0;  //Clear MUX register for deep sleep
   ADCSRA = 0; 
   
   //Set mode and enable sleep bit
