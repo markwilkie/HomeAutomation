@@ -1,4 +1,12 @@
 //
+// function pointers for extensibility
+//
+typedef void (*SetupWorkFunctionPointer) (); //Type for function pointer which is called once at setup
+typedef void (*DoWorkFunctionPointer) (); //Type for function pointer which is called once every sleep loop
+SetupWorkFunctionPointer setupWorkFunction;
+DoWorkFunctionPointer doWorkFunction;
+
+//
 // RF Setup
 //
 #define CONTEXT_PIPE 0xF0F0F0F0F2LL     // 5 on PI - Pipe to transmit context on

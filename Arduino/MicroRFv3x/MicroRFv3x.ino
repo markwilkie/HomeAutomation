@@ -21,7 +21,7 @@
 // 4-NA
 // 5-Fire
 // 6-Front Door (v4.0 board)
-// 7-Experiemental
+// 7-Cabinent Fan
 #include "unit7.h"
 
 //
@@ -52,8 +52,19 @@ void setup()
     printf_begin(); //used by radio.printDetails()
     #endif
     
-    //Setup sleep and watchdog
+    //Assign actual functions to function pointers
+    #ifdef SETUPFUNC
+    setupWorkFunction=SETUPFUNC;
+    setupWorkFunction();
+    #endif
+    #ifdef WORKFUNC
+    doWorkFunction=WORKFUNC;
+    #endif
+    
+    //Setup sleep and watchdog if we're sleeping
+    #ifndef DELAYTIME
     setup_watchdog(wdt_8s); //wdt_8s
+    #endif
     
     //Setup radio
     radio.begin();
@@ -129,12 +140,17 @@ void loop()
    if(interruptType < 0)
      VERBOSE_PRINTLN("Main loop: noise");
    if(interruptType == 0)
-     VERBOSE_PRINTLN("Main loop: timer dinged");
+     VERBOSE_PRINTLN("Main loop: inner loop complete");
    if(interruptType == 1)
      VERBOSE_PRINTLN("Main loop: interrupt");
    if(interruptType == 2)
-     VERBOSE_PRINTLN("Main loop: interrupt reset");    
+     VERBOSE_PRINTLN("Main loop: interrupt reset");  
      
+   //Do I need to do specialized work?
+   #ifdef WORKFUNC
+   doWorkFunction();     
+   #endif
+    
    //Reset flag if timer dings
    if(interruptType == 0)
      sentSinceTimerFlag=false;
@@ -216,8 +232,8 @@ void loop()
      #endif
    }
 
-   //Go to low power state and wait for timer and/or interrupt
-   sleep();
+   //Inner loop is where we delay or sleep while we wait for interrupts
+   startInnerLoop();
 }
 
 //Send state
@@ -511,10 +527,13 @@ void setup_watchdog(uint8_t prescalar)
 // Watchdog Interrupt Service / is executed when  watchdog timed out
 ISR(WDT_vect) 
 {
-  --sleep_cycles_remaining;
+  //--sleep_cycles_remaining;
 }
 
-void sleep()
+//
+// Loop for every 'delay' or 'sleep' period
+//
+void startInnerLoop()
 {
    //reset flags
    //enableInterruptFlag=true;
@@ -542,26 +561,40 @@ void sleep()
    //Reset cycles if necessary
    if(sleep_cycles_remaining <= 0)
    {
-     sleep_cycles_remaining=SLEEPCYCLES; //setup how cycles
+     sleep_cycles_remaining=SLEEPCYCLES; //setup how many cycles for this inner loop
    }
    
-   //Loop for sleep cycles
+   //Loop for sleep (or delay) cycles
    while(sleep_cycles_remaining)
    {
+     //If delay time is specificed, delay instead of sleep.  Useful for doing work that requires board to stay awake (like PWM)
+     #ifdef DELAYTIME
+     VERBOSE_PRINTLN("Delaying now...");
+     delay(DELAYTIME);     
+     #else
      VERBOSE_PRINTLN("Going to sleep now...");
-     sleepNow(); //Remember, this will only seep for 8 seconds
+     sleepNow(); //Remember, this will only seep for 8 seconds before watchdog timer wakes things up
+     #endif
+
+     //We woke up, so decrement sleep cycles
+     --sleep_cycles_remaining;
      
-     VERBOSE_PRINT("Woke Up - Sleep Cycles Remaining: ");
+     VERBOSE_PRINT("Woke Up - Sleep/Delay Cycles Remaining: ");
      VERBOSE_PRINTLN(sleep_cycles_remaining);
      
      //Check if timer.  If so, set type to 0 and return
-     if(sleep_cycles_remaining == 0)
+     if(sleep_cycles_remaining <= 0)
      {
        interruptType=0;
-       VERBOSE_PRINTLN("Timer Dinged");
+       VERBOSE_PRINTLN("Inner Loop is done - sleep/delay cycles completed");
        break;
      }
      
+     //Do I need to do work in this inner loop?
+     #if defined WORKINNERLOOP && defined WORKFUNC
+     doWorkFunction();     
+     #endif
+
      #ifdef INTERRUPTPIN     
      //Check if we got woken up because of an interrupt before looping again
      if(TRIGGERTYPE != 0)
@@ -600,7 +633,7 @@ void sleep()
    }
 }
 
-//Puts things to sleep and sets the interrupt pin
+//Puts things to DEEP sleep and sets the interrupt pin
 //
 // See http://www.gammon.com.au/forum/?id=11497
 //
