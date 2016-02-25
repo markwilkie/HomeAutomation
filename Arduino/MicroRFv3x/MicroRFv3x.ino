@@ -22,7 +22,7 @@
 // 5-Fire
 // 6-Front Door (v4.0 board)
 // 7-Cabinent Fan
-#include "unit7.h"
+#include "unit1.h"
 
 
 //
@@ -69,6 +69,8 @@ void setup()
     
     //Setup radio
     radio.begin();
+    radio.setPALevel(RF24_PA_MAX);          // Higher power level
+    radio.setDataRate(RF24_250KBPS);        // Slower datarate for more distance
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
     radio.enableAckPayload();               // Allow optional ack payloads
     radio.enableDynamicPayloads();          // Needed for ACK payload

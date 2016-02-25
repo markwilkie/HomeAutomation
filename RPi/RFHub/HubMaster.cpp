@@ -76,6 +76,8 @@ int main()
 
     //setup radio
     radio.begin();
+    radio.setPALevel(RF24_PA_MAX);          // Higher power level
+    radio.setDataRate(RF24_250KBPS);        // Slower datarate for more distance
     radio.setAutoAck(1);                    // Ensure autoACK is enabled
     radio.enableAckPayload();               // Allow optional ack payloads
     radio.setRetries(15,15);                // Smallest time between retries, max no. of retries
