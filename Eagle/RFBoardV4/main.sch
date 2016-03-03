@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.5.0">
+<eagle version="7.2.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -4347,8 +4347,6 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <part name="R3" library="SparkFun" deviceset="RESISTOR" device="0603-RES" value="10K"/>
 <part name="JP4" library="SparkFun-Connectors" deviceset="M03" device="SCREW"/>
 <part name="GND10" library="SparkFun" deviceset="GND" device=""/>
-<part name="R4" library="SparkFun" deviceset="RESISTOR" device="0603-RES" value="10K"/>
-<part name="GND11" library="SparkFun" deviceset="GND" device=""/>
 <part name="U$1" library="battery_wilkie" deviceset="BAT" device=""/>
 <part name="P+6" library="SparkFun" deviceset="3.3V" device="" value="VCC"/>
 <part name="GND12" library="SparkFun" deviceset="GND" device=""/>
@@ -4427,8 +4425,6 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <instance part="R3" gate="G$1" x="30.48" y="106.68" rot="R90"/>
 <instance part="JP4" gate="G$1" x="220.98" y="187.96" rot="R180"/>
 <instance part="GND10" gate="1" x="190.5" y="193.04" rot="R180"/>
-<instance part="R4" gate="G$1" x="147.32" y="175.26" rot="R180"/>
-<instance part="GND11" gate="1" x="134.62" y="177.8" rot="R180"/>
 <instance part="U$1" gate="G$1" x="43.18" y="147.32"/>
 <instance part="P+6" gate="G$1" x="15.24" y="170.18"/>
 <instance part="GND12" gate="1" x="25.4" y="172.72" rot="R180"/>
@@ -4529,11 +4525,6 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <pinref part="THERM" gate="A" pin="2"/>
 <pinref part="GND2" gate="1" pin="GND"/>
 <wire x1="256.54" y1="83.82" x2="256.54" y2="71.12" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="R4" gate="G$1" pin="2"/>
-<pinref part="GND11" gate="1" pin="GND"/>
-<wire x1="142.24" y1="175.26" x2="134.62" y2="175.26" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND12" gate="1" pin="GND"/>
@@ -4930,13 +4921,9 @@ USE AT YOUR OWN RISK!&lt;p&gt;
 <segment>
 <pinref part="U1" gate="G$1" pin="PD5(T1)"/>
 <wire x1="195.58" y1="119.38" x2="208.28" y2="119.38" width="0.1524" layer="91"/>
-<wire x1="160.02" y1="175.26" x2="160.02" y2="160.02" width="0.1524" layer="91"/>
 <wire x1="160.02" y1="160.02" x2="208.28" y2="160.02" width="0.1524" layer="91"/>
 <wire x1="208.28" y1="160.02" x2="208.28" y2="119.38" width="0.1524" layer="91"/>
-<pinref part="R4" gate="G$1" pin="1"/>
-<wire x1="152.4" y1="175.26" x2="160.02" y2="175.26" width="0.1524" layer="91"/>
-<junction x="160.02" y="175.26"/>
-<wire x1="160.02" y1="175.26" x2="160.02" y2="200.66" width="0.1524" layer="91"/>
+<wire x1="160.02" y1="160.02" x2="160.02" y2="200.66" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="IC1" pin="CE"/>
 <wire x1="76.2" y1="190.5" x2="71.12" y2="190.5" width="0.1524" layer="91"/>
 <wire x1="71.12" y1="190.5" x2="71.12" y2="208.28" width="0.1524" layer="91"/>

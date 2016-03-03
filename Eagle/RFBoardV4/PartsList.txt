@@ -1,4 +1,4 @@
-Partlist for RF 4.2
+Partlist for RF 4.3
 
 ***
 ***
@@ -18,7 +18,6 @@ Part     Value              Device                    Package               Libr
 R1       10K 1%             RESISTOR0603-RES          0603-RES              SparkFun                    1
 R2       10K                RESISTOR0603-RES          0603-RES              SparkFun                    1
 R3       10K                RESISTOR0603-RES          0603-RES              SparkFun                    1
-R4       10K                RESISTOR0603-RES          0603-RES              SparkFun                    1
 R6       330                RESISTOR0603-RES          0603-RES              SparkFun                    1
 
 C1       0.1uF              CAP0603-CAP               0603-CAP              SparkFun                    1
@@ -31,7 +30,7 @@ C5       4.7uF              LMK107BJ475KA-T           0603-CAP              Spar
 
 D3       Green              LED                       0603-LED-ALT1         Testing                     1
 S3       REED-SWITCH-MK6-10 ORD324-1520	              MK6-10                switch-reed                 1
-L1       VLF302510MT        VLF302512MT-4R7M	      VLF302512MT-4R7M      inductor-tdk                1
+L1       VLF302512    	    VLF302512MT-4R7M	      VLF302512MT-4R7M      inductor-tdk                1
 T1       NPN .2A            BC846BW,135 (trans)       SOT323                zetex                       1
 THERM    10K Ohms           NTCS0603E3103HMT          RESC1608X95N          Vishay_By_element14_Batch_1 1
 U$2      XC9140             XC9140A331MR-G (step up)  SOT23-5               boost			1
