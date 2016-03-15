@@ -50,3 +50,6 @@ Eagle/RFBoardV4/main.s#4
 *.l#5
 *.l#6
 *.l#7
+Eagle/RFBoardV4/main.pro
+*.job
+*.pro

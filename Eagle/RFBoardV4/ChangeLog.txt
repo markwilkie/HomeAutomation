@@ -1,2 +1,5 @@
 4.3-->4.4
 - Removed R4, a 10K pull down for the enable line on the 3.3v boost circuit
+- Added option for micro USB B for external power
+- Added option for 3.3v linear regulator
+- Added option for power input screw terminal 

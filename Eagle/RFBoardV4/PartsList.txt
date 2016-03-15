@@ -41,6 +41,10 @@ Q1       8MHz         	    CSTCE8M00G55-R0           RESONATOR-SMD-1:1     Testi
 
 U$1      BAT                BAT                       AAABATTERY            battery_wilkie              1
 JP4                         M03SCREW                  SCREWTERMINAL-3.5MM-3 SparkFun-Connectors         1
+J1                          M02SCREW                  SCREWTERMINAL-3.5MM-2 SparkFun-Connectors         1
+JP2      MICRO USB B        FCI 10103594-0001LF                             daspilker.lbr               1
+IC1      3.3v regulator     LD1117V33                                                                   1
+C6       10uF Tant Cap                                                                                  1
 
 VCC(3V)                     PINHD-1X1                 1X01                  pinhead                     1
 A0___D2                     PINHD-1X3                 1X03                  pinhead                     1
