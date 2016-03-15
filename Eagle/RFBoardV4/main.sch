@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.1.0">
+<eagle version="7.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -9042,6 +9042,14 @@ Source: AVX .. aphvc.pdf</description>
 <pinref part="C5" gate="G$1" pin="2"/>
 <junction x="66.04" y="185.42"/>
 </segment>
+<segment>
+<pinref part="3.3V" gate="G$1" pin="OUT"/>
+<pinref part="C6" gate="G$1" pin="1"/>
+<wire x1="254" y1="185.42" x2="266.7" y2="185.42" width="0.1524" layer="91"/>
+<pinref part="P+5" gate="G$1" pin="3.3V"/>
+<wire x1="274.32" y1="185.42" x2="266.7" y2="185.42" width="0.1524" layer="91"/>
+<junction x="266.7" y="185.42"/>
+</segment>
 </net>
 <net name="D8" class="0">
 <segment>
@@ -9353,14 +9361,6 @@ Source: AVX .. aphvc.pdf</description>
 </segment>
 </net>
 <net name="3.3V" class="1">
-<segment>
-<pinref part="3.3V" gate="G$1" pin="OUT"/>
-<pinref part="C6" gate="G$1" pin="1"/>
-<wire x1="254" y1="185.42" x2="266.7" y2="185.42" width="0.1524" layer="91"/>
-<pinref part="P+5" gate="G$1" pin="3.3V"/>
-<wire x1="274.32" y1="185.42" x2="266.7" y2="185.42" width="0.1524" layer="91"/>
-<junction x="266.7" y="185.42"/>
-</segment>
 <segment>
 <pinref part="P+8" gate="G$1" pin="3.3V"/>
 <wire x1="223.52" y1="177.8" x2="223.52" y2="185.42" width="0.1524" layer="91"/>
