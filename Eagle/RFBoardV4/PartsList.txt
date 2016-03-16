@@ -33,7 +33,7 @@ S3       REED-SWITCH-MK6-10 ORD324-1520	              MK6-10                swit
 L1       VLF302512    	    VLF302512MT-4R7M	      VLF302512MT-4R7M      inductor-tdk                1
 T1       NPN .2A            BC846BW,135 (trans)       SOT323                zetex                       1
 THERM    10K Ohms           NTCS0603E3103HMT          RESC1608X95N          Vishay_By_element14_Batch_1 1
-U$2      XC9140             XC9140A331MR-G (step up)  SOT23-5               boost			1
+U$2      XC9140             XC9140A33(or 50)1MR-G (step up)  SOT23-5               boost			1
 
 U1       ATMEGA328          ATMEGA168                 TQFP32-08             SparkFun                    1
 JP1      FTDI Basic         ARDUINO_SERIAL_PROGRAMPTH 1X06                  SparkFun                    1
