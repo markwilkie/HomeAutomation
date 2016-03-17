@@ -7,6 +7,7 @@ wall_size = 3;
 w = 25;
 d = 33;
 h = 8; //block material size, my stock is 8mm PE or Acrylic
+hp = 3; //how much to add to the bottom
 pcb_h = 14/2; //this is the volume inside of each half
 // assumes a wall on top/bottom of 1mm
 
@@ -74,19 +75,19 @@ module case_b(){
 
 	difference(){
 		union(){
-		cube ([w+2*wall_size,d+2*wall_size,h], center =false);
+		cube ([w+2*wall_size,d+2*wall_size,h+hp], center =false);
 		if(ears==true) translate([wall_size+w/2-15/2,0]) ears(d,9,15);
 		}
-		translate ([wall_size,wall_size,h-pcb_h]) cube ([w,d,pcb_h+0.1], center =false);
+		translate ([wall_size,wall_size,h+0-pcb_h]) cube ([w,d,pcb_h+hp+0.1], center =false);
 
 // rounding corners
-		translate([w+2*wall_size-rad,d+2*wall_size-rad]) rotate(0) createSubtractor(h,rad); 
-		translate([rad,d+2*wall_size-rad]) rotate(90) createSubtractor(h,rad);
-		translate([rad,rad]) rotate(180) createSubtractor(h,rad);
-		translate([w+2*wall_size-rad,rad]) rotate(270) createSubtractor(h,rad);
+		translate([w+2*wall_size-rad,d+2*wall_size-rad]) rotate(0) createSubtractor(h+hp,rad); 
+		translate([rad,d+2*wall_size-rad]) rotate(90) createSubtractor(h+hp,rad);
+		translate([rad,rad]) rotate(180) createSubtractor(h+hp,rad);
+		translate([w+2*wall_size-rad,rad]) rotate(270) createSubtractor(h+hp,rad);
 
 // pass-through dupont plug 8x3x6
-		translate([wall_size+3/2,(2*wall_size+d)/2,0]) cube ([3,8,6], center =true); 
+		translate([wall_size+hp,(2*wall_size+d)/2,0]) cube ([6,10,6], center =true); 
 
 // 4xscrews 1.6mm dia (to do)
 //		translate([wall_size/2+0.4,wall_size/2+0.4,h/2]) cylinder(h=h, r=0.8, $fn=25);
@@ -97,7 +98,7 @@ module case_b(){
 	}
 
 //1.5mm lip
-	translate([wall_size-1.5, wall_size-1.5,h-1.5]) lip(1.5,1.5);
+	translate([wall_size-1.5, wall_size-1.5,h+hp-1.5]) lip(1.5,1.5);
 
 	}// difference
 
