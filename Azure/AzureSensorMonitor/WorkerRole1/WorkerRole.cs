@@ -30,13 +30,6 @@ namespace WorkerRole1
             {
                 Trace.TraceInformation("WorkerRole1 is running");
 
-                /*
-                // Find your Account Sid and Auth Token at twilio.com/user/account 
-                string AccountSid = "AC86c0b365a20c44d5871a8f3b52706377";
-                string AuthToken = "0329c66950f39a3707fb6112398601eb";
-                TwilioRestClient twilioClient = new TwilioRestClient(AccountSid, AuthToken);
-                 * */
-
                 while (true)
                 {
                     DateTime dateNow = DateTime.Now;
