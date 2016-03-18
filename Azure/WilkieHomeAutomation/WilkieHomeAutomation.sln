@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4EA33D26-1259-42C6-B354-D39B5907C057}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{89205D0B-C47B-448A-9C1E-FABE490426BA}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WilkieHomeAutomation", "src\WilkieHomeAutomation\WilkieHomeAutomation.xproj", "{0514900B-F412-4420-808C-7B8201E871DA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0514900B-F412-4420-808C-7B8201E871DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0514900B-F412-4420-808C-7B8201E871DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0514900B-F412-4420-808C-7B8201E871DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0514900B-F412-4420-808C-7B8201E871DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0514900B-F412-4420-808C-7B8201E871DA} = {4EA33D26-1259-42C6-B354-D39B5907C057}
+	EndGlobalSection
+EndGlobal
