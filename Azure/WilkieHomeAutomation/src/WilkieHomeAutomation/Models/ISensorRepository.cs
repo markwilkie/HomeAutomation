@@ -9,8 +9,8 @@ namespace WilkieHomeAutomation.Models
     {
         void Add(Sensor sensor);
         IEnumerable<Sensor> GetAll();
-        Sensor Find(string id);
-        Sensor Remove(string id);
+        Sensor Find(int unitNum);
+        Sensor Remove(int unitNum);
         void Update(Sensor sensor);
     }
 }

@@ -7,8 +7,7 @@ namespace WilkieHomeAutomation.Models
 {
     public class Sensor
     {
-        public string Key { get; set; }
-        public int Num { get; set; }
+        public int UnitNum { get; set; }
         public string Description { get; set; }
     }
 }

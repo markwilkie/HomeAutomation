@@ -17,36 +17,70 @@ namespace WilkieHomeAutomation.Controllers
             this.sensors=sensors;
         }
 
-        // GET: api/values
+        // GET: api/sensors
         [HttpGet]
-        public IEnumerable<string> Get()
+        public IEnumerable<Sensor> Get()
         {
-            return new string[] { "value1", "value2" };
+            return this.sensors.GetAll();
         }
 
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        // GET api/sensors/5
+        [HttpGet("{unitNum}", Name = "GetSensor")]
+        public IActionResult GetById(int unitNum)
         {
-            return "value";
+            var sensor = this.sensors.Find(unitNum);
+            if (sensor == null)
+            {
+                return this.HttpNotFound();
+            }
+
+            return this.Ok(sensor);
         }
 
-        // POST api/values
+        // POST api/sensors
         [HttpPost]
-        public void Post([FromBody]string value)
+        public IActionResult Create([FromBody]Sensor sensor)
         {
+            this.sensors.Add(sensor);
+
+            return this.CreatedAtRoute("GetSensor", new { controller = "Sensors", unitNum = sensor.UnitNum }, sensor);
         }
 
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        // PUT api/sensors/5
+        [HttpPut("{unitNum}")]
+        public IActionResult Update(int unitNum, [FromBody]Sensor sensor)
         {
+            if (sensor.UnitNum != unitNum)
+            {
+                return this.HttpBadRequest();
+            }
+
+            var existingSensor = this.sensors.Find(unitNum);
+            if (existingSensor == null)
+            {
+                return this.HttpNotFound();
+            }
+
+            this.sensors.Update(sensor);
+
+            /*
+            this.logger.LogVerbose(
+                "Updated {0} by {1} to {2} by {3}",
+                existingBook.Title,
+                existingBook.Author,
+                book.Title,
+                book.Author);
+                */
+
+            return new NoContentResult();
         }
 
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        // DELETE api/sensors/5
+        [HttpDelete("{unitNum}")]
+        public NoContentResult Delete(int unitNum)
         {
+            this.sensors.Remove(unitNum);
+            return new NoContentResult();
         }
     }
 }

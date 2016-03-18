@@ -8,41 +8,40 @@ namespace WilkieHomeAutomation.Models
 {
     public class SensorRepository : ISensorRepository
     {
-        private readonly ConcurrentDictionary<string, Sensor> sensors;
+        private readonly ConcurrentDictionary<int, Sensor> sensors;
 
         public SensorRepository()
         {
-            this.sensors = new ConcurrentDictionary<string, Sensor>();
+            this.sensors = new ConcurrentDictionary<int, Sensor>();
         }
 
         public void Add(Sensor sensor)
         {
-            sensor.Key = Guid.NewGuid().ToString();
-            this.sensors.TryAdd(sensor.Key, sensor);
+            this.sensors.TryAdd(sensor.UnitNum, sensor);
         }
 
-        public Sensor Find(string key)
+        public Sensor Find(int unitNum)
         {
             Sensor sensor;
-            this.sensors.TryGetValue(key, out sensor);
+            this.sensors.TryGetValue(unitNum, out sensor);
             return sensor;
         }
 
         public IEnumerable<Sensor> GetAll()
         {
-            return this.sensors.Values.OrderBy(b => b.Num);
+            return this.sensors.Values.OrderBy(b => b.UnitNum);
         }
 
-        public Sensor Remove(string key)
+        public Sensor Remove(int unitNum)
         {
             Sensor sensor;
-            this.sensors.TryRemove(key, out sensor);
+            this.sensors.TryRemove(unitNum, out sensor);
             return sensor;
         }
 
         public void Update(Sensor sensor)
         {
-            this.sensors[sensor.Key] = sensor;
+            this.sensors[sensor.UnitNum] = sensor;
         }
     }
 }
