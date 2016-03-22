@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc;
+using System.IdentityModel.Tokens;
+using System.Security.Claims;
+using Microsoft.AspNet.Authorization;
+using System.Security.Principal;
+using Microsoft.AspNet.Authentication.JwtBearer;
+using System.IdentityModel.Tokens.Jwt;
 using WilkieHomeAutomation.Models;
 
 namespace WilkieHomeAutomation.Controllers
@@ -19,6 +25,7 @@ namespace WilkieHomeAutomation.Controllers
 
         // GET: api/devices
         [HttpGet]
+        [Authorize("Bearer")]
         public IEnumerable<Device> Get()
         {
             return _context.Devices.AsEnumerable();
@@ -26,6 +33,7 @@ namespace WilkieHomeAutomation.Controllers
 
         // GET api/devices/5
         [HttpGet("{unitNum}", Name = "GetDevice")]
+        [Authorize("Bearer")]
         public IActionResult GetById(int unitNum)
         {
             Device device = _context.Devices.SingleOrDefault(b => b.UnitNum == unitNum);
@@ -39,12 +47,25 @@ namespace WilkieHomeAutomation.Controllers
 
         // POST api/devices
         [HttpPost]
-        public IActionResult Create([FromBody]Device device)
+        [Authorize("Bearer")]
+        public IActionResult InsertUpdate([FromBody]Device device)
         {
-            if (ModelState.IsValid)
+            Device dbDevice = _context.Devices.SingleOrDefault(b => b.UnitNum == device.UnitNum);
+            if (dbDevice == null)
             {
-                _context.Devices.Add(device);
-                _context.SaveChanges();
+                if (ModelState.IsValid)
+                {
+                    _context.Devices.Add(device);
+                    _context.SaveChanges();
+                }
+            }
+            else
+            {
+                if (ModelState.IsValid)
+                {
+                    dbDevice.Description = device.Description;
+                    _context.SaveChanges();
+                }
             }
 
             return this.CreatedAtRoute("GetDevice", new { controller = "Devices", unitNum = device.UnitNum }, device);

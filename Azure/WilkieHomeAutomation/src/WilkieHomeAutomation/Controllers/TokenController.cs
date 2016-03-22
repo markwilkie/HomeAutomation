@@ -18,8 +18,6 @@ namespace WilkieHomeAutomation.Controllers
             public TokenController(TokenAuthOptions tokenOptions)
             {
                 this.tokenOptions = tokenOptions;
-                //this.bearerOptions = options.Value;
-                //this.signingCredentials = signingCredentials;
             }
 
             /// <summary>
@@ -50,7 +48,7 @@ namespace WilkieHomeAutomation.Controllers
                     {
                         user = currentUser.Identity.Name;
                         foreach (Claim c in currentUser.Claims) if (c.Type == "EntityID") entityId = Convert.ToInt32(c.Value);
-                        tokenExpires = DateTime.UtcNow.AddMinutes(20);
+                        tokenExpires = DateTime.UtcNow.AddMonths(3);
                         token = GetToken(currentUser.Identity.Name, tokenExpires);
                     }
                 }
@@ -73,7 +71,7 @@ namespace WilkieHomeAutomation.Controllers
                 // Yup, this should be kept on an offsite secrets store - but I'm lazy and my taget is not juicy
                 if(req.pat == "")
                 {
-                    DateTime? expires = DateTime.UtcNow.AddMinutes(20);
+                    DateTime? expires = DateTime.UtcNow.AddMonths(3);
                     var token = GetToken("RFHubUser", expires);
                     return new { authenticated = true, entityId = 1, token = token, tokenExpires = expires };
                 }
