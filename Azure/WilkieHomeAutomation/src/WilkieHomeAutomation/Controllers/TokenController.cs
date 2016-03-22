@@ -71,7 +71,7 @@ namespace WilkieHomeAutomation.Controllers
             public dynamic Post([FromBody] AuthRequest req)
             {
                 // Yup, this should be kept on an offsite secrets store - but I'm lazy and my taget is not juicy
-                if(req.pat == )
+                if(req.pat == "")
                 {
                     DateTime? expires = DateTime.UtcNow.AddMinutes(20);
                     var token = GetToken("RFHubUser", expires);

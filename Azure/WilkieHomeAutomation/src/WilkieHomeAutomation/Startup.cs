@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IdentityModel.Tokens;
 using System.Security.Cryptography;
+using Microsoft.Data.Entity;
 using Microsoft.AspNet.Authentication.JwtBearer;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
@@ -36,6 +37,12 @@ namespace WilkieHomeAutomation
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var connection = @"";
+
+            services.AddEntityFramework()
+                .AddSqlServer()
+                .AddDbContext<DeviceContext>(options => options.UseSqlServer(connection));
+
             // *** CHANGE THIS FOR PRODUCTION USE ***
             // Here, we're generating a random key to sign tokens - obviously this means
             // that each time the app is started the key will change, and multiple servers 
@@ -71,9 +78,6 @@ namespace WilkieHomeAutomation
 
             // Add framework services.
             services.AddMvc();
-
-            // Add our repository
-            services.AddSingleton<ISensorRepository, SensorRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
