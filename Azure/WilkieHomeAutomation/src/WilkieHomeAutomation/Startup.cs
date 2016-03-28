@@ -37,11 +37,13 @@ namespace WilkieHomeAutomation
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var connection = @"";
+            /var connection = @
 
             services.AddEntityFramework()
                 .AddSqlServer()
-                .AddDbContext<DeviceContext>(options => options.UseSqlServer(connection));
+                .AddDbContext<DeviceContext>(options => options.UseSqlServer(connection))
+                .AddDbContext<StateContext>(options => options.UseSqlServer(connection))
+                .AddDbContext<EventContext>(options => options.UseSqlServer(connection));
 
             // *** CHANGE THIS FOR PRODUCTION USE ***
             // Here, we're generating a random key to sign tokens - obviously this means
