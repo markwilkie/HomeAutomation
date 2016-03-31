@@ -1,11 +1,17 @@
 #include <stdio.h>
+#include <iostream>
+#include <exception>
 #include <string.h>
 #include <openssl/hmac.h>
 #include <openssl/pem.h>
 #include <time.h>
+#include <curl/curl.h>
 #include <signal.h>
 #include <RF24/RF24.h>
 #include <sys/resource.h> 
+#include <unistd.h> //sleep
+
+#include "HomeAutomationWebAPI.h"
 
 void sigHandler(int s);
 void readDeviceData();
@@ -13,18 +19,15 @@ void callSecureWebAPI(char *urlRaw,char *authHeader);
 void callWebAPI(char *urlRaw); 
 void createAuthHeader(char *key, char *keyName, char *url, char *authHeader);
 char* base64encode (const void *b64_encode_me, int encode_this_many_bytes,int *resLen);
-void buildPipeOne();
-void buildPipeTwo();
-void buildPipeThree();
-void buildPipeFour();
-void buildPipeFive();
+void buildPowerAPICall();
+void buildEventAPICall();
+void buildAlarmAPICall();
+void buildStateAPICall();
+void buildContextAPICall();
 int createAndPostData(char *authHeader);
 void timeStamp(FILE *file);
 long getLocalEpoch();
 void flushFileHandles();
-
-//WebAPI object
-WebAPI webAPI;
 
 // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
 RF24 radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
@@ -58,16 +61,41 @@ time_t rawtime;
 struct tm * timeinfo;
 struct rusage memInfo;
 
+HomeAutomationWebAPI api;
+
 int main()
 {
     //Ignore sig pipe errors.  There's a bug in curl...
     signal(SIGPIPE, sigHandler);
 
+    std::cout << "Starting\n";
+    api=HomeAutomationWebAPI();
+
+    bool authenticatedFlag=false;
+    while(!authenticatedFlag)
+    {
+	try
+	{
+        	std::cout << "Authenticating...\n";
+        	authenticatedFlag=api.Authenticate("");  //authenticate w/ pat
+        	std::cout << "SuccessFlag: " << authenticatedFlag << '\n';
+	}
+	catch(const std::exception& e)
+	{
+		std::cout << "Exception thrown\n";
+            	sleep(1);
+	}
+    }
+
+	std::cout << "Starting logging\n";
+
     //open file for logging
-    logFile = fopen("/home/pi/code/rfHub/HubMasterLog.txt", "w");
-    rfFile = fopen("/home/pi/code/rfHub/RFLog.txt", "w");
-    freopen ("/home/pi/code/rfHub/HubMasterStderr.txt","w",stderr);
-    freopen ("/home/pi/code/rfHub/HubMasterStdout.txt","w",stdout);
+    logFile = fopen("/home/pi/code/RFHubV2/HubMasterLog.txt", "w");
+    rfFile = fopen("/home/pi/code/RFHubV2/RFLog.txt", "w");
+    freopen ("/home/pi/code/RFHubV2/HubMasterStderr.txt","w",stderr);
+    freopen ("/home/pi/code/RFHubV2/HubMasterStdout.txt","w",stdout);
+
+	std::cout << "files open\n";
 
     //tag log files
     time(&rawtime);
@@ -190,7 +218,7 @@ int createAndPostData(char *authHeader)
     for(int i=0;i<MAX_POSTDATA_SIZE;i++)
       postData[i]=0;
 
-    switc(pipeNo)
+    switch(pipeNo)
     { 
     case 1: //Power
         buildPowerAPICall();
@@ -426,15 +454,38 @@ void buildContextAPICall()
     //
     // 1 byte:  unit number (uint8)
     // 1 byte:  Payload type (S=state, C=context, E=event  
-    // 1 byte:  location (byte)
+    // n bytes:  description (char [])
     //
 
     //read known values
-    int unitNum = bytesRecv[0];
-    char location = bytesRecv[2];
+    uint8_t unitNum = bytesRecv[0];
+    char type = bytesRecv[1];
+
+    std::cout << "Building Description.  Len: " << lastPayloadLen << "\n";
+    fflush(stdout);
+
+    if(lastPayloadLen>2)
+    {
+	try
+	{
+        	size_t len=(size_t)(lastPayloadLen-2);
+        	char *buffer=(char *)(bytesRecv+2);
+        	std::string description(buffer,len);
+        	std::cout << "Adding Device: " << (int)unitNum << " - " << description << "\n";
+
+        	api.AddDevice((int)unitNum,description);
+        	std::cout << "Success!\n";
+	}
+	catch(const std::exception& e)
+	{
+		std::cout << "HTTP Error adding Device.\n";
+	}
+    }
+
+    fflush(stdout);
 
     //Log file
-    //fprintf(logFile, "location: %c\n", location);
+    //fprintf(logFile, "description: %s\n", description.c_str());
     //fflush(logFile);
 }
 
@@ -455,4 +506,151 @@ void readDeviceData()
    //fprintf(logFile,"Now reading %d bytes on pipe: %d with ACK: %d\n",lastPayloadLen ,pipeNo, pipeNo);
    //fflush(logFile);   
 }
+
+void callSecureWebAPI(char *urlRaw, char *authHeader)
+{
+    CURL *curl;
+    CURLcode res;
+
+    curl = curl_easy_init();
+    if (curl)
+    {
+        //custom headers
+        struct curl_slist *chunk = NULL;
+        chunk = curl_slist_append(chunk, "Accept:");
+        chunk = curl_slist_append(chunk, "Content-Type: application/json;type=entry;charset=utf-8");
+        chunk = curl_slist_append(chunk, authHeader);
+        res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        //verbose
+        //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        //post data
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData);
+
+        //set timeouts
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15);  //set timeout for 15 seconds
+
+        //set URL
+        curl_easy_setopt(curl, CURLOPT_URL, urlRaw);
+
+        /* Perform the request, res will get the return code */
+        res = curl_easy_perform(curl);
+
+        /* Check for errors */
+        if (res != CURLE_OK)
+        {
+            timeStamp(stderr);
+            fprintf(stderr, "ERROR: curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+            fflush(stderr);
+        }
+
+        /* always cleanup */
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(chunk);
+    }
+}
+
+void callWebAPI(char *urlRaw)
+{
+  CURL *curl;
+  CURLcode res;
+
+  curl = curl_easy_init();
+  if(curl) 
+  {
+    //verbose
+    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+    //set timeouts
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15);  //set timeout for 15 seconds
+
+    //set URL
+    curl_easy_setopt(curl, CURLOPT_URL, urlRaw);
+ 
+    /* Perform the request, res will get the return code */ 
+    res = curl_easy_perform(curl);
+
+    /* Check for errors */ 
+    if(res != CURLE_OK)
+    {
+      timeStamp(stderr);
+      fprintf(stderr, "ERROR: curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
+      fflush(stderr);  
+    }
+ 
+    /* always cleanup */ 
+    curl_easy_cleanup(curl);
+  }
+}
+
+/*This function will build new auth header -- fills in authHeader*/
+void createAuthHeader (char *key,char *keyName,char *url,char *authHeader)
+{
+    // Time past epoch
+    time_t seconds_past_epoch = time(0);
+    //fprintf(logFile,"Time: %ld\n",seconds_past_epoch);
+    long expiry = seconds_past_epoch + 7200;
+   
+    // The key to hash with
+    //char *key = (char *)"3RdEfuPG4TeMbsBRhLgaCnyoq5ZttZpJWFdxajN0rZM=";
+    //fprintf(logFile,"Key: %s Len: %d\n",key,strlen(key));
+
+    // The data that we're going to hash using HMAC
+    //const char *url = "homeautomation-ns.servicebus.windows.net";
+    char *stringToSign=(char*)malloc(256);
+    sprintf(stringToSign,"%s\n%ld",url,expiry);
+    //fprintf(logFile,"To Sign: %s\n",stringToSign);
+    
+    // Using sha256 hash engine here.
+    unsigned int digLen;
+    unsigned char *digest = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
+    HMAC(EVP_sha256(), key, strlen(key), (unsigned char*)stringToSign, strlen(stringToSign), digest, &digLen);    
+    //fprintf(logFile,"HMAC digest: %s  Len: %d  Max Size: %d\n", digest,digLen,EVP_MAX_MD_SIZE);
+ 
+    //base64 encoding
+    int base64Len=0;
+    char *base64data = base64encode(digest, digLen, &base64Len);  //Base-64 encodes data.
+    //fprintf(logFile,"Base64 digest: %s Len: %d\n",base64data,base64Len);
+
+    //ESC the digest
+    CURL *curl = curl_easy_init();
+    char *escDigest = curl_easy_escape(curl,(const char*)base64data,base64Len);
+    //fprintf(logFile,"ESC'd digest: %s\n",escDigest);
+
+    //create auth header 
+    sprintf(authHeader,"Authorization: SharedAccessSignature sr=%s&sig=%s&se=%ld&skn=%s",url,escDigest,expiry,keyName);
+
+    //free memory
+    curl_easy_cleanup(curl);
+    curl_free(escDigest);
+    free(base64data);
+    free(stringToSign);
+    free(digest);
+}
+
+/*This function will Base-64 encode your data.*/
+char * base64encode (const void *b64_encode_me, int encode_this_many_bytes,int *resLen)
+{
+    BIO *b64_bio, *mem_bio;   //Declare two BIOs.  One base64 encodes, the other stores memory.
+    BUF_MEM *mem_bio_mem_ptr; //Pointer to the "memory BIO" structure holding the base64 data.
+
+    b64_bio = BIO_new(BIO_f_base64());  //Initialize our base64 filter BIO.
+    mem_bio = BIO_new(BIO_s_mem());  //Initialize our memory sink BIO.
+    b64_bio = BIO_push(b64_bio, mem_bio);  //Link the BIOs (i.e. create a filter-sink BIO chain.)
+    BIO_set_flags(b64_bio, BIO_FLAGS_BASE64_NO_NL);  //Don't add a newline every 64 characters.
+
+    BIO_write(b64_bio, b64_encode_me, encode_this_many_bytes); //Encode and write our b64 data.
+    BIO_flush(b64_bio);  //Flush data.  Necessary for b64 encoding, because of pad characters.
+    BIO_get_mem_ptr(b64_bio, &mem_bio_mem_ptr);
+
+    char *resBuffer = (char *)malloc(mem_bio_mem_ptr->length);
+    memcpy(resBuffer , mem_bio_mem_ptr->data, mem_bio_mem_ptr->length);
+    //resBuffer[mem_bio_mem_ptr->length] = 0;
+    *resLen=mem_bio_mem_ptr->length;
+
+    BIO_free_all(b64_bio);
+    return resBuffer;
+}
+
 
