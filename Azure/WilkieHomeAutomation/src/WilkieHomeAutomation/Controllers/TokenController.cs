@@ -7,6 +7,8 @@ using Microsoft.AspNet.Authorization;
 using System.Security.Principal;
 using Microsoft.AspNet.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Logging;
+
 
 namespace WilkieHomeAutomation.Controllers
     {
@@ -14,10 +16,12 @@ namespace WilkieHomeAutomation.Controllers
         public class TokenController : Controller
         {
             private readonly TokenAuthOptions tokenOptions;
+            private readonly ILogger<TokenController> logger;
 
-            public TokenController(TokenAuthOptions tokenOptions)
+            public TokenController(TokenAuthOptions tokenOptions, ILogger<TokenController> logger)
             {
                 this.tokenOptions = tokenOptions;
+                this.logger = logger;
             }
 
             /// <summary>
@@ -47,12 +51,14 @@ namespace WilkieHomeAutomation.Controllers
                     if (authenticated)
                     {
                         user = currentUser.Identity.Name;
+
                         foreach (Claim c in currentUser.Claims) if (c.Type == "EntityID") entityId = Convert.ToInt32(c.Value);
                         tokenExpires = DateTime.UtcNow.AddMonths(3);
                         token = GetToken(currentUser.Identity.Name, tokenExpires);
                     }
                 }
-                return new { authenticated = authenticated, user = user, entityId = entityId, token = token, tokenExpires = tokenExpires };
+
+                 return new { authenticated = authenticated, user = user, entityId = entityId, token = token, tokenExpires = tokenExpires };
             }
 
             public class AuthRequest
@@ -69,11 +75,16 @@ namespace WilkieHomeAutomation.Controllers
             public dynamic Post([FromBody] AuthRequest req)
             {
                 // Yup, this should be kept on an offsite secrets store - but I'm lazy and my taget is not juicy
-                if(req.pat == "n/a")
+                if(req.pat == 
                 {
                     DateTime? expires = DateTime.UtcNow.AddMonths(1);
                     var token = GetToken("RFHubUser", expires);
-                    return new { authenticated = true, entityId = 1, token = token, tokenExpires = expires };
+
+                logger.LogInformation("-TEST");
+                System.Diagnostics.Trace.TraceWarning("TEST");
+                System.Diagnostics.Trace.Flush();
+
+                return new { authenticated = true, entityId = 1, token = token, tokenExpires = expires };
                 }
                 return new { authenticated = false };
             }

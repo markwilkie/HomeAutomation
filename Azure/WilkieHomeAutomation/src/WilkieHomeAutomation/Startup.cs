@@ -37,7 +37,7 @@ namespace WilkieHomeAutomation
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            /var connection = @
+            var connection =
 
             services.AddEntityFramework()
                 .AddSqlServer()
@@ -85,10 +85,52 @@ namespace WilkieHomeAutomation
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            //loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+            //loggerFactory.AddDebug.AddConsole(Configuration.GetSection("Logging"));
             //loggerFactory.AddDebug();
 
+            loggerFactory.AddConsole(minLevel: LogLevel.Verbose);
+
             app.UseIISPlatformHandler();
+
+            // Register a simple error handler to catch token expiries and change them to a 401, 
+            // and return all other errors as a 500. This should almost certainly be improved for
+            // a real application.
+            app.UseExceptionHandler(appBuilder =>
+            {
+                appBuilder.Use(async (context, next) =>
+                {
+                    var error = context.Features[typeof(IExceptionHandlerFeature)] as IExceptionHandlerFeature;
+
+                    //Log error
+                    System.Diagnostics.Trace.TraceWarning(error.Error.ToString());
+
+                    // This should be much more intelligent - at the moment only expired 
+                    // security tokens are caught - might be worth checking other possible 
+                    // exceptions such as an invalid signature.
+                    if (error != null && (error.Error is SecurityTokenInvalidSignatureException || error.Error is SecurityTokenExpiredException || error.Error is SecurityTokenInvalidSigningKeyException))
+                    {
+                        context.Response.StatusCode = 401;
+                        // What you choose to return here is up to you, in this case a simple 
+                        // bit of JSON to say you're no longer authenticated.
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(
+                            JsonConvert.SerializeObject(
+                                new { authenticated = false, tokenExpired = true }));
+                    }
+                    else if (error != null && error.Error != null)
+                    {
+                        context.Response.StatusCode = 500;
+                        context.Response.ContentType = "application/json";
+                        // TODO: Shouldn't pass the exception message straight out, change this.
+                        await context.Response.WriteAsync(
+                            JsonConvert.SerializeObject
+                            (new { success = false, error = error.Error.Message }));
+                    }
+                    // We're not trying to handle anything else so just let the default 
+                    // handler handle.
+                    else await next();
+                });
+            });
 
             app.UseJwtBearerAuthentication(options =>
             {
