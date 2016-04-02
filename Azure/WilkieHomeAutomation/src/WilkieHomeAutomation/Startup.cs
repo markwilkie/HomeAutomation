@@ -37,7 +37,7 @@ namespace WilkieHomeAutomation
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var connection =
+            var connection = Configuration["Data:DefaultConnection:ConnectionString"];
 
             services.AddEntityFramework()
                 .AddSqlServer()
@@ -77,6 +77,9 @@ namespace WilkieHomeAutomation
                     .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme‌​)
                     .RequireAuthenticatedUser().Build());
             });
+
+            //Add config
+            services.AddSingleton<IConfiguration>(sp => { return Configuration; });
 
             // Add framework services.
             services.AddMvc();

@@ -54,3 +54,6 @@ Eagle/RFBoardV4/main.pro
 *.job
 *.pro
 *.job
+*.sdf
+Azure/WilkieHomeAutomation/WilkieHomeAutomation.VC.opendb
+*.sdf
