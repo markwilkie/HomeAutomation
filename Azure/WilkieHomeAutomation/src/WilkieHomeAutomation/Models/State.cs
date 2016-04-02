@@ -9,9 +9,9 @@ namespace WilkieHomeAutomation.Models
     {
         public int ID { get; set; }
         public int UnitNum { get; set; }
-        public float VCC { get; set; }
-        public float Temperature { get; set; }
-        public float IntPinState { get; set; }
+        public decimal VCC { get; set; }
+        public decimal Temperature { get; set; }
+        public int IntPinState { get; set; }
         public long DeviceDate { get; set; }
     }
 }
