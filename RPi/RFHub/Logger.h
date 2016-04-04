@@ -1,0 +1,34 @@
+#include <iostream>
+#include <sstream>
+
+class LogLine {
+public:
+    LogLine(std::ostream& out = std::cout) : m_Out(out) {}
+    ~LogLine() {
+        m_Stream << "\n";
+        m_Out << m_Stream.rdbuf();
+        m_Out.flush();
+    }
+    template <class T>
+    LogLine& operator<<(const T& thing) { m_Stream << thing; return *this; }
+private:
+    std::stringstream m_Stream;
+    std::ostream& m_Out;
+    //static LogFilter...
+};
+
+class LogErrorLine {
+public:
+    LogErrorLine (std::ostream& out = std::cerr) : m_Out(out) {}
+    ~LogErrorLine () {
+        m_Stream << "\n";
+        m_Out << m_Stream.rdbuf();
+        m_Out.flush();
+    }
+    template <class T>
+    LogErrorLine& operator<<(const T& thing) { m_Stream << thing; return *this; }
+private:
+    std::stringstream m_Stream;
+    std::ostream& m_Out;
+    //static LogFilter...
+};
