@@ -52,7 +52,16 @@ namespace WilkieHomeAutomation.Controllers
         {
             if (ModelState.IsValid)
             {
+                //Add to state table
                 _context.States.Add(state);
+
+                //Update device table
+                Device dbDevice = _context.Devices.SingleOrDefault(b => b.UnitNum == state.UnitNum);
+                if (dbDevice != null)
+                {
+                    dbDevice.LastStateDT = state.DeviceDate;
+                }
+
                 _context.SaveChanges();
             }
 

@@ -53,6 +53,13 @@ namespace WilkieHomeAutomation.Controllers
             if (ModelState.IsValid)
             {
                 _context.Events.Add(_event);
+
+                //Update device table
+                Device dbDevice = _context.Devices.SingleOrDefault(b => b.UnitNum == _event.UnitNum);
+                if (dbDevice != null)
+                {
+                    dbDevice.LastEventDT = _event.DeviceDate;
+                }
                 _context.SaveChanges();
             }
 

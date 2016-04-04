@@ -9,5 +9,6 @@ namespace WilkieHomeAutomation.Models
     public class StateContext: DbContext
     {
         public DbSet<State> States { get; set; }
-     }
+        public DbSet<Device> Devices { get; set; }
+    }
 }

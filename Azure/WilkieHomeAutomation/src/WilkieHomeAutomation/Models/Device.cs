@@ -7,17 +7,11 @@ namespace WilkieHomeAutomation.Models
 {
     public class Device
     {
-        //private DateTime dateAdded;  //backing field, named by convention
-
         public int ID { get; set; }
         public int UnitNum { get; set; }
         public string Description { get; set; }
-        /*
-        public DateTime DateAdded 
-        {
-            get { return dateAdded;  }
-            set { dateAdded = DateTime.Now; }
-        }
-        */
+        public long LastStateDT { get; set; }
+        public long LastEventDT { get; set; }
+        public long DeviceDate { get; set; }
     }
 }

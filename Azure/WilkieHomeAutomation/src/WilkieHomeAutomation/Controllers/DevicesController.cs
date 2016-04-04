@@ -64,6 +64,7 @@ namespace WilkieHomeAutomation.Controllers
                 if (ModelState.IsValid)
                 {
                     dbDevice.Description = device.Description;
+                    dbDevice.DeviceDate = device.DeviceDate;
                     _context.SaveChanges();
                 }
             }
