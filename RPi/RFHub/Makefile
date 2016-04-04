@@ -14,13 +14,25 @@ prefix := /usr/local
 
 # The recommended compiler flags for the Raspberry Pi
 CCFLAGS=-fpermissive -Ofast -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s -g
+#CCFLAGS=
 
-HubMaster: HomeAutomationWebAPI.o WebAPI.o HubMaster.cpp
-	g++ ${CCFLAGS} -Wall -lcrypto -I../ -lrf24-bcm -L/usr/lib/arm-linux-gnueabihf -lcurl HomeAutomationWebAPI.o WebAPI.o HubMaster.cpp -o HubMaster
+# define all programs
+PROGRAMS = HubMaster
+SOURCES = ${PROGRAMS:=.cpp}
 
-HomeAutomationWebApi: HomeAutomationWebApi.cpp WebAPI.o
-	g++ HomeAutomationWebAPI.cpp -c 
+all: ${PROGRAMS}
 
-WebAPI: WebAPI.cpp
-	g++ WebAPI.cpp -c 
+${PROGRAMS}: ${SOURCES}
+	g++ ${CCFLAGS} -Wall -lcrypto -I../ -lrf24-bcm -L/usr/lib/arm-linux-gnueabihf -lcurl $@.cpp -o $@
 
+clean:
+	rm -rf $(PROGRAMS)
+	
+install: all
+	test -d $(prefix) || mkdir $(prefix)
+	test -d $(prefix)/bin || mkdir $(prefix)/bin
+	for prog in $(PROGRAMS); do \
+	  install -m 0755 $$prog $(prefix)/bin; \
+	done
+
+.PHONY: install
