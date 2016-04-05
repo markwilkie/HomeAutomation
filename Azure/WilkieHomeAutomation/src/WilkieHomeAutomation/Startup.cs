@@ -39,6 +39,14 @@ namespace WilkieHomeAutomation
         {
             var connection = Configuration["Data:DefaultConnection:ConnectionString"]+ ";MultipleActiveResultSets=true;";
 
+            //Enable cors for these services
+            services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            }));
+
             services.AddEntityFramework()
                 .AddSqlServer()
                 .AddDbContext<DeviceContext>(options => options.UseSqlServer(connection))
@@ -92,6 +100,8 @@ namespace WilkieHomeAutomation
             //loggerFactory.AddDebug();
 
             loggerFactory.AddConsole(minLevel: LogLevel.Verbose);
+
+            app.UseCors("MyPolicy");
 
             app.UseIISPlatformHandler();
 
