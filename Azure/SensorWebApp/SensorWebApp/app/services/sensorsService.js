@@ -1,7 +1,7 @@
 ﻿angular.module('sensorWebApp')
     .factory('sensorDataFactory', ['$http', function ($http) {
 
-        var urlBase = 'http://sensors.cloudapp.net/Sensor/SensorList';
+        var urlBase = 'http://localhost:28566/api/devices';
         var sensorDataFactory = {};
 
         sensorDataFactory.getSensors = function () {

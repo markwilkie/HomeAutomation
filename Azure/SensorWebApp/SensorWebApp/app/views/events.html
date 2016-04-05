@@ -11,17 +11,19 @@
                         <thead>
                             <tr>
                                 <th>Unit#</th>
+                                <th>Description</th>
                                 <th>Type</th>
-                                <th>Code</th>
-                                <th>Date/Time</th>
+                                <th>Event</th>
+                                <th>Last</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr data-ng-repeat="event in events" class="repeat-animation">
-                                <td>{{event.UnitNum}}</td>
-                                <td>{{event.EventCodeType}}</td>
-                                <td>{{event.EventCode}}</td>
-                                <td>{{event.DeviceDateTime}}</td>
+                            <tr data-ng-repeat="data in events" class="repeat-animation">
+                                <td>{{data.Event.UnitNum}}</td>
+                                <td>{{data.Device.Description}}</td>
+                                <td>{{data.Event.EventTypeDesc}}</td>
+                                <td>{{data.Event.EventDesc}}</td>
+                                <td>{{data.Device.LastEvent}}</td>
                             </tr>
                         </tbody>
                     </table>
