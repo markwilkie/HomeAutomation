@@ -25,15 +25,22 @@ namespace WilkieHomeAutomation.Controllers
 
         // GET: api/devices
         [HttpGet]
-        [Authorize("Bearer")]
-        public IEnumerable<Device> Get()
+        //[Authorize("Bearer")]
+        public IEnumerable<object> Get()
         {
-            return _context.Devices.AsEnumerable();
+            var query = (
+                from Device in _context.Devices
+                from State in _context.States
+                    .Where(s => s.UnitNum == Device.UnitNum && s.DeviceDate == Device.LastStateDT)
+                    .DefaultIfEmpty()
+                select new { Device = Device, State = State}).AsEnumerable();
+
+            return query;
         }
 
         // GET api/devices/5
         [HttpGet("{unitNum}", Name = "GetDevice")]
-        [Authorize("Bearer")]
+        //[Authorize("Bearer")]
         public IActionResult GetById(int unitNum)
         {
             Device device = _context.Devices.SingleOrDefault(b => b.UnitNum == unitNum);

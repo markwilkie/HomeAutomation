@@ -25,10 +25,20 @@ namespace WilkieHomeAutomation.Controllers
 
         // GET: api/events
         [HttpGet]
-        [Authorize("Bearer")]
-        public IEnumerable<Event> Get()
+        //[Authorize("Bearer")]
+        public IEnumerable<object> Get()
         {
-            return _context.Events.AsEnumerable();
+            var query = (
+                from Event in _context.Events
+                from Device in _context.Devices
+                    .Where(d => d.UnitNum == Event.UnitNum)
+                    .DefaultIfEmpty()
+                select new { Event = Event, Device = Device })
+                    .OrderByDescending(e => e.Event.DeviceDate)  
+                    .Take(10)
+                    .AsEnumerable();
+
+            return query;
         }
 
         // GET api/events/5
