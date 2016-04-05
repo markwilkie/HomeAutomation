@@ -10,5 +10,12 @@ namespace WilkieHomeAutomation.Models
     {
         public DbSet<State> States { get; set; }
         public DbSet<Device> Devices { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Device>().Ignore(t => t.DeviceDateTimeStr);
+            modelBuilder.Entity<Device>().Ignore(t => t.LastState);
+            modelBuilder.Entity<Device>().Ignore(t => t.LastEvent);
+        }
     }
 }
