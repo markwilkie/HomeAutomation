@@ -33,20 +33,20 @@ namespace WorkerRole1
         }
         public string GetEventList(char eventType, int id)
         {
-            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata where eventcodetype = '{1}' and unitnum = {0} order by devicedatetime desc", id, eventType);
+            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from event where eventcodetype = '{1}' and unitnum = {0} order by devicedatetime desc", id, eventType);
             string eventJSon = SerializeSqlData(sqlCommand);
             return eventJSon;
         }
         public string GetEventList(char eventType)
         {
-            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata where eventcodetype = '{0}' order by devicedatetime desc", eventType);
+            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from event where eventcodetype = '{0}' order by devicedatetime desc", eventType);
             string eventJSon = SerializeSqlData(sqlCommand);
             return eventJSon;
         }
 
         public string GetEventList()
         {
-            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from eventdata order by devicedatetime desc");
+            string sqlCommand = String.Format("select top 10 UnitNum,EventCodeType,EventCode,DeviceDateTime from event order by devicedatetime desc");
             string eventJSon = SerializeSqlData(sqlCommand);
             return eventJSon;
         }
