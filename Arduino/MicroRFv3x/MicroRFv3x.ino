@@ -18,11 +18,12 @@
 // 1-Laundry - water alarm
 // 2-Garage
 // 3-Motion
-// 4-Experiment
+// 4-Front porch
 // 5-Fire
 // 6-Front Door (v4.0 board)
 // 7-Cabinent Fan
-#include "unit4.h"
+// 8-Not yet assigned
+#include "unit6.h"
 
 
 //
@@ -41,7 +42,7 @@ int contextSendCount=0; //Current number for sending context
 //
 RF24 radio(9,10);  // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
 typedef enum { wdt_16ms = 0, wdt_32ms, wdt_64ms, wdt_128ms, wdt_250ms, wdt_500ms, wdt_1s, wdt_2s, wdt_4s, wdt_8s } wdt_prescalar_e; //sleep decrarations
-byte stateData[STATE_PAYLOADSIZE];
+byte stateData[STATE_PAYLOADSIZE_ADC];
 byte contextData[MAX_CONTEXT_PAYLOADSIZE];
 byte eventData[EVENT_PAYLOADSIZE];
 
@@ -195,7 +196,8 @@ void loop()
    //Only send state on timer, not interrupt
    if(interruptType==0)
    {
-     float temperature;
+     float temperature=0.0;
+     int adcValue=0;
      byte interruptPinState;
     
      //Gather and send State.  We do this everytime
@@ -206,12 +208,15 @@ void loop()
      #ifdef THERMISTORPIN
      temperature = readTemp();  //Read temperature sensor
      #endif
+     #ifdef ADC_PIN
+     adcValue = readADC(ADC_PIN);  //Read adc pin
+     #endif     
      #ifdef INTERRUPTPIN
      interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
      #endif
   
      VERBOSE_PRINTLN("Sending State");   
-     buildStatePayload(vcc,temperature,interruptPinState); //build state payload
+     buildStatePayload(vcc,temperature,interruptPinState,adcValue); //build state payload
      radioSend(stateData); //Send state payload
      
      //Send context for PI to use upon reset or startup
@@ -235,7 +240,7 @@ void loop()
 }
 
 //Send state
-void buildStatePayload(float vcc,float temp,byte interruptPinState)
+void buildStatePayload(float vcc,float temp,byte interruptPinState,int adcValue)
 {
   //
   // Over-the-air packet definition/spec
@@ -255,10 +260,8 @@ void buildStatePayload(float vcc,float temp,byte interruptPinState)
   //                                 c=sending digital signal (g)
   //                                 b=sending D7 (f)
   //                                 a=sending D8 (e)
-  // 1 byte:  Number (uint8) of uint8 types and uint16 numbers coming (used for extra data from adc or whatever)
-  //  ....these two lines for each extra indicated above...
-  // 1 byte:  Data Type  (l=long, f=float, a=ascii)
-  // 4 bytes: Data
+  // 1 byte:  Data Type  (a=ADC)
+  // 10 bytes: value itself
   //
   
   //Set pin states
@@ -276,7 +279,12 @@ void buildStatePayload(float vcc,float temp,byte interruptPinState)
   memcpy(&stateData[6],&vcc,4);  //vcc voltage (mv)
   memcpy(&stateData[10],&temp,4); //temperature (2 decimals implied)
   stateData[14]=pinState;        //see protocol above
-  stateData[15]=(uint8_t)0;      //number of option data bits coming
+  
+  //Send ADC if I have it
+  #ifdef ADC_PIN
+  stateData[15]='a';
+  memcpy(&stateData[16],&adcValue,2); //ADC int value
+  #endif    
 }
 
 //Send event
@@ -352,6 +360,22 @@ float readVcc()
   return result/1000.0;
 }
 
+//Read adc pin
+int readADC(int adcPin) 
+{
+  long valueSum=0;
+  for(int i=0;i<ADCREAD;i++)
+  {
+    valueSum=valueSum+analogRead(adcPin);
+    delay(5);
+  }
+  
+  VERBOSE_PRINT("ADC: ");
+  VERBOSE_PRINTLN(valueSum/ADCREAD);  
+     
+  return valueSum/ADCREAD;
+}
+
 
 //Read Temperature
 #ifdef THERMISTORPIN
@@ -404,6 +428,9 @@ void radioSend(byte *payload)
   if((byte)payload[1]=='S')
   {
     payloadLen=STATE_PAYLOADSIZE;  
+    #ifdef ADC_PIN
+    payloadLen=STATE_PAYLOADSIZE_ADC;
+    #endif
   }
   if((byte)payload[1]=='E')
   {
