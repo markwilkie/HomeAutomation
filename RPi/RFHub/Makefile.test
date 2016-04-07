@@ -13,10 +13,10 @@
 prefix := /usr/local
 
 # The recommended compiler flags for the Raspberry Pi
-CCFLAGS=-march=armv6zk -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -Ofast -Wall -pthread
+CCFLAGS=-fpermissive -Ofast -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s -g
 
-HubMaster: HomeAutomationWebAPI.o WebAPI.o HubMaster.cpp
-	g++ ${CCFLAGS} -I/usr/local/include/RF24/.. -I.. -lrf24 -lcurl HomeAutomationWebAPI.o WebAPI.o HubMaster.cpp -o HubMaster
+Test: HomeAutomationWebAPI.o WebAPI.o Test.cpp
+	g++ ${CCFLAGS} -Wall -lcrypto -I../ -lrf24-bcm -L/usr/lib/arm-linux-gnueabihf -lcurl HomeAutomationWebAPI.o WebAPI.o Test.cpp -o Test
 
 HomeAutomationWebApi: HomeAutomationWebApi.cpp WebAPI.o
 	g++ HomeAutomationWebAPI.cpp -c 
