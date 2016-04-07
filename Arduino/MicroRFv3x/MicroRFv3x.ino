@@ -23,7 +23,7 @@
 // 6-Front Door (v4.0 board)
 // 7-Cabinent Fan
 // 8-Not yet assigned
-#include "unit6.h"
+#include "unit8.h"
 
 
 //
@@ -42,9 +42,6 @@ int contextSendCount=0; //Current number for sending context
 //
 RF24 radio(9,10);  // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 9 & 10 
 typedef enum { wdt_16ms = 0, wdt_32ms, wdt_64ms, wdt_128ms, wdt_250ms, wdt_500ms, wdt_1s, wdt_2s, wdt_4s, wdt_8s } wdt_prescalar_e; //sleep decrarations
-byte stateData[STATE_PAYLOADSIZE_ADC];
-byte contextData[MAX_CONTEXT_PAYLOADSIZE];
-byte eventData[EVENT_PAYLOADSIZE];
 
 //Set things up
 void setup()
@@ -109,8 +106,9 @@ void setup()
     digitalWrite(LED_PIN, HIGH);   
     #endif
     VERBOSE_PRINTLN("Sending Context");
-    int payloadLen=buildContextPayload();
-    radioSend(contextData,payloadLen); //Send event payload
+    byte payloadData[MAX_PAYLOADSIZE];
+    int payloadLen=buildContextPayload(payloadData);
+    radioSend(payloadData,payloadLen); //Send event payload
     #ifdef LED_PIN
     digitalWrite(LED_PIN, LOW);    
     #endif
@@ -141,6 +139,10 @@ void blinkLED(int blinkNum,int delayTime)
 //
 void loop()
 {
+  //Buffer for payload
+  byte payloadData[MAX_PAYLOADSIZE];
+  int payloadLen=0;
+  
    //Debug output only
    if(interruptType < 0)
      VERBOSE_PRINTLN("Main loop: noise (no meaningful data)");
@@ -168,25 +170,25 @@ void loop()
      #endif
      
      if(EVENTTYPE==2 && ALARMTYPE==0)
-       buildAlarmPayload('W','W'); //water    
+       payloadLen=buildAlarmPayload(payloadData,'W','W'); //water    
        
      if(EVENTTYPE==2 && ALARMTYPE==1)
-       buildAlarmPayload('F','F'); //fire
+       payloadLen=buildAlarmPayload(payloadData,'F','F'); //fire
      
      if(EVENTTYPE==1)
-       buildEventPayload('M','D'); //motion detected, motion detected
+       payloadLen=buildEventPayload(payloadData,'M','D'); //motion detected, motion detected
   
      if(EVENTTYPE==0)
      {
        if(interruptType == 1) 
-         buildEventPayload('O','O'); //opening changed, Opened
+         payloadLen=buildEventPayload(payloadData,'O','O'); //opening changed, Opened
        if(interruptType == 2)
-         buildEventPayload('O','C'); //opening changed, Closed
+         payloadLen=buildEventPayload(payloadData,'O','C'); //opening changed, Closed
      }
      
      VERBOSE_PRINTLN("Sending Event");
      sentSinceTimerFlag=true;
-     radioSend(eventData); //Send event payload
+     radioSend(payloadData,payloadLen); //Send event payload
 
      #ifdef LED_PIN
      digitalWrite(LED_PIN, LOW);
@@ -216,8 +218,8 @@ void loop()
      #endif
   
      VERBOSE_PRINTLN("Sending State");   
-     buildStatePayload(vcc,temperature,interruptPinState,adcValue); //build state payload
-     radioSend(stateData); //Send state payload
+     payloadLen=buildStatePayload(payloadData,vcc,temperature,interruptPinState,adcValue); //build state payload
+     radioSend(payloadData,payloadLen); //Send state payload
      
      //Send context for PI to use upon reset or startup
      contextSendCount++;
@@ -226,8 +228,8 @@ void loop()
        contextSendCount=0;
        VERBOSE_PRINTLN("Sending Context"); 
 
-       int payloadLen=buildContextPayload();
-       radioSend(contextData,payloadLen); //Send context
+       int payloadLen=buildContextPayload(payloadData);
+       radioSend(payloadData,payloadLen); //Send context
      }     
      
      #ifdef LED_PIN
@@ -240,102 +242,124 @@ void loop()
 }
 
 //Send state
-void buildStatePayload(float vcc,float temp,byte interruptPinState,int adcValue)
+int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinState,int adcValue)
 {
   //
   // Over-the-air packet definition/spec
   //
-  // 1 byte:  unit number (uint8)
-  // 1 byte:  Payload type (S=state, C=context, E=event
-  // 2 bytes: Number of retries on last send (int)
-  // 2 bytes: Number of send attempts since last successful send (int)
-  // 4 bytes: VCC (float)
-  // 4 bytes: Temperature (float)
-  // 1 byte:  Pin State (using bits, abcdefgh where 
-  //                                 h=interrupt pin (usually reed switch)
-  //                                 g=digital signal in from screw terminal
-  //                                 f=D7
-  //                                 e=D8
-  //                                 d=sending interrupt  (h)
-  //                                 c=sending digital signal (g)
-  //                                 b=sending D7 (f)
-  //                                 a=sending D8 (e)
-  // 1 byte:  Data Type  (a=ADC)
-  // 10 bytes: value itself
+  // 1:1 byte:  unit number (uint8)
+  // 1:2 byte:  Payload type (S=state, C=context, E=event
+  // 2:4 bytes: Number of retries on last send (int)
+  // 2:6 bytes: Number of send attempts since last successful send (int)
+  // 4:10 bytes: VCC (float)
+  // 4:14 bytes: Temperature (float)
+  // 1:15 byte:  Presence  ('P' = present, and 'A' = absent)
+  // 1:16 byte:  Data Type  (a=ADC)
+  // 2:18 bytes: value itself
   //
-  
-  //Set pin states
-  uint8_t pinState=B00000000;
-  if(TRIGGERTYPE != 0)  //is the interrupt turned on?
-  {
-      pinState = pinState | B10000000 | (uint8_t)(interruptPinState<<3);
-  }
+
+  int payloadLen=0;
   
   //Create state package
-  stateData[0]=(uint8_t)UNITNUM; //unit number
-  stateData[1]='S';
-  memcpy(&stateData[2],&lastRetryCount,2);  //last retry
-  memcpy(&stateData[4],&lastGoodTransCount,2);  //attempts since last successful send
-  memcpy(&stateData[6],&vcc,4);  //vcc voltage (mv)
-  memcpy(&stateData[10],&temp,4); //temperature (2 decimals implied)
-  stateData[14]=pinState;        //see protocol above
+  payloadData[0]=(uint8_t)UNITNUM; //unit number
+  payloadData[1]='S';
+  memcpy(&payloadData[2],&lastRetryCount,2);  //last retry
+  memcpy(&payloadData[4],&lastGoodTransCount,2);  //attempts since last successful send
+  memcpy(&payloadData[6],&vcc,4);  //vcc voltage (mv)
+  memcpy(&payloadData[10],&temp,4); //temperature (2 decimals implied)
+  payloadData[14]=getPresence(adcValue);    //see protocol above
+  payloadLen=15; //So far, the len is 15 w/o any optional data
   
   //Send ADC if I have it
   #ifdef ADC_PIN
-  stateData[15]='a';
-  memcpy(&stateData[16],&adcValue,2); //ADC int value
+  payloadData[15]='a';
+  memcpy(&payloadData[16],&adcValue,2); //ADC int value
+  payloadLen=18;  //Since we've added ADC, we need to increase the len
   #endif    
+
+  return payloadLen;
+}
+
+byte getPresence(int adcValue)
+{
+  char presence = '-';
+  
+  //If I have a ADC pin defined, determine if past threshold
+  #ifdef ADC_PIN
+  if(adcValue >= ADC_THRESHOLD)
+  {
+    if(ADC_PRESENT)
+      presence = 'P';
+    else
+      presence = 'A';
+  }
+  else
+  {
+    if(ADC_PRESENT)
+      presence = 'A';
+    else
+      presence = 'P';
+  }
+  #endif   
+
+  
+  return presence;
 }
 
 //Send event
-void buildEventPayload(byte eventCodeType,byte eventCode)
+int buildEventPayload(byte *payloadData,byte eventCodeType,byte eventCode)
 {
-  buildAlarmOrEventPayload('E',eventCodeType,eventCode);
+  return buildAlarmOrEventPayload(payloadData,'E',eventCodeType,eventCode);
 }
 
 //Send alarm
-void buildAlarmPayload(byte eventCodeType,byte eventCode)
+int buildAlarmPayload(byte *payloadData,byte eventCodeType,byte eventCode)
 {
-    buildAlarmOrEventPayload('A',eventCodeType,eventCode);
+    return buildAlarmOrEventPayload(payloadData,'A',eventCodeType,eventCode);
 }
 
-void buildAlarmOrEventPayload(byte payloadType,byte eventCodeType,byte eventCode)
+int buildAlarmOrEventPayload(byte *payloadData,byte payloadType,byte eventCodeType,byte eventCode)
 {
   //
   // Over-the-air packet definition/spec
   //
-  // 1 byte:  unit number (uint8)
-  // 1 byte:  Payload type (S=state, C=context, E=event, A=alarm 
-  // 2 bytes: Number of retries on last send (int)
-  // 2 bytes: Number of send attempts since last successful send (int)  
-  // 1 byte:  eventCodeType (O-opening change)
-  // 1 byte:  eventCode (O-opened, C-closed)
+  // 1:1 byte:  unit number (uint8)
+  // 1:2 byte:  Payload type (S=state, C=context, E=event, A=alarm 
+  // 2:4 bytes: Number of retries on last send (int)
+  // 2:6 bytes: Number of send attempts since last successful send (int)  
+  // 1:7 byte:  eventCodeType (O-opening change)
+  // 1:8 byte:  eventCode (O-opened, C-closed)
   //
   
+  int payloadLen=0;
+  
   //Create state package
-  eventData[0]=(uint8_t)UNITNUM; //unit number
-  eventData[1]=payloadType;
-  memcpy(&eventData[2],&lastRetryCount,2);  //last retry
-  memcpy(&eventData[4],&lastGoodTransCount,2);  //attempts since last successful send
-  eventData[6]=eventCodeType;
-  eventData[7]=eventCode;
+  payloadData[0]=(uint8_t)UNITNUM; //unit number
+  payloadData[1]=payloadType;
+  memcpy(&payloadData[2],&lastRetryCount,2);  //last retry
+  memcpy(&payloadData[4],&lastGoodTransCount,2);  //attempts since last successful send
+  payloadData[6]=eventCodeType;
+  payloadData[7]=eventCode;
+  payloadLen=8;
+
+  return payloadLen;
 }
 
 //Send context
-int buildContextPayload()
+int buildContextPayload(byte *payloadData)
 {
   //
   // Over-the-air packet definition/spec
   //
-  // 1 byte:  unit number (uint8)
-  // 1 byte:  Payload type (S=state, C=context, E=event  
-  // 1 byte:  location (G=Garage)
+  // 1:1 byte:  unit number (uint8)
+  // 1:2 byte:  Payload type (S=state, C=context, E=event  
+  // var byte:  Description
   //
   
   //Create context package
-  contextData[0]=(uint8_t)UNITNUM; //unit number
-  contextData[1]='C';
-  memcpy(&contextData[2],UNITDESC,strlen(UNITDESC));
+  payloadData[0]=(uint8_t)UNITNUM; //unit number
+  payloadData[1]='C';
+  memcpy(&payloadData[2],UNITDESC,strlen(UNITDESC));
   
   //return length
   return strlen(UNITDESC)+2;
@@ -363,6 +387,7 @@ float readVcc()
 //Read adc pin
 int readADC(int adcPin) 
 {
+  delay(100);  //Give a chance for things to calm down since they've most likely just been powered on
   long valueSum=0;
   for(int i=0;i<ADCREAD;i++)
   {
@@ -419,30 +444,6 @@ float readTemp()
   return retVal;
 }
 #endif
-
-void radioSend(byte *payload)
-{
-  int payloadLen=0;
-  
-    //Choose payload size and pipe based on type
-  if((byte)payload[1]=='S')
-  {
-    payloadLen=STATE_PAYLOADSIZE;  
-    #ifdef ADC_PIN
-    payloadLen=STATE_PAYLOADSIZE_ADC;
-    #endif
-  }
-  if((byte)payload[1]=='E')
-  {
-    payloadLen=EVENT_PAYLOADSIZE;  
-  }  
-  if((byte)payload[1]=='A')
-  {
-    payloadLen=EVENT_PAYLOADSIZE;
-  }  
-  
-  radioSend(payload,payloadLen);
-}
 
 //Send raw payload
 void radioSend(byte *payload,int payloadLen)
@@ -573,6 +574,12 @@ void startInnerLoop()
      }
    }
    #endif
+
+   
+   //Power down periferals
+   #ifdef POWERPIN
+   digitalWrite(POWERPIN, LOW);  
+   #endif    
    
    //track state change
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
@@ -645,6 +652,11 @@ void startInnerLoop()
      }
    #endif
    }
+
+   //Power up periferals now that we're awake
+   #ifdef POWERPIN
+   digitalWrite(POWERPIN, HIGH);  
+   #endif 
 }
 
 //Puts things to DEEP sleep and sets the interrupt pin
