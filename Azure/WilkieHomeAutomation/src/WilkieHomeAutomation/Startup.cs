@@ -37,7 +37,7 @@ namespace WilkieHomeAutomation
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var connection = Configuration["Data:DefaultConnection:ConnectionString"]+ ";MultipleActiveResultSets=true;";
+            var connection = Configuration["Data:DefaultConnection:ConnectionString"]; //+ "MultipleActiveResultSets=true;";
 
             //Enable cors for these services
             services.AddCors(o => o.AddPolicy("MyPolicy", builder =>

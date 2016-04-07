@@ -14,16 +14,23 @@ namespace WilkieHomeAutomation.Models
         public long LastStateDT { get; set; }
         public long LastEventDT { get; set; }
         public long DeviceDate { get; set; }
-        public DateTime DeviceDateTime { get; set; }
-        public DateTime LastStateDeviceDT { get; set; }
-        public DateTime LastEventDeviceDT { get; set; }
+        //public DateTime DeviceDateTime { get; set; }
+        //public DateTime LastStateDeviceDT { get; set; }
+        //public DateTime LastEventDeviceDT { get; set; }
 
 
         //Non mapped fields for easier use
-        public string DeviceDateTimeStr { get { return DeviceDateTime.ToString(@"MM-dd HH:mm tt"); } }
+        public string DeviceDateTimeStr { get { return GetFormattedDate(DeviceDate); } }
         public string LastState {  get { return GetAge(LastStateDT); } }
         public string LastEvent { get { return GetAge(LastEventDT); } }
 
+        private string GetFormattedDate(long epoch)
+        {
+            //Convert epoch to DT
+            DateTime epochDT = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            DateTime deviceDT = epochDT.AddSeconds(epoch);
+            return deviceDT.ToString(@"MM-dd HH:mm tt");
+        }
 
         private string GetAge(long epoch)
         {
