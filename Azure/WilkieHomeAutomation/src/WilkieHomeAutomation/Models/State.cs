@@ -11,7 +11,7 @@ namespace WilkieHomeAutomation.Models
         public int UnitNum { get; set; }
         public decimal VCC { get; set; }
         public decimal Temperature { get; set; }
-        public int IntPinState { get; set; }
+        public string Presence { get; set; }
         public long DeviceDate { get; set; }
     }
 }
