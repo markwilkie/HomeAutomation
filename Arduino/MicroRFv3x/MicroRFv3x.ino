@@ -16,13 +16,13 @@
 //
 // 0-Outside
 // 1-Laundry - water alarm
-// 2-Garage
+// 2-Weather
 // 3-Motion
 // 4-Front porch
 // 5-Fire
 // 6-Front Door (v4.0 board)
 // 7-Cabinent Fan
-// 8-Not yet assigned
+// 8-Garage
 #include "unit8.h"
 
 
@@ -87,11 +87,17 @@ void setup()
     pinMode(REEDPIN, OUTPUT);
     digitalWrite(REEDPIN, HIGH);      //Power reed if turned on
     #endif
-    
+
+    //Setup power peripherals
     #ifdef POWERPIN
     pinMode(POWERPIN, OUTPUT);
-    digitalWrite(POWERPIN, HIGH);      //Power screw contacts if turned on
+    digitalWrite(POWERPIN, LOW); //default to LOW
     #endif    
+
+    //If POWER_WAKEUP is not defined, we'll leave the peripheral on the whole time
+    #if defined(POWERPIN) && !defined(POWER_WAKEUP)
+    digitalWrite(POWERPIN, HIGH); //Turn on peripheral power and just leave it on
+    #endif
     
     //Indicate which unit this is
     #ifdef LED_PIN
@@ -139,10 +145,10 @@ void blinkLED(int blinkNum,int delayTime)
 //
 void loop()
 {
-  //Buffer for payload
-  byte payloadData[MAX_PAYLOADSIZE];
-  int payloadLen=0;
-  
+   //Buffer for payload
+   byte payloadData[MAX_PAYLOADSIZE];
+
+   #ifdef VERBOSE
    //Debug output only
    if(interruptType < 0)
      VERBOSE_PRINTLN("Main loop: noise (no meaningful data)");
@@ -152,93 +158,129 @@ void loop()
      VERBOSE_PRINTLN("Main loop: interrupt");
    if(interruptType == 2)
      VERBOSE_PRINTLN("Main loop: interrupt reset");  
-     
+   #endif
+
    //Do I need to do specialized work?
    #ifdef WORKFUNC
+   delay(500);  //locks up with lower values.  Perhaps I2C stuff??
    doWorkFunction();     
    #endif
-    
-   //Reset flag if timer dings
-   if(interruptType == 0)
-     sentSinceTimerFlag=false;
-     
+
+   VERBOSE_PRINTLN("Main loop: after dowork");
+
+   //type 0 means that timer has "dinged"
+   //Only send state on timer, not interrupt
+   if(interruptType==0 || SEND_STATE_ON_EVENT)
+   {
+      sentSinceTimerFlag=false;  //reset flag so interrupts will be sent again
+      handleState(payloadData);
+
+      #ifdef WEATHER_INSTALLED
+      handleWeather(payloadData);
+      #endif   
+   }
+
+   #ifdef INTERRUPTNUM 
    //Send Event if necessary
    if(interruptType>0 && (SENDFREQ || !sentSinceTimerFlag)) //woken up based on interrupt
    {
-     #ifdef LED_PIN
-     digitalWrite(LED_PIN, HIGH);
-     #endif
-     
-     if(EVENTTYPE==2 && ALARMTYPE==0)
-       payloadLen=buildAlarmPayload(payloadData,'W','W'); //water    
-       
-     if(EVENTTYPE==2 && ALARMTYPE==1)
-       payloadLen=buildAlarmPayload(payloadData,'F','F'); //fire
-     
-     if(EVENTTYPE==1)
-       payloadLen=buildEventPayload(payloadData,'M','D'); //motion detected, motion detected
-  
-     if(EVENTTYPE==0)
-     {
-       if(interruptType == 1) 
-         payloadLen=buildEventPayload(payloadData,'O','O'); //opening changed, Opened
-       if(interruptType == 2)
-         payloadLen=buildEventPayload(payloadData,'O','C'); //opening changed, Closed
-     }
-     
-     VERBOSE_PRINTLN("Sending Event");
-     sentSinceTimerFlag=true;
-     radioSend(payloadData,payloadLen); //Send event payload
-
-     #ifdef LED_PIN
-     digitalWrite(LED_PIN, LOW);
-     #endif
+      handleEvent(payloadData);
    }
-   
-   //Only send state on timer, not interrupt
-   if(interruptType==0)
-   {
-     float temperature=0.0;
-     int adcValue=0;
-     byte interruptPinState;
-    
-     //Gather and send State.  We do this everytime
-     #ifdef LED_PIN
-     digitalWrite(LED_PIN, HIGH);
-     #endif
-     float vcc = readVcc(); //Read voltage (battery monitoring)
-     #ifdef THERMISTORPIN
-     temperature = readTemp();  //Read temperature sensor
-     #endif
-     #ifdef ADC_PIN
-     adcValue = readADC(ADC_PIN);  //Read adc pin
-     #endif     
-     #ifdef INTERRUPTPIN
-     interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
-     #endif
-  
-     VERBOSE_PRINTLN("Sending State");   
-     payloadLen=buildStatePayload(payloadData,vcc,temperature,interruptPinState,adcValue); //build state payload
-     radioSend(payloadData,payloadLen); //Send state payload
-     
-     //Send context for PI to use upon reset or startup
-     contextSendCount++;
-     if(contextSendCount > CONTEXT_SEND_FREQ)
-     {
-       contextSendCount=0;
-       VERBOSE_PRINTLN("Sending Context"); 
-
-       int payloadLen=buildContextPayload(payloadData);
-       radioSend(payloadData,payloadLen); //Send context
-     }     
-     
-     #ifdef LED_PIN
-     digitalWrite(LED_PIN, LOW);
-     #endif
-   }
+   #endif
 
    //Inner loop is where we delay or sleep while we wait for interrupts
    startInnerLoop();
+}
+
+#ifdef INTERRUPTNUM 
+void handleEvent(byte *payloadData)
+{
+  int payloadLen=0;
+
+  if(EVENTTYPE==3)
+     payloadLen=buildEventPayload(payloadData,'C','C'); //counter event
+     
+  if(EVENTTYPE==2 && ALARMTYPE==0)
+     payloadLen=buildAlarmPayload(payloadData,'W','W'); //water    
+       
+  if(EVENTTYPE==2 && ALARMTYPE==1)
+     payloadLen=buildAlarmPayload(payloadData,'F','F'); //fire
+     
+  if(EVENTTYPE==1)
+     payloadLen=buildEventPayload(payloadData,'M','D'); //motion detected, motion detected
+  
+  if(EVENTTYPE==0)
+  {
+     if(interruptType == 1) 
+       payloadLen=buildEventPayload(payloadData,'O','O'); //opening changed, Opened
+     if(interruptType == 2)
+       payloadLen=buildEventPayload(payloadData,'O','C'); //opening changed, Closed
+  }
+
+  #ifdef LED_PIN
+  digitalWrite(LED_PIN, HIGH);
+  #endif
+     
+  VERBOSE_PRINTLN("Sending Event");
+  sentSinceTimerFlag=true;
+  radioSend(payloadData,payloadLen); //Send event payload
+
+  #ifdef LED_PIN
+  digitalWrite(LED_PIN, LOW);
+  #endif
+}
+#endif
+
+void handleState(byte* payloadData)
+{
+    int payloadLen=0;
+    float temperature=0.0;
+    int adcValue=0;
+    byte interruptPinState;
+
+    //Gather and send State.  We do this everytime
+    #if defined(POWERPIN) && defined(POWER_WAKEUP)
+    digitalWrite(POWERPIN, HIGH);      //Turn on perif so we can do a read
+    delay(POWER_WAKEUP); //Wait for things to calm down per datasheet
+    #endif  
+     
+    float vcc = readVcc(); //Read voltage (battery monitoring)
+    #ifdef THERMISTORPIN
+    temperature = readTemp();  //Read temperature sensor
+    #endif
+    #ifdef ADC_PIN
+    adcValue = readADC(ADC_PIN,vcc);  //Read adc pin
+    #endif     
+    #ifdef INTERRUPTPIN
+    interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
+    #endif
+
+    #if defined(POWERPIN) && defined(POWER_WAKEUP)
+    digitalWrite(POWERPIN, LOW);      //Turn back off before we transmit
+    #endif  
+
+    #ifdef LED_PIN
+    digitalWrite(LED_PIN, HIGH);
+    #endif
+  
+    VERBOSE_PRINTLN("Sending State");   
+    payloadLen=buildStatePayload(payloadData,vcc,temperature,interruptPinState,adcValue); //build state payload
+    radioSend(payloadData,payloadLen); //Send state payload
+     
+    //Send context for PI to use upon reset or startup
+    contextSendCount++;
+    if(contextSendCount > CONTEXT_SEND_FREQ)
+    {
+      contextSendCount=0;
+      VERBOSE_PRINTLN("Sending Context"); 
+
+      int payloadLen=buildContextPayload(payloadData);
+      radioSend(payloadData,payloadLen); //Send context
+    }     
+     
+    #ifdef LED_PIN
+    digitalWrite(LED_PIN, LOW);
+    #endif
 }
 
 //Send state
@@ -254,10 +296,13 @@ int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinSt
   // 4:10 bytes: VCC (float)
   // 4:14 bytes: Temperature (float)
   // 1:15 byte:  Presence  ('P' = present, and 'A' = absent)
+  // ===========================================
   // 1:16 byte:  Data Type  (a=ADC)
-  // 2:18 bytes: value itself
-  //
-
+  // 2:18 bytes: int value itself
+  // ---
+  // 1:16 byte:  Data Type  (w=Weather)
+  // 2:18 bytes: Humidity (int)
+  
   int payloadLen=0;
   
   //Create state package
@@ -266,16 +311,30 @@ int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinSt
   memcpy(&payloadData[2],&lastRetryCount,2);  //last retry
   memcpy(&payloadData[4],&lastGoodTransCount,2);  //attempts since last successful send
   memcpy(&payloadData[6],&vcc,4);  //vcc voltage (mv)
-  memcpy(&payloadData[10],&temp,4); //temperature (2 decimals implied)
+  memcpy(&payloadData[10],&temp,4); //temperature 
   payloadData[14]=getPresence(adcValue);    //see protocol above
   payloadLen=15; //So far, the len is 15 w/o any optional data
-  
+
   //Send ADC if I have it
   #ifdef ADC_PIN
   payloadData[15]='a';
   memcpy(&payloadData[16],&adcValue,2); //ADC int value
   payloadLen=18;  //Since we've added ADC, we need to increase the len
   #endif    
+
+  //Send WEATHER stuff if I have it
+  #ifdef WEATHER_INSTALLED
+  payloadData[15]='w';
+  VERBOSE_PRINT("Weather Temp: ");
+  VERBOSE_PRINTLN(aReading.temperature);
+  memcpy(&payloadData[10],&(aReading.temperature),4); //temperature from sensor
+  
+  VERBOSE_PRINT("Weather Humidity: ");
+  VERBOSE_PRINTLN(aReading.humidity);
+  int intHum=(int)aReading.humidity;
+  memcpy(&payloadData[16],&intHum,2); //Humidity value
+  payloadLen=18;  //Since we've added the weather info
+  #endif
 
   return payloadLen;
 }
@@ -327,7 +386,7 @@ int buildAlarmOrEventPayload(byte *payloadData,byte payloadType,byte eventCodeTy
   // 1:2 byte:  Payload type (S=state, C=context, E=event, A=alarm 
   // 2:4 bytes: Number of retries on last send (int)
   // 2:6 bytes: Number of send attempts since last successful send (int)  
-  // 1:7 byte:  eventCodeType (O-opening change)
+  // 1:7 byte:  eventCodeType (O-opening change, C-counter)
   // 1:8 byte:  eventCode (O-opened, C-closed)
   //
   
@@ -341,6 +400,13 @@ int buildAlarmOrEventPayload(byte *payloadData,byte payloadType,byte eventCodeTy
   payloadData[6]=eventCodeType;
   payloadData[7]=eventCode;
   payloadLen=8;
+
+  VERBOSE_PRINT("Event: ");
+  VERBOSE_PRINT(payloadType);
+  VERBOSE_PRINT(" ");
+  VERBOSE_PRINT(eventCodeType);
+  VERBOSE_PRINT(" ");
+  VERBOSE_PRINTLN(eventCode);
 
   return payloadLen;
 }
@@ -384,22 +450,35 @@ float readVcc()
   return result/1000.0;
 }
 
+
+#ifdef ADC_PIN
 //Read adc pin
-int readADC(int adcPin) 
+int readADC(int adcPin,float vcc) 
 {
   delay(100);  //Give a chance for things to calm down since they've most likely just been powered on
+
+  //Read against internal 1.1v reference
+  analogReference(INTERNAL);
+  
   long valueSum=0;
   for(int i=0;i<ADCREAD;i++)
   {
     valueSum=valueSum+analogRead(adcPin);
     delay(5);
   }
+
+  int adcAvg=valueSum/ADCREAD;
+  //float adcValue=(float)adcAvg/vcc;
+
+  //put things back
+  analogReference(DEFAULT);
   
   VERBOSE_PRINT("ADC: ");
-  VERBOSE_PRINTLN(valueSum/ADCREAD);  
+  VERBOSE_PRINTLN((int)adcAvg);  
      
-  return valueSum/ADCREAD;
+  return (int)adcAvg;
 }
+#endif
 
 
 //Read Temperature
@@ -462,7 +541,7 @@ void radioSend(byte *payload,int payloadLen)
   {
     radio.openWritingPipe(CONTEXT_PIPE);  
   }
-  if((byte)payload[1]=='S')
+  if((byte)payload[1]=='S' || (byte)payload[1]=='W')  //state OR weather
   {
     radio.openWritingPipe(STATE_PIPE);  
   }
@@ -556,7 +635,6 @@ ISR(WDT_vect)
 void startInnerLoop()
 {
    //reset flags
-   //enableInterruptFlag=true;
    interruptType=-1;  //noise - not set
    
    #ifdef INTERRUPTPIN   
@@ -575,12 +653,6 @@ void startInnerLoop()
    }
    #endif
 
-   
-   //Power down periferals
-   #ifdef POWERPIN
-   digitalWrite(POWERPIN, LOW);  
-   #endif    
-   
    //track state change
    static boolean lastPinState = HIGH;  //LOW triggers, so HIGH will get the ball rolling by being different
    
@@ -588,13 +660,14 @@ void startInnerLoop()
    sleep_cycles_remaining=SLEEPCYCLES;
    while(sleep_cycles_remaining)  //We're not using for-next because we're breaking out of the while once we know what kind of interrupt
    {
-     //If delay time is specificed, delay instead of sleep.  Useful for doing work that requires board to stay awake (like PWM)
+     //If delay time is specificed, delay instead of sleep.  Useful for doing work that requires board to stay awake all the time (like PWM)
+     //  NOT battery friendly to do this of course
      #ifdef DELAYTIME
      VERBOSE_PRINTLN("Delaying now...");
      delay(DELAYTIME);     
      #else
      VERBOSE_PRINTLN("Going to sleep now...");
-     sleepNow(); //Remember, this will only seep for 8 seconds before watchdog timer wakes things up
+     sleepNow(); //Remember, this will only seep for 8 seconds before watchdog timer wakes things up and the function exits here
      #endif
 
      //We woke up, so decrement sleep cycles
@@ -603,10 +676,10 @@ void startInnerLoop()
      VERBOSE_PRINT("Woke Up - Sleep/Delay Cycles Remaining: ");
      VERBOSE_PRINTLN(sleep_cycles_remaining);
      
-     //Check if timer.  If so, set type to 0 and return
+     //Check if timer was what woke me up.  If so, set type to 0 and return
      if(sleep_cycles_remaining <= 0)
      {
-       interruptType=0;
+       interruptType=0;  //means timer woke me up, not interrupt
        VERBOSE_PRINTLN("Inner Loop is done - sleep/delay cycles completed");
        break;
      }
@@ -621,25 +694,29 @@ void startInnerLoop()
      if(TRIGGERTYPE != 0)
      {
        //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why, might be just debug print)
-       delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin state farther down
+       delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin next
 
-       boolean pinState = digitalRead(INTERRUPTPIN);
-       if(pinState != lastPinState)  //if different, then we must have got woken up because of the pin interrupt or reset
+       boolean pinState = digitalRead(INTERRUPTPIN);  //OK, check state of pin NOW, don't trust the interrupt only
+       if(pinState != lastPinState)  //if - and only if - pin state is different, then we must have got woken up because of the pin interrupt or reset
        {
-         //turn off/on interrupt as needed based on pin, not OPENSTATE
-         if(pinState == LOW) //LOW triggers hardware interrupt
-           enableInterruptFlag=false;  //turn off interrupt until state change so we don't keep interrupting endlessly
-         else
-           enableInterruptFlag=true;  //turn back on interrupt for next time
-         
+         //set last pinstate so we can compare next time 
          lastPinState=pinState;
-         if(pinState == LOW)  //must be LOW to trip interrupt
+
+         //must be LOW to trip interrupt on board.  HIGH is simply polling every watchdog timer ding
+         if(pinState == LOW)  
          {
-             interruptType=1; //"open" event trigger interrupt
+             //turn off interrupt until state change so we don't keep interrupting endlessly.  This means we'll seep for 8 seconds before checking again.
+             enableInterruptFlag=false;  
+
+             //"open" event trigger interrupt.  "open" is just the first trigger...the 2nd (opposite one) is "closed"
+             interruptType=1; 
              break; //let's get out of the sleep cycle loop
          }
          else
          {
+             //turn interrupts back on for next time 
+             enableInterruptFlag=true;  
+             
              if(TRIGGERTYPE == 1) //only check pin reset if interrupt config is both on trigger and release
              {
                  interruptType=2; //"close" event trigger interrupt
@@ -647,16 +724,9 @@ void startInnerLoop()
              }
          }
        }
-       VERBOSE_PRINT("Interrupt Type: "); 
-       VERBOSE_PRINTLN(interruptType); 
      }
    #endif
    }
-
-   //Power up periferals now that we're awake
-   #ifdef POWERPIN
-   digitalWrite(POWERPIN, HIGH);  
-   #endif 
 }
 
 //Puts things to DEEP sleep and sets the interrupt pin

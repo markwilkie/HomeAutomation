@@ -12,36 +12,49 @@
 #define UNITNUM 8   //This one will need to change for each physical Arduino
 #define UNITDESC "Garage"
 
-
 //
 // Pin Assignments
 //
 #define LED_PIN 4    // LED pin (turns on when reading/transmitting)
 #define THERMISTORPIN A1  // which analog pin for reading thermistor
 #define REEDPIN 6  // which pin powers the reed switch 
-#define ADC_PIN A0  // will read ADC pin and send it as part of state
-#define POWERPIN 5  //pin which powers the screw contacts (w/ 4.x, it turns power booster on/off)
-#define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
-#define INTERRUPTNUM 0 //Interrupt number - 0 is reversed, and 1 is straight  (make sure matches interrupt pin)
 
 //
-// Config
+// General Config
 //
-#define MAXRRETRIES 10  //Number of times to retry before giving up
+#define MAXRRETRIES 10  //Number of times to retry RF before giving up
 #define RETRYDELAY 100  //Milliseconds to wait between retries
-//#define DELAYTIME 1000  //If definied, loop will delay for these ms and NOT SLEEP - useful for powered situations when doing extra work
 #define SLEEPCYCLES 75  //Sleep cycles wanted  (900 is 15 min assuming a 1 sec timer)
+//#define DELAYTIME 1000  //If defined, loop will delay for these ms and NOT SLEEP - useful for powered situations when doing extra work
+
+//
+// Interrupt config
+//
+#define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
+#define INTERRUPTNUM 0 //Interrupt number - 0 is reversed, and 1 is straight  (make sure matches interrupt pin)
 #define TRIGGERTYPE 1   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
 #define SENDFREQ 1      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
-#define EVENTTYPE 0     //O-opening, 1-motion, 2-alarm
+#define EVENTTYPE 0     //O-opening, 1-motion, 2-alarm, 3-counter
 #define ALARMTYPE -1    //0-water, 1-fire
-#define TRIGGERLEN 50   //ms for how long the interrupt has to be to send (NEEDS TO BE AT LEAST 50 FOR STABILITY)
+#define TRIGGERLEN 1000   //ms for how long the interrupt has to be to send (NEEDS TO BE AT LEAST 50 FOR STABILITY)
+#define SEND_STATE_ON_EVENT 1 //1 if state should be send on every event (0 if not)
+
+//
+// Peripheral power setup
+//
+#define POWERPIN 5  //pin which powers the screw contacts (w/ 4.x, it turns power booster on/off)
+#define POWER_WAKEUP 50 //how long it takes for the peripheral device to wake up -- IF not defined, power is just on
+
+//
+// ADC setup
+//
+#define ADC_PIN A0  // will read ADC pin and send it as part of state
 #define ADCREAD 200     //Number of times to sample ADC pin  (ADC_PIN)
 
 //
 // ADC setup w/ thresholds
 //
-#define ADC_THRESHOLD 483  //Meaningful threshold
+#define ADC_THRESHOLD 505  //Meaningful threshold
 #define ADC_PRESENT 0      //0 means that below threshold means present
 
 //
