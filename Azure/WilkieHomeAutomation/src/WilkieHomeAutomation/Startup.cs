@@ -51,6 +51,7 @@ namespace WilkieHomeAutomation
                 .AddSqlServer()
                 .AddDbContext<DeviceContext>(options => options.UseSqlServer(connection))
                 .AddDbContext<StateContext>(options => options.UseSqlServer(connection))
+                .AddDbContext<WeatherContext>(options => options.UseSqlServer(connection))
                 .AddDbContext<EventContext>(options => options.UseSqlServer(connection));
 
             // *** CHANGE THIS FOR PRODUCTION USE ***

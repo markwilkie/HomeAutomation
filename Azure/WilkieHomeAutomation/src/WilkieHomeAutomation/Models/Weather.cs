@@ -5,13 +5,14 @@ using System.Threading.Tasks;
 
 namespace WilkieHomeAutomation.Models
 {
-    public class State
+    public class Weather
     {
         public int ID { get; set; }
         public int UnitNum { get; set; }
-        public decimal VCC { get; set; }
         public decimal Temperature { get; set; }
-        public string Presence { get; set; }
-        public long DeviceDate { get; set; }
+        public decimal Humidity { get; set; }
+        public decimal WindSpeed { get; set; }
+        public decimal WindDirection { get; set; }
+        public long ReadingDate { get; set; }
     }
 }

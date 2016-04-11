@@ -11,12 +11,10 @@ namespace WilkieHomeAutomation.Models
         public int ID { get; set; }
         public int UnitNum { get; set; }
         public string Description { get; set; }
+        public long LastWeatherDT { get; set; }
         public long LastStateDT { get; set; }
         public long LastEventDT { get; set; }
         public long DeviceDate { get; set; }
-        //public DateTime DeviceDateTime { get; set; }
-        //public DateTime LastStateDeviceDT { get; set; }
-        //public DateTime LastEventDeviceDT { get; set; }
 
 
         //Non mapped fields for easier use
