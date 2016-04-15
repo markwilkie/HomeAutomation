@@ -52,6 +52,8 @@ namespace WilkieHomeAutomation.Controllers
         {
             if (ModelState.IsValid)
             {
+                //Add to state table
+                _context.Readings.Add(reading);
 
                 //Update device table
                 Device dbDevice = _context.Devices.SingleOrDefault(b => b.UnitNum == reading.UnitNum);
@@ -59,9 +61,6 @@ namespace WilkieHomeAutomation.Controllers
                 {
                     dbDevice.LastWeatherDT = reading.ReadingDate;
                 }
-
-                //Add to state table
-                _context.Readings.Add(reading);
 
                 _context.SaveChanges();
             }

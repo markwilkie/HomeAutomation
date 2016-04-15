@@ -18,6 +18,7 @@ namespace WilkieHomeAutomation.Models
             eventTypeDict = new Dictionary<string, string>();
             eventTypeDict.Add("M", "Motion Detector");
             eventTypeDict.Add("O", "Door");
+            eventTypeDict.Add("C", "Counter");
 
             eventCodeDict = new Dictionary<string, string>();
             eventCodeDict.Add("O", "Opened");
