@@ -19,6 +19,7 @@ namespace WilkieHomeAutomation.Models
 
         //Non mapped fields for easier use
         public string DeviceDateTimeStr { get { return GetFormattedDate(DeviceDate); } }
+        public string LastWeather { get { return GetAge(LastWeatherDT); } }
         public string LastState {  get { return GetAge(LastStateDT); } }
         public string LastEvent { get { return GetAge(LastEventDT); } }
 

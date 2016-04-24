@@ -14,6 +14,7 @@ namespace WilkieHomeAutomation.Models
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Device>().Ignore(t => t.DeviceDateTimeStr);
+            modelBuilder.Entity<Device>().Ignore(t => t.LastWeather);
             modelBuilder.Entity<Device>().Ignore(t => t.LastState);
             modelBuilder.Entity<Device>().Ignore(t => t.LastEvent);
         }
