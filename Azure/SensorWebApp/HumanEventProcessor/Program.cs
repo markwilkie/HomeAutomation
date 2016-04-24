@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.WebHooks;
 
 namespace HumanEventProcessor
 {
@@ -14,7 +16,13 @@ namespace HumanEventProcessor
         // AzureWebJobsDashboard and AzureWebJobsStorage
         static void Main()
         {
-            var host = new JobHost();
+            var config = new JobHostConfiguration();
+            config.Tracing.ConsoleLevel = TraceLevel.Verbose;
+            config.UseWebHooks();
+
+            //config.UseTimers();
+
+            var host = new JobHost(config);
             // The following code ensures that the WebJob will be running continuously
             host.RunAndBlock();
         }

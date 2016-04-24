@@ -8,9 +8,10 @@
 // Extension setup
 //
 #include "Weather.h"
-#define SETUPFUNC setupWeather;  //called once when in setup if defined
-#define WORKFUNC pollWeather; //called every sleep loop if defined
+#define SETUPFUNC setupWeather  //called once when in setup if defined
+#define WORKFUNC pollWeather //called every sleep loop if defined
 #define WEATHER_INSTALLED
+#define ANEMOMETER_POLL_TIME 30000 //time we'll "hang out" and poll the anemometer
 
 //
 // Pin Assignments
@@ -18,20 +19,28 @@
 #define LED_PIN 4     // LED pin (turns on when reading/transmitting)
 //#define THERMISTORPIN A1  // which analog pin for reading thermistor
 #define REEDPIN 3  // which pin powers the reed switch 
-#define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
-#define INTERRUPTNUM 0 //Interrupt number  (make sure matches interrupt pin)
+#define INTERRUPTPIN 3 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
+#define INTERRUPTPIN2 2 //ONLY COUNTS for weather (only increments a counter for that interrupt)
+
+//
+// ADC setup
+//
+#define ADC_PIN A6  // will read ADC pin and send it as part of state
+#define ADCREAD 25     //Number of times to sample ADC pin  (ADC_PIN)
 
 //
 // Config
 //
-#define MAXRRETRIES 10  //Number of times to retry before giving up
-#define RETRYDELAY 100  //Milliseconds to wait between retries
-#define SLEEPCYCLES 75  //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
-#define TRIGGERTYPE 1   //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt
-#define SENDFREQ 1      //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
-#define ALARMTYPE -1     //0-water, 1-fire
+#define MAXRRETRIES 10   //Number of times to retry before giving up
+#define RETRYDELAY 100   //Milliseconds to wait between retries
+#define SLEEPCYCLES 75   //Sleep cycles wanted  (75 is 10 min assuming 8s timer)
+#define TRIGGERTYPE 2    //0- Interrupt is off, 1 - will trigger for both initial trigger of interrupt, AND release.  2 - only on initial interrupt, 3 - only counts (does not send)
+#define SENDFREQ 1       //0-Send on interrupt, but then not again until timeout - even if interrupted  1-Send every interrup
+
+#define ALARMTYPE -1    //0-water, 1-fire
 #define EVENTTYPE 3     //O-opening, 1-motion, 2-alarm, 3-counter
-#define TRIGGERLEN 50  //ms for how long the interrupt has to be to send (NEEDS TO BE AT LEAST 50 FOR STABILITY)
+#define EVENTTYPE2 3    //O-opening, 1-motion, 2-alarm, 3-counter
+#define TRIGGERLEN 50   //ms for how long the interrupt has to be to send (NEEDS TO BE AT LEAST 50 FOR STABILITY)
 #define SEND_STATE_ON_EVENT 1 //1 if state (and weather) should be send on every event (0 if not)
 
 //

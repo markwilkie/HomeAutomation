@@ -23,7 +23,7 @@
 // 6-Front Door (v4.0 board)
 // 7-Cabinent Fan
 // 8-Garage
-#include "unit8.h"
+#include "unit2.h"
 
 
 //
@@ -36,6 +36,7 @@ boolean sentSinceTimerFlag=false;  //Used to determine if we need to send again
 int lastRetryCount=0; //Number of retry times on last transmit
 int lastGoodTransCount=0; //Number of times we tried to transmit since last success (does not count retry times - that's "one" transmit)
 int contextSendCount=0; //Current number for sending context
+volatile int interruptCount=0; //interrupt count
 
 //
 // Definitions
@@ -113,7 +114,7 @@ void setup()
     #endif
     VERBOSE_PRINTLN("Sending Context");
     byte payloadData[MAX_PAYLOADSIZE];
-    int payloadLen=buildContextPayload(payloadData);
+    int payloadLen=buildContextPayload(payloadData,'B');
     radioSend(payloadData,payloadLen); //Send event payload
     #ifdef LED_PIN
     digitalWrite(LED_PIN, LOW);    
@@ -121,8 +122,13 @@ void setup()
     
     #ifdef INTERRUPTPIN
     pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
-    attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
+    attachInterrupt(digitalPinToInterrupt(INTERRUPTPIN), interruptHandler, LOW);
     #endif 
+
+    //#ifdef INTERRUPTPIN2
+    //pinMode(INTERRUPTPIN2, INPUT_PULLUP);  //pullup is required as LOW is the trigger
+    //attachInterrupt(digitalPinToInterrupt(INTERRUPTPIN2), interruptHandler2, LOW);
+    //#endif     
     
     VERBOSE_PRINTLN("Ready...");
 }
@@ -165,9 +171,6 @@ void loop()
    delay(500);  //locks up with lower values.  Perhaps I2C stuff??
    doWorkFunction();     
    #endif
-
-   VERBOSE_PRINTLN("Main loop: after dowork");
-
    //type 0 means that timer has "dinged"
    //Only send state on timer, not interrupt
    if(interruptType==0 || SEND_STATE_ON_EVENT)
@@ -180,40 +183,41 @@ void loop()
       #endif   
    }
 
-   #ifdef INTERRUPTNUM 
    //Send Event if necessary
+   #ifdef INTERRUPTPIN
    if(interruptType>0 && (SENDFREQ || !sentSinceTimerFlag)) //woken up based on interrupt
    {
-      handleEvent(payloadData);
+      handleEvent(payloadData,INTERRUPTPIN);
+      interruptCount=0; //reset counter for this interrupt
    }
-   #endif
+   #endif 
 
    //Inner loop is where we delay or sleep while we wait for interrupts
    startInnerLoop();
 }
 
-#ifdef INTERRUPTNUM 
-void handleEvent(byte *payloadData)
+#ifdef INTERRUPTPIN
+void handleEvent(byte *payloadData,int _eventType)
 {
   int payloadLen=0;
 
-  if(EVENTTYPE==3)
+  if(_eventType==3)
      payloadLen=buildEventPayload(payloadData,'C','C'); //counter event
      
-  if(EVENTTYPE==2 && ALARMTYPE==0)
+  if(_eventType==2 && ALARMTYPE==0)
      payloadLen=buildAlarmPayload(payloadData,'W','W'); //water    
        
-  if(EVENTTYPE==2 && ALARMTYPE==1)
+  if(_eventType==2 && ALARMTYPE==1)
      payloadLen=buildAlarmPayload(payloadData,'F','F'); //fire
      
-  if(EVENTTYPE==1)
+  if(_eventType==1)
      payloadLen=buildEventPayload(payloadData,'M','D'); //motion detected, motion detected
   
-  if(EVENTTYPE==0)
+  if(_eventType==0)
   {
-     if(interruptType == 1) 
+     if(_eventType == 1) 
        payloadLen=buildEventPayload(payloadData,'O','O'); //opening changed, Opened
-     if(interruptType == 2)
+     if(_eventType == 2)
        payloadLen=buildEventPayload(payloadData,'O','C'); //opening changed, Closed
   }
 
@@ -274,7 +278,7 @@ void handleState(byte* payloadData)
       contextSendCount=0;
       VERBOSE_PRINTLN("Sending Context"); 
 
-      int payloadLen=buildContextPayload(payloadData);
+      int payloadLen=buildContextPayload(payloadData,'H');
       radioSend(payloadData,payloadLen); //Send context
     }     
      
@@ -325,12 +329,8 @@ int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinSt
   //Send WEATHER stuff if I have it
   #ifdef WEATHER_INSTALLED
   payloadData[15]='w';
-  VERBOSE_PRINT("Weather Temp: ");
-  VERBOSE_PRINTLN(aReading.temperature);
   memcpy(&payloadData[10],&(aReading.temperature),4); //temperature from sensor
   
-  VERBOSE_PRINT("Weather Humidity: ");
-  VERBOSE_PRINTLN(aReading.humidity);
   int intHum=(int)aReading.humidity;
   memcpy(&payloadData[16],&intHum,2); //Humidity value
   payloadLen=18;  //Since we've added the weather info
@@ -344,7 +344,7 @@ byte getPresence(int adcValue)
   char presence = '-';
   
   //If I have a ADC pin defined, determine if past threshold
-  #ifdef ADC_PIN
+  #ifdef ADC_THRESHOLD
   if(adcValue >= ADC_THRESHOLD)
   {
     if(ADC_PRESENT)
@@ -412,23 +412,26 @@ int buildAlarmOrEventPayload(byte *payloadData,byte payloadType,byte eventCodeTy
 }
 
 //Send context
-int buildContextPayload(byte *payloadData)
+int buildContextPayload(byte *payloadData,char tag)
 {
   //
   // Over-the-air packet definition/spec
   //
   // 1:1 byte:  unit number (uint8)
   // 1:2 byte:  Payload type (S=state, C=context, E=event  
+  // 1:3 byte:  B-boot, or H-heartbeat
   // var byte:  Description
   //
   
   //Create context package
   payloadData[0]=(uint8_t)UNITNUM; //unit number
   payloadData[1]='C';
-  memcpy(&payloadData[2],UNITDESC,strlen(UNITDESC));
+  payloadData[2]=tag; 
+  payloadData[3]='-';
+  memcpy(&payloadData[4],UNITDESC,strlen(UNITDESC));
   
   //return length
-  return strlen(UNITDESC)+2;
+  return strlen(UNITDESC)+4;
 }
 
 //Read voltage to see battery level by using internal 1.1V ref
@@ -456,9 +459,6 @@ float readVcc()
 int readADC(int adcPin,float vcc) 
 {
   delay(100);  //Give a chance for things to calm down since they've most likely just been powered on
-
-  //Read against internal 1.1v reference
-  analogReference(INTERNAL);
   
   long valueSum=0;
   for(int i=0;i<ADCREAD;i++)
@@ -468,15 +468,13 @@ int readADC(int adcPin,float vcc)
   }
 
   int adcAvg=valueSum/ADCREAD;
-  //float adcValue=(float)adcAvg/vcc;
-
-  //put things back
-  analogReference(DEFAULT);
+  float ratio=3.3/vcc;  //3.3 comes from the "target" voltage so the adc reading can be consistent as the battery runs down.
+  float adcValue=(float)adcAvg*ratio;
   
   VERBOSE_PRINT("ADC: ");
-  VERBOSE_PRINTLN((int)adcAvg);  
+  VERBOSE_PRINTLN((int)adcValue);  
      
-  return (int)adcAvg;
+  return (int)adcValue;
 }
 #endif
 
@@ -636,10 +634,13 @@ void startInnerLoop()
 {
    //reset flags
    interruptType=-1;  //noise - not set
-   
-   #ifdef INTERRUPTPIN   
+
+   //
+   // only done for the first interrupt pin
+   //
    //If interrupt pin is already low (triggered), wait until it's not before sleeping
    //   this is because of noise in certain systems based on the cpu waking up
+   #ifdef INTERRUPTPIN   
    int counter=0;
    while(enableInterruptFlag && digitalRead(INTERRUPTPIN) == LOW)
    {
@@ -647,7 +648,7 @@ void startInnerLoop()
      counter++;
      if(counter > 50)  //don't lock up
      {
-       ERROR_PRINTLN("Interrupt not cleared");
+       ERROR_PRINTLN("Interrupt 1 not cleared");
        break;
      }
    }
@@ -689,44 +690,53 @@ void startInnerLoop()
      doWorkFunction();     
      #endif
 
-     #ifdef INTERRUPTPIN     
+     #ifdef INTERRUPTPIN
+     if(handleInterruptState(INTERRUPTPIN,TRIGGERTYPE,&lastPinState))
+        break;
+     #endif
+   }
+}
+
+//returns true if break needed
+boolean handleInterruptState(int _interruptPin,int _triggerType,boolean *_lastPinState)
+{
      //Check if we got woken up because of an interrupt before looping again
-     if(TRIGGERTYPE != 0)
+     if(_triggerType > 0 && _triggerType < 3)  //not timer or counter only
      {
        //Check if interrupt is "real" or not  (50ms should be the "floor" for general stability - not sure why, might be just debug print)
        delay(TRIGGERLEN);  //wait for time to be real.  We'll check pin next
 
-       boolean pinState = digitalRead(INTERRUPTPIN);  //OK, check state of pin NOW, don't trust the interrupt only
-       if(pinState != lastPinState)  //if - and only if - pin state is different, then we must have got woken up because of the pin interrupt or reset
+       boolean pinState = digitalRead(_interruptPin);  //OK, check state of pin NOW, don't trust the interrupt only
+       if(pinState != (*_lastPinState))  //if - and only if - pin state is different, then we must have got woken up because of the pin interrupt or reset
        {
          //set last pinstate so we can compare next time 
-         lastPinState=pinState;
+         (*_lastPinState)=pinState;
 
          //must be LOW to trip interrupt on board.  HIGH is simply polling every watchdog timer ding
          if(pinState == LOW)  
          {
-             //turn off interrupt until state change so we don't keep interrupting endlessly.  This means we'll seep for 8 seconds before checking again.
+             //turn off interrupt until state change so we don't keep interrupting endlessly.  This means we'll sleep for 8 seconds before checking again.
              enableInterruptFlag=false;  
 
              //"open" event trigger interrupt.  "open" is just the first trigger...the 2nd (opposite one) is "closed"
              interruptType=1; 
-             break; //let's get out of the sleep cycle loop
+             return true; //let's get out of the sleep cycle loop
          }
          else
          {
              //turn interrupts back on for next time 
              enableInterruptFlag=true;  
              
-             if(TRIGGERTYPE == 1) //only check pin reset if interrupt config is both on trigger and release
+             if(_triggerType == 1) //only check pin reset if interrupt config is both on trigger and release
              {
                  interruptType=2; //"close" event trigger interrupt
-                 break; //let's get out of the sleep cycle loop
+                 return true; //let's get out of the sleep cycle loop
              }
          }
        }
      }
-   #endif
-   }
+
+     return false;
 }
 
 //Puts things to DEEP sleep and sets the interrupt pin
@@ -771,13 +781,19 @@ void sleepNow()
 
 void interruptHandler(void)
 {
-  //No need to do anything here...
+ static unsigned long last_interrupt_time = 0;
+ unsigned long interrupt_time = millis();
+ if (interrupt_time - last_interrupt_time > 50) 
+ {
+  interruptCount++;
+ }
+ last_interrupt_time = interrupt_time;  
 }
 
 void attachInterruptPin()
 {
   #ifdef INTERRUPTPIN
-  attachInterrupt(INTERRUPTNUM, interruptHandler, LOW);
+  attachInterrupt(digitalPinToInterrupt(INTERRUPTPIN), interruptHandler, LOW);
   delay(100);
   #endif
 }
@@ -785,7 +801,7 @@ void attachInterruptPin()
 void detachInterruptPin()
 {
   #ifdef INTERRUPTPIN
-  detachInterrupt(INTERRUPTNUM);
+  detachInterrupt(digitalPinToInterrupt(INTERRUPTPIN));
   #endif
 }
 
