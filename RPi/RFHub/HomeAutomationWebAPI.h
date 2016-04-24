@@ -8,7 +8,8 @@ public:
     void GetTokens(); 
     void AddDevice(int UnitNum,const std::string &description,long seconds_past_epoch);
     void AddEvent(int UnitNum,char eventCodeType,char eventCode,long seconds_past_epoch);
-    void AddState(int UnitNum,float vcc,float temperature,int pinState,long seconds_past_epoch);
+    void AddState(int UnitNum,float vcc,float temperature,char presence,long seconds_past_epoch);
+    void AddWeather(int unitNum,float temperature,float humidity,int windSpeed,int windDirection,long seconds_past_epoch);
     void SendAlarm(int UnitNum,char alarmType,char alarmCode);
 
 private:

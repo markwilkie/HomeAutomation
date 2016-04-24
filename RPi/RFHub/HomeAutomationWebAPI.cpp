@@ -70,17 +70,31 @@ void HomeAutomationWebAPI::AddEvent(int UnitNum,char eventCodeType,char eventCod
     AuthenticatedPOST("/api/events","",urlString.str(),token);
 }
 
-void HomeAutomationWebAPI::AddState(int UnitNum,float vcc,float temperature,int pinState,long seconds_past_epoch)
+void HomeAutomationWebAPI::AddState(int UnitNum,float vcc,float temperature,char presence,long seconds_past_epoch)
 {
     std::ostringstream urlString;
     urlString << "{\"UnitNum\":" << UnitNum <<
     	",\"vcc\":\"" << vcc << 
     	"\",\"temperature\":\"" << temperature << 
-    	"\",\"intpinstate\":\"" << pinState << 
+    	"\",\"Presence\":\"" << presence << 
     	"\",\"DeviceDate\":\"" << (long)seconds_past_epoch << 
     	"\"}";
 
     AuthenticatedPOST("/api/states","",urlString.str(),token);
+}
+
+void HomeAutomationWebAPI::AddWeather(int unitNum,float temperature,float humidity,int windSpeed,int windDirection,long seconds_past_epoch)
+{
+    std::ostringstream urlString;
+    urlString << "{\"unitNum\":" << unitNum<<
+    	",\"temperature\":\"" << temperature<< 
+    	"\",\"humidity\":\"" << humidity<< 
+    	"\",\"windSpeed\":\"" << windSpeed<< 
+    	"\",\"windDirection\":\"" << windDirection<< 
+    	"\",\"ReadingDate\":\"" << (long)seconds_past_epoch << 
+    	"\"}";
+
+    AuthenticatedPOST("/api/weather","",urlString.str(),token);
 }
 
 void HomeAutomationWebAPI::SendAlarm(int UnitNum, char alarmType, char alarmCode)

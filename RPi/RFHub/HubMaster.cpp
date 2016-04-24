@@ -4,6 +4,7 @@
 #include <exception>
 #include <string.h>
 #include <time.h>
+#include <math.h> 
 #include <unistd.h> //sleep
 #include <signal.h>
 #include <RF24/RF24.h>
@@ -19,6 +20,7 @@ void BuildAndSendPower();
 void BuildAndSendEvent();
 void BuildAndSendAlarm();
 void BuildAndSendState();
+void BuildAndSendWeather();
 void BuildAndSendContext();
 void TimeStamp(FILE *file);
 long GetLocalEpoch();
@@ -67,6 +69,7 @@ int main()
         try
         {
             LogLine() << "Authenticating...";
+            authenticatedFlag=api.Authenticate("6c061cldh0276dd9972bad582e669sjh6d14e4b9b7b6ddi862ad8c35");  //authenticate w/ pat
         }
         catch(const std::exception& e)
         {
@@ -139,10 +142,13 @@ int main()
             BuildAndSendEvent();
             break;
         case 3: //Alarm
-			BuildAndSendAlarm();
+            BuildAndSendAlarm();
             break;
         case 4: //state protocol
-            BuildAndSendState();
+            if(bytesRecv[1]=='S')
+                BuildAndSendState();
+            if(bytesRecv[1]=='W')
+	        BuildAndSendWeather();
             break;
         case 5: //context protocol
             BuildAndSendContext();
@@ -355,7 +361,7 @@ void BuildAndSendState()
     float vcc, reading;
     time_t seconds_past_epoch = GetLocalEpoch();
     char presence;
-    int unitNum, lastRetryCount, lastGoodTransCount, adcValue=0;
+    int unitNum, lastRetryCount, lastGoodTransCount, adcValue=0, humidity=0;
 
     //read known values
     unitNum=(uint8_t)bytesRecv[0];
@@ -365,6 +371,10 @@ void BuildAndSendState()
     memcpy(&reading, &bytesRecv[10], 4);
     presence= bytesRecv[14];
 
+    //fix presence as necessary
+    if(presence != 'P' && presence != 'A') 
+       presence='-';
+
     //read ADC value if sent
     if(bytesRecv[15]=='a')
     {
@@ -372,8 +382,14 @@ void BuildAndSendState()
       memcpy(&adcValue, &bytesRecv[16], 2);
       LogLine() << " --ADC: " << adcValue; 
     }
+
+    //read Weather values if sent
+    if(bytesRecv[15]=='w')
+    {
+      memcpy(&humidity, &bytesRecv[16], 2);
+    }
  
- 	//Record number of retries if exist
+    //Record number of retries if exist
     if(lastRetryCount > 0 || lastGoodTransCount>0)
     {
         TimeStamp(rfFile);
@@ -384,6 +400,70 @@ void BuildAndSendState()
     api.AddState(unitNum,vcc,reading,presence,seconds_past_epoch);
     fprintf(logFile, "#");  //Small indication for log file
     fflush(logFile);
+}
+
+//Build post message for pipe 4
+//
+//Weather on state pipe
+//
+void BuildAndSendWeather()
+{
+  //
+  // Over-the-air packet definition/spec
+  //
+  // 1:1 byte:  unit number (uint8)
+  // 1:2 byte:  Payload type (S=state, C=context, E=event, W=weather
+  // 4:6 bytes: Temperature (float)
+  // 4:10 bytes: Humidity (float)
+  // 2:12 bytes: Wind Speed (int)
+  // 2:14 bytes: Wind Direction (int)
+  // 4:18 bytes: Dew Point (float)
+  // 4:22 bytes: Pressure (float)
+  // 4:26 bytes: Rain in/hr (float)
+  // 4:30 bytes: Rain in/min (float)
+
+    float temperature, humidity, dewpoint, pressure, in_hr, in_min;
+    time_t seconds_past_epoch = GetLocalEpoch();
+    int unitNum, windSpeed, windDirection;
+
+    //read known values
+    unitNum=(uint8_t)bytesRecv[0];
+    memcpy(&temperature, &bytesRecv[2], 4);
+    memcpy(&humidity, &bytesRecv[6], 4);
+    memcpy(&windSpeed, &bytesRecv[10], 2);
+    memcpy(&windDirection, &bytesRecv[12], 2);
+    memcpy(&dewpoint, &bytesRecv[14], 4);
+    memcpy(&pressure, &bytesRecv[18], 4);
+    memcpy(&in_hr, &bytesRecv[22], 4);
+    memcpy(&in_min, &bytesRecv[26], 4);
+
+    //api.AddWeather(unitNum,temperature,humidity,0,0,seconds_past_epoch);
+    fprintf(logFile, "W");  //Small indication for log file
+    fflush(logFile);
+
+    //Upload to weatherunderground
+    // http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=KWAEDMON33&PASSWORD=FzLm7VrhJc&dateutc=now&humidity=95&tempf=45
+    std::ostringstream getString;
+    getString << "?ID=KWAEDMON33"
+        << "&PASSWORD=FzLm7VrhJc"
+        << "&dateutc=now"
+        << "&humidity=" << humidity
+        << "&dewptf=" << dewpoint
+        << "&tempf=" << temperature
+        << "&baromin=" << pressure
+        << "&winddir=" << windDirection
+        << "&windspeedmph=" << windSpeed
+        << "&rainin=" << in_hr;
+
+    try
+    {
+        WebAPI webAPI("http://weatherstation.wunderground.com/");
+        std::string webResponse=webAPI.PlainGET("weatherstation/updateweatherstation.php",getString.str());
+    }
+    catch(const std::exception& e)
+    {
+        LogErrorLine() << "Error uploading to Weather Underground " << e.what();
+    }    
 }
 
 //Build post message for pipe 5

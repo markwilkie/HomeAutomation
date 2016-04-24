@@ -34,29 +34,30 @@ bool WebAPI::isHTTPError() const
 
 std::string WebAPI::PlainPOST(const std::string &controller,const std::string &api,const std::string &postData)
 {
+	LogLine() << "PostData: " << postData;
     return CallWebAPI(controller, api, "" , postData, POST);
 }
 
 std::string WebAPI::AuthenticatedPOST(const std::string &controller,const std::string &api,const std::string &postData,const std::string &token)
 {
+	LogLine() << "PostData: " << postData;
     return CallWebAPI(controller, api, token, postData, POST);
 }
 
 std::string WebAPI::PlainGET(const std::string &controller,const std::string &api)
 {
+	LogLine() << "GetData: " << api;
     return CallWebAPI(controller, api, "", "", GET);
 }
 
 std::string WebAPI::AuthenticatedGET(const std::string &controller,const std::string &api,const std::string &token)
 {
+	LogLine() << "GetData: " << api;
     return CallWebAPI(controller, api, token, "", GET);
 }
 
 std::string WebAPI::CallWebAPI(const std::string &controller,const std::string &api, const std::string &token,const std::string &postData, int type)
 {
-	//Log to standard out
-    LogLine() << "PostData: " << postData;
-    
     //Init
     CURL *curl = curl_easy_init();
     if ( curl == NULL )
@@ -66,6 +67,7 @@ std::string WebAPI::CallWebAPI(const std::string &controller,const std::string &
     errbuf[0]=0;
 
     std::string url = baseURL + controller + api;
+    //LogLine() << "URL: " << url;
     std::string tokenString = "Authorization: Bearer " + token;
 
     //set headers
