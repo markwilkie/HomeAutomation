@@ -1,3 +1,10 @@
+/*
+Pages for the windvane and anemometer
+ * 
+http://www.qsl.net/zl1vfo/wx200/wx_index.htm
+http://www.qsl.net/zl1vfo/wx200/wind_sensor.htm
+http://www.qsl.net/zl1vfo/wx200/wm918_main_b.htm (schematic)
+*/
 
 float getWindSpeed()
 {
