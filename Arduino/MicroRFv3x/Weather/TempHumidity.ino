@@ -38,4 +38,30 @@ float getHumidity()
     return humd;
 }
 
+float getDewPoint(float humidity,float temperature)
+{
+  //Calculate dew point
+  const float DewConstA = 8.1332; //Constants required to calclulate the partial pressure and dew point. See datasheet page 16
+  const float DewConstB = 1762.39;
+  const float DewConstC = 235.66;   
+
+  //To calculate the dew point, the partial pressure must be determined first. See datasheet page 16 for details.
+  //ParitalPress = 10 ^ (A - (B / (Temp + C)))
+  float ParitalPressureFL = (DewConstA - (DewConstB / (temperature + DewConstC)));
+  ParitalPressureFL = pow(10, ParitalPressureFL);
+
+  //Dew point is calculated using the partial pressure, humidity and temperature.
+  //The datasheet on page 16 doesn't say to use the temperature compensated
+  //RH value and is ambiguous. It says "Ambient humidity in %RH, computed from HTU21D(F) sensor".
+  //However, as Bjoern Kasper pointed out, when considering a Moliere h-x-diagram, temperature compensated RH% should be used. 
+   
+  //DewPoint = -(C + B/(log(RH * PartialPress /100) - A ))
+  //Arduino doesn't have a LOG base 10 function. But Arduino can use the AVRLibC libraries, so we'll use the "math.h".
+  float DewPointFL = (humidity * ParitalPressureFL / 100); //do the innermost brackets
+  DewPointFL = log10(DewPointFL) - DewConstA; //we have calculated the denominator of the equation
+  DewPointFL = DewConstB / DewPointFL; //the whole fraction of the equation has been calculated
+  DewPointFL = -(DewPointFL + DewConstC); //The whole dew point calculation has been performed
+
+  return DewPointFL;
+ }
 

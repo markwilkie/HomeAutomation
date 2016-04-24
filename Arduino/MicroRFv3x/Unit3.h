@@ -11,7 +11,6 @@
 #define THERMISTORPIN A3  // which analog pin for reading thermistor
 #define REEDPIN 4  // in this case it's the thermistor 
 #define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
-#define INTERRUPTNUM 0 //Interrupt number  (make sure matches interrupt pin)
 
 //
 // Config

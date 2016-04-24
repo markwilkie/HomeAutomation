@@ -16,7 +16,6 @@
 #define REEDPIN 6  // which pin powers the reed switch 
 //#define POWERPIN 5  //pin which powers the screw contacts (w/ 4.x, it turns mosfet on/off)
 #define INTERRUPTPIN 3 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
-#define INTERRUPTNUM 1 //Interrupt number  (make sure matches interrupt pin)
 
 //
 // Config

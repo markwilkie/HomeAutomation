@@ -11,7 +11,6 @@
 #define THERMISTORPIN A1  // which analog pin for reading thermistor
 #define REEDPIN 3  // which pin powers the reed switch (don't define if you don't want to use reed)
 #define INTERRUPTPIN 2 //Interrupt pin  (interrupt 0 is pin 2, interrupt 1 is pin 3)
-#define INTERRUPTNUM 0 //Interrupt number  (make sure matches interrupt pin)
 
 //
 // Config
