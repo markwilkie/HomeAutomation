@@ -4,6 +4,7 @@ Sets up and does all the weather functions
 */
 #include "Weather.h"
 
+
 void setupWeather()
 {
   //Init time for rain sensor
@@ -11,6 +12,7 @@ void setupWeather()
   
   setupTempHumidity();
   setupPressure();
+  setupRain();
 }
 
 void pollWeather()
@@ -27,24 +29,14 @@ void pollWeather()
   aReading.inHg=getAbsPressure();
 
   //Get windspeed and direction
-  aReading.windSpeed=getWindSpeed();
+  getWindSpeed(&(aReading.windSpeed),&(aReading.windGust)); //takes a while since it's sampling
   aReading.windDirection=readADC(ADC_PIN,readVcc())*.35190;  //ratio of 1023 to 360
 
-  //Get rain
-  //Each bucket is 0.0204"   http://www.randomuseless.info/weather/calibration/
-  long milliElapsed=(millis()-millisSinceLastSent);
-  float minutes=((float)milliElapsed)/1000.0/60.0;
-  float inchesRain=((float)interruptCount)*.0204;  //counts bucket drops
-  aReading.inchHourRain=inchesRain/(minutes/60.0);  //probably going to not be terribly accurate
-  aReading.inchMinRain=inchesRain/minutes;
-
-  VERBOSE_PRINT("Millis / Bucket Count: ");
-  VERBOSE_PRINT(milliElapsed);
-  VERBOSE_PRINT(" ");
-  VERBOSE_PRINTLN(interruptCount);
-  
   //Detach interrupt again
   detachInterruptPin(); 
+
+  //Get rain
+  aReading.inchHourRain=getInchesRain(); 
 }
 
 void handleWeather(byte* payloadData)
@@ -76,25 +68,25 @@ int buildWeatherPayload(byte *payloadData,WeatherReading *aReading)
   // 1:2 byte:  Payload type (S=state, C=context, E=event, W=weather
   // 4:6 bytes: Temperature (float)
   // 4:10 bytes: Humidity (float)
-  // 2:12 bytes: Wind Speed (int)
-  // 2:14 bytes: Wind Direction (int)
-  // 4:18 bytes: Dew Point (float)
-  // 4:22 bytes: Pressure (float)
-  // 4:26 bytes: Rain in/hr (float)
-  // 4:30 bytes: Rain in/min (float)
+  // 2:12 bytes: Wind Direction (int)
+  // 4:16 bytes: Wind Speed (float)
+  // 4:20 bytes: Wind Gust (float)
+  // 4:24 bytes: Dew Point (float)
+  // 4:28 bytes: Pressure (float)
+  // 4:32 bytes: Rain in/hr (float)
   
   //Create weather packet
   payloadData[0]=(uint8_t)UNITNUM; //unit number
   payloadData[1]='W';
   memcpy(&payloadData[2],&(aReading->temperature),4);
   memcpy(&payloadData[6],&(aReading->humidity),4);
-  memcpy(&payloadData[10],&(aReading->windSpeed),2);
-  memcpy(&payloadData[12],&(aReading->windDirection),2);
-  memcpy(&payloadData[14],&(aReading->dewpoint),4);
-  memcpy(&payloadData[18],&(aReading->inHg),4);
-  memcpy(&payloadData[22],&(aReading->inchHourRain),4);
-  memcpy(&payloadData[26],&(aReading->inchMinRain),4);
-  int payloadLen=30; 
+  memcpy(&payloadData[10],&(aReading->windDirection),2);
+  memcpy(&payloadData[12],&(aReading->windSpeed),4);
+  memcpy(&payloadData[16],&(aReading->windGust),4);
+  memcpy(&payloadData[20],&(aReading->dewpoint),4);
+  memcpy(&payloadData[24],&(aReading->inHg),4);
+  memcpy(&payloadData[28],&(aReading->inchHourRain),4);
+  int payloadLen=32; 
 
   VERBOSE_PRINT("Temp / Humidity / Dewpoint: ");
   VERBOSE_PRINT(aReading->temperature);
@@ -106,15 +98,15 @@ int buildWeatherPayload(byte *payloadData,WeatherReading *aReading)
   VERBOSE_PRINT("Pressure: ");
   VERBOSE_PRINTLN(aReading->inHg);
 
-  VERBOSE_PRINT("Wind Speed/direction: ");
+  VERBOSE_PRINT("Wind Speed/gust/direction: ");
   VERBOSE_PRINT(aReading->windSpeed);
   VERBOSE_PRINT(" ");
+  VERBOSE_PRINT(aReading->windGust);
+  VERBOSE_PRINT(" ");  
   VERBOSE_PRINTLN(aReading->windDirection);
 
-  VERBOSE_PRINT("Rain (in/hr in/min): ");
-  VERBOSE_PRINT(aReading->inchHourRain);
-  VERBOSE_PRINT(" ");
-  VERBOSE_PRINTLN(aReading->inchMinRain);
+  VERBOSE_PRINT("Rain (in/hr): ");
+  VERBOSE_PRINTLN(aReading->inchHourRain);
 
   return payloadLen;
 }

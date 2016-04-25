@@ -6,42 +6,46 @@ http://www.qsl.net/zl1vfo/wx200/wind_sensor.htm
 http://www.qsl.net/zl1vfo/wx200/wm918_main_b.htm (schematic)
 */
 
-float getWindSpeed()
+void getWindSpeed(float *mph,float *mphGust)
 {
-  float rps=readAnemometer(ANEMOMETER_POLL_TIME);
+  float rps=0,rpsGust=0;
+  readAnemometer(ANEMOMETER_POLL_TIME,&rps,&rpsGust);
 
   //Calc wind speed per http://www.qsl.net/zl1vfo/wx200/wind_sensor.htm
-  return lookupMPH(rps);
+  (*mph)=lookupMPH(rps);
+  (*mphGust)=lookupMPH(rpsGust);
 }
 
 //lookup table
 float lookupMPH(float rps)
 {
-  if(rps<.4)
-    return 0;
+  if(rps<0.2)
+    return 0.0;
     
-  // in[] holds revolutions per second  (27 values)
-  float in[] = {0.8,1,1.2,1.4,1.6,1.8,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,58};
+  // in[] holds revolutions per second  (29 values)
+  float in[] = {0.2,0.4,0.8,1,1.2,1.4,1.6,1.8,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,58};
 
   // out[] holds the values wanted in mph
-  float out[] = {3.6,4.0,4.5,4.9,5.3,5.8,6.3,10.5,14.8,19.0,23.2,27.5,31.8,36.0,40.3,44.5,48.8,53.0,57.3,61.5,65.7,70.0,74.3,78.5,82.8,87.0,124.9};
+  float out[] = {0.6,1.7,3.6,4.0,4.5,4.9,5.3,5.8,6.3,10.5,14.8,19.0,23.2,27.5,31.8,36.0,40.3,44.5,48.8,53.0,57.3,61.5,65.7,70.0,74.3,78.5,82.8,87.0,124.9};
 
-  float mph=FmultiMap(rps, in, out, 27);
+  float mph=FmultiMap(rps, in, out, 29);
   VERBOSE_PRINT("Wind MPH: ");
   VERBOSE_PRINT(mph);
   VERBOSE_PRINT("  RPS: ");
   VERBOSE_PRINTLN(rps);  
+  
   return mph;
 }
 
-float readAnemometer(int _pollTime)
+void readAnemometer(int _pollTime,float *rps,float *rpsGust)
 {
     anemometerCount=0;
+    int lastAnemometerCount=0;
     boolean attachedFlag=false;
     pinMode(INTERRUPTPIN2, INPUT_PULLUP);  //pullup is required as LOW is the trigger
 
     VERBOSE_PRINTLN("Delay to record anemometer");
-    for(int i=0;i<_pollTime;i++)
+    for(int i=0;i<(_pollTime/1000);i++) //one for every second
     {
       if(!digitalRead(INTERRUPTPIN2) && attachedFlag)
       {
@@ -53,8 +57,16 @@ float readAnemometer(int _pollTime)
         attachInterrupt(digitalPinToInterrupt(INTERRUPTPIN2), anemometerInterruptHandler, LOW);      
         attachedFlag=true;
       }
-    
-      delayMicroseconds(1000);
+
+      //Delay for 1 second
+      for(int s=0;s<1000;s++)
+        delayMicroseconds(1000);
+
+      //Record gusts
+      int gustCount=(anemometerCount-lastAnemometerCount);
+      if(gustCount>(*rpsGust))
+        (*rpsGust)=gustCount;
+      lastAnemometerCount=anemometerCount;
     }
 
     if(attachedFlag)
@@ -64,7 +76,7 @@ float readAnemometer(int _pollTime)
      VERBOSE_PRINTLN(anemometerCount);
 
      float seconds=_pollTime/1000;
-     return ((float)anemometerCount/seconds);
+     (*rps)=((float)anemometerCount/seconds);
 }
 
 
