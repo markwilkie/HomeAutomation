@@ -23,7 +23,7 @@
 // 6-Front Door (v4.0 board)
 // 7-Cabinent Fan
 // 8-Garage
-#include "unit2.h"
+#include "unit8.h"
 
 
 //
@@ -187,7 +187,7 @@ void loop()
    #ifdef INTERRUPTPIN
    if(interruptType>0 && (SENDFREQ || !sentSinceTimerFlag)) //woken up based on interrupt
    {
-      handleEvent(payloadData,INTERRUPTPIN);
+      handleEvent(payloadData,EVENTTYPE,interruptType);
       interruptCount=0; //reset counter for this interrupt
    }
    #endif 
@@ -197,13 +197,10 @@ void loop()
 }
 
 #ifdef INTERRUPTPIN
-void handleEvent(byte *payloadData,int _eventType)
+void handleEvent(byte *payloadData,int _eventType,int _interruptType)
 {
   int payloadLen=0;
 
-  if(_eventType==3)
-     payloadLen=buildEventPayload(payloadData,'C','C'); //counter event
-     
   if(_eventType==2 && ALARMTYPE==0)
      payloadLen=buildAlarmPayload(payloadData,'W','W'); //water    
        
@@ -215,9 +212,9 @@ void handleEvent(byte *payloadData,int _eventType)
   
   if(_eventType==0)
   {
-     if(_eventType == 1) 
+     if(_interruptType == 1) 
        payloadLen=buildEventPayload(payloadData,'O','O'); //opening changed, Opened
-     if(_eventType == 2)
+     if(_interruptType == 2)
        payloadLen=buildEventPayload(payloadData,'O','C'); //opening changed, Closed
   }
 
@@ -225,7 +222,9 @@ void handleEvent(byte *payloadData,int _eventType)
   digitalWrite(LED_PIN, HIGH);
   #endif
      
-  VERBOSE_PRINTLN("Sending Event");
+  VERBOSE_PRINT("Sending Event: ");
+  VERBOSE_PRINTLN(payloadLen);
+   
   sentSinceTimerFlag=true;
   radioSend(payloadData,payloadLen); //Send event payload
 
@@ -259,6 +258,9 @@ void handleState(byte* payloadData)
     interruptPinState = digitalRead(INTERRUPTPIN); //read interrupt state   
     #endif
 
+    //returns '-' if not enabled
+    char presence=getPresence();
+
     #if defined(POWERPIN) && defined(POWER_WAKEUP)
     digitalWrite(POWERPIN, LOW);      //Turn back off before we transmit
     #endif  
@@ -268,7 +270,7 @@ void handleState(byte* payloadData)
     #endif
   
     VERBOSE_PRINTLN("Sending State");   
-    payloadLen=buildStatePayload(payloadData,vcc,temperature,interruptPinState,adcValue); //build state payload
+    payloadLen=buildStatePayload(payloadData,vcc,temperature,interruptPinState,adcValue,presence); //build state payload
     radioSend(payloadData,payloadLen); //Send state payload
      
     //Send context for PI to use upon reset or startup
@@ -288,7 +290,7 @@ void handleState(byte* payloadData)
 }
 
 //Send state
-int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinState,int adcValue)
+int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinState,int adcValue,char presence)
 {
   //
   // Over-the-air packet definition/spec
@@ -316,7 +318,7 @@ int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinSt
   memcpy(&payloadData[4],&lastGoodTransCount,2);  //attempts since last successful send
   memcpy(&payloadData[6],&vcc,4);  //vcc voltage (mv)
   memcpy(&payloadData[10],&temp,4); //temperature 
-  payloadData[14]=getPresence(adcValue);    //see protocol above
+  payloadData[14]=presence;    //see protocol above
   payloadLen=15; //So far, the len is 15 w/o any optional data
 
   //Send ADC if I have it
@@ -339,28 +341,14 @@ int buildStatePayload(byte *payloadData,float vcc,float temp,byte interruptPinSt
   return payloadLen;
 }
 
-byte getPresence(int adcValue)
+byte getPresence()
 {
   char presence = '-';
-  
-  //If I have a ADC pin defined, determine if past threshold
-  #ifdef ADC_THRESHOLD
-  if(adcValue >= ADC_THRESHOLD)
-  {
-    if(ADC_PRESENT)
-      presence = 'P';
-    else
-      presence = 'A';
-  }
-  else
-  {
-    if(ADC_PRESENT)
-      presence = 'A';
-    else
-      presence = 'P';
-  }
-  #endif   
 
+  //If we have a special work function for determining presense, let's call that and be done.
+  #ifdef PINGFUNC
+    return PINGFUNC();
+  #endif
   
   return presence;
 }
@@ -530,6 +518,12 @@ void radioSend(byte *payload,int payloadLen)
   #ifdef RADIO_OFF
   return;
   #endif
+
+  if(payloadLen<=0)
+  {
+    ERROR_PRINTLN("ERROR: Payload length is ZERO");
+    return;
+  }
       
   //Set payload size
   radio.setPayloadSize(payloadLen); 
@@ -575,7 +569,6 @@ void radioSend(byte *payload,int payloadLen)
       }
       else
       {   
-    
         while(radio.available() )
         {                      
             // If an ack with payload was received

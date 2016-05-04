@@ -20,6 +20,14 @@
 #define REEDPIN 6  // which pin powers the reed switch 
 
 //
+// Extension setup
+//
+#define PINGFUNC Ping 
+#define TRIGGER_PIN  8
+#define ECHO_PIN     7
+#define MAX_DISTANCE 140  //returns 0(zero) if over the distance
+
+//
 // General Config
 //
 #define MAXRRETRIES 10  //Number of times to retry RF before giving up
@@ -42,19 +50,19 @@
 // Peripheral power setup
 //
 #define POWERPIN 5  //pin which powers the screw contacts (w/ 4.x, it turns power booster on/off)
-#define POWER_WAKEUP 50 //how long it takes for the peripheral device to wake up -- IF not defined, power is just on
+#define POWER_WAKEUP 1000 //how long it takes for the peripheral device to wake up -- IF not defined, power is just on
 
 //
 // ADC setup
 //
-#define ADC_PIN A0  // will read ADC pin and send it as part of state
-#define ADCREAD 100     //Number of times to sample ADC pin  (ADC_PIN)
+//#define ADC_PIN A0  // will read ADC pin and send it as part of state
+//#define ADCREAD 100     //Number of times to sample ADC pin  (ADC_PIN)
 
 //
 // ADC setup w/ thresholds
 //
-#define ADC_THRESHOLD 344  //Meaningful threshold
-#define ADC_PRESENT 0      //0 means that below threshold means present
+//#define ADC_THRESHOLD 300  //Meaningful threshold
+//#define ADC_PRESENT 0      //0 means that below threshold means present
 
 //
 // Thermistor setup

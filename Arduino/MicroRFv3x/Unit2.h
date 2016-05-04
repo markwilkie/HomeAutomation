@@ -9,7 +9,7 @@
 //
 #include "Weather.h"
 #define SETUPFUNC setupWeather  //called once when in setup if defined
-#define WORKFUNC pollWeather //called every sleep loop if defined
+#define WORKFUNC pollWeather 
 #define WEATHER_INSTALLED
 #define ANEMOMETER_POLL_TIME 30000 //time we'll "hang out" and poll the anemometer
 
