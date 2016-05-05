@@ -32,21 +32,7 @@ float getInchesRain()
 
   VERBOSE_PRINT("Bucket count: ");
   VERBOSE_PRINTLN(totalCount);  
-
-  //Let's figure inches per hour now
-  int numberOfReadings=rainBuffer.getSize()/sizeof(int);
-
-  int timeElapsed=(millis()-millisSinceLastSent)/1000;
-  int totalSeconds=numberOfReadings*timeElapsed;  //Assumes each "cycle" is a similar length
-  float factor=3600/(float)totalSeconds;
-
-  VERBOSE_PRINT("numReadings / TotSec / factor: ");
-  VERBOSE_PRINT(numberOfReadings);
-  VERBOSE_PRINT(" ");
-  VERBOSE_PRINT(totalSeconds);
-  VERBOSE_PRINT(" ");  
-  VERBOSE_PRINTLN(factor);  
   
-  return ((float)totalCount*factor*0.0204);  //.0204 is bucket size
+  return ((float)totalCount*0.0204);  //.0204 is bucket size
 }
 
