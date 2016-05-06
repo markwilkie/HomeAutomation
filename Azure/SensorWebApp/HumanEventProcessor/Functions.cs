@@ -15,26 +15,13 @@ namespace HumanEventProcessor
     {
         // This function will get triggered/executed when a new message is written 
         // on an Azure Queue called queue.
-       // public static void ProcessQueueMessage([QueueTrigger("queue")] string message, TextWriter log)
-        //{
-       //     log.WriteLine(message);
-        //}
-
-        //HTTP function
-        [NoAutomaticTrigger]
-        public static void Test(string input, IBinder binder)
+        public static void ProcessQueueMessage([QueueTrigger("humanevents")] string message, TextWriter log)
         {
-            Console.WriteLine("HTTP function: " + input);
-
-            //dynamic d = JObject.Parse(input);
-
-            //string blobPath = string.Format("test/{0}", d.id);
-            //TextWriter writer = binder.Bind<TextWriter>(new BlobAttribute(blobPath));
-            //writer.WriteLine(d.data);
+            log.WriteLine(message);
         }
 
-        // Runs once every 30 seconds
-        public static void TimerJob([TimerTrigger("00:00:30")] TimerInfo timer)
+        // Runs once every 10 minutes
+        public static void TimerJob([TimerTrigger("00:10:00")] TimerInfo timer)
         {
             Console.WriteLine("Timer job fired!");
 

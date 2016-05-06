@@ -4,7 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Configuration;
 using Microsoft.Azure.WebJobs;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.Azure.WebJobs.Extensions.WebHooks;
 
 namespace HumanEventProcessor
@@ -18,13 +21,27 @@ namespace HumanEventProcessor
         {
             var config = new JobHostConfiguration();
             config.Tracing.ConsoleLevel = TraceLevel.Verbose;
-            config.UseWebHooks();
-
-            //config.UseTimers();
+            config.UseTimers();
 
             var host = new JobHost(config);
+
+            //Init storage
+            InitializeStorage();
+
             // The following code ensures that the WebJob will be running continuously
             host.RunAndBlock();
+        }
+
+        static private void InitializeStorage()
+        {
+            // Open storage account 
+            var storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ConnectionString);
+            
+            Trace.TraceInformation("Creating queues");
+            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+            var reviewEventsQueue = queueClient.GetQueueReference("humanevents");
+            reviewEventsQueue.CreateIfNotExists();
+            Trace.TraceInformation("Storage initialized");
         }
     }
 }
