@@ -117,8 +117,15 @@ float getAbsPressure()
         status = pressure.getPressure(P,T);
         if (status != 0)
         {
+          // The pressure sensor returns abolute pressure, which varies with altitude.
+          // To remove the effects of altitude, use the sealevel function and your current altitude.
+          // This number is commonly used in weather reports.
+          // Parameters: P = absolute pressure in mb, ALTITUDE = current altitude in m.
+          // Result: p0 = sea-level compensated pressure in mb
+          double p0 = pressure.sealevel(P,ALTITUDE); 
+
           //return inHg
-          return P*0.0295333727;
+          return p0*0.0295333727;
         }
         else return 0;
       }
