@@ -12,6 +12,7 @@
 #define WORKFUNC pollWeather 
 #define WEATHER_INSTALLED
 #define ANEMOMETER_POLL_TIME 30000 //time we'll "hang out" and poll the anemometer
+#define ALTITUDE 141 //in meters
 
 //
 // Pin Assignments
