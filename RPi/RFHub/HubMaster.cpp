@@ -11,6 +11,7 @@
 #include <curl/curl.h>
 #include <sys/resource.h> 
 
+#include "EpochAccumulator.h"
 #include "Logger.h"
 #include "HomeAutomationWebAPI.h"
 
@@ -23,7 +24,8 @@ void BuildAndSendState();
 void BuildAndSendWeather();
 void BuildAndSendContext();
 void TimeStamp(FILE *file);
-long GetLocalEpoch();
+time_t GetLocalEpoch();
+time_t GetSecondsSinceMidnight();
 void FlushFileHandles();
 
 // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
@@ -38,7 +40,7 @@ const uint64_t pipes[6] = { 0xF0F0F0F0D2LL, 0xF0F0F0F0E1LL,
 // Data structures for RF
 //
 // Payload size - 32 is the default.  Must be the same on transmitter
-const uint8_t MAX_PAYLOAD_SIZE = 32;  
+const uint8_t MAX_PAYLOAD_SIZE = 64;  
 const uint8_t MAX_POSTDATA_SIZE = 128+1; 
 uint8_t pipeNo;
 int lastPayloadLen;
@@ -53,10 +55,18 @@ struct rusage memInfo;
 //Automation API
 HomeAutomationWebAPI api;
 
+//Accumulators
+EpochAccumulator lastHourRain;
+EpochAccumulator todayRain;
+
 int main()
 {
     //Ignore sig pipe errors.  There's a bug in curl...
     signal(SIGPIPE, SigHandler);
+
+    //Instanciate accumulators
+    lastHourRain=EpochAccumulator();
+    todayRain=EpochAccumulator();
 
     //Instanciate API object
     LogLine() << "Starting Instance";
@@ -193,13 +203,27 @@ void TimeStamp(FILE *file)
     fflush(file);  
 }
 
-long GetLocalEpoch()
+time_t GetLocalEpoch()
 {
   time_t t = time(NULL);
   struct tm lt = {0};
   localtime_r(&t, &lt);
 
   return (t+lt.tm_gmtoff);
+}
+
+time_t GetSecondsSinceMidnight()
+{
+    time_t t1, t2;
+    struct tm tms;
+    time(&t1);
+    localtime_r(&t1, &tms);
+    tms.tm_hour = 0;
+    tms.tm_min = 0;
+    tms.tm_sec = 0;
+    t2 = mktime(&tms);
+
+    return t1 - t2;
 }
 
 void FlushFileHandles()
@@ -231,6 +255,9 @@ void ReadDeviceData()
    //Read now
    lastPayloadLen = radio.getDynamicPayloadSize();
    radio.read(bytesRecv,lastPayloadLen);
+
+   //LogLine() << "receive len: " << lastPayloadLen;
+
 
    // Since this is a call-response. Respond directly with an ack payload.
    // Ack payloads are much more efficient than switching to transmit mode to respond to a call
@@ -415,33 +442,43 @@ void BuildAndSendWeather()
   // 1:2 byte:  Payload type (S=state, C=context, E=event, W=weather
   // 4:6 bytes: Temperature (float)
   // 4:10 bytes: Humidity (float)
-  // 2:12 bytes: Wind Speed (int)
-  // 2:14 bytes: Wind Direction (int)
-  // 4:18 bytes: Dew Point (float)
-  // 4:22 bytes: Pressure (float)
-  // 4:26 bytes: Rain in/hr (float)
-  // 4:30 bytes: Rain in/min (float)
+  // 2:12 bytes: Wind Direction (int)
+  // 4:16 bytes: Wind Speed (float)
+  // 4:20 bytes: Wind Gust (float)
+  // 4:24 bytes: Dew Point (float)
+  // 4:28 bytes: Pressure (float)
+  // 4:32 bytes: Rain in (float)
 
-    float temperature, humidity, dewpoint, pressure, in_hr, in_min;
-    time_t seconds_past_epoch = GetLocalEpoch();
-    int unitNum, windSpeed, windDirection;
+    float temperature, humidity, dewpoint, pressure, rain_in, windSpeed, gust;
+    //time_t seconds_past_epoch = GetLocalEpoch();
+    short windDirection;
 
     //read known values
-    unitNum=(uint8_t)bytesRecv[0];
+    //unitNum=(uint8_t)bytesRecv[0];
     memcpy(&temperature, &bytesRecv[2], 4);
     memcpy(&humidity, &bytesRecv[6], 4);
-    memcpy(&windSpeed, &bytesRecv[10], 2);
-    memcpy(&windDirection, &bytesRecv[12], 2);
-    memcpy(&dewpoint, &bytesRecv[14], 4);
-    memcpy(&pressure, &bytesRecv[18], 4);
-    memcpy(&in_hr, &bytesRecv[22], 4);
-    memcpy(&in_min, &bytesRecv[26], 4);
+    memcpy(&windDirection, &bytesRecv[10], 2);
+    //windDirection=(int16_t)bytesRecv[10];
+    memcpy(&windSpeed, &bytesRecv[12], 4);
+    memcpy(&gust, &bytesRecv[16], 4);
+    memcpy(&dewpoint, &bytesRecv[20], 4);
+    memcpy(&pressure, &bytesRecv[24], 4);
+    memcpy(&rain_in, &bytesRecv[28], 4);
 
     //api.AddWeather(unitNum,temperature,humidity,0,0,seconds_past_epoch);
     fprintf(logFile, "W");  //Small indication for log file
     fflush(logFile);
 
+    //Add latest measurement to the acculmulator, then trim to last hour and get sum
+    lastHourRain.AddEpochValue(GetLocalEpoch(),rain_in);
+    lastHourRain.RemoveOldEpochs(GetLocalEpoch()-3600);
+
+    //Do the same only for the whole day
+    todayRain.AddEpochValue(GetLocalEpoch(),rain_in);
+    todayRain.RemoveOldEpochs(GetLocalEpoch()-GetSecondsSinceMidnight());
+
     //Upload to weatherunderground
+    //http://wiki.wunderground.com/index.php/PWS_-_Upload_Protocol
     // http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=KWAEDMON33&PASSWORD=FzLm7VrhJc&dateutc=now&humidity=95&tempf=45
     std::ostringstream getString;
     getString << "?ID=KWAEDMON33"
@@ -453,7 +490,9 @@ void BuildAndSendWeather()
         << "&baromin=" << pressure
         << "&winddir=" << windDirection
         << "&windspeedmph=" << windSpeed
-        << "&rainin=" << in_hr;
+        << "&windgustmph=" << gust
+        << "&rainin=" << lastHourRain.Sum()
+        << "&dailyrainin=" << todayRain.Sum();
 
     try
     {
