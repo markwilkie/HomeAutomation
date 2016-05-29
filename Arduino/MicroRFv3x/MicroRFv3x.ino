@@ -123,12 +123,8 @@ void setup()
     #ifdef INTERRUPTPIN
     pinMode(INTERRUPTPIN, INPUT_PULLUP);  //pullup is required as LOW is the trigger
     attachInterrupt(digitalPinToInterrupt(INTERRUPTPIN), interruptHandler, LOW);
-    #endif 
-
-    //#ifdef INTERRUPTPIN2
-    //pinMode(INTERRUPTPIN2, INPUT_PULLUP);  //pullup is required as LOW is the trigger
-    //attachInterrupt(digitalPinToInterrupt(INTERRUPTPIN2), interruptHandler2, LOW);
-    //#endif     
+    enableInterruptFlag=true;  
+    #endif     
     
     VERBOSE_PRINTLN("Ready...");
 }
