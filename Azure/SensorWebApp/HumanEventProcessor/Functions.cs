@@ -8,6 +8,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
 using Microsoft.Azure.WebJobs;
+using Newtonsoft.Json.Linq;
 
 namespace HumanEventProcessor
 {
@@ -17,41 +18,36 @@ namespace HumanEventProcessor
         // on an Azure Queue called queue.
         public static void ProcessQueueMessage([QueueTrigger("humanevents")] string message, TextWriter log)
         {
-            log.WriteLine(message);
+            Console.WriteLine("Raw JSON: " + message);
+
+            //Parse and then call resolver
+            JObject jsonObject;
+            try
+            {
+                jsonObject = JObject.Parse(message);
+            }
+            catch
+            {
+                return;  //don't worry about garbage...
+            }
+
+            int unitNumJSON = (int)jsonObject["UnitNum"];
+            string eventCodeTypeJSON = (string)jsonObject["EventCodeType"];
+            string eventCodeJSON = (string)jsonObject["EventCode"];
+            long deviceDate = (long)jsonObject["DeviceDate"];
+
+            EventResolver eventResolver = new EventResolver(ConfigurationManager.ConnectionStrings["MyDBConnectionString"].ConnectionString);
+            eventResolver.ResolveEventMsg(unitNumJSON, eventCodeTypeJSON, eventCodeJSON,deviceDate);
         }
 
         // Runs once every 10 minutes
         public static void TimerJob([TimerTrigger("00:10:00")] TimerInfo timer)
         {
-            Console.WriteLine("Timer job fired!");
+            Console.WriteLine("Timer job fired!  Now resolving events.");
 
-            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["MyDBConnectionString"].ConnectionString))
-            {
-                connection.Open();
-
-                string sql = "INSERT INTO HumanEvent(UnitNum,HumanEventType,HumanEventCode) VALUES(@param1,@param2,@param3)";
-                SqlCommand cmd = new SqlCommand(sql, connection);
-                cmd.Parameters.Add("@param1", SqlDbType.Int).Value = 99;
-                cmd.Parameters.Add("@param2", SqlDbType.VarChar, 10).Value = "T";
-                cmd.Parameters.Add("@param3", SqlDbType.VarChar, 10).Value = "HC";
-                cmd.CommandType = CommandType.Text;
-                //cmd.ExecuteNonQuery();
-
-                /*
-                SqlDataReader rd = cmd.ExecuteReader();
-                DataTable dt = new DataTable();
-                dt.Load(rd);
-                Console.WriteLine("Load Data table from Reader");
-                foreach (DataRow r in dt.Rows)
-                {
-                    Console.Write("ID: " + r["id"].ToString());
-                    Console.Write("\n");
-                }
-                rd.Close();
-                */
-
-                connection.Close();
-            }
+            //Init eventResolver 
+            EventResolver eventResolver = new EventResolver(ConfigurationManager.ConnectionStrings["MyDBConnectionString"].ConnectionString);
+            eventResolver.ResolveDbEvents();
         }
     }
 }

@@ -9,7 +9,11 @@ using Microsoft.AspNet.Authorization;
 using System.Security.Principal;
 using Microsoft.AspNet.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
+using Microsoft.Extensions.Configuration;
 using WilkieHomeAutomation.Models;
+using Newtonsoft.Json;
 
 namespace WilkieHomeAutomation.Controllers
 {
@@ -17,10 +21,12 @@ namespace WilkieHomeAutomation.Controllers
     public class EventsController : Controller
     {
         private EventContext _context;
+        private readonly IConfiguration config;
 
-        public EventsController(EventContext context)
+        public EventsController(EventContext context, IConfiguration config)
         {
             _context = context;
+            this.config = config;
         }
 
         // GET: api/events
@@ -72,6 +78,16 @@ namespace WilkieHomeAutomation.Controllers
                 }
                 _context.SaveChanges();
             }
+
+            //Grab the queue
+            var storageAccount = CloudStorageAccount.Parse(config["Data:DefaultConnection:StorageConnectionString"]);
+            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+            var queue = queueClient.GetQueueReference("humanevents");
+
+            //Add message to queue for processing from human event job
+            string queueMessageString = JsonConvert.SerializeObject(_event, Formatting.Indented); ;
+            var queueMessage = new CloudQueueMessage(queueMessageString);
+            queue.AddMessageAsync(queueMessage);
 
             return this.CreatedAtRoute("GetEvent", new { controller = "Events", unitNum = _event.UnitNum }, _event);
         }
