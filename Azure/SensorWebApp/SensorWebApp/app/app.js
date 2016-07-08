@@ -21,7 +21,12 @@
                 templateUrl: viewBase + 'sensors.html',
                 controllerAs: 'vm'
             })
-            .otherwise({ redirectTo: '/sensors' });
+            .when('/resolvedevents', {
+                controller: 'resolvedEventsController',
+                templateUrl: viewBase + 'resolvedevents.html',
+                controllerAs: 'vm'
+            })
+            .otherwise({ redirectTo: '/resolvedevents' });
 
     }]);
 }());

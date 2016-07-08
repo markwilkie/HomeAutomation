@@ -52,7 +52,8 @@ namespace WilkieHomeAutomation
                 .AddDbContext<DeviceContext>(options => options.UseSqlServer(connection))
                 .AddDbContext<StateContext>(options => options.UseSqlServer(connection))
                 .AddDbContext<WeatherContext>(options => options.UseSqlServer(connection))
-                .AddDbContext<EventContext>(options => options.UseSqlServer(connection));
+                .AddDbContext<EventContext>(options => options.UseSqlServer(connection))
+                .AddDbContext<ResolvedEventContext>(options => options.UseSqlServer(connection));
 
             // *** CHANGE THIS FOR PRODUCTION USE ***
             // Here, we're generating a random key to sign tokens - obviously this means

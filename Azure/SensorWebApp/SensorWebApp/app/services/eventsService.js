@@ -1,16 +1,16 @@
 ﻿angular.module('sensorWebApp')
-    .factory('dataFactory', ['$http', function ($http) {
+    .factory('eventDataFactory', ['$http', function ($http) {
 
         var urlBase = 'http://wilkiehomeautomation.azurewebsites.net/api/events';
-        var dataFactory = {};
+        var eventDataFactory = {};
 
-        dataFactory.getEvents = function () {
+        eventDataFactory.getEvents = function () {
             return $http.get(urlBase);
         };
 
-        dataFactory.getEvent = function (id) {
+        eventDataFactory.getEvent = function (id) {
             return $http.get(urlBase + '/' + id);
         };
 
-        return dataFactory;
+        return eventDataFactory;
     }]);

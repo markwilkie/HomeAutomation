@@ -58,6 +58,12 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="app\controllers\eventsController.js" />
+    <Content Include="app\controllers\resolvedEventsController.js" />
+    <Content Include="app\services\eventsService.js" />
+    <Content Include="app\services\resolvedEventsService.js" />
+    <Content Include="app\views\events.html" />
+    <Content Include="app\views\resolvedevents.html" />
     <Content Include="packages.config" />
     <None Include="Properties\PublishProfiles\WilkieHome.pubxml" />
     <Content Include="Properties\webjobs-list.json" />
@@ -72,12 +78,9 @@
     <Content Include="app\app.js" />
     <Content Include="app\controllers\aboutController.js" />
     <Content Include="app\controllers\sensorsController.js" />
-    <Content Include="app\controllers\eventsController.js" />
     <Content Include="app\services\sensorsService.js" />
-    <Content Include="app\services\eventsService.js" />
     <Content Include="app\views\about.html" />
     <Content Include="app\views\sensors.html" />
-    <Content Include="app\views\events.html" />
     <Content Include="Content\animations.css" />
     <Content Include="Content\bootstrap.css" />
     <Content Include="Content\bootstrap.icon-large.min.css" />

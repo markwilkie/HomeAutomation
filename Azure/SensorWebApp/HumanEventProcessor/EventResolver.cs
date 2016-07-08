@@ -50,16 +50,17 @@ namespace HumanEventProcessor
         public void ResolveDbEvents()
         {
             //Get list of open ResolvedEvents from db and interate through them
-            DataTable eventDataTable = GetOpenEvents(); //900 sec = 15 minutes   - don't grab open events older than that
-            foreach (DataRow eventRow in eventDataTable.Rows)
+            DataTable ResolvedEventDataTable = GetOpenResolvedEvents(); //900 sec = 15 minutes   - don't grab open events older than that
+            foreach (DataRow ResolvedEventRow in ResolvedEventDataTable.Rows)
             {
                 //Get path
-                string path = eventRow["JSONPath"].ToString();
-                long deviceEpoch = (long)eventRow["DeviceEpoch"];
+                string path = ResolvedEventRow["JSONPath"].ToString();
+                long deviceEpoch = (long)ResolvedEventRow["DeviceEpoch"];
                 Console.WriteLine("Evaluating json path: " + path + " for Device Epoch: " + deviceEpoch);
 
                 //Since we've got some to work on, let's grab the events
-                DataTable rawEventDataTable = GetRawEvents();
+                DataTable rawEventDataTable = GetRawEvents(deviceEpoch); //get events since the device epoch
+                DataTable unitStateDataTable = GetUnitStates(deviceEpoch);
                 JToken eventToken = jsonObject.SelectToken(path).First;  //start where we left off
                 while (eventToken != null)
                 {
@@ -69,18 +70,19 @@ namespace HumanEventProcessor
                         Console.WriteLine("Evaluating event token: " + eventToken.Path);
 
                         JToken criteriaToken = jsonObject.SelectToken(eventToken.Path + ".Criteria");
-                        if (CheckIfMatch(criteriaToken, deviceEpoch, rawEventDataTable))
+                        long latestDeviceEpoch = CheckIfMatch(criteriaToken, deviceEpoch, rawEventDataTable, unitStateDataTable);
+                        if (latestDeviceEpoch >= 0)
                         {
                             string resolutionName = ((JProperty)eventToken).Name;
                             path = (string)eventToken.Path;
                             eventToken = jsonObject.SelectToken(path);
                             string resolution = (string)eventToken["Resolution"];
                             string confidence = (string)eventToken["Confidence"];
-                            int id = (int)eventRow["Id"];
+                            int id = (int)ResolvedEventRow["Id"];
 
                             Console.WriteLine("Match!!  Resultion: " + resolution + " Confidence: " + confidence);
 
-                            UpdateResolvedEvent(resolutionName, resolution, confidence, path, id);
+                            UpdateResolvedEvent(resolutionName, resolution, confidence, path, latestDeviceEpoch, id);
                         }
                     }
 
@@ -103,7 +105,7 @@ namespace HumanEventProcessor
             return reqFlag;
         }
 
-        private bool CheckIfMatch(JToken criteriaToken, long eventEpoch, DataTable rawEventDataTable)
+        private long CheckIfMatch(JToken criteriaToken, long eventEpoch, DataTable rawEventDataTable, DataTable unitStateDataTable)
         {
             //Get criteria
             int? unitNumJSON = (int)criteriaToken["UnitNum"];
@@ -112,6 +114,7 @@ namespace HumanEventProcessor
             int numSeconds = (int?)criteriaToken["NumSeconds"] ?? 900;  //If nothing passed in, we'll set an upper limit of 15 minutes
             bool notFlag = (bool?)criteriaToken.SelectToken("NotFlag") ?? false;   //checks for the absense
             bool beforeFlag = (bool?)criteriaToken.SelectToken("BeforeFlag") ?? false;
+            bool presenceFlag = (bool?)criteriaToken.SelectToken("PresenceFlag") ?? false;
             //Console.WriteLine("Basic criteria. (in/json)  UnitNum: " + unitNum + "/" + unitNumJSON + " CodeType: " + eventCodeType + "/" + eventCodeTypeJSON + " Code: " + eventCode + "/" + eventCodeJSON);
             //Console.WriteLine("Optional criteria. Seconds:" + numSeconds + " NotFlag: " + notFlag + " beforeFlag: " + beforeFlag);
 
@@ -129,7 +132,7 @@ namespace HumanEventProcessor
             }
 
             //Search more in the results of the broader query above
-            var query = from Event in rawEventDataTable.AsEnumerable()
+            var eventQuery = from Event in rawEventDataTable.AsEnumerable()
                         where Event.Field<long>("DeviceDate") >= lowerBound &&
                               Event.Field<long>("DeviceDate") <= upperBound &&
                               Event.Field<int>("UnitNum") == unitNumJSON &&
@@ -137,14 +140,48 @@ namespace HumanEventProcessor
                               Event.Field<string>("EventCode") == eventCodeJSON
                         select Event;
 
+            //get device date of the event found
+            long eventDeviceDate = eventEpoch;
+            if(eventQuery.Count()>0)
+            {
+                var eventRow = eventQuery.ToList().LastOrDefault();
+                eventDeviceDate = eventRow.Field<long>("DeviceDate");
+            }
+
+            //Check for presence if appropriate
+            bool presenceOK = true;
+            if (presenceFlag)
+            {
+                string presentString = "P";
+                if (notFlag)
+                    presentString = "A";
+
+                //Use latest epoch from event 
+                long newEventEpoch = eventEpoch;
+                if (eventQuery.Count() > 0)
+                    newEventEpoch = eventDeviceDate;
+
+                var stateQuery = from State in unitStateDataTable.AsEnumerable()
+                                 where State.Field<int>("UnitNum") == unitNumJSON &&
+                                       State.Field<long>("DeviceDate") >= (newEventEpoch-5) &&   //there's a delay in resporting, hence the 5 sec buffer
+                                       State.Field<string>("Presence") == presentString
+                                 select State;
+
+                if (stateQuery.Count() == 0)
+                    presenceOK = false;
+            }
+
             //Figure out actual return value now
             bool retVal = false;
-            if (query.Count() > 0 && !notFlag)
+            if (eventQuery.Count() > 0 && presenceOK && !notFlag)
                 retVal = true;
-            if (query.Count() == 0 && notFlag)
+            if (eventQuery.Count() == 0 && presenceOK && notFlag)
                 retVal = true;
 
-            return retVal;
+            if (!retVal)
+                return -1;
+            else
+                return eventDeviceDate;
         }
 
         private void AddNewResolvedEvent(string resolutionName, string resolution, string confidence, string path, long deviceEpoch)
@@ -166,35 +203,46 @@ namespace HumanEventProcessor
             }
         }
 
-        private void UpdateResolvedEvent(string resolutionName, string resolution, string confidence, string path, int id)
+        private void UpdateResolvedEvent(string resolutionName, string resolution, string confidence, string path,long deviceEpoch, int id)
         {
             using (SqlConnection connection = new SqlConnection(dbConnectionString))
             {
                 connection.Open();
 
-                string sql = "update ResolvedEvent set ResolutionName=@resolutionName,Resolution=@resolution,Confidence=@confidence,JSONPath=@path where id=@id";
+                string sql = "update ResolvedEvent set ResolutionName=@resolutionName,Resolution=@resolution,Confidence=@confidence,JSONPath=@path,deviceEpoch=@deviceEpoch where id=@id";
                 SqlCommand cmd = new SqlCommand(sql, connection);
                 cmd.Parameters.Add("@resolutionName", SqlDbType.VarChar).Value = resolutionName;
                 cmd.Parameters.Add("@resolution", SqlDbType.VarChar).Value = resolution;
                 cmd.Parameters.Add("@confidence", SqlDbType.VarChar).Value = confidence;
                 cmd.Parameters.Add("@path", SqlDbType.VarChar).Value = path;
                 //cmd.Parameters.Add("@closedFlag", SqlDbType.Bit).Value = closedFlag;
+                cmd.Parameters.Add("@deviceEpoch", SqlDbType.BigInt).Value = deviceEpoch;
                 cmd.Parameters.Add("@id", SqlDbType.Int).Value = id;
                 cmd.CommandType = CommandType.Text;
                 cmd.ExecuteNonQuery();
             }
         }
 
-        private DataTable GetOpenEvents()
+        private DataTable GetOpenResolvedEvents()
         {
             //15 minute window
-            return SqlSelect(@"select * from ResolvedEvent where closedFlag = 0 and DbDateTime >= DATEADD (minute , -15 +  datepart(tz,getutcdate() AT TIME ZONE 'Pacific Standard Time'), getutcdate())");
+            return SqlSelect(@"select * from ResolvedEvent where closedFlag = 0 and DbDateTime >= DATEADD (minute , -21 +  datepart(tz,getutcdate() AT TIME ZONE 'Pacific Standard Time'), getutcdate())");
         }
 
-        private DataTable GetRawEvents()
+        private DataTable GetRawEvents(long deviceEpoch)
         {
-            //15 minute window
-            return SqlSelect(@"select * from Event where DeviceDateTime >= DATEADD (minute , -15 +  datepart(tz,getutcdate() AT TIME ZONE 'Pacific Standard Time'), getutcdate()) order by DeviceDate");
+            //Get events since 15 minutes before the device epoch
+            long startDate = (deviceEpoch - (15 * 60));
+            return SqlSelect(@"select * from Event where DeviceDate >= "+ startDate + " order by DeviceDate");
+            //return SqlSelect(@"select * from Event where DeviceDateTime >= DATEADD (minute , -15 +  datepart(tz,getutcdate() AT TIME ZONE 'Pacific Standard Time'), getutcdate()) order by DeviceDate");
+        }
+
+        private DataTable GetUnitStates(long deviceEpoch)
+        {
+            //Get states since 15 minutes before the device epoch
+            long startDate = (deviceEpoch - (15 * 60));
+            return SqlSelect(@"select * from State where DeviceDate >= " + startDate + " order by DeviceDate");
+            //return SqlSelect(@"select * from Event where DeviceDateTime >= DATEADD (minute , -15 +  datepart(tz,getutcdate() AT TIME ZONE 'Pacific Standard Time'), getutcdate()) order by DeviceDate");
         }
 
         private DataTable SqlSelect(string sql)
@@ -215,74 +263,111 @@ namespace HumanEventProcessor
 
         private string GetJSON()
         {
-            return @"{
-              'EVENT_Garage_Opened': {
-                'Resolution': 'Garage Door Opened',
-                'Confidence': 'Certain',
-                'Explanation': 'n/a',
-                'Criteria': {
-                    'UnitNum': 8,
-                  'EventCodeType': 'O',
-                  'EventCode': 'O'
-                },
-                'EVENT_Garage_Closed': {
-                    'Resolution': 'Someone has arrived or left via the garage',
-                  'Confidence': 'Medium',
-                  'Explanation': 'If the door open/closed w/in 2 minutes, someone probably came or went',
-                  'Criteria': {
-                        'UnitNum': 8,
-                    'EventCodeType': 'O',
-                    'EventCode': 'C'
-                  },
-                  'EVENT_No_Mvmnt_After': {
-                        'Resolution': 'Someone has left via the garage',
-                    'Confidence': 'Medium',
-                    'Explanation': 'Further, if NO movement within 3 minutes - they probably left',
-                    'Criteria': {
-                            'UnitNum': 3,
-                      'NumSeconds': 180,
-                      'NotFlag': 'true',
-                      'EventCodeType': 'M',
-                      'EventCode': 'D'
-                    }
-                    },
-                  'EVENT_Mvmnt_After': {
-                        'Resolution': 'Someone has come via the garage',
-                    'Confidence': 'Low',
-                    'Explanation': 'If folks are still home - perhaps they did not leave',
-                    'Criteria': {
-                            'UnitNum': 3,
-                      'NumSeconds': 180,
-                      'EventCodeType': 'M',
-                      'EventCode': 'D'
-                    },
-                    'EVENT_And_No_Mvmnt_Before': {
-                            'Resolution': 'Some has come via the garage',
-                      'Confidence': 'High',
-                      'Explanation': 'Our confidence goes up because now we see that nobody was home before',
-                      'Criteria': {
-                                'UnitNum': 3,
-                        'NumSeconds': 180,
-                        'NotFlag': 'true',
-                        'BeforeFlag': 'true',
-                        'EventCodeType': 'M',
-                        'EventCode': 'D'
-                      }
-                        }
-                    }
-                }
-            },
-              'EVENT_Front_Opened': {
-                'Resolution': 'Front Door Opened',
-                'Confidence': 'Certain',
-                'Explanation': 'n/a',
-                'Criteria': {
-                    'UnitNum': 6,
-                  'EventCodeType': 'O',
-                  'EventCode': 'O'
-                }
-            }
-        }";
+            return @"
+{
+	""EVENT_Garage_Opened"" : {
+		""Resolution"" : ""Garage Door Opened"",
+		""Confidence"" : ""Certain"",
+		""Explanation"" : ""n/a"",
+		""Criteria"" : {
+			""UnitNum"" : 8,
+			""EventCodeType"" : ""O"",
+			""EventCode"" : ""O""
+		},
+		""EVENT_Garage_Closed"" : {
+			""Resolution"" : ""Someone has arrived or left via the garage"",
+			""Confidence"" : ""Medium"",
+			""Explanation"" : ""If the door open/closed w/in 2 minutes, someone probably came or went"",
+			""Criteria"" : {
+				""UnitNum"" : 8,
+				""EventCodeType"" : ""O"",
+				""EventCode"" : ""C""
+			},
+			""EVENT_No_Presence"" : {
+				""Resolution"" : ""Someone has left via the garage"",
+				""Confidence"" : ""High"",
+				""Explanation"" : ""Car is gone"",
+				""Criteria"" : {
+					""UnitNum"" : 8,
+				    ""EventCodeType"" : ""O"",
+				    ""EventCode"" : ""C"",
+                    ""NumSeconds"" : 180,
+					""NotFlag"" : ""true"",
+					""PresenceFlag"" : ""true""
+				}
+			},
+			""EVENT_Presence"" : {
+				""Resolution"" : ""Someone has come via the garage"",
+				""Confidence"" : ""High"",
+				""Explanation"" : ""There's a car there"",
+				""Criteria"" : {
+					""UnitNum"" : 8,
+				    ""EventCodeType"" : ""O"",
+				    ""EventCode"" : ""C"",
+                    ""NumSeconds"" : 180,
+					""PresenceFlag"" : ""true""
+				}
+			}
+		}
+	},
+	""EVENT_Front_Opened"" : {
+		""Resolution"" : ""Front Door Opened"",
+		""Confidence"" : ""Certain"",
+		""Explanation"" : ""n/a"",
+		""Criteria"" : {
+			""UnitNum"" : 6,
+			""EventCodeType"" : ""O"",
+			""EventCode"" : ""O""
+		},
+		""EVENT_Porch_After"" : {
+			""Resolution"" : ""Some has left via the front door"",
+			""Confidence"" : ""Medium"",
+			""Explanation"" : ""Our confidence goes up because porch triggered after"",
+			""Criteria"" : {
+				""UnitNum"" : 4,
+				""NumSeconds"" : 20,
+				""EventCodeType"" : ""M"",
+				""EventCode"" : ""D""
+			},
+			""EVENT_And_Mvmnt_Before"" : {
+				""Resolution"" : ""Some has left via the front door"",
+				""Confidence"" : ""High"",
+				""Explanation"" : ""Our confidence goes up because now we see that there was movement before"",
+				""Criteria"" : {
+					""UnitNum"" : 3,
+					""NumSeconds"" : 45,
+					""BeforeFlag"" : ""true"",
+					""EventCodeType"" : ""M"",
+					""EventCode"" : ""D""
+				}
+			}
+		},
+		""EVENT_Porch_Before"" : {
+			""Resolution"" : ""Some has come in via the front door"",
+			""Confidence"" : ""Medium"",
+			""Explanation"" : ""Our confidence goes up because porch triggered before"",
+			""Criteria"" : {
+				""UnitNum"" : 4,
+				""NumSeconds"" : 10,
+				""BeforeFlag"" : ""true"",					
+				""EventCodeType"" : ""M"",
+				""EventCode"" : ""D""
+			},
+			""EVENT_And_Mvmnt_After"" : {
+				""Resolution"" : ""Some has come in via the front door"",
+				""Confidence"" : ""High"",
+				""Explanation"" : ""Our confidence goes up because now we see that there was movement after"",
+				""Criteria"" : {
+					""UnitNum"" : 3,
+					""NumSeconds"" : 30,
+					""EventCodeType"" : ""M"",
+					""EventCode"" : ""D""
+				}
+			}
+		}			
+	}
+}
+";
         }
 
     }

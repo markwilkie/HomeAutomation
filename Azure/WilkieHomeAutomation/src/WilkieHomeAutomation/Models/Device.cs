@@ -47,9 +47,9 @@ namespace WilkieHomeAutomation.Models
 
             //Create return string based on span
             if (timeSpan.TotalDays > 1)
-                return (int)timeSpan.TotalDays + "D";
+                return Math.Round(timeSpan.TotalDays, 1) + "D";
             if (timeSpan.TotalHours > 1)
-                return (int)timeSpan.TotalHours + "H";
+                return Math.Round(timeSpan.TotalHours, 1) + "H";
 
             return (int)timeSpan.TotalMinutes + "M";
         }

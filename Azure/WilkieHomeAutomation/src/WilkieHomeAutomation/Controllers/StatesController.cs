@@ -28,7 +28,7 @@ namespace WilkieHomeAutomation.Controllers
         //[Authorize("Bearer")]
         public IEnumerable<State> Get()
         {
-            return _context.States.AsEnumerable();
+            return _context.States.Take(10).AsEnumerable();
         }
 
         // GET api/states/5

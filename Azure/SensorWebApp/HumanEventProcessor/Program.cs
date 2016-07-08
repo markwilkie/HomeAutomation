@@ -21,6 +21,8 @@ namespace HumanEventProcessor
         {
             var config = new JobHostConfiguration();
             config.Tracing.ConsoleLevel = TraceLevel.Verbose;
+            //config.UseDevelopmentSettings();
+
             config.UseTimers();
 
             var host = new JobHost(config);

@@ -1,0 +1,103 @@
+{
+	"EVENT_Garage_Opened" : {
+		"Resolution" : "Garage Door Opened",
+		"Confidence" : "Certain",
+		"Explanation" : "n/a",
+		"Criteria" : {
+			"UnitNum" : 8,
+			"EventCodeType" : "O",
+			"EventCode" : "O"
+		},
+		"EVENT_Garage_Closed" : {
+			"Resolution" : "Someone has arrived or left via the garage",
+			"Confidence" : "Medium",
+			"Explanation" : "If the door open/closed w/in 2 minutes, someone probably came or went",
+			"Criteria" : {
+				"UnitNum" : 8,
+				"EventCodeType" : "O",
+				"EventCode" : "C"
+			},
+			"EVENT_No_Presence" : {
+				"Resolution" : "Someone has left via the garage",
+				"Confidence" : "High",
+				"Explanation" : "Car is gone",
+				"Criteria" : {
+					"UnitNum" : 8,
+					"EventCodeType" : "O",
+					"EventCode" : "C",
+					"NumSeconds" : 180,
+					"NotFlag" : "true",
+					"PresenceFlag" : "true"
+				}
+			},
+			"EVENT_Presence" : {
+				"Resolution" : "Someone has come via the garage",
+				"Confidence" : "High",
+				"Explanation" : "There's a car there",
+				"Criteria" : {
+					"UnitNum" : 8,
+					"EventCodeType" : "O",
+					"EventCode" : "C",
+					"NumSeconds" : 180,
+					"PresenceFlag" : "true"
+				}
+			}
+		}
+	},
+	"EVENT_Front_Opened" : {
+		"Resolution" : "Front Door Opened",
+		"Confidence" : "Certain",
+		"Explanation" : "n/a",
+		"Criteria" : {
+			"UnitNum" : 6,
+			"EventCodeType" : "O",
+			"EventCode" : "O"
+		},
+		"EVENT_Porch_After" : {
+			"Resolution" : "Some has left via the front door",
+			"Confidence" : "Medium",
+			"Explanation" : "Our confidence goes up because porch triggered after",
+			"Criteria" : {
+				"UnitNum" : 4,
+				"NumSeconds" : 20,
+				"EventCodeType" : "M",
+				"EventCode" : "D"
+			},
+			"EVENT_And_Mvmnt_Before" : {
+				"Resolution" : "Some has left via the front door",
+				"Confidence" : "High",
+				"Explanation" : "Our confidence goes up because now we see that there was movement before",
+				"Criteria" : {
+					"UnitNum" : 3,
+					"NumSeconds" : 45,
+					"BeforeFlag" : "true",
+					"EventCodeType" : "M",
+					"EventCode" : "D"
+				}
+			}
+		},
+		"EVENT_Porch_Before" : {
+			"Resolution" : "Some has come in via the front door",
+			"Confidence" : "Medium",
+			"Explanation" : "Our confidence goes up because porch triggered before",
+			"Criteria" : {
+				"UnitNum" : 4,
+				"NumSeconds" : 10,
+				"BeforeFlag" : "true",					
+				"EventCodeType" : "M",
+				"EventCode" : "D"
+			},
+			"EVENT_And_Mvmnt_After" : {
+				"Resolution" : "Some has come in via the front door",
+				"Confidence" : "High",
+				"Explanation" : "Our confidence goes up because now we see that there was movement after",
+				"Criteria" : {
+					"UnitNum" : 3,
+					"NumSeconds" : 30,
+					"EventCodeType" : "M",
+					"EventCode" : "D"
+				}
+			}
+		}			
+	}
+}

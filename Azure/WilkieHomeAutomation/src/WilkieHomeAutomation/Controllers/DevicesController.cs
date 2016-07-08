@@ -32,7 +32,7 @@ namespace WilkieHomeAutomation.Controllers
                 from Device in _context.Devices
                 from State in _context.States
                     .Where(s => s.UnitNum == Device.UnitNum && s.DeviceDate == Device.LastStateDT)
-                    .DefaultIfEmpty()
+                    //.DefaultIfEmpty()
                 select new { Device = Device, State = State}).AsEnumerable();
 
             return query;

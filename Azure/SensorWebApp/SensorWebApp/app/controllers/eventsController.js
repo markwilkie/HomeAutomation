@@ -1,13 +1,13 @@
 ﻿angular.module('sensorWebApp')
-    .controller('eventsController', ['$scope', 'dataFactory',
-        function ($scope, dataFactory) {
+    .controller('eventsController', ['$scope', 'eventDataFactory',
+        function ($scope, eventDataFactory) {
 
             $scope.events;
 
             getEvents();
 
             function getEvents() {
-                dataFactory.getEvents()
+                eventDataFactory.getEvents()
                     .success(function (events) {
                         $scope.events = events;
                     })
