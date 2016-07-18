@@ -25,22 +25,36 @@ bool HomeAutomationWebAPI::Authenticate(const std::string &PAT)
 
 bool HomeAutomationWebAPI::Authenticate()
 {
-    WebAPI webAPI(baseURL);
-    std::string webResponse=webAPI.PlainPOST("/api/token","","{\"pat\":\""+pat+"\"}");
-    token=ParseToken(webResponse);
+    try
+    {
+        WebAPI webAPI(baseURL);
+        std::string webResponse=webAPI.PlainPOST("/api/token","","{\"pat\":\""+pat+"\"}");
+        token=ParseToken(webResponse);
 
-    if(token.length()>2)
-        authenticatedFlag=true;
+        if(token.length()>2)
+            authenticatedFlag=true;
 
-    LogLine()  << "AuthenticatedFlag: " << authenticatedFlag;
+        LogLine()  << "AuthenticatedFlag: " << authenticatedFlag;
+    }
+    catch(WebAPIException& e)
+    {
+        LogErrorLine()  << "Problem Authenticating - ERROR: " << e.errCode << ": " << e.errString;
+    }
 
     return authenticatedFlag;
 }
 
 void HomeAutomationWebAPI::GetTokens()
 {
-    WebAPI webAPI(baseURL);
-    webAPI.AuthenticatedGET("/api/token","",token);
+    try
+    {
+        WebAPI webAPI(baseURL);
+        webAPI.AuthenticatedGET("/api/token","",token);
+    }
+    catch(WebAPIException& e)
+    {
+        LogErrorLine()  << "Problem Getting Tokens - ERROR: " << e.errCode << ": " << e.errString;
+    }
 }
 
 void HomeAutomationWebAPI::AddDevice(int UnitNum,const std::string &description,long seconds_past_epoch)

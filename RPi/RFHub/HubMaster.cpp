@@ -468,7 +468,10 @@ void BuildAndSendWeather()
     //api.AddWeather(unitNum,temperature,humidity,0,0,seconds_past_epoch);
     fprintf(logFile, "W");  //Small indication for log file
     fflush(logFile);
-
+	
+	if(rain_in>0)
+		LogLine() << "Rain Found: " << rain_in << '\n';
+	
     //Add latest measurement to the acculmulator, then trim to last hour and get sum
     lastHourRain.AddEpochValue(GetLocalEpoch(),rain_in);
     lastHourRain.RemoveOldEpochs(GetLocalEpoch()-3600);
