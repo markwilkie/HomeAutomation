@@ -1,0 +1,10 @@
+4.3-->4.4
+- Removed R4, a 10K pull down for the enable line on the 3.3v (or 5v) boost circuit
+- Added option for micro USB B for external power
+- Added option for 3.3v linear regulator
+- Added option for power input screw terminal 
+4.4-->5.0
+- Added voltage level shifter for sig coming back from screw terminal  (most perif are 5v...)
+- Fixed battery holder slot size
+- Added * next to led to indicate where the "dot" goes
+- Fixed D7 and D8 labels (they were reversed)
