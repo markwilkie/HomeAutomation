@@ -115,6 +115,7 @@ namespace HumanEventProcessor
             bool notFlag = (bool?)criteriaToken.SelectToken("NotFlag") ?? false;   //checks for the absense
             bool beforeFlag = (bool?)criteriaToken.SelectToken("BeforeFlag") ?? false;
             bool presenceFlag = (bool?)criteriaToken.SelectToken("PresenceFlag") ?? false;
+            bool absenceFlag = (bool?)criteriaToken.SelectToken("AbsenceFlag") ?? false;
             //Console.WriteLine("Basic criteria. (in/json)  UnitNum: " + unitNum + "/" + unitNumJSON + " CodeType: " + eventCodeType + "/" + eventCodeTypeJSON + " Code: " + eventCode + "/" + eventCodeJSON);
             //Console.WriteLine("Optional criteria. Seconds:" + numSeconds + " NotFlag: " + notFlag + " beforeFlag: " + beforeFlag);
 
@@ -150,10 +151,10 @@ namespace HumanEventProcessor
 
             //Check for presence if appropriate
             bool presenceOK = true;
-            if (presenceFlag)
+            if(presenceFlag || absenceFlag)
             {
                 string presentString = "P";
-                if (notFlag)
+                if(absenceFlag)
                     presentString = "A";
 
                 //Use latest epoch from event 
@@ -289,11 +290,10 @@ namespace HumanEventProcessor
 				""Explanation"" : ""Car is gone"",
 				""Criteria"" : {
 					""UnitNum"" : 8,
-				    ""EventCodeType"" : ""O"",
-				    ""EventCode"" : ""C"",
-                    ""NumSeconds"" : 180,
-					""NotFlag"" : ""true"",
-					""PresenceFlag"" : ""true""
+					""EventCodeType"" : ""O"",
+					""EventCode"" : ""C"",
+					""NumSeconds"" : 180,
+					""AbsenceFlag"" : ""true""
 				}
 			},
 			""EVENT_Presence"" : {
@@ -302,9 +302,9 @@ namespace HumanEventProcessor
 				""Explanation"" : ""There's a car there"",
 				""Criteria"" : {
 					""UnitNum"" : 8,
-				    ""EventCodeType"" : ""O"",
-				    ""EventCode"" : ""C"",
-                    ""NumSeconds"" : 180,
+					""EventCodeType"" : ""O"",
+					""EventCode"" : ""C"",
+					""NumSeconds"" : 180,
 					""PresenceFlag"" : ""true""
 				}
 			}

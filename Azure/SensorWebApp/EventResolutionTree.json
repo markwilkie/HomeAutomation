@@ -26,8 +26,7 @@
 					"EventCodeType" : "O",
 					"EventCode" : "C",
 					"NumSeconds" : 180,
-					"NotFlag" : "true",
-					"PresenceFlag" : "true"
+					"AbsenceFlag" : "true"
 				}
 			},
 			"EVENT_Presence" : {
