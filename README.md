@@ -13,3 +13,6 @@ To compile config file reader:
 - CD into the directory and type 'sh ./configure --disable-cxx'
 - make
 - sudo make install
+- 
+Random Notes:
+- To increase your nrf24 range:  http://chelnyshops.ru/enhanced-nrf24l01-radio-with-a-diy-dipole-antenna/
