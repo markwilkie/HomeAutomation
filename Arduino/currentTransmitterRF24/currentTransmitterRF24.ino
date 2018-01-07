@@ -60,11 +60,20 @@ void setup()
    Serial.begin(57600);
    printf_begin();
    pinMode(LED_PIN, OUTPUT);     
-   
-  radio.begin();
-  radio.setAutoAck(1);                    // Ensure autoACK is enabled
-  radio.enableAckPayload();               // Allow optional ack payloads
-  radio.setRetries(0,5);                 // Smallest time between retries, max no. of retries
+
+
+    radio.begin();
+    radio.setPALevel(RF24_PA_MAX);          // Higher power level
+    radio.setDataRate(RF24_250KBPS);        // Slower datarate for more distance
+    radio.setAutoAck(1);                    // Ensure autoACK is enabled
+    radio.enableAckPayload();               // Allow optional ack payloads
+    radio.enableDynamicPayloads();          // Needed for ACK payload
+    radio.setRetries(15,15);                // Smallest time between retries (max is 15 increments of 250us, or 4000us), max no. of retries (15 max)
+       
+  //radio.begin();
+  //radio.setAutoAck(1);                    // Ensure autoACK is enabled
+  //radio.enableAckPayload();               // Allow optional ack payloads
+  //radio.setRetries(0,5);                 // Smallest time between retries, max no. of retries
   radio.setPayloadSize(5);                // Here we are sending 5-byte payloads 
   radio.openWritingPipe(0xF0F0F0F0E1LL);        // Write to "Power" pipe
   //radio.openReadingPipe(1,0xF0F0F0F0D2LL);      // Open a reading pipe on address 0, pipe 1  -- no need to read, ACK is fine
