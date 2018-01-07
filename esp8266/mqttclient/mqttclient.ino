@@ -61,9 +61,6 @@ void loop()
 
     //See if heater is on (LOW is ON, HIGH is OFF)
     int pinState = digitalRead(ON_OFF);  
-    int onOff=0;
-    if(pinState == 0)
-      onOff=1;
 
     //Get temp
     DS18B20.requestTemperatures(); 
@@ -72,7 +69,11 @@ void loop()
     Serial.println(temperatureFString);    
   
     //Send to mqtt
-    snprintf (msg, 75, "Heater:%ld,Temperature:%s", onOff,temperatureFString);
+    if(pinState == 0)
+      snprintf (msg, 75, "Heater:ON,Temperature:%s", temperatureFString);
+    else
+      snprintf (msg, 75, "Heater:OFF,Temperature:%s", temperatureFString);
+    
     Serial.print("Publish message: ");
     Serial.println(msg);
     client.publish(status_mqtt_topic, msg);    
@@ -97,8 +98,13 @@ void callback(char* topic, byte* payload, unsigned int length)
          digitalWrite(HEATER_SWITCH, LOW);
 
          //Send status
+         pollNumber=10;
+      }
+
+      if (receivedChar == 'S')
+      {
+         //Send status
          pollNumber=0;
-         delay(500);
       }
     }
 }
