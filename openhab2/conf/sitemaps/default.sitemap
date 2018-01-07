@@ -1,0 +1,75 @@
+sitemap default label="Wilkiefamily"
+{   
+    Frame label="Front Door" {
+        Default item=last_entry_dt label="Last Entry [%1$td %1$tb %1$tl:%1$tM %1$tp]"
+        Default item=last_exit_dt label="Last Exit [%1$td %1$tb %1$tl:%1$tM %1$tp]"
+        Default item=ALARM_SWITCH label="Alarm  On/Off"
+        Default item=ALARM_TRIGGER label="Alarm Triggered"
+        Setpoint item=ALARM_H minValue=0 maxValue=23 step=1
+        Setpoint item=ALARM_M minValue=0 maxValue=55 step=5        
+    }
+
+    Frame label="House" {
+        Default item=HomeNest_Away label="Home/Away: [%s]" icon="group"
+        Default item=EntrywayThermostat_Mode label="Nest Mode [%s]" icon="flow"
+        Default item=WeatherInformation_Current_CurrentConditions label="Conditions: [%s]" icon="sun_clouds"
+        Default item=WeatherInformation_Current_Temperature label="Outside Temperature: [%.1f °F]" 
+        Default item=WeatherInformation_Current_RainFallDay label="Daily Rain: [%.2f In]"
+        Default item=WeatherInformation_Current_WindGust label="Wind Gust: [%.1f MPH]"
+        Default item=WeatherInformation_Current_WindDirection label="Wind Direction: [%s]" icon="wind"
+    }
+
+    Frame label="Front Door" {
+        Default item=frontdoor label="Open/Closed: [%s]"
+        Default item=frontdoor_dt label="Last Open/Closed: [%s]"
+        Default item=frontdoor_volt label="Voltage [%.1f V]"
+    }
+
+    Frame label="Porch" {
+        Default item=porch_temp label="Porch Temp [%.1f °F]" 
+        Default item=porch_dt label="Last Motion: [%s]"  
+        Default item=porch_volt label="Porch [%.1f V]" 
+    }
+
+    Frame label="Hallway" {
+        Default item=hallway_temp label="Temperature: [%.1f °F]" 
+        Default item=EntrywayHumidity label="Humidity: [%s%%]"
+        Default item=hallway_dt label="Last Motion: [%s]"  
+        Default item=hallway_volt label="Voltage [%.1f V]" 
+    }
+
+    Frame label="Heater" {
+        Text item=HEATER_STATE label="Heater State: [%s]" {
+            Switch item=HEATER_BUTTON label="Toggle Heater: " mappings=[ON="On/Off"]
+            Text item=HEATER_STATE label="Heater On/Off: [%s]"
+            Default item=HEATER_LAST_UPDATE label="Last Updated:"
+            Selection item=HEATER_MODE label="Mode" mappings=[0="Off", 1="Off Until Scheduled On", 2="On Until Scheduled Off", 3="Schedule + Home"]             
+            Default item=HEATER_TEMP label="Temperature: [%.1f °F]" 
+            Setpoint item=HEATER_TEMP_DELTA minValue=0 maxValue=10 step=1
+            Setpoint item=HEATER_ON_H minValue=0 maxValue=23 step=1
+            Setpoint item=HEATER_ON_M minValue=0 maxValue=55 step=15   
+            Setpoint item=HEATER_WEEKEND_ON_H minValue=0 maxValue=23 step=1
+            Setpoint item=HEATER_WEEKEND_ON_M minValue=0 maxValue=55 step=15              
+            Setpoint item=HEATER_OFF_H minValue=0 maxValue=23 step=1
+            Setpoint item=HEATER_OFF_M minValue=0 maxValue=55 step=15
+        }
+    }    
+    
+    Frame label="Coffee" {
+        Text item=WemoMini_Switch label="Coffee On/Off: [%s]" {
+            Switch item=WemoMini_Switch label="Coffee On/Off: "
+            Selection item=COFFEE_MODE label="Mode" mappings=[0="Off", 1="Off Until Scheduled On", 2="On Until Scheduled Off", 3="Schedule + Home"] 
+            Setpoint item=COFFEE_ON_H minValue=0 maxValue=23 step=1
+            Setpoint item=COFFEE_ON_M minValue=0 maxValue=55 step=15   
+            Setpoint item=COFFEE_OFF_H minValue=0 maxValue=23 step=1
+            Setpoint item=COFFEE_OFF_M minValue=0 maxValue=55 step=15
+        }
+    }
+
+    Frame label="Garage" {
+        Default item=garagedoor label="Door Open/Closed [%s]"
+        Default item=garage_dt label="Last Open/Closed: [%s]"
+        Default item=car_presence label="Car Presence: [%s]"
+        Default item=garage_volt label="Voltage [%.1f V]" 
+    }
+}

@@ -1,0 +1,102 @@
+//Coffee on/off 
+//
+rule "Coffee On/Off"
+	when
+		Time cron "0 */15 * * * ?" or
+    	Item COFFEE_MODE changed 
+	then
+
+		//Only turn coffee on is NOT away 
+		if(HomeNest_Away.state == "HOME")
+		{
+			var nowHour = now.getHourOfDay
+			var nowMinute = now.getMinuteOfHour
+
+			var alarmOnHour = COFFEE_ON_H.state
+			var alarmOnMinute = COFFEE_ON_M.state
+			var alarmOffHour = COFFEE_OFF_H.state
+			var alarmOffMinute = COFFEE_OFF_M.state
+
+			//We don't need to check minutes if hours are ok
+			if(alarmOnHour<nowHour && alarmOffHour>nowHour)
+			{
+				logInfo("COFFEE","Turning on Coffee proxy (1)")
+				COFFEE_SWITCH_PROXY.postUpdate(ON)
+			}
+			else if(alarmOnHour==nowHour && alarmOnMinute<=nowMinute)
+			{
+				logInfo("COFFEE","Turning on Coffee proxy (2)")
+				COFFEE_SWITCH_PROXY.postUpdate(ON)
+			}
+			else if(alarmOffHour==nowHour && alarmOffMinute>=nowMinute)
+			{
+				logInfo("COFFEE","Turning off Coffee proxy (1)")
+				COFFEE_SWITCH_PROXY.postUpdate(OFF)
+			}
+			else
+			{
+				logInfo("COFFEE","Turning off Coffee proxy (2)")
+				COFFEE_SWITCH_PROXY.postUpdate(OFF)
+			}
+		}
+		else
+		{
+			logInfo("COFFEE","Nobody is home.  Turning off Coffee proxy: "+HomeNest_Away.state)
+			COFFEE_SWITCH_PROXY.postUpdate(OFF)
+		}
+
+		//Ok, now that we know what the proxy is, let's set the wemo
+		//
+		// 0 = always off
+		// 1 = off until aligned with schedule again
+		// 2 = on until aligned with schedule again
+		// 3 = schedule
+
+		if(COFFEE_MODE.state == null || COFFEE_MODE.state == 0)
+		{
+			if(WemoMini_Switch.state != OFF)
+			{
+				logInfo("COFFEE","Turning off Coffee")
+				WemoMini_Switch.sendCommand(OFF)
+			}
+		}
+		else if(COFFEE_MODE.state == 1)
+		{
+			if(WemoMini_Switch.state == ON)
+			{
+				WemoMini_Switch.sendCommand(OFF)
+			}	
+			if(WemoMini_Switch.state == OFF && COFFEE_SWITCH_PROXY.state == OFF)
+			{
+				logInfo("COFFEE","Both proxy and coffee are off.  Going back to schedule")
+				COFFEE_MODE.postUpdate(3)
+			}
+		}
+		else if(COFFEE_MODE.state == 2)
+		{
+			if(WemoMini_Switch.state == OFF)
+			{
+				WemoMini_Switch.sendCommand(ON)
+			}			
+			if(WemoMini_Switch.state == ON && COFFEE_SWITCH_PROXY.state == ON)
+			{
+				logInfo("COFFEE","Both proxy and coffee are on.  Going back to schedule")
+				COFFEE_MODE.postUpdate(3)
+			}
+		}
+		else if(COFFEE_MODE.state == 3)
+		{
+			if(WemoMini_Switch.state != COFFEE_SWITCH_PROXY.state)
+			{
+				logInfo("COFFEE","Setting cofee to proxy state.  "+COFFEE_SWITCH_PROXY.state)
+				if(COFFEE_SWITCH_PROXY.state == ON) {
+					WemoMini_Switch.sendCommand(ON)
+				}
+				else {
+					WemoMini_Switch.sendCommand(OFF)
+				}
+			}
+		}				
+end
+
+

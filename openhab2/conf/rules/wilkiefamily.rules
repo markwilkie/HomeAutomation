@@ -1,0 +1,112 @@
+import java.util.concurrent.locks.ReentrantLock
+val ReentrantLock FESMlock = new ReentrantLock()
+
+//Front entrance state setup
+//
+var Timer FESMtimer 
+
+var Number FESM_NOACTIVITY = 0
+var Number FESM_ENTRY_OR_EXIT = 1
+var Number FESM_ENTRY = 2
+var Number FESM_EXIT = 3
+
+//Front entrace state machine itself
+//
+rule "FESM - Front Entrance State Machine Events Handler"
+	when
+		Item FESM received update
+	then
+		logInfo("FESM","FESM received an update. FESM state is "+FESM.state)
+		FESMlock.lock()
+		if ((FESM.state==NULL) || (FESM.state==FESM_NOACTIVITY)) {
+			logInfo("FESM","...state is " + FESM.state + ". Cancelling a timer (if it existed).")
+			FESMtimer?.cancel
+			//sendCommand(GarageLights, OFF)
+		} else if (FESM.state==FESM_ENTRY_OR_EXIT) {
+			logInfo("FESM","...state is " + FESM.state + ". Cancelling a timer (if it existed).")
+			FESMtimer?.cancel
+            FESMtimer = createTimer(now.plusSeconds(30)) [|
+                logInfo("FESM","ENTRY or EXIT not resolved in 30 seconds.  Setting state to FESM_NOACTIVITY")
+                FESM.postUpdate(FESM_NOACTIVITY)
+                ]
+		} else if (FESM.state==FESM_ENTRY)  {
+			logInfo("FESM","...state is " + FESM.state + ". Keeping state for 15 seconds, then reverting to no activity")
+            last_entry_dt.sendCommand(new DateTimeType)
+			//sendCommand(GarageLights, OFF)
+			FESMtimer?.cancel 
+            FESMtimer = createTimer(now.plusSeconds(15)) [|
+                logInfo("FESM","Resolving state to no activity now that 15 seconds have passed")
+                FESM.postUpdate(FESM_NOACTIVITY)
+			    ]
+		} else if (FESM.state==FESM_EXIT) {
+			logInfo("FESM","...state is " + FESM.state + ". Keeping state for 15 seconds, then reverting to no activity")
+            last_exit_dt.sendCommand(new DateTimeType)
+			//sendCommand(GarageLights, OFF)
+			FESMtimer?.cancel 
+            FESMtimer = createTimer(now.plusSeconds(15)) [|
+                logInfo("FESM","Resolving state to no activity now that 15 seconds have passed")
+                FESM.postUpdate(FESM_NOACTIVITY)
+			    ]
+		}
+		FESMlock.unlock()
+end
+
+// Porch motion
+rule "FESM - Porch Motion Handler"
+	when
+		Item porch_dt received update
+	then
+		logInfo("FESM","FESM porch motion detected. FESM state is "+FESM.state)
+        if (FESM.state!=FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
+            FESM.postUpdate(FESM_ENTRY_OR_EXIT)
+        } else if (FESM.state==FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_EXIT")
+            FESM.postUpdate(FESM_EXIT)
+        }       
+end
+
+// Front door opened
+rule "FESM - Front Door Open Handler"
+	when
+		Item frontdoor_dt received update
+	then
+		logInfo("FESM","FESM front door detected. FESM state is "+FESM.state)
+        if (FESM.state!=FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
+            FESM.postUpdate(FESM_ENTRY_OR_EXIT)
+        } else if (FESM.state==FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_ENTRY")
+            FESM.postUpdate(FESM_ENTRY)
+        }   
+end
+
+// Hallway motion
+rule "FESM - Hallway Motion Handler"
+	when
+		Item hallway_dt received update
+	then
+		logInfo("FESM","FESM hallway motion detected. FESM state is "+FESM.state)
+        if (FESM.state==null || FESM.state==FESM_NOACTIVITY) {
+            logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
+            FESM.postUpdate(FESM_ENTRY_OR_EXIT)
+        } else if (FESM.state==FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_ENTRY")
+            FESM.postUpdate(FESM_ENTRY)
+        }   
+end
+
+// Garage door opened
+rule "FESM - Garage Door Open Handler"
+	when
+		Item garage_dt received update
+	then
+		logInfo("FESM","FESM garage door detected. FESM state is "+FESM.state)
+        if (FESM.state!=FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
+            FESM.postUpdate(FESM_ENTRY_OR_EXIT)
+        } else if (FESM.state==FESM_ENTRY_OR_EXIT) {
+            logInfo("FESM","Updated state to FESM_EXIT")
+            FESM.postUpdate(FESM_EXIT)
+        }   
+end

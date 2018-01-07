@@ -1,0 +1,15 @@
+rule "Set item values when system starts"
+
+when
+        System started
+then
+
+        //Startup (default) values for coffee
+        COFFEE_SWITCH_PROXY.postUpdate(OFF)
+        COFFEE_MODE.postUpdate(3)
+        COFFEE_ON_H.postUpdate(6)
+        COFFEE_ON_M.postUpdate(15)
+        COFFEE_OFF_H.postUpdate(19)
+        COFFEE_OFF_M.postUpdate(0)
+
+end

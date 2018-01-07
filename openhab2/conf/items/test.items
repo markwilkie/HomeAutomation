@@ -1,0 +1,48 @@
+Contact frontdoor <door> { mqtt="<[mosquitto:myhome/6/event:state:JS(parseEvent.js)]" }
+String frontdoor_dt <time> { mqtt="<[mosquitto:myhome/6/event:state:JS(parseEventDate.js)]" }
+Number frontdoor_volt <battery> { mqtt="<[mosquitto:myhome/6/state:state:JS(parseStateVoltage.js)]" } 
+
+Number porch_temp <temperature> { mqtt="<[mosquitto:myhome/4/state:state:JS(parseStateTemp.js)]" } 
+String porch_dt <motion> { mqtt="<[mosquitto:myhome/4/event:state:JS(parseEventDate.js)]" }
+Number porch_volt <battery> { mqtt="<[mosquitto:myhome/4/state:state:JS(parseStateVoltage.js)]" } 
+
+Number hallway_temp <temperature> { mqtt="<[mosquitto:myhome/3/state:state:JS(parseStateTemp.js)]" } 
+String hallway_dt <motion> { mqtt="<[mosquitto:myhome/3/event:state:JS(parseEventDate.js)]" }
+Number hallway_volt <battery> { mqtt="<[mosquitto:myhome/3/state:state:JS(parseStateVoltage.js)]" } 
+
+Contact garagedoor <garagedoor> { mqtt="<[mosquitto:myhome/8/event:state:JS(parseEvent.js)]" }
+String car_presence <car> { mqtt="<[mosquitto:myhome/8/state:state:JS(parseStatePresence.js)]" }
+String garage_dt <time> { mqtt="<[mosquitto:myhome/8/event:state:JS(parseEventDate.js)]" }
+Number garage_volt <battery> { mqtt="<[mosquitto:myhome/8/state:state:JS(parseStateVoltage.js)]" } 
+
+DateTime last_entry_dt <calendar>
+DateTime last_exit_dt <calendar>
+
+Switch HEATER_SWITCH_PROXY
+Switch HEATER_BUTTON { mqtt=">[mosquitto:myhome/esp8266/1/cmd:command:*:T]", autoupdate="false" } 
+Number HEATER_TEMP <temperature> { mqtt="<[mosquitto:myhome/esp8266/1/status:state:JS(parseHeaterTemp.js)]" } 
+Number HEATER_TEMP_DELTA  "Temperature Set Point Delta: [%s]"
+Switch HEATER_STATE { mqtt="<[mosquitto:myhome/esp8266/1/status:state:JS(parseHeaterState.js)]" } 
+DateTime HEATER_LAST_UPDATE "[%1$tm/%1$td %1$tH:%1$tM]"
+Number HEATER_MODE "Mode [%s]"
+Number HEATER_ON_H    "On Hour (weekday) [%s]" <calendar>
+Number HEATER_ON_M    "On Minute (weekday) [%s]" <calendar>
+Number HEATER_WEEKEND_ON_H    "On Hour (weekend) [%s]" <calendar>
+Number HEATER_WEEKEND_ON_M    "On Minute (weekend) [%s]" <calendar>
+Number HEATER_OFF_H    "Off Hour (all) [%s]" <calendar>
+Number HEATER_OFF_M    "Off Minute (all) [%s]" <calendar>
+
+Switch COFFEE_SWITCH_PROXY
+Number COFFEE_MODE "Mode [%s]"
+Number COFFEE_ON_H    "On Hour [%s]" <calendar>
+Number COFFEE_ON_M    "On Minute [%s]" <calendar>
+Number COFFEE_OFF_H    "Off Hour [%s]" <calendar>
+Number COFFEE_OFF_M    "Off Minute [%s]" <calendar>
+
+Switch ALARM_SWITCH 
+Switch ALARM_TRIGGER  <siren>
+Number ALARM_H    "Hour [%s]" <calendar>
+Number ALARM_M    "Minute [%s]" <calendar>
+
+Number DHSM "Downstairs Heater SM [%d]"
+Number FESM "Front Entrance SM [%d]"

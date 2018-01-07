@@ -1,0 +1,48 @@
+//Watchdog - runs every 5 minutes
+//
+rule "FESM Entry Watchdog"
+	when
+		Time cron "0 */5 * * * ?"
+	then
+		//
+		//Entry Alarm
+		//
+		if(ALARM_SWITCH.state == ON)
+		{
+			//logInfo("FESM_Watchdog","Checking if anyone is home yet... "+now)
+
+			var nowHour = now.getHourOfDay
+			var nowMinute = now.getMinuteOfHour
+			var alarmHour = ALARM_H.state
+			var alarmMinute = ALARM_M.state
+
+			//Turn alarm off.  Not only does this init, but it retriggers alarm every 5 minutes until turned off...
+			ALARM_TRIGGER.postUpdate(OFF)
+
+			//Datetime math (which is super weird in this)
+			var DateTime fiveMinAgo = now.plusMinutes(-5)
+			var DateTime lastEntry = new DateTime((last_entry_dt.state as DateTimeType).calendar.timeInMillis)
+			if((last_entry_dt.state != null) && (fiveMinAgo.isBefore(lastEntry)))
+			{
+				logInfo("FESM_Watchdog","Someone came home.  Turning off Alarm")
+				ALARM_SWITCH.postUpdate(OFF)
+			}
+			else if((alarmHour <= nowHour) && (alarmMinute <= nowMinute))
+			{
+				logInfo("FESM_Watchdog","Nobody came home, triggering Alarm "+now)
+				ALARM_TRIGGER.postUpdate(ON)
+			}
+		}
+		else
+		{
+			//logInfo("FESM_Watchdog","Alarm is off")
+			ALARM_TRIGGER.postUpdate(OFF)
+		}
+
+		//
+		// Coffee maker 
+		//
+		
+end
+
+
