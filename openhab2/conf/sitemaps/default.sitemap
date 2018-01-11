@@ -45,7 +45,7 @@ sitemap default label="Wilkiefamily"
             Default item=HEATER_LAST_UPDATE label="Last Updated:"
             Selection item=HEATER_MODE label="Mode" mappings=[0="Off", 1="Off Until Scheduled On", 2="On Until Scheduled Off", 3="Schedule + Home"]             
             Default item=HEATER_TEMP label="Temperature: [%.1f °F]" 
-            Setpoint item=HEATER_TEMP_DELTA minValue=0 maxValue=10 step=1
+            Setpoint item=HEATER_TEMP_DELTA minValue=-5 maxValue=5 step=1
             Setpoint item=HEATER_ON_H minValue=0 maxValue=23 step=1
             Setpoint item=HEATER_ON_M minValue=0 maxValue=55 step=15   
             Setpoint item=HEATER_WEEKEND_ON_H minValue=0 maxValue=23 step=1

@@ -1,7 +1,11 @@
+import java.util.concurrent.locks.ReentrantLock
+val ReentrantLock Heaterlock = new ReentrantLock()
+
 //Last state update
 rule "Heater State Changed"
 	when
-		Item HEATER_STATE changed
+		Item HEATER_STATE changed or
+		Item HEATER_TEMP changed
 	then
 		//Update last update datetime	
 		HEATER_LAST_UPDATE.postUpdate( new DateTimeType() )
@@ -11,15 +15,24 @@ end
 //
 rule "Heater On/Off"
 	when
-		Time cron "0 */15 * * * ?" or
+	    Time cron "0 */15 * * * ?" or
     	Item HEATER_MODE changed or
-		Item HEATER_STATE changed
+		Item HEATER_STATE changed or
+		Item HEATER_TEMP changed or
+		Item HomeNest_Away changed
 	then
+		Heaterlock.lock() //solve for contention
 
 		//Convert nest setpoint to F
 		var Number setPointC = EntrywayThermostat_SetPoint.state as DecimalType
 		var Number setPointF = (setPointC * 1.8) + 32
 		var Number currentTemp = HEATER_TEMP.state as DecimalType - HEATER_TEMP_DELTA.state as DecimalType
+
+		//If OFF, increase the delta by 1 do reduce cycling of the heater
+		if(HEATER_SWITCH_PROXY.state == OFF)
+		{
+			currentTemp = currentTemp + 1
+		}
 
 		//Only turn heater on if NOT away and too cold
 		logInfo("HEATER","Temp: "+HEATER_TEMP.state + " Delta: "+ HEATER_TEMP_DELTA.state + " SetPoint: "+setPointF)
@@ -36,22 +49,22 @@ rule "Heater On/Off"
 			var alarmOffMinute = HEATER_OFF_M.state
 
 			//We don't need to check minutes if hours are ok
-			if(alarmOnHour<nowHour && alarmOffHour>nowHour)
+			if(alarmOnHour<nowHour && alarmOffHour>nowHour && now.getDayOfWeek < 6)
 			{
 				logInfo("HEATER","Turning on Heater proxy (weekday hour)")
 				HEATER_SWITCH_PROXY.postUpdate(ON)
 			}
-			else if(alarmOnHour==nowHour && alarmOnMinute<=nowMinute)
+			else if(alarmOnHour==nowHour && alarmOnMinute<=nowMinute && now.getDayOfWeek < 6)
 			{
 				logInfo("HEATER","Turning on Heater proxy (weekday minute)")
 				HEATER_SWITCH_PROXY.postUpdate(ON)
 			}
-			if(alarmOnWeekendHour<nowHour && alarmOffHour>nowHour)
+			else if(alarmOnWeekendHour<nowHour && alarmOffHour>nowHour && now.getDayOfWeek >= 6)
 			{
 				logInfo("HEATER","Turning on Heater proxy (weekend hour)")
 				HEATER_SWITCH_PROXY.postUpdate(ON)
 			}
-			else if(alarmOnWeekendHour==nowHour && alarmOnWeekendMinute<=nowMinute)
+			else if(alarmOnWeekendHour==nowHour && alarmOnWeekendMinute<=nowMinute && now.getDayOfWeek >= 6)
 			{
 				logInfo("HEATER","Turning on Heater proxy (weekend minute)")
 				HEATER_SWITCH_PROXY.postUpdate(ON)
@@ -63,7 +76,7 @@ rule "Heater On/Off"
 			}
 			else
 			{
-				logInfo("HEATER","Turning off Heater proxy (no match, so must be off)")
+				logInfo("HEATER","Turning off Heater proxy")
 				HEATER_SWITCH_PROXY.postUpdate(OFF)
 			}
 		}
@@ -117,12 +130,12 @@ rule "Heater On/Off"
 			//logInfo("HEATER","HEATER_STATE: "+HEATER_STATE.state + " PROXY State: "+HEATER_SWITCH_PROXY.state)
 			if(HEATER_STATE.state != HEATER_SWITCH_PROXY.state)
 			{
-				logInfo("HEATER","Setting heater to proxy state.  "+HEATER_SWITCH_PROXY.state)
-				if(HEATER_SWITCH_PROXY.state == ON) {
-					HEATER_BUTTON.sendCommand(OFF)
-				}
+				logInfo("HEATER","Toggling Heater because of mismatched proxy and heater state.")
+				HEATER_BUTTON.sendCommand(OFF)
 			}
-		}				
+		}	
+		
+		Heaterlock.unlock()		
 end
 
 

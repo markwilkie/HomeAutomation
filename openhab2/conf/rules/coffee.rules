@@ -1,3 +1,6 @@
+import java.util.concurrent.locks.ReentrantLock
+val ReentrantLock Coffeelock = new ReentrantLock()
+
 //Coffee on/off 
 //
 rule "Coffee On/Off"
@@ -5,6 +8,7 @@ rule "Coffee On/Off"
 		Time cron "0 */15 * * * ?" or
     	Item COFFEE_MODE changed 
 	then
+		Coffeelock.lock() //solve for contention
 
 		//Only turn coffee on is NOT away 
 		if(HomeNest_Away.state == "HOME")
@@ -97,6 +101,8 @@ rule "Coffee On/Off"
 				}
 			}
 		}				
+	
+		Coffeelock.unlock()
 end
 
 
