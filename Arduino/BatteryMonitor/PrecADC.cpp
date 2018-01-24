@@ -60,6 +60,9 @@ void PrecADC::read()
 
   //Add median from samples to buffer
   adcBuffer.addValue(adcReadBuffer.getMedian());
+
+  //Put adc back to default
+  ads.setGain(GAIN_TWOTHIRDS);
 }
 
 void PrecADC::add()
@@ -72,7 +75,6 @@ void PrecADC::add()
     seconds=0;
     minutes++;
     minuteBuf.push(calcAvgFromBuffer(&secondBuf));       
-    printStatus();
   }
    
   if(minutes>59)
@@ -163,6 +165,15 @@ long PrecADC::getLastMonthAvg()
   avg=avg/denom;
     
   return (calcMilliAmps(avg));
+}
+
+//Assumes zero (resting) ADC
+void PrecADC::calibrate()
+{
+  Serial.print("Current offset: "); Serial.println(offset);
+  long mv=(adcBuffer.getMedian() * gainFactor);
+  offset=offset+(mv-offset);
+  Serial.print("New offset: "); Serial.println(offset);
 }
 
 //

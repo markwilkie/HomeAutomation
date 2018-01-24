@@ -49,5 +49,6 @@ public:
  long getLastDayAvg();  //grabs average from hourBuf
  long getLastMonthAvg(); //grabs average from dayBuf
 
+ void calibrate();
  void printStatus();
 };
