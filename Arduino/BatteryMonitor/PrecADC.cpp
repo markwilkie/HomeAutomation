@@ -34,6 +34,17 @@ void PrecADC::begin()
   //Start ADC
   ads.setGain(gain);  
   ads.begin();  
+
+  //Init time based buffers
+  for(int i=0;i<60;i++) secondBuf.push(-1L);
+  for(int i=0;i<60;i++) minuteBuf.push(-1L);
+  for(int i=0;i<24;i++) hourBuf.push(-1L);
+  for(int i=0;i<30;i++) dayBuf.push(-1L);
+
+  //Zero time tracking
+  seconds=0;
+  minutes=0;
+  hours=0;  
 }
 
 void PrecADC::read()
@@ -52,7 +63,7 @@ void PrecADC::read()
 }
 
 void PrecADC::add()
-{  
+{   
   secondBuf.push(adcBuffer.getMedian());
 
   seconds++;
@@ -60,32 +71,22 @@ void PrecADC::add()
   {
     seconds=0;
     minutes++;
-    Serial.println("Adding to minute buffer: ");    
     minuteBuf.push(calcAvgFromBuffer(&secondBuf));       
     printStatus();
-
-    if(minutes>59)
-    {
-      minutes=0;
-      hours++;
-      Serial.println("Adding to hour buffer: ");      
-      hourBuf.push(calcAvgFromBuffer(&minuteBuf));    
-      printStatus();      
-
-      if(hours>23)
-      {
-        hours=0;
-        Serial.println("Adding to day buffer: ");           
-        dayBuf.push(calcAvgFromBuffer(&hourBuf)); 
-        printStatus();          
-      }
-    }
+  }
+   
+  if(minutes>59)
+  {
+    minutes=0;
+    hours++;
+    hourBuf.push(calcAvgFromBuffer(&minuteBuf));     
   }
 
-  //
-  // TODO
-  //
-  // Add minutes, hours, etc if approprite using counters
+  if(hours>23)
+  {
+    hours=0;
+    dayBuf.push(calcAvgFromBuffer(&hourBuf));        
+  }
 }
 
 //grabs median from adcBuffer
@@ -100,18 +101,68 @@ long PrecADC::getLastMinuteAvg()
 }
 
 long PrecADC::getLastHourAvg()
-{
-  return (calcMilliAmps(calcAvgFromBuffer(&minuteBuf)));
+{ 
+  long avg=calcAvgFromBuffer(&secondBuf);
+  long avgMin=calcAvgFromBuffer(&minuteBuf);
+  if(avgMin>0)
+  {
+    avg=avg+avgMin;
+    avg=avg/2;
+  }
+  
+  return (calcMilliAmps(avg));
 }
 
 long PrecADC::getLastDayAvg()
-{
-  return (calcMilliAmps(calcAvgFromBuffer(&hourBuf)));
+{  
+  int denom=1;
+  long avg=calcAvgFromBuffer(&secondBuf);
+  long avgMin=calcAvgFromBuffer(&minuteBuf);
+  if(avgMin>0)
+  {
+    denom++;
+    avg=avg+avgMin;
+    long avgHour=calcAvgFromBuffer(&hourBuf);
+    if(avgHour>0)
+    {
+      denom++;
+      avg=avg+avgHour;
+    }
+  }
+
+  //calc average
+  avg=avg/denom;
+    
+  return (calcMilliAmps(avg));
 }
 
 long PrecADC::getLastMonthAvg()
 {
-  return (calcMilliAmps(calcAvgFromBuffer(&dayBuf)));
+  int denom=1;
+  long avg=calcAvgFromBuffer(&secondBuf);
+  long avgMin=calcAvgFromBuffer(&minuteBuf);
+  if(avgMin>0)
+  {
+    denom++;
+    avg=avg+avgMin;
+    long avgHour=calcAvgFromBuffer(&hourBuf);
+    if(avgHour>0)
+    {
+      denom++;
+      avg=avg+avgHour;
+      long avgDay=calcAvgFromBuffer(&dayBuf);
+      if(avgDay>0)
+      {
+        denom++;
+        avg=avg+avgDay;
+      }
+    }
+  }
+
+  //calc average
+  avg=avg/denom;
+    
+  return (calcMilliAmps(avg));
 }
 
 //
@@ -120,16 +171,28 @@ long PrecADC::getLastMonthAvg()
 
 long PrecADC::calcMilliAmps(long raw)
 {
-   return (((raw * gainFactor) - offset) / accuracy);  
+  if(raw!=0 && accuracy > 0)
+    return (((raw * gainFactor) - offset) / accuracy);  
+  else
+    return 0;
 }
 
 long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer)
 {
   long avg=0;
+  int actualCount=0;
   for(int i=0;i<circBuffer->size();i++)
-    avg=avg+(*circBuffer)[i];
-    
-  avg = avg/(circBuffer->size());
+  {
+    //Check for make sure it's an initialized value
+    if((*circBuffer)[i]!=-1)
+    {
+      avg=avg+(*circBuffer)[i];
+      actualCount++;
+    }
+  }
+
+  if(actualCount>0)
+    avg = avg/actualCount;
 
   return avg;
 }
@@ -137,8 +200,7 @@ long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer)
 void PrecADC::printStatus()
 {
   //print status
-  Serial.println("======================");
-  Serial.print("ADC# ") ; Serial.println(adcNum);
+  Serial.print("ADC# ") ; Serial.print(adcNum); Serial.print(" ");
   Serial.print("mA last minute, hour, day, month avg: "); 
   Serial.print(getLastMinuteAvg());
   Serial.print(",");

@@ -26,12 +26,6 @@ CircularBuffer<T>::CircularBuffer(__CB_ST__ s) {
 	head=buffer;
 	tail=buffer;
 	count=0;
-
-	//init buffer
-	for(int i=0;i<sizeOfArray;i++)
-	{
-		buffer[i]=0;
-	}
 }
 
 template<typename T> 
