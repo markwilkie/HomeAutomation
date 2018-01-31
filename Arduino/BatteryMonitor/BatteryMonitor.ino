@@ -6,31 +6,17 @@
 #include <utility/Adafruit_MCP23017.h>
 
 //Helpers
-#include "PrecADC.h"
+#include "PrecADCList.h"
+#include "LcdScreens.h"
 
 //setup
 RTC_DS3231 rtc;
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
-
-//Get precision ADC's going
-PrecADC lowPowerPanel = PrecADC(0,GAIN_TWOTHIRDS, 2500, .066); //2482
-PrecADC solarPanel = PrecADC(1,GAIN_TWOTHIRDS, 0, 0);
-PrecADC inverter = PrecADC(2,GAIN_TWOTHIRDS, 0, 0);
-PrecADC starterBattery = PrecADC(3,GAIN_TWOTHIRDS, 0, 0);
+PrecADCList precADCList = PrecADCList();
 
 //Init onboard ADC buffer
 #define ADC_SAMPLE_SIZE 10
 FastRunningMedian<long,ADC_SAMPLE_SIZE,0> adcBuffer;
-
-// These #defines make it easy to set the backlight color on LCD
-#define OFF 0x0
-#define RED 0x1
-#define YELLOW 0x3
-#define GREEN 0x2
-#define TEAL 0x6
-#define BLUE 0x4
-#define VIOLET 0x5
-#define WHITE 0x7
 
 //Battery level globals
 #define BAT_PIN A0
@@ -38,11 +24,20 @@ FastRunningMedian<long,ADC_SAMPLE_SIZE,0> adcBuffer;
 #define CHARGE_EFFICIENCY 94
 long mAhRemaining;
 long batterymV;
-float stateOfCharge;
+double stateOfCharge;
 long socReset;
 
+//Thermistor (thermometer)
+#define THERMISTORPIN A1   // which analog pin to connect      
+#define THERMISTORNOMINAL 10000      // resistance at 25 degrees C
+#define TEMPERATURENOMINAL 25   // temp. for nominal resistance (almost always 25 C)
+#define BCOEFFICIENT 4050 //4038 // The beta coefficient of the thermistor (usually 3000-4000)
+#define SERIESRESISTOR 9920   // the value of the 'other' resistor
+
 //General Globals
+long bootTime;
 long startTime;
+long currentTime;
 int hz;
 
 void setup() 
@@ -51,32 +46,31 @@ void setup()
   Serial.println("Initializing...");
 
   //setup lcd
-  lcd.begin(16,2);  //16 x 2 lcd
-  lcd.setBacklight(OFF);
+  setupLCD();
 
   //setup MEGA ADC to 2.56 for reading battery voltage
-  analogReference(INTERNAL2V56);
+  //analogReference(INTERNAL2V56);
 
   //setup real time clock (RTC)
   rtc.begin();
   rtc.adjust(0);  //set to epoch as a baseline
 
-  //ADC
-  lowPowerPanel.begin();
-  solarPanel.begin();
-  inverter.begin();
-  starterBattery.begin();
+  //Precision ADC circuit buffers
+  precADCList.begin();
 
   //Let's start with an amp hour guess
-  batterymV=calcBatteryMilliVolts(readADC(BAT_PIN));
+  batterymV=calcBatteryMilliVolts(mvRead());
   stateOfCharge = calcSoC(batterymV);
   mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);
   
   //init vars
-  startTime = rtc.now().unixtime();
+  bootTime = rtc.now().unixtime();
+  startTime=bootTime;
   hz=0;
 
+  //Display
   Serial.println("Monitor Started");
+  startLCD();
   printSetupCommands();
 }
 
@@ -86,17 +80,15 @@ void loop()
   static int loophz=0;
   loophz++;
 
-  //check serial input for setup
+  //check serial input for setup, or lcd button presses
+  handleButtonPresses();
   readChar();
 
-  //read adc 
-  lowPowerPanel.read(); //samples pin 
-  solarPanel.read();
-  inverter.read();
-  starterBattery.read();  
-
+  //read precision ADCs 
+  precADCList.read(); 
+  
   //Every second, we'll take a break and do some work
-  long currentTime=rtc.now().unixtime();
+  currentTime=rtc.now().unixtime();
   if(currentTime != startTime)
   { 
     //reset hz counter
@@ -107,27 +99,31 @@ void loop()
     startTime=currentTime;
     
     //Adding to the time based buffers
-    lowPowerPanel.add(); 
-    solarPanel.add();
-    inverter.add();
-    starterBattery.add();  
+    precADCList.add();  
+
+    //If backlight has been on long enough, turn off
+    if(currentTime>(backlightOnTime+BACKLIGHT_DURATION))
+      backlightOff();
+
+    //Update LCD
+    printCurrentScreen();      
 
     //Once a minute, we add/subtract the mA to the current battery charge  (only do this once)
     if(!(currentTime % 60))
     {
       //Get voltage from battery
-      batterymV = calcBatteryMilliVolts(readADC(BAT_PIN));
+      batterymV = calcBatteryMilliVolts(mvRead());
 
       //Adjust Ah left on battery based on last minute mAh flow
       adjustAh();
 
       //If ampflow is below a threshold, reset SoC and Ah based on voltage
-      long mAhLastHourAvg=mAhLastHourflow();
+      long mAhLastHourAvg=precADCList.getLastHourAvg();
       if(mAhLastHourAvg > -1000 && mAhLastHourAvg < 1000)
       {
         stateOfCharge = calcSoC(batterymV);
         mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);
-      }    
+      }
 
       //
       // temperature compensation for SoC
@@ -141,53 +137,68 @@ void loop()
 
 void printStatus()
 { 
+  char buffer[20];
+  
   //print ADC status
-  Serial.println("============================");    
-  lowPowerPanel.printStatus();
-  solarPanel.printStatus();
-  inverter.printStatus();
-  starterBattery.printStatus();     
+  precADCList.printStatus();    
   
   //print general status
   Serial.println("============================");
   Serial.print("Free Ram: "); Serial.println(freeRam());
   Serial.print("SoC: "); Serial.println(stateOfCharge);
   Serial.print("Voltage: "); Serial.println(batterymV*.001);
-  Serial.print("Ah flow: "); Serial.println(mAhCurrentflow()*.001,3);
+  Serial.print("Temperature: "); Serial.println(temperatureRead());
+  Serial.print("Ah flow: "); Serial.println(precADCList.getCurrent()*.001,3);
   Serial.print("Usable Ah left: "); Serial.println(mAhRemaining*.001);
-  Serial.print("Hours left to 100% or 50%: "); Serial.println(calcHoursRemaining(mAhCurrentflow()));  
+  Serial.print("Hours left to 100% or 50%: "); Serial.println(calcHoursRemaining(precADCList.getCurrent()));  
   Serial.print("Hz: "); Serial.println(hz);
-  Serial.print("Current Second: "); Serial.println(startTime);
-  Serial.print("Since SoC reset: "); Serial.println(startTime-socReset);
-  
-  if(startTime>(60*60*24)) {
-    Serial.print("Uptime (in days): "); Serial.println(startTime/60.0/60.0/24.0,1);
+  Serial.print("Current Second: "); Serial.println(currentTime);
+  Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(currentTime-socReset,buffer));
+  Serial.print("Uptime: "); Serial.println(buildTimeLabel(startTime,buffer)); 
+}
+
+//Pass in your own buffer to fill (at least 20 chars long)
+char *buildTimeLabel(long seconds,char *buffer)
+{
+  double timeVal=0.0;
+
+  if(seconds>(60*60*24))  //days
+  {
+    timeVal=startTime/60.0/60.0/24.0;
+    if(timeVal>=100)
+      buffer="D99+";
+    else
+    {
+      buffer="D";
+      dtostrf(timeVal, 3, 1, buffer+1);   
+    }
   }
-  else if(startTime>(60*60)) {
-    Serial.print("Uptime (in hours): "); Serial.println(startTime/60.0/60.0,1);
+  else if(startTime>(60*60)) //hours
+  {
+    timeVal=startTime/60.0/60.0;
+    buffer="H";
+    dtostrf(timeVal, 3, 1, buffer+1);    
   }
-  else if(startTime>60) {
-    Serial.print("Uptime (in minutes): "); Serial.println(startTime/60.0,1);
+  else if(startTime>60) //minutes
+  {
+    timeVal=startTime/60.0;
+    buffer="M";
+    dtostrf(timeVal, 3, 1, buffer+1);     
   }
-  else {
-    Serial.print("Uptime (in seconds): "); Serial.println(startTime);
+  else 
+  {
+    buffer="S";
+    ltoa(startTime, buffer+1, 10);   //seconds
   }
 
-  Serial.print("Current Readings: "); 
-  Serial.print(lowPowerPanel.getCurrent());
-  Serial.print(",");
-  Serial.print(solarPanel.getCurrent());
-  Serial.print(",");
-  Serial.print(inverter.getCurrent());
-  Serial.print(",");
-  Serial.println(starterBattery.getCurrent());
+  return buffer;
 }
 
 //Update the number of Ah remaining on the battery based on the last minute of current flow
 void adjustAh()
 {
     //Let's increment/decrement AH of the battery based on amperage flow as an estimate
-    long mAhFlow=mAhLastMinuteflow();
+    long mAhFlow=precADCList.getLastMinuteAvg();
   
     //If charge, add effeciency
     if(mAhFlow > 0)
@@ -197,71 +208,81 @@ void adjustAh()
     mAhRemaining=mAhRemaining+(mAhFlow/60);  
 }
 
-long mAhCurrentflow()
-{
-    long mAhFlow=0;
-    mAhFlow=mAhFlow+lowPowerPanel.getCurrent();
-    mAhFlow=mAhFlow+solarPanel.getCurrent();
-    mAhFlow=mAhFlow+inverter.getCurrent();
-    mAhFlow=mAhFlow+starterBattery.getCurrent();
-
-    return mAhFlow;
-}
-
-long mAhLastMinuteflow()
-{
-    long mAhFlow=0;
-    mAhFlow=mAhFlow+lowPowerPanel.getLastMinuteAvg();
-    mAhFlow=mAhFlow+solarPanel.getLastMinuteAvg();
-    mAhFlow=mAhFlow+inverter.getLastMinuteAvg();
-    mAhFlow=mAhFlow+starterBattery.getLastMinuteAvg();
-
-    return mAhFlow;
-}
-
-long mAhLastHourflow()
-{
-    long mAhFlow=0;
-    mAhFlow=mAhFlow+lowPowerPanel.getLastHourAvg();
-    mAhFlow=mAhFlow+solarPanel.getLastHourAvg();
-    mAhFlow=mAhFlow+inverter.getLastHourAvg();
-    mAhFlow=mAhFlow+starterBattery.getLastHourAvg();
-
-    return mAhFlow;
-}
-
 //Returns mV from onboard ADC using a calibrated aref value
-long readADC(int pin)
+long mvRead()
 {
+  //Read ADC
   adcBuffer.clear();
   for(int i=0;i<ADC_SAMPLE_SIZE;i++)
   {
-    adcBuffer.addValue(analogRead(pin));
+    adcBuffer.addValue(analogRead(BAT_PIN));
   }
 
   //Aref = 2.522v (calibrated)
-  return (adcBuffer.getMedian() * 2522) / 1024 ; // convert readings to mv  
+  //Aref = 5.000v (calibrated)
+  return (adcBuffer.getMedian() * 5000) / 1024 ; // convert readings to mv  
 }
-  
+
+//Return temperature
+double temperatureRead()
+{
+  //Read ADC
+  adcBuffer.clear();
+  for(int i=0;i<ADC_SAMPLE_SIZE;i++)
+  {
+    adcBuffer.addValue(analogRead(THERMISTORPIN));
+  }  
+
+  // convert the value to resistance
+  float average = 1023.0 / adcBuffer.getMedian() - 1.0;
+  average = SERIESRESISTOR / average;
+
+  //Use Steinhart to convert to temperature
+  float steinhart;
+  steinhart = average / THERMISTORNOMINAL;     // (R/Ro)
+  steinhart = log(steinhart);                  // ln(R/Ro)
+  steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
+  steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
+  steinhart = 1.0 / steinhart;                 // Invert
+  steinhart -= 273.15;  
+  steinhart = steinhart*(9.0/5.0)+32.0; //convert to F
+
+  return steinhart;
+}
+ 
 //Calc battery voltage taking into account the resistor divider
 long calcBatteryMilliVolts(long mv)
 {
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
-  //return mv * 5.137;
-  return 12960;
+  return mv * 5.137;
+  //return 12960;
 }
 
 //Return % state of charge based on battery level
-float calcSoC(int mv)
+double calcSoC(int mv)
 {
   socReset=rtc.now().unixtime();  //used to know how long ago the SoC was last set
   
-  //12.4V = 50%, 12:54V = 60%, 12.68V = 70%,  12.82V = 80%, 12.96V = 90%, 13.1V = 100%
-  int full=13100;
+  //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%,  12.82V = 80%, 12.96V = 90%, 13.1V = 100%
+  //
+  // 3.33mv for each degree F temperature change
+  //
+  int full=13140; //@50deg F
   int empty=12400;
-  double incr=(full-empty)/50.0;  //gives voltage per 1% in mV
 
-  return(((mv-empty)/incr) + 50);
+  //Adjust for temperature
+  int offset=(50-temperatureRead())*3.33;
+  full=full+offset;
+  empty=empty+offset;
+
+  //Calc increments per 1%, then percentage
+  double incr=(full-empty)/50.0;  //gives voltage per 1% in mV
+  double sos=(((mv-empty)/incr) + 50);
+
+  if(sos<0)
+    sos=0;
+
+  return sos;
 }
 
 //Calc milli amp hours left in battery based on SoC (%)
@@ -269,96 +290,30 @@ long calcMilliAmpHoursRemaining(long soc)
 {
   //return's 50% of total capacity, as anything below that is not usable
   long ah=AH*(soc*.01);
-  return ((ah-(AH/2))*1000);
+  double mAhRemaining=((ah-(AH/2))*1000);
+  if(mAhRemaining<0 || soc==0)
+    mAhRemaining=0;
+    
+  return mAhRemaining;
 }
 
 //Calc's how long the battery will last to 50% based on flow in mA passed in
 //Use this to calc time left based on any of the inputs, hour, day, etc....
-float calcHoursRemaining(long mAflow)
+double calcHoursRemaining(long mAflow)
 { 
   //We should now be able to calc hours left.  If mAflow positive, return 999 if there are no amps
+  double hoursRemaining;
   if(mAflow>=0)
   {
     long full=(((long)AH/2)*1000);
-    return (((double)full-mAhRemaining)/mAflow);  //hours to full charge
+    hoursRemaining=(((double)full-mAhRemaining)/mAflow);  //hours to full charge
   }
   else
   {
-    return (mAhRemaining/(mAflow*-1.0)); //hours to 50% charge
+    hoursRemaining=(mAhRemaining/(mAflow*-1.0)); //hours to 50% charge
   }
-}
-/*
-//print ADC values (more debug than anything else)
-void printADC()
-{
-  //ADC values
-  int16_t adc0, adc1, adc2, adc3;
-  float amps,volts;
-  char adcString[20];
-  
-  //Show ADC0 reading
-  //volts=readADC(0)/1000;
-  Serial.print("ADC0 (v): "); Serial.println(volts);
-  lcdPrint("ADC0: ");
-  dtostrf(volts, 4, 2, adcString); 
-  lcdPrint(adcString,0,1);
-  delay(1000);
-}
-  */
 
-
-//
-//LCD functionality
-//
-void lcdPrint(char *stringToPrint)
-{
-  lcd.clear();
-  lcdPrint(stringToPrint,0,0);
-}
-
-void lcdPrint(char *stringToPrint,int col,int line)
-{
-  lcd.setCursor(col,line);
-  lcd.print(stringToPrint);
-}
-
-// return values: 0=none, 1=up, 2=down, 3=right, 4=left, 5=select
-int lcdReadButton()
-{
-  int retval=0;
-
-  //Read buttons
-  uint8_t buttons = lcd.readButtons();
-  
-  if (buttons & BUTTON_UP) {
-    retval=1;
-  }
-  if (buttons & BUTTON_DOWN) {
-    retval=2;
-  }
-  if (buttons & BUTTON_LEFT) {
-    retval=4;
-  }
-  if (buttons & BUTTON_RIGHT) {
-    retval=3;
-  }
-  if (buttons & BUTTON_SELECT) {
-    retval=5;
-  }  
-
-  return retval;
-}
-
-void calibrateADC(int adcNum)
-{
-  if(adcNum==0)
-    lowPowerPanel.calibrate();
-  if(adcNum==1)
-    solarPanel.calibrate();
-  if(adcNum==2)
-    inverter.calibrate();
-  if(adcNum==3)
-    starterBattery.calibrate();   
+  return hoursRemaining;
 }
 
 int freeRam() 

@@ -9,6 +9,7 @@ void printSetupCommands()
   Serial.println("  '?' --> print this message");
   Serial.println("  'p' --> print current status");
   Serial.println("  'c', then '0-3' to calibrate a specific sensor");
+  Serial.println("  'b' --> toggles backlight");
   Serial.println("");
   
   Serial.println(" Modes:");
@@ -29,16 +30,38 @@ void readChar()
         //Read top level commands
         if(mode=='d')
         {
-          if(charRead=='p')
-            printStatus();
-          if(charRead=='?')
-            printSetupCommands();
-          if(charRead=='c')
+          switch(charRead)
           {
-            Serial.println("=====================");
-            Serial.println("Type ADC number: (0-low pwr, 1-solar, 2-inverter, 3-starter)");
-            mode='c';     
-          }   
+            case 'p':
+              printStatus();
+              break;
+            case '?':
+              printSetupCommands();
+              break;
+            case 'b':
+              toggleBacklight();
+              break;
+            case 'c':
+              Serial.println("=====================");
+              Serial.println("Type ADC number: (0-low pwr, 1-solar, 2-inverter, 3-starter)");
+              mode='c';     
+              break;
+            case '<':
+              buttonPressed=LEFT;
+              break;
+            case '>':
+              buttonPressed=RIGHT;
+              break;              
+            case 'u':
+              buttonPressed=UP;
+              break;          
+            case 'd':
+              buttonPressed=DOWN;
+              break;    
+            case 's':
+              buttonPressed=SELECT;
+              break;               
+           }
         }
         else
         {
@@ -50,7 +73,7 @@ void readChar()
             int adcNum=((int)charRead)-48;
             Serial.print("Calibrating ADC# "); Serial.println(adcNum);            
             if(adcNum>=0 && adcNum<=3)
-              calibrateADC(adcNum);
+              precADCList.calibrateADC(adcNum);
           } 
   
           //reset mode now that we're done

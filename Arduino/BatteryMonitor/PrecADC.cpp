@@ -1,11 +1,12 @@
 #include "PrecADC.h"
 
-PrecADC::PrecADC(int n,int g,int o, float a)
+PrecADC::PrecADC(int n,int g,int o, float a, char *l)
 {
   adcNum=n;
   offset=o;
   gain=g;
   accuracy=a;
+  label=l;
 
   //Figure accuracy from gain
   if(gain==GAIN_ONE)
@@ -211,8 +212,9 @@ long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer)
 void PrecADC::printStatus()
 {
   //print status
-  Serial.print("ADC# ") ; Serial.print(adcNum); Serial.print(" ");
-  Serial.print("mA last minute, hour, day, month avg: "); 
+  Serial.print("ADC#") ; Serial.print(adcNum); Serial.print(" - "); Serial.print(label); Serial.print(" ");    
+  Serial.print(getCurrent());
+  Serial.print(",");
   Serial.print(getLastMinuteAvg());
   Serial.print(",");
   Serial.print(getLastHourAvg());
