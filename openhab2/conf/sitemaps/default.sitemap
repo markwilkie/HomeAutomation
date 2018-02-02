@@ -19,6 +19,16 @@ sitemap default label="Wilkiefamily"
         Default item=WeatherInformation_Current_WindDirection label="Wind Direction: [%s]" icon="wind"
     }
 
+    Frame label="Bedroom:" {
+        Text item=bedroom_temp label="Temperature: [%.1f °F]"  {        
+            Default item=bedroom_temp label="Temperature: [%.1f °F]" 
+            Default item=bedroom_humidity label="Humidity: [%.1f °F]" 
+            Default item=bedroom_light label="Light: [%s]"
+            Default item=bedroom_noise label="Noise: [%s]"
+            Default item=bedroom_air label="Air Quality: [%s]"
+        }
+    }    
+
     Frame label="Front Door" {
         Default item=frontdoor label="Open/Closed: [%s]"
         Default item=frontdoor_dt label="Last Open/Closed: [%s]"

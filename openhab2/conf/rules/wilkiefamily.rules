@@ -55,7 +55,8 @@ end
 rule "FESM - Porch Motion Handler"
 	when
 		Item porch_dt received update
-	then
+    then
+        FESMlock.lock()
 		logInfo("FESM","FESM porch motion detected. FESM state is "+FESM.state)
         if (FESM.state!=FESM_ENTRY_OR_EXIT) {
             logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
@@ -64,13 +65,15 @@ rule "FESM - Porch Motion Handler"
             logInfo("FESM","Updated state to FESM_EXIT")
             FESM.postUpdate(FESM_EXIT)
         }       
+        FESMlock.unlock()
 end
 
 // Front door opened
 rule "FESM - Front Door Open Handler"
 	when
 		Item frontdoor_dt received update
-	then
+    then
+        FESMlock.lock()
 		logInfo("FESM","FESM front door detected. FESM state is "+FESM.state)
         if (FESM.state!=FESM_ENTRY_OR_EXIT) {
             logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
@@ -79,13 +82,15 @@ rule "FESM - Front Door Open Handler"
             logInfo("FESM","Updated state to FESM_ENTRY")
             FESM.postUpdate(FESM_ENTRY)
         }   
+        FESMlock.unlock()
 end
 
 // Hallway motion
 rule "FESM - Hallway Motion Handler"
 	when
 		Item hallway_dt received update
-	then
+    then
+        FESMlock.lock()
 		logInfo("FESM","FESM hallway motion detected. FESM state is "+FESM.state)
         if (FESM.state==null || FESM.state==FESM_NOACTIVITY) {
             logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
@@ -94,13 +99,15 @@ rule "FESM - Hallway Motion Handler"
             logInfo("FESM","Updated state to FESM_ENTRY")
             FESM.postUpdate(FESM_ENTRY)
         }   
+        FESMlock.unlock()
 end
 
 // Garage door opened
 rule "FESM - Garage Door Open Handler"
 	when
 		Item garage_dt received update
-	then
+    then
+        FESMlock.lock()
 		logInfo("FESM","FESM garage door detected. FESM state is "+FESM.state)
         if (FESM.state!=FESM_ENTRY_OR_EXIT) {
             logInfo("FESM","Updated state to FESM_ENTRY_OR_EXIT")
@@ -109,4 +116,5 @@ rule "FESM - Garage Door Open Handler"
             logInfo("FESM","Updated state to FESM_EXIT")
             FESM.postUpdate(FESM_EXIT)
         }   
+        FESMlock.unlock()
 end

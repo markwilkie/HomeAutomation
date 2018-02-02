@@ -166,28 +166,28 @@ char *buildTimeLabel(long seconds,char *buffer)
   {
     timeVal=startTime/60.0/60.0/24.0;
     if(timeVal>=100)
-      buffer="D99+";
+      strcpy(buffer,"D99+");
     else
     {
-      buffer="D";
+      buffer[0]='D';
       dtostrf(timeVal, 3, 1, buffer+1);   
     }
   }
   else if(startTime>(60*60)) //hours
   {
     timeVal=startTime/60.0/60.0;
-    buffer="H";
+    buffer[0]='H';
     dtostrf(timeVal, 3, 1, buffer+1);    
   }
   else if(startTime>60) //minutes
   {
     timeVal=startTime/60.0;
-    buffer="M";
+    buffer[0]='M';
     dtostrf(timeVal, 3, 1, buffer+1);     
   }
   else 
   {
-    buffer="S";
+    buffer[0]='S';
     ltoa(startTime, buffer+1, 10);   //seconds
   }
 

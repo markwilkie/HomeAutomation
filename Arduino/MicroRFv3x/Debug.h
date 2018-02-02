@@ -1,5 +1,5 @@
-//#define ERROR
-//#define VERBOSE
+#define ERROR
+#define VERBOSE
 //#define RADIO_OFF
 
 #ifdef ERROR

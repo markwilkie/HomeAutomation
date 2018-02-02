@@ -8,6 +8,7 @@ rule "Coffee On/Off"
 		Time cron "0 */15 * * * ?" or
     	Item COFFEE_MODE changed 
 	then
+		logInfo("COFFEE","Evaluating Coffee Rules")
 		Coffeelock.lock() //solve for contention
 
 		//Only turn coffee on is NOT away 
@@ -92,7 +93,7 @@ rule "Coffee On/Off"
 		{
 			if(WemoMini_Switch.state != COFFEE_SWITCH_PROXY.state)
 			{
-				logInfo("COFFEE","Setting cofee to proxy state.  "+COFFEE_SWITCH_PROXY.state)
+				logInfo("COFFEE","Setting coffee to proxy state.  "+COFFEE_SWITCH_PROXY.state)
 				if(COFFEE_SWITCH_PROXY.state == ON) {
 					WemoMini_Switch.sendCommand(ON)
 				}

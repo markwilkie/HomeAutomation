@@ -1,5 +1,9 @@
+//Locking
 import java.util.concurrent.locks.ReentrantLock
 val ReentrantLock Heaterlock = new ReentrantLock()
+
+//Timer var
+var Timer HeaterTimer 
 
 //Last state update
 rule "Heater State Changed"
@@ -17,124 +21,165 @@ rule "Heater On/Off"
 	when
 	    Time cron "0 */15 * * * ?" or
     	Item HEATER_MODE changed or
-		Item HEATER_STATE changed or
 		Item HEATER_TEMP changed or
+		Item HEATER_TEMP_DELTA changed or
 		Item HomeNest_Away changed
 	then
+		logInfo("HEATER","Evaluating heater rules now")
 		Heaterlock.lock() //solve for contention
 
-		//Convert nest setpoint to F
-		var Number setPointC = EntrywayThermostat_SetPoint.state as DecimalType
-		var Number setPointF = (setPointC * 1.8) + 32
-		var Number currentTemp = HEATER_TEMP.state as DecimalType - HEATER_TEMP_DELTA.state as DecimalType
-
-		//If OFF, increase the delta by 1 do reduce cycling of the heater
-		if(HEATER_SWITCH_PROXY.state == OFF)
+		//While semaphore is set (means heater is in transistion), nothing can happen
+		if(HEATER_SEMAPHORE.state != ON)
 		{
-			currentTemp = currentTemp + 1
-		}
+			//Convert nest setpoint to F
+			var Number setPointC = EntrywayThermostat_SetPoint.state as DecimalType
+			var Number setPointF = (setPointC * 1.8) + 32
+			var Number currentTemp = HEATER_TEMP.state as DecimalType - HEATER_TEMP_DELTA.state as DecimalType
 
-		//Only turn heater on if NOT away and too cold
-		logInfo("HEATER","Temp: "+HEATER_TEMP.state + " Delta: "+ HEATER_TEMP_DELTA.state + " SetPoint: "+setPointF)
-		if(HomeNest_Away.state == "HOME" && currentTemp < setPointF)
-		{
-			var nowHour = now.getHourOfDay
-			var nowMinute = now.getMinuteOfHour
+			//If ON, heat one degree past setpoint (minus delta) so we're not cycling too much
+			if(HEATER_STATE.state == ON)
+			{
+				currentTemp = currentTemp - 1
+			}
 
-			var alarmOnHour = HEATER_ON_H.state
-			var alarmOnMinute = HEATER_ON_M.state
-			var alarmOnWeekendHour = HEATER_WEEKEND_ON_H.state
-			var alarmOnWeekendMinute = HEATER_WEEKEND_ON_M.state			
-			var alarmOffHour = HEATER_OFF_H.state
-			var alarmOffMinute = HEATER_OFF_M.state
+			//Only turn heater on if NOT away and too cold
+			logInfo("HEATER","CurrentTemp: (minus delta) "+ currentTemp + " SetPoint: "+setPointF)
+			if(HomeNest_Away.state == "HOME" && currentTemp < setPointF)
+			{
+				var nowHour = now.getHourOfDay
+				var nowMinute = now.getMinuteOfHour
 
-			//We don't need to check minutes if hours are ok
-			if(alarmOnHour<nowHour && alarmOffHour>nowHour && now.getDayOfWeek < 6)
-			{
-				logInfo("HEATER","Turning on Heater proxy (weekday hour)")
-				HEATER_SWITCH_PROXY.postUpdate(ON)
-			}
-			else if(alarmOnHour==nowHour && alarmOnMinute<=nowMinute && now.getDayOfWeek < 6)
-			{
-				logInfo("HEATER","Turning on Heater proxy (weekday minute)")
-				HEATER_SWITCH_PROXY.postUpdate(ON)
-			}
-			else if(alarmOnWeekendHour<nowHour && alarmOffHour>nowHour && now.getDayOfWeek >= 6)
-			{
-				logInfo("HEATER","Turning on Heater proxy (weekend hour)")
-				HEATER_SWITCH_PROXY.postUpdate(ON)
-			}
-			else if(alarmOnWeekendHour==nowHour && alarmOnWeekendMinute<=nowMinute && now.getDayOfWeek >= 6)
-			{
-				logInfo("HEATER","Turning on Heater proxy (weekend minute)")
-				HEATER_SWITCH_PROXY.postUpdate(ON)
-			}			
-			else if(alarmOffHour==nowHour && alarmOffMinute>=nowMinute)
-			{
-				logInfo("HEATER","Turning off Heater proxy (off minute)")
-				HEATER_SWITCH_PROXY.postUpdate(OFF)
+				var alarmOnHour = HEATER_ON_H.state
+				var alarmOnMinute = HEATER_ON_M.state
+				var alarmOnWeekendHour = HEATER_WEEKEND_ON_H.state
+				var alarmOnWeekendMinute = HEATER_WEEKEND_ON_M.state			
+				var alarmOffHour = HEATER_OFF_H.state
+				var alarmOffMinute = HEATER_OFF_M.state
+
+				//We don't need to check minutes if hours are ok
+				if(alarmOnHour<nowHour && alarmOffHour>nowHour && now.getDayOfWeek < 6)
+				{
+					logInfo("HEATER","Turning on Heater proxy (weekday hour)")
+					HEATER_SWITCH_PROXY.postUpdate(ON)
+				}
+				else if(alarmOnHour==nowHour && alarmOnMinute<=nowMinute && now.getDayOfWeek < 6)
+				{
+					logInfo("HEATER","Turning on Heater proxy (weekday minute)")
+					HEATER_SWITCH_PROXY.postUpdate(ON)
+				}
+				else if(alarmOnWeekendHour<nowHour && alarmOffHour>nowHour && now.getDayOfWeek >= 6)
+				{
+					logInfo("HEATER","Turning on Heater proxy (weekend hour)")
+					HEATER_SWITCH_PROXY.postUpdate(ON)
+				}
+				else if(alarmOnWeekendHour==nowHour && alarmOnWeekendMinute<=nowMinute && now.getDayOfWeek >= 6)
+				{
+					logInfo("HEATER","Turning on Heater proxy (weekend minute)")
+					HEATER_SWITCH_PROXY.postUpdate(ON)
+				}			
+				else if(alarmOffHour==nowHour && alarmOffMinute<=nowMinute)
+				{
+					logInfo("HEATER","Turning off Heater proxy (off minute)")
+					HEATER_SWITCH_PROXY.postUpdate(OFF)
+				}
+				else
+				{
+					logInfo("HEATER","Turning off Heater proxy")
+					logInfo("HEATER","nowHour: "+nowHour+" onHour: "+alarmOnHour+" day: "+now.getDayOfWeek)
+					HEATER_SWITCH_PROXY.postUpdate(OFF)
+				}
 			}
 			else
 			{
-				logInfo("HEATER","Turning off Heater proxy")
+				logInfo("HEATER","Nobody is home, or temperature is high enough.  Turning off HEATER proxy.  Nest state: "+HomeNest_Away.state)
 				HEATER_SWITCH_PROXY.postUpdate(OFF)
 			}
+
+			//Ok, now that we know what the proxy is, let's set the wemo
+			//
+			// 0 = always off
+			// 1 = off until aligned with schedule again
+			// 2 = on until aligned with schedule again
+			// 3 = schedule
+
+			if(HEATER_MODE.state == null || HEATER_MODE.state == 0)
+			{
+				if(HEATER_STATE.state != OFF)
+				{
+					logInfo("HEATER","Turning off Heater because of mode 0")
+					//Set semaphore
+					HEATER_SEMAPHORE.postUpdate(ON)
+					//Toggle heater
+					HEATER_BUTTON.sendCommand(OFF)
+					//Using Timer to make sure others don't come in
+					HeaterTimer?.cancel
+					HeaterTimer = createTimer(now.plusSeconds(30)) [|
+						logInfo("HEATER","Timer is up, removing semaphore")
+						HEATER_SEMAPHORE.postUpdate(OFF)
+						]	
+				}
+			}
+			else if(HEATER_MODE.state == 1)
+			{
+				if(HEATER_STATE.state == ON)
+				{
+					logInfo("HEATER","Turning off Heater because of mode 1")
+
+					//Set semaphore
+					HEATER_SEMAPHORE.postUpdate(ON)
+					//Toggle heater
+					HEATER_BUTTON.sendCommand(OFF)
+					//Using Timer to make sure others don't come in
+					HeaterTimer?.cancel
+					HeaterTimer = createTimer(now.plusSeconds(30)) [|
+						logInfo("HEATER","Timer is up, removing semaphore")
+						HEATER_SEMAPHORE.postUpdate(OFF)
+						]	
+				}	
+				if(HEATER_STATE.state == OFF && HEATER_SWITCH_PROXY.state == OFF)
+				{
+					logInfo("HEATER","Both proxy and heater are off.  Going back to schedule")
+					HEATER_MODE.postUpdate(3)
+				}
+			}
+			else if(HEATER_MODE.state == 2)
+			{
+				if(HEATER_STATE.state == OFF)
+				{
+					logInfo("HEATER","Turning heater on because of mode 2")
+					HEATER_BUTTON.sendCommand(OFF)
+				}			
+				if(HEATER_STATE.state == ON && HEATER_SWITCH_PROXY.state == ON)
+				{
+					logInfo("HEATER","Both proxy and heater are on.  Going back to schedule")
+					HEATER_MODE.postUpdate(3)
+				}		
+			}
+			else if(HEATER_MODE.state == 3)
+			{
+				//logInfo("HEATER","HEATER_STATE: "+HEATER_STATE.state + " PROXY State: "+HEATER_SWITCH_PROXY.state)
+				if(HEATER_STATE.state != HEATER_SWITCH_PROXY.state)
+				{
+					logInfo("HEATER","Toggling Heater because of mismatched proxy and heater state.")
+
+					//Set semaphore
+					HEATER_SEMAPHORE.postUpdate(ON)
+					//Toggle heater
+					HEATER_BUTTON.sendCommand(OFF)
+					//Using Timer to make sure others don't come in
+					HeaterTimer?.cancel
+					HeaterTimer = createTimer(now.plusSeconds(30)) [|
+						logInfo("HEATER","Timer is up, removing semaphore")
+						HEATER_SEMAPHORE.postUpdate(OFF)
+						]				
+				}
+			}	
 		}
 		else
 		{
-			logInfo("HEATER","Nobody is home, or temperature is high enough.  Turning off HEATER proxy.  Nest state: "+HomeNest_Away.state)
-			HEATER_SWITCH_PROXY.postUpdate(OFF)
+			logInfo("HEATER","Semaphore is set so moving on since heater is in transistion")
 		}
 
-		//Ok, now that we know what the proxy is, let's set the wemo
-		//
-		// 0 = always off
-		// 1 = off until aligned with schedule again
-		// 2 = on until aligned with schedule again
-		// 3 = schedule
-
-		if(HEATER_MODE.state == null || HEATER_MODE.state == 0)
-		{
-			if(HEATER_STATE.state != OFF)
-			{
-				logInfo("HEATER","Turning off Heater")
-				HEATER_BUTTON.sendCommand(OFF)
-			}
-		}
-		else if(HEATER_MODE.state == 1)
-		{
-			if(HEATER_STATE.state == ON)
-			{
-				HEATER_BUTTON.sendCommand(OFF)
-			}	
-			if(HEATER_STATE.state == OFF && HEATER_SWITCH_PROXY.state == OFF)
-			{
-				logInfo("HEATER","Both proxy and heater are off.  Going back to schedule")
-				HEATER_MODE.postUpdate(3)
-			}
-		}
-		else if(HEATER_MODE.state == 2)
-		{
-			if(HEATER_STATE.state == OFF)
-			{
-				HEATER_BUTTON.sendCommand(OFF)
-			}			
-			if(HEATER_STATE.state == ON && HEATER_SWITCH_PROXY.state == ON)
-			{
-				logInfo("HEATER","Both proxy and heater are on.  Going back to schedule")
-				HEATER_MODE.postUpdate(3)
-			}
-		}
-		else if(HEATER_MODE.state == 3)
-		{
-			//logInfo("HEATER","HEATER_STATE: "+HEATER_STATE.state + " PROXY State: "+HEATER_SWITCH_PROXY.state)
-			if(HEATER_STATE.state != HEATER_SWITCH_PROXY.state)
-			{
-				logInfo("HEATER","Toggling Heater because of mismatched proxy and heater state.")
-				HEATER_BUTTON.sendCommand(OFF)
-			}
-		}	
-		
 		Heaterlock.unlock()		
 end
 

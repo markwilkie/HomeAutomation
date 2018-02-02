@@ -6,6 +6,12 @@ Number porch_temp <temperature> { mqtt="<[mosquitto:myhome/4/state:state:JS(pars
 String porch_dt <motion> { mqtt="<[mosquitto:myhome/4/event:state:JS(parseEventDate.js)]" }
 Number porch_volt <battery> { mqtt="<[mosquitto:myhome/4/state:state:JS(parseStateVoltage.js)]" } 
 
+Number bedroom_temp <temperature> { mqtt="<[mosquitto:myhome/sonoff/bedroom_sc/tele/SENSOR:state:JSONPATH($.Temperature)]" } 
+Number bedroom_humidity <humidity> { mqtt="<[mosquitto:myhome/sonoff/bedroom_sc/tele/SENSOR:state:JSONPATH($.Humidity)]" } 
+Number bedroom_light <light> { mqtt="<[mosquitto:myhome/sonoff/bedroom_sc/tele/SENSOR:state:JSONPATH($.Light)]" } 
+Number bedroom_noise <soundvolume> { mqtt="<[mosquitto:myhome/sonoff/bedroom_sc/tele/SENSOR:state:JSONPATH($.Noise)]" } 
+Number bedroom_air <smoke> { mqtt="<[mosquitto:myhome/sonoff/bedroom_sc/tele/SENSOR:state:JSONPATH($.AirQuality)]" } 
+
 Number hallway_temp <temperature> { mqtt="<[mosquitto:myhome/3/state:state:JS(parseStateTemp.js)]" } 
 String hallway_dt <motion> { mqtt="<[mosquitto:myhome/3/event:state:JS(parseEventDate.js)]" }
 Number hallway_volt <battery> { mqtt="<[mosquitto:myhome/3/state:state:JS(parseStateVoltage.js)]" } 
@@ -20,6 +26,7 @@ DateTime last_exit_dt <calendar>
 
 Switch HEATER_SWITCH_PROXY
 Switch HEATER_BUTTON { mqtt=">[mosquitto:myhome/esp8266/1/cmd:command:*:T]", autoupdate="false" } 
+Switch HEATER_SEMAPHORE
 Number HEATER_TEMP <temperature> { mqtt="<[mosquitto:myhome/esp8266/1/status:state:JS(parseHeaterTemp.js)]" } 
 Number HEATER_TEMP_DELTA  "Temperature Set Point Delta: [%s]"
 Switch HEATER_STATE { mqtt="<[mosquitto:myhome/esp8266/1/status:state:JS(parseHeaterState.js)]" } 

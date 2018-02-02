@@ -22,17 +22,17 @@
 //
 // Extension setup
 //
-#define PINGFUNC Ping 
-#define TRIGGER_PIN  8
-#define ECHO_PIN     7
-#define MAX_DISTANCE 140  //returns 0(zero) if over the distance
+//#define PINGFUNC Ping 
+//#define TRIGGER_PIN  8
+//#define ECHO_PIN     7
+//#define MAX_DISTANCE 140  //returns 0(zero) if over the distance
 
 //
 // General Config
 //
 #define MAXRRETRIES 10  //Number of times to retry RF before giving up
 #define RETRYDELAY 100  //Milliseconds to wait between retries
-#define SLEEPCYCLES 75  //Sleep cycles wanted  (900 is 15 min assuming a 1 sec timer)
+#define SLEEPCYCLES 5  //75  //Sleep cycles wanted  (900 is 15 min assuming a 1 sec timer)
 //#define DELAYTIME 1000  //If defined, loop will delay for these ms and NOT SLEEP - useful for powered situations when doing extra work
 
 //
