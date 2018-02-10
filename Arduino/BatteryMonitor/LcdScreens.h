@@ -19,18 +19,19 @@
 #define TIME_BUCKET_CURS 1
 
 //Screens
-#define TOTAL_SCREENS 3
+#define TOTAL_SCREENS 4
 
 #define MAIN 0
-#define NET_CHARGE 1
-#define STATUS 2
+#define SUM 1
+#define NET_CHARGE 2
+#define STATUS 3
 
 //Buffers
 char lcdScratch[30];
 
 //Bucket label list
 #define TIME_BUCKET_COUNT 5
-char* bucketLabels[TIME_BUCKET_COUNT];
+char* bucketLabels[TIME_BUCKET_COUNT]={"Now","Min","Hr ","Day","Mth"};
 
 //LCD state
 long backlightOnTime=0;

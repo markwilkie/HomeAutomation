@@ -8,9 +8,18 @@ private:
   //ADC config
   #define SAMPLE_SIZE 5
   #define BUFFER_SIZE 10
+  #define MAX_CALIBRATION 500
 
-  long calcMilliAmps(long raw);
-  long calcAvgFromBuffer(CircularBuffer<long> *circBuffer);
+  long calcMilliAmps(long raw,int numOfSamples);
+  int getBufferCount(CircularBuffer<long> *circBuffer);
+  long calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg);
+  long calcSumFromBuffer(CircularBuffer<long> *circBuffer);
+
+  long getCurrentRaw();  //grabs median from adcBuffer
+  long getLastMinuteAvgRaw();  //grabs average from secondBuf
+  long getLastHourAvgRaw();  //grabs average from minuteBuf
+  long getLastDayAvgRaw();  //grabs average from hourBuf
+  long getLastMonthAvgRaw(); //grabs average from dayBuf  
 
   //buffers for getting median on ADC reads
   FastRunningMedian<long,SAMPLE_SIZE, 0> adcReadBuffer;  //used by each read to store raw result 
@@ -27,6 +36,7 @@ private:
   float gainFactor;
   float accuracy;
   int offset;
+  int offsetAdj;  //calibration value stored in EEPROM
 
   int seconds;
   int minutes;
@@ -50,6 +60,13 @@ public:
  long getLastDayAvg();  //grabs average from hourBuf
  long getLastMonthAvg(); //grabs average from dayBuf
 
+ //return values in milli amps
+ long getLastMinuteSum();  //grabs average from secondBuf
+ long getLastHourSum();  //grabs average from minuteBuf
+ long getLastDaySum();  //grabs average from hourBuf
+ long getLastMonthSum(); //grabs average from dayBuf 
+
  void calibrate();
- void printStatus();
+ void printAvg();
+ void printSum();
 };

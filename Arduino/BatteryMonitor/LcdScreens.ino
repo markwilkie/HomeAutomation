@@ -10,151 +10,312 @@ void setupLCD()
 
 void startLCD()
 {
-  loadBucketLabels();
   currentScreen=MAIN;
   printCurrentScreen();
-}
-
-void loadBucketLabels()
-{
-  bucketLabels[0]="Now";
-  bucketLabels[1]="Min";
-  bucketLabels[2]="Hr";
-  bucketLabels[3]="Day";
-  bucketLabels[4]="Mth";
 }
 
 //Screen 0 (main)
 void mainScreen()
 { 
   numOfCursors=-1;  //no cursors for this screen
-  lcd.clear();
-    
-  if(lastScreen!=0)
-  {
-    Serial.println("main screen");
-    lastScreen=0;
-    currentCursor=-1;
-    lcd.noCursor();
-  }
+  lcd.noCursor();
 
+  //Remember last values so we're only converting and updating on change
+  static double lastStateOfCharge=-999;
+  static long lastBatterymV=-999;
+  static long lastCurrent=-999;
+  double long lastHoursRem=-999;  
+
+  //Do this only when coming in from another screen
+  if(lastScreen!=MAIN)
+  {
+    //Init new screen
+    lcd.clear();
+    Serial.println("Loading main screen");
+    lastScreen=MAIN;
+    currentCursor=-1;
+
+    //Write labels only once so we're not flashing on refresh
+    lcdPrint("SoC>",0,0);
+    lcdPrint("V>",9,0);    
+    lcdPrint("Ah>",0,1);    
+    lcdPrint("Hr>",9,1);  
+
+    //Reset 
+    lastStateOfCharge=-999;
+    lastBatterymV=-999;
+    lastCurrent=-999;
+    lastHoursRem=-999;          
+  }
+  
   //build line 1
   //  0123456789012345
   //  SoC>99.9 V>13.1 
-  //  
-  lcdPrint("SoC>",0,0);
-  if(stateOfCharge<0){
-    lcdPrint("--",4,0);
+  // 
+  if(stateOfCharge!=lastStateOfCharge)
+  { 
+    if(stateOfCharge<0){
+      lcdPrint("--   ",4,0);
+    }
+    else {
+      dtostrf(stateOfCharge, 3, 1, lcdScratch); 
+      lcdPrint("     ",4,0);
+      lcdPrint(lcdScratch,4,0);
+    }
   }
-  else {
-    dtostrf(stateOfCharge, 3, 1, lcdScratch); 
-    lcdPrint(lcdScratch,4,0);
+  if(batterymV!=lastBatterymV)
+  {
+    dtostrf((batterymV*.001), 3, 1, lcdScratch); 
+    lcdPrint(lcdScratch,11,0);
   }
-
-  lcdPrint("V>",9,0);
-  dtostrf((batterymV*.001), 3, 1, lcdScratch); 
-  lcdPrint(lcdScratch,11,0);
 
   //build line 2
   //  0123456789012345
   //  Ah>-99.9 Hr>99.9
-  lcdPrint("Ah>",0,1);
-  dtostrf((precADCList.getCurrent()*.001), 3, 1, lcdScratch);
-  lcdPrint(lcdScratch,3,1);
-  lcdPrint("Hr>",9,1);  
-  double hoursRem=calcHoursRemaining(precADCList.getCurrent());
-  if(hoursRem>99 || hoursRem<0)
+
+  long current=precADCList.getCurrent();
+  if(current!=lastCurrent)
   {
-    lcdPrint("--",12,1);
+    dtostrf((current*.001), 3, 1, lcdScratch);
+    lcdPrint("      ",3,1);
+    lcdPrint(lcdScratch,3,1);
   }
-  else
+
+  double hoursRem=calcHoursRemaining(current);
+  if(hoursRem!=lastHoursRem)
   {
-    dtostrf(hoursRem, 3, 1, lcdScratch);   
-    lcdPrint(lcdScratch,12,1);  
+    if(hoursRem>99 || hoursRem<0) {
+      lcdPrint("--  ",12,1);
+    }
+    else {
+      dtostrf(hoursRem, 3, 1, lcdScratch);   
+      lcdPrint("    ",12,1);
+      lcdPrint(lcdScratch,12,1);  
+    }
   }
+
+  //Set last to new, current values for next time around
+  lastStateOfCharge=stateOfCharge;
+  lastBatterymV=batterymV;
+  lastCurrent=current;
+  lastHoursRem=hoursRem;  
 }
 
 // screen 1
-void netChargeScreen()
+void sumScreen()
 {
   numOfCursors=2; //Both ADC and time buckets for this screen
-  lcd.clear();  
+  lcd.noCursor();
 
-  if(lastScreen!=1)
+  //Remember last values so we're only converting and updating on change
+  static int lastCurrentADC=-999;  
+  static int lastCurrentTimeBucket=-999;
+  static long lastBucketTotal=-999;
+  static long lastCurrentTimeTotal=-999;
+  static long lastCurrentTimeChargeTotal=-999;
+
+  //Only do this if coming from another screen
+  if(lastScreen!=SUM)
   {
-    Serial.println("Net Charge Screen");
-    lastScreen=1;
+    lcd.clear(); 
+    Serial.println("Loading Sum Screen");
+    lastScreen=SUM;
     currentCursor=0;
+
+    //Print static labels
+    lcdPrint("\366",0,0); //sigma symbol (
+    lcdPrint("    >",1,0);    
+    lcdPrint(">",9,0);
+    lcdPrint("(+)",0,1);
+    lcdPrint("(-)",8,1);     
+
+    //Reset last values
+    lastCurrentADC=-999;  
+    lastCurrentTimeBucket=-999;
+    lastBucketTotal=-999;
+    lastCurrentTimeTotal=-999;
+    lastCurrentTimeChargeTotal=-999;  
+
+    //Set current time bucket to '1' as we don't care about "now"
+    currentTimeBucket=1;
   }
 
-  //So we don't see the cursor moving
-  lcd.noCursor();
-  
   //build line 1
-  //  Pnl>Now>-99.9
+  //  * Pnl>Now>-99.9
   //  0123456789012345
-  lcdPrint(precADCList.getADC(currentADC)->label,0,0);
-  lcdPrint(">",3,0);
-  lcdPrint(bucketLabels[currentTimeBucket],4,0);
-  lcdPrint(">",7,0);
-  dtostrf((getADCTimeBucket(currentADC,currentTimeBucket)*.001), 3, 1, lcdScratch);
-  lcdPrint(lcdScratch,8,0);
+  if(currentADC!=lastCurrentADC){
+    lcdPrint(precADCList.getADC(currentADC)->label,2,0);
+  }
+  if(currentTimeBucket!=lastCurrentTimeBucket) {
+    lcdPrint(bucketLabels[currentTimeBucket],6,0);
+  }
+  long bucketTotal=getADCTimeSumBucket(currentADC,currentTimeBucket);
+  if(bucketTotal!=lastBucketTotal)
+  {
+    if(bucketTotal>10) //to add decimal or not
+      dtostrf(bucketTotal*.001, 5, 0, lcdScratch);
+    else
+      dtostrf(bucketTotal*.001, 3, 1, lcdScratch);
+    lcdPrint("      ",10,0);
+    lcdPrint(lcdScratch,10,0);
+  }
 
   //build line 2
   //(+)99.9 (-)99.9
   //0123456789012345
-  lcdPrint("(+)",0,1);
-  long currentTimeTotal=getTimeBucket(currentTimeBucket);  
-  long currentTimeChargeTotal=getTimeChargeBucket(currentTimeBucket);
-  dtostrf((currentTimeChargeTotal*.001), 3, 1, lcdScratch);
-  lcdPrint(lcdScratch,3,1);
-  lcdPrint("(-)",8,1);  
-  dtostrf(((currentTimeTotal-currentTimeChargeTotal)*.001), 3, 1, lcdScratch);
-  lcdPrint(lcdScratch,11,1);  
+  long currentTimeChargeTotal=getTimeChargeSumBucket(currentTimeBucket);    
+  if(currentTimeChargeTotal!=lastCurrentTimeChargeTotal)
+  { 
+    dtostrf((currentTimeChargeTotal*.001), 3, 1, lcdScratch);
+    lcdPrint("     ",3,1);
+    lcdPrint(lcdScratch,3,1);
+  }
+  long currentTimeTotal=getTimeSumBucket(currentTimeBucket); 
+  if(currentTimeTotal!=lastCurrentTimeTotal || currentTimeChargeTotal!=lastCurrentTimeChargeTotal)
+  {
+    dtostrf(((currentTimeTotal-currentTimeChargeTotal)*-.001), 3, 1, lcdScratch);
+    lcdPrint("     ",11,1); 
+    lcdPrint(lcdScratch,11,1);  
+  }
   
   //Set cursor
   if(currentCursor==0)
-    lcd.setCursor(0,0);
+    lcd.setCursor(2,0);
   if(currentCursor==1)
-    lcd.setCursor(4,0);
+    lcd.setCursor(6,0);
   lcd.cursor(); //turn cursor on    
+
+  //Set last for next time
+  lastCurrentADC=currentADC;
+  lastCurrentTimeBucket=currentTimeBucket;
+  lastBucketTotal=bucketTotal;
+  lastCurrentTimeTotal=currentTimeTotal;
+  lastCurrentTimeChargeTotal=currentTimeChargeTotal;  
 }
 
-//Screen 2
+// screen 2
+void netChargeScreen()
+{
+  numOfCursors=2; //Both ADC and time buckets for this screen
+  lcd.noCursor();
+
+  //Remember last values so we're only converting and updating on change
+  static int lastCurrentADC=-999;  
+  static int lastCurrentTimeBucket=-999;
+  static long lastBucketTotal=-999;
+  static long lastCurrentTimeTotal=-999;
+  static long lastCurrentTimeChargeTotal=-999;
+
+  //Only do this if coming from another screen
+  if(lastScreen!=NET_CHARGE)
+  {
+    lcd.clear(); 
+    Serial.println("Loading Net Charge Screen");
+    lastScreen=NET_CHARGE;
+    currentCursor=0;
+
+    //Print static labels
+    lcdPrint("\344",0,0); //mean symbol 
+    lcdPrint("    >",1,0);      
+    lcdPrint(">",9,0);
+    lcdPrint("(+)",0,1);
+    lcdPrint("(-)",8,1);     
+
+    //Reset last values
+    lastCurrentADC=-999;  
+    lastCurrentTimeBucket=-999;
+    lastBucketTotal=-999;
+    lastCurrentTimeTotal=-999;
+    lastCurrentTimeChargeTotal=-999;     
+  }
+
+  //build line 1
+  //  * Pnl>Now>-99.9
+  //  0123456789012345
+  if(currentADC!=lastCurrentADC){
+    lcdPrint(precADCList.getADC(currentADC)->label,2,0);
+  }
+  if(currentTimeBucket!=lastCurrentTimeBucket) {
+    lcdPrint(bucketLabels[currentTimeBucket],6,0);
+  }
+  long bucketTotal=getADCTimeAvgBucket(currentADC,currentTimeBucket);
+  if(bucketTotal!=lastBucketTotal)
+  {
+    dtostrf(bucketTotal*.001, 3, 1, lcdScratch);
+    lcdPrint("     ",10,0);
+    lcdPrint(lcdScratch,10,0);
+  }
+
+  //build line 2
+  //(+)99.9 (-)99.9
+  //0123456789012345
+  long currentTimeChargeTotal=getTimeChargeAvgBucket(currentTimeBucket);    
+  if(currentTimeChargeTotal!=lastCurrentTimeChargeTotal)
+  { 
+    dtostrf((currentTimeChargeTotal*.001), 3, 1, lcdScratch);
+    lcdPrint("     ",3,1);
+    lcdPrint(lcdScratch,3,1);
+  }
+  long currentTimeTotal=getTimeAvgBucket(currentTimeBucket); 
+  if(currentTimeTotal!=lastCurrentTimeTotal || currentTimeChargeTotal!=lastCurrentTimeChargeTotal)
+  {
+    dtostrf(((currentTimeTotal-currentTimeChargeTotal)*-.001), 3, 1, lcdScratch);
+    lcdPrint("     ",11,1); 
+    lcdPrint(lcdScratch,11,1);  
+  }
+  
+  //Set cursor
+  if(currentCursor==0)
+    lcd.setCursor(2,0);
+  if(currentCursor==1)
+    lcd.setCursor(6,0);
+  lcd.cursor(); //turn cursor on    
+
+  //Set last for next time
+  lastCurrentADC=currentADC;
+  lastBucketTotal=bucketTotal;
+  lastCurrentTimeBucket=currentTimeBucket;
+  lastCurrentTimeTotal=currentTimeTotal;
+  lastCurrentTimeChargeTotal=currentTimeChargeTotal;  
+}
+
+//Screen 4
 void statusScreen()
 { 
   numOfCursors=-1;  //no cursors for this screen
-  lcd.clear();  
+  lcd.noCursor();
 
-  if(lastScreen!=2)
+  //Only do this if coming from a different screen
+  if(lastScreen!=STATUS)
   {
-    Serial.println("status screen");
-    lastScreen=2;
+    lcd.clear();      
+    Serial.println("Loading status screen");
+    lastScreen=STATUS;
     currentCursor=-1;
-    lcd.noCursor();
+
+    //print static labels
+    lcdPrint("Rst>",0,0);
+    lcdPrint("T>",10,0);
+    lcdPrint("Hz>",0,1);
+    lcdPrint("Up>",5,1); 
   }
 
   //build line 1
   //Rst>99999 T>99.9
   //0123456789012345
-
-  lcdPrint("Rst>",0,0);
   lcdPrint(buildTimeLabel(currentTime-socReset,lcdScratch),4,0);
-  lcdPrint("T>",10,0);
   dtostrf(temperatureRead(), 3, 1, lcdScratch); 
   lcdPrint(lcdScratch,12,0);
 
   //build line 2
   //Hz>9 Up>99999 
   //0123456789012345
-  lcdPrint("Hz>",0,1);
   ltoa(hz, lcdScratch, 10);
   lcdPrint(lcdScratch,3,1);
-  lcdPrint("Up>",5,1); 
   lcdPrint(buildTimeLabel(startTime,lcdScratch),8,1);
 }
 
-double getADCTimeBucket(int adcNum,int index)
+double getADCTimeAvgBucket(int adcNum,int index)
 {
   double retValue=0.0;
   
@@ -172,7 +333,23 @@ double getADCTimeBucket(int adcNum,int index)
   return retValue;
 }
 
-double getTimeBucket(int index)
+double getADCTimeSumBucket(int adcNum,int index)
+{
+  double retValue=0.0;
+  
+  if(index==1)
+    retValue=precADCList.getADC(adcNum)->getLastMinuteSum();
+  if(index==2)
+    retValue=precADCList.getADC(adcNum)->getLastHourSum();
+  if(index==3)
+    retValue=precADCList.getADC(adcNum)->getLastDaySum();
+  if(index==4)
+    retValue=precADCList.getADC(adcNum)->getLastMonthSum();  
+
+  return retValue;
+}
+
+double getTimeAvgBucket(int index)
 {
   double retValue=0.0;
   
@@ -190,12 +367,26 @@ double getTimeBucket(int index)
   return retValue;
 }
 
-double getTimeChargeBucket(int index)
+double getTimeSumBucket(int index)
 {
   double retValue=0.0;
   
-  if(index==0)
-    retValue=precADCList.getCurrentCharge();
+  if(index==1)
+    retValue=precADCList.getLastMinuteAvg();
+  if(index==2)
+    retValue=precADCList.getLastHourAvg();
+  if(index==3)
+    retValue=precADCList.getLastDayAvg();
+  if(index==4)
+    retValue=precADCList.getLastMonthAvg();  
+
+  return retValue;
+}
+
+double getTimeChargeAvgBucket(int index)
+{
+  double retValue=0.0;
+  
   if(index==1)
     retValue=precADCList.getLastMinuteChargeAvg();
   if(index==2)
@@ -204,6 +395,22 @@ double getTimeChargeBucket(int index)
     retValue=precADCList.getLastDayChargeAvg();
   if(index==4)
     retValue=precADCList.getLastMonthChargeAvg();  
+
+  return retValue;
+}
+
+double getTimeChargeSumBucket(int index)
+{
+  double retValue=0.0;
+  
+  if(index==1)
+    retValue=precADCList.getLastMinuteChargeSum();
+  if(index==2)
+    retValue=precADCList.getLastHourChargeSum();
+  if(index==3)
+    retValue=precADCList.getLastDayChargeSum();
+  if(index==4)
+    retValue=precADCList.getLastMonthChargeSum();  
 
   return retValue;
 }
@@ -242,8 +449,6 @@ void handleButtonPresses()
 
 void changeScreen()
 {
-  Serial.println("Screen Cycle");
-
   //Reset cursor
   currentCursor=-1;
   
@@ -258,6 +463,8 @@ void changeScreen()
     currentScreen=0;
   if(currentScreen<0)
     currentScreen=(TOTAL_SCREENS-1);
+
+  Serial.print("Screen Cycled by ");Serial.print(incr);Serial.print(" resulting in ");Serial.println(currentScreen);    
 }
 
 void changeCursor()
@@ -323,6 +530,9 @@ void printCurrentScreen()
     case MAIN:
       mainScreen();
       break;
+    case SUM:
+      sumScreen();
+      break;      
     case NET_CHARGE:
       netChargeScreen();
       break;
@@ -371,6 +581,11 @@ int lcdReadButton()
   //Turn backlight on if any key was pressed
   if(retval!=0)
   {
+    //If the backlight is off, swallow the button keypress
+    if(!backlight)
+      retval=0;
+
+    //Regardless, make sure backlight stays on
     backlightOn();
   }
 
@@ -379,11 +594,13 @@ int lcdReadButton()
 
 void backlightOff()
 {
+  backlight=false;
   lcd.setBacklight(OFF);
 }
 
 void backlightOn()
 {
+  backlight=true;
   backlightOnTime=currentTime;
   lcd.setBacklight(WHITE);
 }

@@ -5,7 +5,8 @@ PrecADCList::PrecADCList()
 }
 
 void PrecADCList::begin()
-{
+{ 
+  //Let's go
   for(int i=0;i<ADC_COUNT;i++)
     (*adcList)[i].begin();
 }
@@ -139,6 +140,98 @@ long PrecADCList::getLastMonthChargeAvg()
   return total;
 }
 
+//===============
+
+long PrecADCList::getLastMinuteSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+    total=total+(*adcList)[i].getLastMinuteSum();
+
+  return total;
+}
+
+long PrecADCList::getLastHourSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+    total=total+(*adcList)[i].getLastHourSum();
+
+  return total;
+}
+
+long PrecADCList::getLastDaySum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+    total=total+(*adcList)[i].getLastDaySum();
+
+  return total;
+}
+
+long PrecADCList::getLastMonthSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+    total=total+(*adcList)[i].getLastMonthSum();
+
+  return total;
+}
+
+long PrecADCList::getLastMinuteChargeSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+  {
+    long value=(*adcList)[i].getLastMinuteSum();
+    if(value>0)
+      total=total+value;
+  }
+
+  return total;
+}
+
+long PrecADCList::getLastHourChargeSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+  {
+    long value=(*adcList)[i].getLastHourSum();
+    if(value>0)
+      total=total+value;
+  }
+
+  return total;
+}
+
+long PrecADCList::getLastDayChargeSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+  {
+    long value=(*adcList)[i].getLastDaySum();
+    if(value>0)
+      total=total+value;
+  }
+
+  return total;
+}
+
+long PrecADCList::getLastMonthChargeSum()
+{
+  long total=0;
+  for(int i=0;i<ADC_COUNT;i++)
+  {
+    long value=(*adcList)[i].getLastMonthSum();
+    if(value>0)
+      total=total+value;
+  }
+
+  return total;
+}
+
+//============
+
 void PrecADCList::calibrateADC(int adcNum)
 {
   (*adcList)[adcNum].calibrate();
@@ -149,6 +242,10 @@ void PrecADCList::printStatus()
   Serial.println("============================");    
   Serial.println("ADC List:  (mA now, avg minute, avg hour, avg day, and avg month)");
   for(int i=0;i<ADC_COUNT;i++)
-    (*adcList)[i].printStatus();
+    (*adcList)[i].printAvg();
+
+  Serial.println("ADC List:  (sum minute, sum hour, sum day, and sum month)");
+  for(int i=0;i<ADC_COUNT;i++)
+    (*adcList)[i].printSum();    
 }
 

@@ -1,4 +1,5 @@
 #include "PrecADC.h"
+#include "EEPROMAnything.h"
 
 PrecADC::PrecADC(int n,int g,int o, float a, char *l)
 {
@@ -36,6 +37,18 @@ void PrecADC::begin()
   ads.setGain(gain);  
   ads.begin();  
 
+  //Load calibration values from EEPROM 
+  EEPROM_readAnything(EEPROM_PRECADC_ADDR+(adcNum*sizeof(offsetAdj)), offsetAdj);  
+  Serial.print("EEPROM read for: "); Serial.print(adcNum); Serial.print("  value: "); Serial.println(offsetAdj); 
+  if (offsetAdj >= (MAX_CALIBRATION*-1)  && offsetAdj <= MAX_CALIBRATION)
+  {
+     //yup, we've got good values here, let's adjust the offset
+     offset=offset+offsetAdj;
+     Serial.print("New calibrated offset: "); Serial.println(offset);
+  }
+  else
+    offsetAdj=0;  
+
   //Init time based buffers
   for(int i=0;i<60;i++) secondBuf.push(-1L);
   for(int i=0;i<60;i++) minuteBuf.push(-1L);
@@ -71,101 +84,126 @@ void PrecADC::add()
   secondBuf.push(adcBuffer.getMedian());
 
   seconds++;
-  if(seconds>59)
+  if(seconds>=59)  //since 59 is the 60th second, and we add the last (59th) to the second queue before promoting, we need to reset ON the 59th instead of 60th
   {
     seconds=0;
     minutes++;
-    minuteBuf.push(calcAvgFromBuffer(&secondBuf));       
+    minuteBuf.push(calcAvgFromBuffer(&secondBuf,-1));       
   }
    
-  if(minutes>59)
+  if(minutes>=59)
   {
     minutes=0;
     hours++;
-    hourBuf.push(calcAvgFromBuffer(&minuteBuf));     
+    hourBuf.push(calcAvgFromBuffer(&minuteBuf,-1));     
   }
 
-  if(hours>23)
+  if(hours>=23)
   {
     hours=0;
-    dayBuf.push(calcAvgFromBuffer(&hourBuf));        
+    dayBuf.push(calcAvgFromBuffer(&hourBuf,-1));        
   }
 }
 
 //grabs median from adcBuffer
+long PrecADC::getCurrentRaw()
+{
+  return adcBuffer.getMedian();
+}
+
 long PrecADC::getCurrent()
 {
-  return (calcMilliAmps(adcBuffer.getMedian()));
+  return (calcMilliAmps(getCurrentRaw(),1));
+}
+
+long PrecADC::getLastMinuteAvgRaw()
+{
+  return calcAvgFromBuffer(&secondBuf,adcBuffer.getMedian());
 }
 
 long PrecADC::getLastMinuteAvg()
 {
-  return (calcMilliAmps(calcAvgFromBuffer(&secondBuf)));
+  return (calcMilliAmps(getLastMinuteAvgRaw(),1));
+}
+
+long PrecADC::getLastHourAvgRaw()
+{ 
+  long avg=getLastMinuteAvgRaw();
+  long avgMin=calcAvgFromBuffer(&minuteBuf,avg);
+  
+  return (avgMin);
 }
 
 long PrecADC::getLastHourAvg()
 { 
-  long avg=calcAvgFromBuffer(&secondBuf);
-  long avgMin=calcAvgFromBuffer(&minuteBuf);
-  if(avgMin>0)
-  {
-    avg=avg+avgMin;
-    avg=avg/2;
-  }
-  
-  return (calcMilliAmps(avg));
+  return (calcMilliAmps(getLastHourAvgRaw(),1));
+}
+
+long PrecADC::getLastDayAvgRaw()
+{  
+  long avg=getLastHourAvgRaw();
+  long avgHour=calcAvgFromBuffer(&hourBuf,avg);
+    
+  return (avgHour);
 }
 
 long PrecADC::getLastDayAvg()
 {  
-  int denom=1;
-  long avg=calcAvgFromBuffer(&secondBuf);
-  long avgMin=calcAvgFromBuffer(&minuteBuf);
-  if(avgMin>0)
-  {
-    denom++;
-    avg=avg+avgMin;
-    long avgHour=calcAvgFromBuffer(&hourBuf);
-    if(avgHour>0)
-    {
-      denom++;
-      avg=avg+avgHour;
-    }
-  }
+  return (calcMilliAmps(getLastDayAvgRaw(),1));
+}
 
-  //calc average
-  avg=avg/denom;
+long PrecADC::getLastMonthAvgRaw()
+{
+  long avg=getLastDayAvgRaw();
+  long avgDay=calcAvgFromBuffer(&dayBuf,avg);
     
-  return (calcMilliAmps(avg));
+  return (avgDay);
 }
 
 long PrecADC::getLastMonthAvg()
 {
-  int denom=1;
-  long avg=calcAvgFromBuffer(&secondBuf);
-  long avgMin=calcAvgFromBuffer(&minuteBuf);
-  if(avgMin>0)
-  {
-    denom++;
-    avg=avg+avgMin;
-    long avgHour=calcAvgFromBuffer(&hourBuf);
-    if(avgHour>0)
-    {
-      denom++;
-      avg=avg+avgHour;
-      long avgDay=calcAvgFromBuffer(&dayBuf);
-      if(avgDay>0)
-      {
-        denom++;
-        avg=avg+avgDay;
-      }
-    }
-  }
+  return (calcMilliAmps(getLastMonthAvgRaw(),1));
+}
 
-  //calc average
-  avg=avg/denom;
-    
-  return (calcMilliAmps(avg));
+//==================
+
+long PrecADC::getLastMinuteSum()
+{
+  int numOfSamples=getBufferCount(&secondBuf);
+  long sum=calcSumFromBuffer(&secondBuf);  
+  long ma=calcMilliAmps(sum,numOfSamples);
+  ma=ma/(60L*60L); //convert to mAh from mA seconds
+  
+  return (ma);
+}
+
+long PrecADC::getLastHourSum()
+{ 
+  int numOfSamples=getBufferCount(&minuteBuf);
+  long sumMin=calcSumFromBuffer(&minuteBuf);  
+  long ma=calcMilliAmps(sumMin,numOfSamples);
+  ma=ma/60L;  //convert to mAh from mA minutes
+
+  return (ma+getLastMinuteSum());
+}
+
+long PrecADC::getLastDaySum()
+{  
+  int numOfSamples=getBufferCount(&hourBuf);
+  long sumHour=calcSumFromBuffer(&hourBuf);  
+  long ma=calcMilliAmps(sumHour,numOfSamples);
+  
+  return (ma+getLastHourSum());
+}
+
+long PrecADC::getLastMonthSum()
+{
+  int numOfSamples=getBufferCount(&dayBuf);
+  long sumDay=calcSumFromBuffer(&dayBuf);
+  long ma=calcMilliAmps(sumDay,numOfSamples);
+  ma=ma*24L;  //convert to mAh from mA days
+  
+  return (ma+getLastDaySum());
 }
 
 //Assumes zero (resting) ADC
@@ -173,23 +211,45 @@ void PrecADC::calibrate()
 {
   Serial.print("Current offset: "); Serial.println(offset);
   long mv=(adcBuffer.getMedian() * gainFactor);
-  offset=offset+(mv-offset);
+  offsetAdj=mv-offset;
+  offset=offset+offsetAdj;
   Serial.print("New offset: "); Serial.println(offset);
+
+  //Save to offset EEPROM
+  EEPROM_writeAnything(EEPROM_PRECADC_ADDR+(adcNum*sizeof(offsetAdj)), offsetAdj);   
 }
 
 //
 // private
 //
 
-long PrecADC::calcMilliAmps(long raw)
+long PrecADC::calcMilliAmps(long raw,int numOfSamples)
 {
   if(raw!=0 && accuracy > 0)
-    return (((raw * gainFactor) - offset) / accuracy);  
+  {
+    long newOffset=(long)offset * (long)numOfSamples;
+    return (((raw * gainFactor) - newOffset) / accuracy);  
+  }
   else
     return 0;
 }
 
-long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer)
+int PrecADC::getBufferCount(CircularBuffer<long> *circBuffer)
+{
+  int actualCount=0;
+  for(int i=0;i<circBuffer->size();i++)
+  {
+    //Check for make sure it's an initialized value
+    if((*circBuffer)[i]!=-1)
+    {
+      actualCount++;
+    }
+  }
+
+  return actualCount;
+}
+
+long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg)
 {
   long avg=0;
   int actualCount=0;
@@ -198,18 +258,47 @@ long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer)
     //Check for make sure it's an initialized value
     if((*circBuffer)[i]!=-1)
     {
+      //Serial.print("b:");Serial.println((*circBuffer)[i]);
       avg=avg+(*circBuffer)[i];
       actualCount++;
     }
   }
 
+  //Add in previous bucket
+  if(prevBucketAvg!=-1)
+  {
+    //Serial.print("a:");Serial.println(prevBucketAvg);
+    avg=avg+prevBucketAvg;
+    actualCount++;
+  }
+
   if(actualCount>0)
     avg = avg/actualCount;
+
+  //Serial.print("ret:");Serial.println(avg);
 
   return avg;
 }
 
-void PrecADC::printStatus()
+long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer)
+{
+  long sum=0;
+  for(int i=0;i<circBuffer->size();i++)
+  {
+    //Check for make sure it's an initialized value
+    if((*circBuffer)[i]!=-1)
+    {
+      //Serial.print("b:");Serial.println((*circBuffer)[i]);
+      sum=sum+((*circBuffer)[i]);
+    }
+  }
+
+  //Serial.print("==> sum:");Serial.println(sum);
+
+  return sum;
+}
+
+void PrecADC::printAvg()
 {
   //print status
   Serial.print("ADC#") ; Serial.print(adcNum); Serial.print(" - "); Serial.print(label); Serial.print(" ");    
@@ -222,5 +311,18 @@ void PrecADC::printStatus()
   Serial.print(getLastDayAvg());
   Serial.print(",");
   Serial.println(getLastMonthAvg());      
+}
+
+void PrecADC::printSum()
+{
+  //print status
+  Serial.print("ADC#") ; Serial.print(adcNum); Serial.print(" - "); Serial.print(label); Serial.print(" ");    
+  Serial.print(getLastMinuteSum());
+  Serial.print(",");
+  Serial.print(getLastHourSum());
+  Serial.print(",");
+  Serial.print(getLastDaySum());
+  Serial.print(",");
+  Serial.println(getLastMonthSum());      
 }
 
