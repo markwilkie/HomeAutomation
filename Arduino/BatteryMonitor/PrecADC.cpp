@@ -1,13 +1,14 @@
 #include "PrecADC.h"
 #include "EEPROMAnything.h"
 
-PrecADC::PrecADC(int n,int g,int o, float a, char *l)
+PrecADC::PrecADC(int n,int g,int o, float a, char *l, int s)
 {
   adcNum=n;
   offset=o;
   gain=g;
   accuracy=a;
   label=l;
+  sign=s;
 
   //Figure accuracy from gain
   if(gain==GAIN_ONE)
@@ -228,7 +229,7 @@ long PrecADC::calcMilliAmps(long raw,int numOfSamples)
   if(raw!=0 && accuracy > 0)
   {
     long newOffset=(long)offset * (long)numOfSamples;
-    return (((raw * gainFactor) - newOffset) / accuracy);  
+    return ((((raw * gainFactor) - newOffset) / accuracy) * sign);  
   }
   else
     return 0;

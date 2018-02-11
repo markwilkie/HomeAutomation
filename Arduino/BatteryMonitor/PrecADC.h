@@ -37,6 +37,7 @@ private:
   float accuracy;
   int offset;
   int offsetAdj;  //calibration value stored in EEPROM
+  int sign;
 
   int seconds;
   int minutes;
@@ -48,7 +49,7 @@ public:
  int adcNum;
  char *label;
  
- PrecADC(int n,int g,int o, float a, char* l); 
+ PrecADC(int n,int g,int o, float a, char* l, int sign); 
  void begin(); //starts stuff up and inits buffer
  void read(); //reads according to sample size and fills raw buffer, then adds the median to the main "raw" buffer
  void add();  //called every second and adds the median from the buffer to the seconds circular buffer 

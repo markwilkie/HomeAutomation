@@ -22,10 +22,17 @@ FastRunningMedian<long,ADC_SAMPLE_SIZE,0> adcBuffer;
 #define BAT_PIN A0
 #define AH 310
 #define CHARGE_EFFICIENCY 94
+#define REF_VOLT 5.137
+#define REST_CHARGE_LIMIT 1000
+#define REST_DRAIN_LIMIT 5000
+#define REST_WINDOW 72000  //20 hours
 long mAhRemaining;
 long batterymV;
 double stateOfCharge;
 long socReset;
+long lowPointSetTime;
+long restingmV;
+
 
 //Thermistor (thermometer)
 #define THERMISTORPIN A1   // which analog pin to connect      
@@ -67,6 +74,7 @@ void setup()
   bootTime = rtc.now().unixtime();
   startTime=bootTime;
   hz=0;
+  restingmV=batterymV;
 
   //Display
   Serial.println("Monitor Started");
@@ -118,19 +126,30 @@ void loop()
       adjustAh();
 
       //If ampflow is below a threshold, reset SoC and Ah based on voltage
-      long mAhLastHourAvg=precADCList.getLastHourAvg();
-      if(mAhLastHourAvg > -1000 && mAhLastHourAvg < 1000)
+      long mAhLastHourChargeAvg=precADCList.getLastHourChargeAvg();
+      long mAhLastHourDrainAvg=(precADCList.getLastHourAvg()-precADCList.getLastHourChargeAvg())*-1;
+      if(mAhLastHourDrainAvg < REST_DRAIN_LIMIT && mAhLastHourChargeAvg < REST_CHARGE_LIMIT)
       {
-        stateOfCharge = calcSoC(batterymV);
-        mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);
-      }
+        bool setSoC=false;
+        
+        //ratchet resting mv down if still in time window and voltage is lower
+        if(restingmV > batterymV && (currentTime-lowPointSetTime) < REST_WINDOW)
+          setSoC=true;
 
-      //
-      // temperature compensation for SoC
-      //
-      // - read thermister
-      // - different SoC table
-      //
+        //if we're out of the window, release ratchet and set it again
+        if((currentTime-lowPointSetTime) > REST_WINDOW)
+          setSoC=true;
+
+        //If flag set, then set new SoC
+        if(setSoC)
+        {
+          restingmV=batterymV;
+          lowPointSetTime=currentTime;
+
+          stateOfCharge = calcSoC(batterymV);
+          mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);             
+        }
+      }
     }       
   }
 }
@@ -254,7 +273,7 @@ double temperatureRead()
 long calcBatteryMilliVolts(long mv)
 {
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
-  return mv * 5.137;
+  return mv * REF_VOLT;
   //return 12960;
 }
 

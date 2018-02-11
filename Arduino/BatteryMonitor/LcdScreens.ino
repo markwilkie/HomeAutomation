@@ -57,6 +57,9 @@ void mainScreen()
     if(stateOfCharge<0){
       lcdPrint("--   ",4,0);
     }
+    else if(stateOfCharge>100){
+      lcdPrint("*100 ",4,0);
+    }
     else {
       dtostrf(stateOfCharge, 3, 1, lcdScratch); 
       lcdPrint("     ",4,0);
@@ -336,7 +339,9 @@ double getADCTimeAvgBucket(int adcNum,int index)
 double getADCTimeSumBucket(int adcNum,int index)
 {
   double retValue=0.0;
-  
+
+  if(index==0)
+    retValue=precADCList.getCurrent();  
   if(index==1)
     retValue=precADCList.getADC(adcNum)->getLastMinuteSum();
   if(index==2)
@@ -370,7 +375,9 @@ double getTimeAvgBucket(int index)
 double getTimeSumBucket(int index)
 {
   double retValue=0.0;
-  
+
+  if(index==0)
+    retValue=precADCList.getCurrent();  
   if(index==1)
     retValue=precADCList.getLastMinuteAvg();
   if(index==2)
@@ -386,7 +393,9 @@ double getTimeSumBucket(int index)
 double getTimeChargeAvgBucket(int index)
 {
   double retValue=0.0;
-  
+
+  if(index==0)
+    retValue=precADCList.getCurrent();
   if(index==1)
     retValue=precADCList.getLastMinuteChargeAvg();
   if(index==2)
@@ -402,7 +411,9 @@ double getTimeChargeAvgBucket(int index)
 double getTimeChargeSumBucket(int index)
 {
   double retValue=0.0;
-  
+
+  if(index==0)
+    retValue=precADCList.getCurrent();  
   if(index==1)
     retValue=precADCList.getLastMinuteChargeSum();
   if(index==2)
