@@ -379,13 +379,13 @@ double getTimeSumBucket(int index)
   if(index==0)
     retValue=precADCList.getCurrent();  
   if(index==1)
-    retValue=precADCList.getLastMinuteAvg();
+    retValue=precADCList.getLastMinuteSum();
   if(index==2)
-    retValue=precADCList.getLastHourAvg();
+    retValue=precADCList.getLastHourSum();
   if(index==3)
-    retValue=precADCList.getLastDayAvg();
+    retValue=precADCList.getLastDaySum();
   if(index==4)
-    retValue=precADCList.getLastMonthAvg();  
+    retValue=precADCList.getLastMonthSum();  
 
   return retValue;
 }
@@ -395,7 +395,7 @@ double getTimeChargeAvgBucket(int index)
   double retValue=0.0;
 
   if(index==0)
-    retValue=precADCList.getCurrent();
+    retValue=precADCList.getCurrentCharge();
   if(index==1)
     retValue=precADCList.getLastMinuteChargeAvg();
   if(index==2)
@@ -413,7 +413,7 @@ double getTimeChargeSumBucket(int index)
   double retValue=0.0;
 
   if(index==0)
-    retValue=precADCList.getCurrent();  
+    retValue=precADCList.getCurrentCharge();  
   if(index==1)
     retValue=precADCList.getLastMinuteChargeSum();
   if(index==2)
