@@ -20,9 +20,10 @@ FastRunningMedian<long,ADC_SAMPLE_SIZE,0> adcBuffer;
 
 //Battery level globals
 #define BAT_PIN A0
+#define BAT_FULL 13000
+#define BAT_EMPTY 12400
 #define AH 310
 #define CHARGE_EFFICIENCY 94
-#define REF_VOLT 5.137
 #define REST_CHARGE_LIMIT 1000
 #define REST_DRAIN_LIMIT 5000
 #define REST_WINDOW 72000  //20 hours
@@ -66,7 +67,7 @@ void setup()
   precADCList.begin();
 
   //Let's start with an amp hour guess
-  batterymV=calcBatteryMilliVolts(mvRead());
+  batterymV=calcBatteryMilliVolts(mvRead(BAT_PIN));
   stateOfCharge = calcSoC(batterymV);
   mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);
   
@@ -120,7 +121,7 @@ void loop()
     if(!(currentTime % 60))
     {
       //Get voltage from battery
-      batterymV = calcBatteryMilliVolts(mvRead());
+      batterymV = calcBatteryMilliVolts(mvRead(BAT_PIN));
 
       //Adjust Ah left on battery based on last minute mAh flow
       adjustAh();
@@ -228,18 +229,20 @@ void adjustAh()
 }
 
 //Returns mV from onboard ADC using a calibrated aref value
-long mvRead()
+long mvRead(int pin)
 {
+  //Clear the ADC's throat
+  analogRead(pin);
+  
   //Read ADC
   adcBuffer.clear();
   for(int i=0;i<ADC_SAMPLE_SIZE;i++)
   {
-    adcBuffer.addValue(analogRead(BAT_PIN));
+    adcBuffer.addValue(analogRead(pin));
   }
 
-  //Aref = 2.522v (calibrated)
-  //Aref = 5.000v (calibrated)
-  return (adcBuffer.getMedian() * 5000) / 1024 ; // convert readings to mv  
+  long vcc=readVcc();
+  return (adcBuffer.getMedian() * vcc) / 1024 ; // convert readings to mv  
 }
 
 //Return temperature
@@ -273,7 +276,7 @@ double temperatureRead()
 long calcBatteryMilliVolts(long mv)
 {
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
-  return mv * REF_VOLT;
+  return mv * 5.137;
   //return 12960;
 }
 
@@ -282,12 +285,13 @@ double calcSoC(int mv)
 {
   socReset=rtc.now().unixtime();  //used to know how long ago the SoC was last set
   
-  //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%,  12.82V = 80%, 12.96V = 90%, 13.1V = 100%
+  //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%, 12.82V = 80%, 12.96V = 90%, 13.1V = 100%
+  //         -->              12.52V = 60%, 12.64V = 70%, 12.76V = 80%, 12.88V = 90%, 13V = 100%
   //
-  // 3.33mv for each degree F temperature change
+  // 3.33mv adjust for each degree F temperature change
   //
-  int full=13140; //@50deg F
-  int empty=12400;
+  int full=BAT_FULL; //@50deg F
+  int empty=BAT_EMPTY;
 
   //Adjust for temperature
   int offset=(50-temperatureRead())*3.33;
@@ -340,5 +344,31 @@ int freeRam()
   extern int __heap_start, *__brkval; 
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
+long readVcc() {
+  // Read 1.1V reference against AVcc
+  // set the reference to Vcc and the measurement to the internal 1.1V reference
+  #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+    ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+    ADMUX = _BV(MUX5) | _BV(MUX0);
+  #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+    ADMUX = _BV(MUX3) | _BV(MUX2);
+  #else
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #endif  
+
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Start conversion
+  while (bit_is_set(ADCSRA,ADSC)); // measuring
+
+  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+  uint8_t high = ADCH; // unlocks both
+
+  long result = (high<<8) | low;
+
+  result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  return result; // Vcc in millivolts
 }
 
