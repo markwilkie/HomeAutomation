@@ -226,6 +226,8 @@ void PrecADC::calibrate()
 
 long PrecADC::calcMilliAmps(long raw,int numOfSamples)
 {
+  //0.1875mV default gain factor
+  
   if(raw!=0 && accuracy > 0)
   {
     long newOffset=(long)offset * (long)numOfSamples;
