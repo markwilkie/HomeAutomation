@@ -276,7 +276,7 @@ double temperatureRead()
 long calcBatteryMilliVolts(long mv)
 {
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
-  return mv * 5.137;
+  return mv * 4.95;
   //return 12960;
 }
 
@@ -288,7 +288,7 @@ double calcSoC(int mv)
   //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%, 12.82V = 80%, 12.96V = 90%, 13.1V = 100%
   //         -->              12.52V = 60%, 12.64V = 70%, 12.76V = 80%, 12.88V = 90%, 13V = 100%
   //
-  // 3.33mv adjust for each degree F temperature change
+  // 3.33mv adjust for each degree F temperature change  (lower temp means higher voltage for full)
   //
   int full=BAT_FULL; //@50deg F
   int empty=BAT_EMPTY;

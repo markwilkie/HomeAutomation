@@ -8,8 +8,8 @@ private:
   //Get precision ADC's going for each circuit
   PrecADC lowPowerPanel = PrecADC(0,GAIN_TWOTHIRDS, 2500, .066, "Aux",-1); //2482
   PrecADC solarPanel = PrecADC(1,GAIN_TWOTHIRDS, 2500, .066, "Slr",1);
-  PrecADC inverter = PrecADC(2,GAIN_TWOTHIRDS, 2500, .025, "Inv",1);
-  PrecADC starterBattery = PrecADC(3,GAIN_TWOTHIRDS, 2500, .025, "Str",1);
+  PrecADC inverter = PrecADC(2,GAIN_TWOTHIRDS, 2500, 0, "Inv",1); //.025
+  PrecADC starterBattery = PrecADC(3,GAIN_TWOTHIRDS, 2500, 0, "Str",1);
 
   //array to hold all four in a known order
   #define ADC_COUNT 4
