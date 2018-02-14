@@ -77,7 +77,7 @@ rule "Heater On/Off"
 					logInfo("HEATER","Turning on Heater proxy (weekend minute)")
 					HEATER_SWITCH_PROXY.postUpdate(ON)
 				}			
-				else if(alarmOffHour==nowHour && alarmOffMinute<=nowMinute)
+				else if(alarmOffHour==nowHour && alarmOffMinute>=nowMinute)
 				{
 					logInfo("HEATER","Turning off Heater proxy (off minute)")
 					HEATER_SWITCH_PROXY.postUpdate(OFF)

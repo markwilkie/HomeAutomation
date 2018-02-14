@@ -15,13 +15,13 @@ then
         //Startup (default) values for heater
         HEATER_SWITCH_PROXY.postUpdate(OFF)
         HEATER_MODE.postUpdate(3)
-        HEATER_TEMP_DELTA.postUpdate(-4)  
+        HEATER_TEMP_DELTA.postUpdate(-3)  
         HEATER_STATE.postUpdate(OFF)    
         HEATER_TEMP.postUpdate(72)  
         HEATER_ON_H.postUpdate(14)
         HEATER_ON_M.postUpdate(30)
-        HEATER_OFF_H.postUpdate(22)
-        HEATER_OFF_M.postUpdate(0)
+        HEATER_OFF_H.postUpdate(21)
+        HEATER_OFF_M.postUpdate(30)
         HEATER_WEEKEND_ON_H.postUpdate(7)
         HEATER_WEEKEND_ON_M.postUpdate(0) 
 
