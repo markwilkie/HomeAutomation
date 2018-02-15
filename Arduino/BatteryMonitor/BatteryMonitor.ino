@@ -37,9 +37,9 @@ long restingmV;
 
 //Thermistor (thermometer)
 #define THERMISTORPIN A1   // which analog pin to connect      
-#define THERMISTORNOMINAL 100000      // resistance at 25 degrees C  (NTC 104=100K and 103=10K)
+#define THERMISTORNOMINAL 10000      // resistance at 25 degrees C  (NTC 104=100K and 103=10K)
 #define TEMPERATURENOMINAL 25   // temp. for nominal resistance (almost always 25 C)
-#define BCOEFFICIENT 4050 //4038 // The beta coefficient of the thermistor (usually 3000-4000)
+#define BCOEFFICIENT 4000 //4038 // The beta coefficient of the thermistor (usually 3000-4000)
 #define SERIESRESISTOR 9920   // the value of the 'other' resistor
 
 //General Globals
