@@ -28,7 +28,7 @@
 
 //Buffers
 char lcdScratch[30];
-
+  
 //Bucket label list
 #define TIME_BUCKET_COUNT 5
 char* bucketLabels[TIME_BUCKET_COUNT]={"Now","Min","Hr ","Day","Mth"};
@@ -43,5 +43,83 @@ int numOfCursors=0;
 int currentCursor=-1;
 int currentADC=0;
 int currentTimeBucket=0;
+
+//custom chars
+byte bulk[] = {
+  B11111,
+  B11111,
+  B00000,
+  B11111,
+  B00000,
+  B00000,
+  B00000,
+  B00000
+};
+
+byte floatToBulk[] = {
+  B00100,
+  B01110,
+  B10101,
+  B00100,
+  B00100,
+  B00100,
+  B11111,
+  B11111
+};
+
+byte notToBulk[] = {
+  B11111,
+  B11111,
+  B00100,
+  B01110,
+  B10101,
+  B00100,
+  B00100,
+  B00100
+};
+
+byte upDown[] = {
+  B11111,
+  B11111,
+  B00100,
+  B00100,
+  B00100,
+  B00100,
+  B11111,
+  B11111
+};
+
+byte bulkToFloat[] = {
+  B11111,
+  B11111,
+  B00100,
+  B00100,
+  B10101,
+  B01110,
+  B00100,
+  B11111
+};
+
+byte bulkToNot[] = {
+  B11111,
+  B11111,
+  B00100,
+  B00100,
+  B00100,
+  B10101,
+  B01110,
+  B00100
+};
+
+byte multUpDown[] = {
+  B11111,
+  B11111,
+  B01010,
+  B01010,
+  B01010,
+  B01010,
+  B11111,
+  B11111
+};
 
 #endif 

@@ -5,6 +5,17 @@ void setupLCD()
 {
   lcd.begin(16,2);  //16 x 2 lcd
   lcd.print("Starting...");
+
+  //create the custom chars
+  lcd.createChar(0, bulk);
+  lcd.createChar(1, floatToBulk);
+  lcd.createChar(2, notToBulk);
+  lcd.createChar(3, upDown);
+  lcd.createChar(4, bulkToFloat);
+  lcd.createChar(5, bulkToNot);
+  lcd.createChar(6, multUpDown);
+
+  //turn backlight on
   backlightOn();;
 }
 
