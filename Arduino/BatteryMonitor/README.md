@@ -1,5 +1,5 @@
 ### Overview
-This is a purpose built battery/solar monitoring system.  It's goal is to track all Amps in and out of the system, including solar, alternature, living area, and inverter.
+This is a purpose built battery/solar monitoring system.  It's goal is to track all Amps in and out of the system, including solar, van alternator, living area, and inverter.
 
 ### Screen decoder
 (Yes, the fact that a decoder is needed is not good.  Apparently, I'm not a UI designer)
