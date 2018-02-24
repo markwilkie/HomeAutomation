@@ -33,7 +33,7 @@ void mainScreen()
 
   //Remember last values so we're only converting and updating on change
   static double lastStateOfCharge=-999;
-  static long lastBatterymV=-999;
+  static double lastVolts=-999;
   static long lastCurrent=-999;
   double long lastHoursRem=-999;  
 
@@ -54,7 +54,7 @@ void mainScreen()
 
     //Reset 
     lastStateOfCharge=-999;
-    lastBatterymV=-999;
+    lastVolts=-999;
     lastCurrent=-999;
     lastHoursRem=-999;          
   }
@@ -63,6 +63,7 @@ void mainScreen()
   //  0123456789012345
   //  SoC>99.9 V>13.1 
   // 
+  double stateOfCharge=battery.getSoC();
   if(stateOfCharge!=lastStateOfCharge)
   { 
     if(stateOfCharge<0){
@@ -77,9 +78,10 @@ void mainScreen()
       lcdPrint(lcdScratch,4,0);
     }
   }
-  if(batterymV!=lastBatterymV)
+  double volts=battery.getVolts();
+  if(volts!=lastVolts)
   {
-    dtostrf((batterymV*.001), 3, 1, lcdScratch); 
+    dtostrf(volts, 3, 1, lcdScratch); 
     lcdPrint(lcdScratch,11,0);
   }
 
@@ -95,7 +97,7 @@ void mainScreen()
     lcdPrint(lcdScratch,3,1);
   }
 
-  double hoursRem=calcHoursRemaining(current);
+  double hoursRem=battery.getHoursRemaining(current);
   if(hoursRem!=lastHoursRem)
   {
     if(hoursRem>99 || hoursRem<0) {
@@ -110,7 +112,7 @@ void mainScreen()
 
   //Set last to new, current values for next time around
   lastStateOfCharge=stateOfCharge;
-  lastBatterymV=batterymV;
+  lastVolts=volts;
   lastCurrent=current;
   lastHoursRem=hoursRem;  
 }
@@ -317,7 +319,7 @@ void statusScreen()
   //build line 1
   //Rst>99999 T>99.9
   //0123456789012345
-  lcdPrint(buildTimeLabel(currentTime-socReset,lcdScratch),4,0);
+  lcdPrint(buildTimeLabel(currentTime-battery.getSoCReset(),lcdScratch),4,0);
   dtostrf(temperatureRead(), 3, 1, lcdScratch); 
   lcdPrint(lcdScratch,12,0);
 

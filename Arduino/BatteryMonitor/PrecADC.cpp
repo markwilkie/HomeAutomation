@@ -85,25 +85,50 @@ void PrecADC::add()
   secondBuf.push(adcBuffer.getMedian());
 
   seconds++;
-  if(seconds>=59)  //since 59 is the 60th second, and we add the last (59th) to the second queue before promoting, we need to reset ON the 59th instead of 60th
+  if(seconds>59)  //since 59 is the 60th second, and we add the last (59th) to the second queue before promoting, we need to reset ON the 59th instead of 60th
   {
     seconds=0;
     minutes++;
     minuteBuf.push(calcAvgFromBuffer(&secondBuf,-1));       
   }
    
-  if(minutes>=59)
+  if(minutes>59)
   {
     minutes=0;
     hours++;
     hourBuf.push(calcAvgFromBuffer(&minuteBuf,-1));     
   }
 
-  if(hours>=23)
+  if(hours>23)
   {
     hours=0;
     dayBuf.push(calcAvgFromBuffer(&hourBuf,-1));        
   }
+}
+
+long PrecADC::getSum(long sinceSeconds)
+{
+  //Figure how many hours and minutes since the last SoC reset
+  long hours=sinceSeconds/3600L;
+  sinceSeconds=sinceSeconds-(hours*3600L);
+  long minutes=sinceSeconds/60L;
+  sinceSeconds=sinceSeconds-(minutes*60L);
+
+  //Make sure we're not too high
+  if(hours>24)
+    hours=24;
+
+  //get mAh
+  long rawHours=calcSumFromBuffer(&hourBuf,hours);
+  long rawMinutes=calcSumFromBuffer(&minuteBuf,minutes);
+
+  //convert and return
+  long maTotal=calcMilliAmps(rawMinutes,minutes);
+  maTotal=maTotal/60L;  //convert to mAh from mA minutes 
+  maTotal=maTotal+calcMilliAmps(rawHours,hours);
+
+  return maTotal;
+  
 }
 
 //grabs median from adcBuffer
@@ -285,8 +310,13 @@ long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucket
 
 long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer)
 {
+  return calcSumFromBuffer(circBuffer,circBuffer->size());
+}
+
+long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer,int size)
+{
   long sum=0;
-  for(int i=0;i<circBuffer->size();i++)
+  for(int i=(size-1);i>-1;i--)
   {
     //Check for make sure it's an initialized value
     if((*circBuffer)[i]!=-1)

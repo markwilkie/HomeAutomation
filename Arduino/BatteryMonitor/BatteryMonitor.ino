@@ -8,32 +8,19 @@
 //Helpers
 #include "PrecADCList.h"
 #include "LcdScreens.h"
+#include "Battery.h"
 
 //setup
 RTC_DS3231 rtc;
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 PrecADCList precADCList = PrecADCList();
 
+//Battery
+Battery battery = Battery();
+
 //Init onboard ADC buffer
 #define ADC_SAMPLE_SIZE 10
 FastRunningMedian<long,ADC_SAMPLE_SIZE,0> adcBuffer;
-
-//Battery level globals
-#define BAT_PIN A0
-#define BAT_FULL 13000
-#define BAT_EMPTY 12400
-#define AH 310
-#define CHARGE_EFFICIENCY 94
-#define REST_CHARGE_LIMIT 1000
-#define REST_DRAIN_LIMIT 5000
-#define REST_WINDOW 72000  //20 hours
-long mAhRemaining;
-long batterymV;
-double stateOfCharge;
-long socReset;
-long lowPointSetTime;
-long restingmV;
-
 
 //Thermistor (thermometer)
 #define THERMISTORPIN A1   // which analog pin to connect      
@@ -66,16 +53,13 @@ void setup()
   //Precision ADC circuit buffers
   precADCList.begin();
 
-  //Let's start with an amp hour guess
-  batterymV=calcBatteryMilliVolts(mvRead(BAT_PIN));
-  stateOfCharge = calcSoC(batterymV);
-  mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);
-  
+  //Battery
+  battery.begin(readVcc());
+ 
   //init vars
   bootTime = rtc.now().unixtime();
   startTime=bootTime;
   hz=0;
-  restingmV=batterymV;
 
   //Display
   Serial.println("Monitor Started");
@@ -120,37 +104,17 @@ void loop()
     //Once a minute, we add/subtract the mA to the current battery charge  (only do this once)
     if(!(currentTime % 60))
     {
-      //Get voltage from battery
-      batterymV = calcBatteryMilliVolts(mvRead(BAT_PIN));
+      //Get voltage from battery 
+      battery.readThenAdd();
+
+      //Adjust SoC if appropriate
+      long socReset=currentTime-battery.getSoCReset();
+      long drainmah=precADCList.getDrainSum(socReset);      
+      battery.adjustSoC(rtc.now().unixtime(),temperatureRead(),drainmah);
 
       //Adjust Ah left on battery based on last minute mAh flow
-      adjustAh();
-
-      //If ampflow is below a threshold, reset SoC and Ah based on voltage
-      long mAhLastHourChargeAvg=precADCList.getLastHourChargeAvg();
-      long mAhLastHourDrainAvg=(precADCList.getLastHourAvg()-precADCList.getLastHourChargeAvg())*-1;
-      if(mAhLastHourDrainAvg < REST_DRAIN_LIMIT && mAhLastHourChargeAvg < REST_CHARGE_LIMIT)
-      {
-        bool setSoC=false;
-        
-        //ratchet resting mv down if still in time window and voltage is lower
-        if(restingmV > batterymV && (currentTime-lowPointSetTime) < REST_WINDOW)
-          setSoC=true;
-
-        //if we're out of the window, release ratchet and set it again
-        if((currentTime-lowPointSetTime) > REST_WINDOW)
-          setSoC=true;
-
-        //If flag set, then set new SoC
-        if(setSoC)
-        {
-          restingmV=batterymV;
-          lowPointSetTime=currentTime;
-
-          stateOfCharge = calcSoC(batterymV);
-          mAhRemaining=calcMilliAmpHoursRemaining(stateOfCharge);             
-        }
-      }
+      long mAhFlow=precADCList.getLastMinuteAvg();
+      battery.adjustAh(mAhFlow);
     }       
   }
 }
@@ -165,16 +129,17 @@ void printStatus()
   //print general status
   Serial.println("============================");
   Serial.print("Free Ram: "); Serial.println(freeRam());
-  Serial.print("SoC: "); Serial.println(stateOfCharge);
-  Serial.print("Voltage: "); Serial.println(batterymV*.001);
+  Serial.print("SoC: "); Serial.println(battery.getSoC());
+  Serial.print("Voltage: "); Serial.println(battery.getVolts());
   Serial.print("Temperature: "); Serial.println(temperatureRead());
   Serial.print("Ah flow: "); Serial.println(precADCList.getCurrent()*.001,3);
-  Serial.print("Usable Ah left: "); Serial.println(mAhRemaining*.001);
-  Serial.print("Hours left to 100% or 50%: "); Serial.println(calcHoursRemaining(precADCList.getCurrent()));  
+  Serial.print("Usable Ah left: "); Serial.println(battery.getAmpHoursRemaining());
+  Serial.print("Hours left to 100% or 50%: "); Serial.println(battery.getHoursRemaining(precADCList.getCurrent()));  
   Serial.print("Hz: "); Serial.println(hz);
   Serial.print("Current Second: "); Serial.println(currentTime);
-  Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(currentTime-socReset,buffer));
+  Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(currentTime-battery.getSoCReset(),buffer));
   Serial.print("Uptime: "); Serial.println(buildTimeLabel(startTime,buffer)); 
+  Serial.print("Duty Cycle: "); Serial.println(battery.getDutyCycle(),3); 
 }
 
 //Pass in your own buffer to fill (at least 20 chars long)
@@ -214,37 +179,6 @@ char *buildTimeLabel(long seconds,char *buffer)
   return buffer;
 }
 
-//Update the number of Ah remaining on the battery based on the last minute of current flow
-void adjustAh()
-{
-    //Let's increment/decrement AH of the battery based on amperage flow as an estimate
-    long mAhFlow=precADCList.getLastMinuteAvg();
-  
-    //If charge, add effeciency
-    if(mAhFlow > 0)
-      mAhFlow=mAhFlow*(CHARGE_EFFICIENCY * .01);
-  
-    //Ok, update amp hours - making sure we divide the flow by 60, as we'll do it 60 times in one hour
-    mAhRemaining=mAhRemaining+(mAhFlow/60);  
-}
-
-//Returns mV from onboard ADC using a calibrated aref value
-long mvRead(int pin)
-{
-  //Clear the ADC's throat
-  analogRead(pin);
-  
-  //Read ADC
-  adcBuffer.clear();
-  for(int i=0;i<ADC_SAMPLE_SIZE;i++)
-  {
-    adcBuffer.addValue(analogRead(pin));
-  }
-
-  long vcc=readVcc();
-  return (adcBuffer.getMedian() * vcc) / 1024 ; // convert readings to mv  
-}
-
 //Return temperature
 double temperatureRead()
 {
@@ -270,73 +204,6 @@ double temperatureRead()
   steinhart = steinhart*(9.0/5.0)+32.0; //convert to F
 
   return steinhart;
-}
- 
-//Calc battery voltage taking into account the resistor divider
-long calcBatteryMilliVolts(long mv)
-{
-  //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
-  return mv * 4.95;
-  //return 12960;
-}
-
-//Return % state of charge based on battery level
-double calcSoC(int mv)
-{
-  socReset=rtc.now().unixtime();  //used to know how long ago the SoC was last set
-  
-  //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%, 12.82V = 80%, 12.96V = 90%, 13.1V = 100%
-  //         -->              12.52V = 60%, 12.64V = 70%, 12.76V = 80%, 12.88V = 90%, 13V = 100%
-  //
-  // 3.33mv adjust for each degree F temperature change  (lower temp means higher voltage for full)
-  //
-  int full=BAT_FULL; //@50deg F
-  int empty=BAT_EMPTY;
-
-  //Adjust for temperature
-  int offset=(50-temperatureRead())*3.33;
-  full=full+offset;
-  empty=empty+offset;
-
-  //Calc increments per 1%, then percentage
-  double incr=(full-empty)/50.0;  //gives voltage per 1% in mV
-  double sos=(((mv-empty)/incr) + 50);
-
-  if(sos<0)
-    sos=0;
-
-  return sos;
-}
-
-//Calc milli amp hours left in battery based on SoC (%)
-long calcMilliAmpHoursRemaining(long soc)
-{
-  //return's 50% of total capacity, as anything below that is not usable
-  long ah=AH*(soc*.01);
-  double mAhRemaining=((ah-(AH/2))*1000);
-  if(mAhRemaining<0 || soc==0)
-    mAhRemaining=0;
-    
-  return mAhRemaining;
-}
-
-//Calc's how long the battery will last to 50% based on flow in mA passed in
-//Use this to calc time left based on any of the inputs, hour, day, etc....
-double calcHoursRemaining(long mAflow)
-{ 
-  //We should now be able to calc hours left.  If mAflow positive, return 999 if there are no amps
-  double hoursRemaining;
-  if(mAflow>=0)
-  {
-    long full=(((long)AH/2)*1000);
-    hoursRemaining=(((double)full-mAhRemaining)/mAflow);  //hours to full charge
-  }
-  else
-  {
-    hoursRemaining=(mAhRemaining/(mAflow*-1.0)); //hours to 50% charge
-  }
-
-  return hoursRemaining;
 }
 
 int freeRam() 

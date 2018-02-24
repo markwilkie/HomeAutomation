@@ -23,6 +23,9 @@ public:
  void calibrateADC(int adcNum);  //assumes no amp flow, then calibrates to zero using offset
  PrecADC *getADC(int adcNum); 
 
+ //Get sum of drain for the last n seconds
+ long getDrainSum(long seconds);
+
  //return values in milli amps as a sum of the avg for all buffers
  long getCurrent();  
  long getLastMinuteAvg();  

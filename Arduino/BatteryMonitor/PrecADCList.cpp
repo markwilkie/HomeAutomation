@@ -28,6 +28,21 @@ PrecADC *PrecADCList::getADC(int adcNum)
    return &(*adcList)[adcNum];
 }
 
+//Get drain sum since seconds 
+long PrecADCList::getDrainSum(long sinceSeconds)
+{
+  long total=0;  
+
+  for(int i=0;i<ADC_COUNT;i++)
+  {
+    long mah=(*adcList)[i].getSum(sinceSeconds);
+    if(mah<=0)
+      total=total+mah;
+  }
+
+  return total;
+}
+
 long PrecADCList::getCurrent()
 {
   long total=0;
