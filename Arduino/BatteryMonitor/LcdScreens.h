@@ -19,12 +19,14 @@
 #define TIME_BUCKET_CURS 1
 
 //Screens
-#define TOTAL_SCREENS 4
+#define TOTAL_SCREENS 6
 
 #define MAIN 0
 #define SUM 1
 #define NET_CHARGE 2
-#define STATUS 3
+#define VOLTS 3
+#define GRAPH 4
+#define STATUS 5
 
 //Buffers
 char lcdScratch[30];

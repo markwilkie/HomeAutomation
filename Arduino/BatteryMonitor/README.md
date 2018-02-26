@@ -21,6 +21,12 @@ Sum Screen
 Average Screen
 -  Same as 'sum', except for it shows averages
 
+Voltage Screen
+-  Mn> Min voltage in the last 24 hours
+-  Mx> Max voltage in the last 24 hours
+-  Flt> time since last float ended
+-  Chg> same, but for charge
+
 Status Screen
 -  Rst> time since SoC was set
 -  T> temperature in F

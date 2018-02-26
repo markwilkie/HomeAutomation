@@ -9,6 +9,7 @@
 #include "PrecADCList.h"
 #include "LcdScreens.h"
 #include "Battery.h"
+#include "debug.h"
 
 //setup
 RTC_DS3231 rtc;
@@ -54,7 +55,7 @@ void setup()
   precADCList.begin();
 
   //Battery
-  battery.begin(readVcc());
+  battery.begin(readVcc(),temperatureRead());
  
   //init vars
   bootTime = rtc.now().unixtime();
@@ -105,7 +106,7 @@ void loop()
     if(!(currentTime % 60))
     {
       //Get voltage from battery 
-      battery.readThenAdd();
+      battery.readThenAdd(rtc.now().unixtime());
 
       //Adjust SoC if appropriate
       long socReset=currentTime-battery.getSoCReset();
@@ -122,6 +123,7 @@ void loop()
 void printStatus()
 { 
   char buffer[20];
+  long socReset=currentTime-battery.getSoCReset();
   
   //print ADC status
   precADCList.printStatus();    
@@ -133,13 +135,16 @@ void printStatus()
   Serial.print("Voltage: "); Serial.println(battery.getVolts());
   Serial.print("Temperature: "); Serial.println(temperatureRead());
   Serial.print("Ah flow: "); Serial.println(precADCList.getCurrent()*.001,3);
+  Serial.print("Ah since SoC reset: "); Serial.println(precADCList.getDrainSum(socReset)*.001,3);
   Serial.print("Usable Ah left: "); Serial.println(battery.getAmpHoursRemaining());
   Serial.print("Hours left to 100% or 50%: "); Serial.println(battery.getHoursRemaining(precADCList.getCurrent()));  
   Serial.print("Hz: "); Serial.println(hz);
   Serial.print("Current Second: "); Serial.println(currentTime);
-  Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(currentTime-battery.getSoCReset(),buffer));
+  Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(socReset,buffer));
   Serial.print("Uptime: "); Serial.println(buildTimeLabel(startTime,buffer)); 
-  Serial.print("Duty Cycle: "); Serial.println(battery.getDutyCycle(),3); 
+  Serial.print("Duty Cycle: "); Serial.println(battery.getDutyCycle(),1); 
+  Serial.print("V Min: "); Serial.println(battery.getVMin(),1); 
+  Serial.print("V Max: "); Serial.println(battery.getVMax(),1); 
 }
 
 //Pass in your own buffer to fill (at least 20 chars long)
@@ -149,7 +154,7 @@ char *buildTimeLabel(long seconds,char *buffer)
 
   if(seconds>(60*60*24))  //days
   {
-    timeVal=startTime/60.0/60.0/24.0;
+    timeVal=seconds/60.0/60.0/24.0;
     if(timeVal>=100)
       strcpy(buffer,"D99+");
     else
@@ -158,22 +163,22 @@ char *buildTimeLabel(long seconds,char *buffer)
       dtostrf(timeVal, 3, 1, buffer+1);   
     }
   }
-  else if(startTime>(60*60)) //hours
+  else if(seconds>(60*60)) //hours
   {
-    timeVal=startTime/60.0/60.0;
+    timeVal=seconds/60.0/60.0;
     buffer[0]='H';
     dtostrf(timeVal, 3, 1, buffer+1);    
   }
-  else if(startTime>60) //minutes
+  else if(seconds>60) //minutes
   {
-    timeVal=startTime/60.0;
+    timeVal=seconds/60.0;
     buffer[0]='M';
     dtostrf(timeVal, 3, 1, buffer+1);     
   }
   else 
   {
     buffer[0]='S';
-    ltoa(startTime, buffer+1, 10);   //seconds
+    ltoa(seconds, buffer+1, 10);   //seconds
   }
 
   return buffer;
@@ -202,6 +207,10 @@ double temperatureRead()
   steinhart = 1.0 / steinhart;                 // Invert
   steinhart -= 273.15;  
   steinhart = steinhart*(9.0/5.0)+32.0; //convert to F
+
+  #ifdef DEBUG
+    steinhart = 72.1;
+  #endif
 
   return steinhart;
 }

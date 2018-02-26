@@ -1,7 +1,8 @@
 #include "Battery.h"
 #include "Arduino.h"
+#include "debug.h"
 
-void Battery::begin(long _vcc)
+void Battery::begin(long _vcc,double _temperature)
 {
   //Set reference vcc
   vcc=_vcc;
@@ -12,21 +13,88 @@ void Battery::begin(long _vcc)
   for(int i=0;i<16;i++) mVGraphBuf.push(-1L);  
 
   //Let's start with assuming full battery
-  mAhRemaining=AH*1000;  
+  mAhRemaining=AH*1000L;  
 
   //Zero SoC
-  stateOfCharge=-1;
+  stateOfCharge=calcSoCbyVoltage(_temperature);
 
   //Zero time tracking
   minutes=0;
   tenthHours=0;  
+
+  //Zero last float time
+  floatTime=-1;
+  chargeTime=-1;
+
+  //Set initial min/max
+  vMax=getMilliVolts();
+  vMin=getMilliVolts();
 }
 
-void Battery::readThenAdd()
+int Battery::currentGraph(long mv)
 {
+  // 0=uninitiated
+  // 1=not charging or float
+  // 2=float
+  // 3=charging
+  // 4=not to float
+  // 5=not to charging
+  // 6=float to charging
+  // 7=charging to float
+  // 8=charging to not
+  // 9=float to not
+  // 10=up/down
+
+  static int lastGraphState=0;
+
+  //not charging
+  if(mv>0 && mv<BAT_FLOAT)
+  {
+    if(lastGraphState==3)
+      lastGraphState=8;
+    else if(lastGraphState==2)
+      lastGraphState=9;     
+    else
+      lastGraphState=1;
+  }
+
+  //bulk
+  if(mv>=BAT_FLOAT && mv<BAT_CHARGE)
+  {
+    if(lastGraphState==1)
+      lastGraphState=4;
+    else if(lastGraphState==2)
+      lastGraphState=9;
+    else
+      lastGraphState=1;  
+  }
+ 
+}
+
+void Battery::readThenAdd(long rtcNow)
+{  
+  //Read current battery voltage
   long mv = getMilliVolts();
 
-  //Add to circularbuffers
+  //set min/max within a 24 hour window
+  if(mv>vMax || ((rtcNow-vMaxTime) > (24L*60L*60L)))
+  {
+    vMaxTime=rtcNow;
+    vMax=mv;
+  }
+  if(mv<vMin  || ((rtcNow-vMaxTime) > (24L*60L*60L)))
+  {
+    vMinTime=rtcNow;
+    vMin=mv;
+  }
+
+  //set times for float and charge
+  if(mv>=BAT_FLOAT && mv<BAT_CHARGE)
+    floatTime=rtcNow;
+  if(mv>=BAT_CHARGE)
+    chargeTime=rtcNow;
+
+  //Add current reading to circularbuffers
   mVMinBuf.push(mv);
 
   minutes++;
@@ -37,7 +105,7 @@ void Battery::readThenAdd()
     mVTenthHourBuf.push(calcAvgFromBuffer(&mVMinBuf,-1));     
   }
 
-  if(tenthHours>=20)
+  if(tenthHours>=15)
   {
     tenthHours=0;
     mVGraphBuf.push(calcAvgFromBuffer(&mVTenthHourBuf,-1));     
@@ -61,22 +129,16 @@ long Battery::getMilliVolts()
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
   mv = mv * 4.95;  
 
+  #ifdef DEBUG
+    mv = 14200;
+  #endif
+
   return mv;
 }
 
 double Battery::getVolts()
 {
   return getMilliVolts()*.001;
-}
-
-double Battery::getSoC()
-{
-  return stateOfCharge;
-}
-
-long Battery::getSoCReset()
-{
-  return socReset;
 }
 
 void Battery::adjustSoC(long rtcNow,double temperature,long drainmah)
@@ -86,35 +148,57 @@ void Battery::adjustSoC(long rtcNow,double temperature,long drainmah)
    * - Set SoC to 100% when float + charge duty cycle <25%  (perhaps add last hour is float, and current is float)
      - Set SoC to 100% when SoC > 100% AND 1Ah is discharged
    */
-   
-  //If soc is invalid, set
-  if(stateOfCharge<=0)
+
+   /*
+  //If soc is invalid or voltage is already below float, set it based on voltage
+  if(stateOfCharge<=0 || getMilliVolts() < BAT_FLOAT)
   {
-     stateOfCharge = calcSoCbyVoltage(rtcNow,temperature);
-     return;
+    Serial.println("###  Reseting based on voltage");
+    stateOfCharge = calcSoCbyVoltage(temperature);
+    socReset=rtcNow;  //used to know how long ago the SoC was last set
+    return;
   }
+  */
 
   //If we've discharged more than 1Ah and SoC > 100, then we'll reset
   if(drainmah<-1000 && stateOfCharge > 100)
   {
+    Serial.println("###  Reseting based on 1Ah");
     stateOfCharge=100;
+    mAhRemaining=AH*1000L; 
+    socReset=rtcNow;  //used to know how long ago the SoC was last set
     return;
   }
 
   //Let's get duty cycle and see if should reset SoC or not
   double dutyCycle=getDutyCycle();
-  if(dutyCycle<=.25 && mVMinBuf.last() < BAT_CHARGE)
+  if(dutyCycle<=.25 && getMilliVolts() < BAT_CHARGE && getMilliVolts() >= BAT_FLOAT)
   {
+    Serial.println("###  Reseting based on duty cycle");
     stateOfCharge=100;
+    mAhRemaining=AH*1000L; 
+    socReset=rtcNow;  //used to know how long ago the SoC was last set
     return;    
   } 
 }
 
-//Return % state of charge based on battery level
-double Battery::calcSoCbyVoltage(long rtcNow,double temperature)
-{
-  socReset=rtcNow;  //used to know how long ago the SoC was last set
+//Update the number of Ah remaining on the battery based on givecurrent flow
+void Battery::adjustAh(long mAhFlow)
+{    
+    //If charge, add effeciency
+    if(mAhFlow > 0)
+      mAhFlow=mAhFlow*(CHARGE_EFFICIENCY * .01);
   
+    //Ok, update amp hours - making sure we divide the flow by 60, as we'll do it 60 times in one hour
+    mAhRemaining=mAhRemaining+(mAhFlow/60L);  
+
+    //Now update SoC
+    stateOfCharge=((mAhRemaining/1000.0)/AH)*100.0;
+}
+
+//Return % state of charge based on battery level
+double Battery::calcSoCbyVoltage(double temperature)
+{ 
   //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%, 12.82V = 80%, 12.96V = 90%, 13.1V = 100%
   //         -->              12.52V = 60%, 12.64V = 70%, 12.76V = 80%, 12.88V = 90%, 13V = 100%
   //
@@ -129,16 +213,16 @@ double Battery::calcSoCbyVoltage(long rtcNow,double temperature)
   empty=empty+offset;
 
   //Get voltage
-  long mv=mVMinBuf.last(); //Get the last minute voltage 
+  long mv=getMilliVolts(); 
 
   //Calc increments per 1%, then percentage
-  double incr=(full-empty)/50.0;  //gives voltage per 1% in mV
-  double sos=(((mv-empty)/incr) + 50);
+  double incr=(full-empty)/50.0;  //gives voltage per 1% in mV  ("empty" is actually 50% of the battery capacity)
+  double soc=(((mv-empty)/incr) + 50);
 
-  if(sos<0)
-    sos=0;
+  //set mahremaining based on SoC percentage  (this should fix itself over time)
+  mAhRemaining=(AH*(soc/100.0))*1000.0;
 
-  return sos;
+  return soc;
 }
 
 double Battery::getAmpHoursRemaining()
@@ -163,20 +247,6 @@ double Battery::getHoursRemaining(long mAflow)
   }
 
   return hoursRemaining;
-}
-
-//Update the number of Ah remaining on the battery based on givecurrent flow
-void Battery::adjustAh(long mAhFlow)
-{ 
-    //If charge, add effeciency
-    if(mAhFlow > 0)
-      mAhFlow=mAhFlow*(CHARGE_EFFICIENCY * .01);
-  
-    //Ok, update amp hours - making sure we divide the flow by 60, as we'll do it 60 times in one hour
-    mAhRemaining=mAhRemaining+(mAhFlow/60);  
-
-    //Now update SoC
-    stateOfCharge=(mAhRemaining/1000)/AH;
 }
 
 double Battery::getDutyCycle()

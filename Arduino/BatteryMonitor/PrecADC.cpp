@@ -1,5 +1,6 @@
 #include "PrecADC.h"
 #include "EEPROMAnything.h"
+#include "debug.h"
 
 PrecADC::PrecADC(int n,int g,int o, float a, char *l, int s)
 {
@@ -74,7 +75,18 @@ void PrecADC::read()
   }
 
   //Add median from samples to buffer
-  adcBuffer.addValue(adcReadBuffer.getMedian());
+  #ifdef DEBUG
+    if(adcNum==0)
+      adcBuffer.addValue(17000);
+    if(adcNum==1)
+      adcBuffer.addValue(15500);
+    if(adcNum==2)
+      adcBuffer.addValue(13400);
+    if(adcNum==3)
+      adcBuffer.addValue(13400);              
+  #else
+    adcBuffer.addValue(adcReadBuffer.getMedian());
+  #endif   
 
   //Put adc back to default
   ads.setGain(GAIN_TWOTHIRDS);
@@ -110,9 +122,8 @@ long PrecADC::getSum(long sinceSeconds)
 {
   //Figure how many hours and minutes since the last SoC reset
   long hours=sinceSeconds/3600L;
-  sinceSeconds=sinceSeconds-(hours*3600L);
-  long minutes=sinceSeconds/60L;
-  sinceSeconds=sinceSeconds-(minutes*60L);
+  long sec=sinceSeconds-(hours*3600L);
+  long minutes=sec/60L;
 
   //Make sure we're not too high
   if(hours>24)
@@ -128,7 +139,6 @@ long PrecADC::getSum(long sinceSeconds)
   maTotal=maTotal+calcMilliAmps(rawHours,hours);
 
   return maTotal;
-  
 }
 
 //grabs median from adcBuffer
@@ -316,7 +326,12 @@ long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer)
 long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer,int size)
 {
   long sum=0;
-  for(int i=(size-1);i>-1;i--)
+
+  //start from the end of the buffer
+  int start=circBuffer->size()-1;
+  int end=circBuffer->size()-size-1;
+    
+  for(int i=start;i>end;i--)
   {
     //Check for make sure it's an initialized value
     if((*circBuffer)[i]!=-1)

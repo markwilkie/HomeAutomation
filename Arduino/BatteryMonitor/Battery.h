@@ -21,13 +21,20 @@ private:
 
   #define BAT_FLOAT 13500
   #define BAT_CHARGE 14000
-  
-  //Vars
-  long vcc;
+
+  //properties
   float stateOfCharge;
   long mAhRemaining;
   long socReset;
-
+  long vMax;
+  long vMaxTime;
+  long vMin;
+  long vMinTime;  
+  long floatTime;
+  long chargeTime;
+  
+  //Vars
+  long vcc;
   int minutes;
   int tenthHours;
 
@@ -41,21 +48,28 @@ private:
   FastRunningMedian<long,VOLTAGE_SAMPLE_SIZE,0> adcBuffer;  
 
   //Members
-  double calcSoCbyVoltage(long rtcNow,double temperature);
+  double calcSoCbyVoltage(double temperature);
   long getMilliVolts();
   long calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg);  
+  int currentGraph(long mv);
    
 public:
- void begin(long vcc); //starts stuff up and inits buffer
- void readThenAdd(); //reads according to sample size, then adds the result to the circular buffer
- double getVolts();
- double getSoC();
- long getSoCReset();
- void adjustSoC(long rtcNow,double temperature,long socreset);
- double getHoursRemaining(long mAflow); //calculates time remaining based on given flow
- double getAmpHoursRemaining(); //based on SoC 
- void adjustAh(long mAflow);
- double getDutyCycle();  
+   //members
+   void begin(long vcc,double temperature); //starts stuff up and inits buffer
+   void readThenAdd(long rtcNow); //reads according to sample size, then adds the result to the circular buffer
+   double getVolts();
+   double getSoC() const { return stateOfCharge; }
+   long getSoCReset() const { return socReset; }
+   double getVMax() const { return vMax*.001; }
+   double getVMin() const { return vMin*.001; } 
+   long getFloatTime() const { return floatTime; } 
+   long getChargeTime() const { return chargeTime; } 
+   void adjustSoC(long rtcNow,double temperature,long drainmah);
+   double getHoursRemaining(long mAflow); //calculates time remaining based on given flow
+   double getAmpHoursRemaining(); //based on SoC 
+   void adjustAh(long mAflow);
+   double getDutyCycle();  
+   long getmVGraphBuf(int i) const { return mVGraphBuf[i]; } ;
 };
 
 #endif 

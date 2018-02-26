@@ -69,9 +69,9 @@ void mainScreen()
     if(stateOfCharge<0){
       lcdPrint("--   ",4,0);
     }
-    else if(stateOfCharge>100){
-      lcdPrint("*100 ",4,0);
-    }
+    //else if(stateOfCharge>100){
+    //  lcdPrint("*100 ",4,0);
+    //}
     else {
       dtostrf(stateOfCharge, 3, 1, lcdScratch); 
       lcdPrint("     ",4,0);
@@ -100,8 +100,11 @@ void mainScreen()
   double hoursRem=battery.getHoursRemaining(current);
   if(hoursRem!=lastHoursRem)
   {
-    if(hoursRem>99 || hoursRem<0) {
+    if(hoursRem<0) {
       lcdPrint("--  ",12,1);
+    }
+    else if(hoursRem>99) {
+      lcdPrint("99+ ",12,1);
     }
     else {
       dtostrf(hoursRem, 3, 1, lcdScratch);   
@@ -295,7 +298,121 @@ void netChargeScreen()
   lastCurrentTimeChargeTotal=currentTimeChargeTotal;  
 }
 
-//Screen 4
+// screen 4
+void voltageScreen()
+{
+  numOfCursors=0; //Both ADC and time buckets for this screen
+  lcd.noCursor();
+
+  //Remember last values so we're only converting and updating on change
+  static long lastFoatTime=-999;
+  static long lastChargeTime=-999;
+  static double lastVMax=-999;
+  static double lastVMin=-999;
+
+  //Only do this if coming from another screen
+  if(lastScreen!=VOLTS)
+  {
+    lcd.clear(); 
+    Serial.println("Loading Voltage Screen");
+    lastScreen=VOLTS;
+    currentCursor=0;
+
+    //Print static labels
+    lcdPrint("Mn>",0,0);      
+    lcdPrint("Mx>",8,0);
+    lcdPrint("Flt>",0,1);
+    lcdPrint("Chg>",8,1);     
+
+    //Reset last values
+    lastFoatTime=-999;
+    lastChargeTime=-999;
+    lastVMax=-999;
+    lastVMin=-999;   
+  }
+
+  //build line 1
+  //  Mn>99.9 Mx>99.9
+  //  0123456789012345
+  if(battery.getVMin()!=lastVMin)
+  {
+    dtostrf(battery.getVMin(), 3, 1, lcdScratch);
+    lcdPrint("     ",3,0);
+    lcdPrint(lcdScratch,3,0);
+  }
+  if(battery.getVMax()!=lastVMax)
+  {
+    dtostrf(battery.getVMax(), 3, 1, lcdScratch);
+    lcdPrint("    ",11,0);
+    lcdPrint(lcdScratch,11,0);
+  }
+
+  //build line 2
+  //Flt>99x Chg>99x
+  //0123456789012345
+  if(battery.getFloatTime()!=lastFoatTime)
+  { 
+    if(battery.getFloatTime()<0)
+      lcdPrint("-- ",4,1);
+    else
+      lcdPrint(buildTimeLabel(currentTime-battery.getFloatTime(),lcdScratch),4,1);
+  }
+  if(battery.getChargeTime()!=lastChargeTime)
+  { 
+    if(battery.getChargeTime()<0)
+      lcdPrint("-- ",12,1);    
+    else
+      lcdPrint(buildTimeLabel(currentTime-battery.getChargeTime(),lcdScratch),12,1);
+  }
+  
+  //Set last for next time
+  lastFoatTime=battery.getFloatTime();
+  lastChargeTime=battery.getChargeTime();
+  lastVMax=battery.getVMax();
+  lastVMin=battery.getVMin(); 
+}
+
+// screen 5
+void graphScreen()
+{
+  numOfCursors=0; //Both ADC and time buckets for this screen
+  lcd.noCursor();
+
+  /*
+    byte bulk[] = {
+    byte floatToBulk[] = {
+    byte notToBulk[] = {
+    byte upDown[] = {
+    byte bulkToFloat[] = {
+    byte bulkToNot[] = {
+    byte multUpDown[] = {
+   */
+
+  //Only do this if coming from another screen
+  if(lastScreen!=GRAPH)
+  {
+    lcd.clear(); 
+    Serial.println("Loading Graph Screen");
+    lastScreen=GRAPH;
+    currentCursor=0;
+
+    //scroll through
+    for(int i=0;i<=16;i++)
+    {
+      int reading=battery.getmVGraphBuf(i);
+      lcd.write(reading);          
+    }
+    lcd.write(0);
+    lcd.write(1);
+    lcd.write(2);
+    lcd.write(3);
+    lcd.write(4);
+    lcd.write(5);
+    lcd.write(6);
+  }
+}
+
+//Screen 6
 void statusScreen()
 { 
   numOfCursors=-1;  //no cursors for this screen
@@ -559,6 +676,12 @@ void printCurrentScreen()
       break;      
     case NET_CHARGE:
       netChargeScreen();
+      break;
+    case VOLTS:
+      voltageScreen();
+      break;
+    case GRAPH:
+      graphScreen();
       break;
     case STATUS:
       statusScreen();
