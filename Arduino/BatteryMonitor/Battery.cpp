@@ -10,17 +10,13 @@ void Battery::begin(long _vcc,double _temperature)
   //Init time based buffers
   for(int i=0;i<6;i++) mVMinBuf.push(-1L);
   for(int i=0;i<20;i++) mVTenthHourBuf.push(-1L);
-  for(int i=0;i<16;i++) mVGraphBuf.push(-1L);  
+  for(int i=0;i<32;i++) mVGraphBuf.push(-1L);  
 
   //Let's start with assuming full battery
   mAhRemaining=AH*1000L;  
 
   //Zero SoC
   stateOfCharge=calcSoCbyVoltage(_temperature);
-
-  //Zero time tracking
-  minutes=0;
-  tenthHours=0;  
 
   //Zero last float time
   floatTime=-1;
@@ -31,48 +27,96 @@ void Battery::begin(long _vcc,double _temperature)
   vMin=getMilliVolts();
 }
 
-int Battery::currentGraph(long mv)
+int Battery::getGraphEntry(long mv,bool resetFlag)
 {
   // 0=uninitiated
-  // 1=not charging or float
+  // 1=not
   // 2=float
   // 3=charging
-  // 4=not to float
-  // 5=not to charging
-  // 6=float to charging
-  // 7=charging to float
-  // 8=charging to not
-  // 9=float to not
-  // 10=up/down
+  // 4=not to charging
+  // 5=float to charging
+  // 6=charging to float
+  // 7=charging to not
+  // 8=up/down
+  // 9=multi up/down
 
   static int lastGraphState=0;
+  static bool downFlag=false;
+  static bool upFlag=false;
+  int proposedGraphState=0;
 
   //not charging
-  if(mv>0 && mv<BAT_FLOAT)
-  {
-    if(lastGraphState==3)
-      lastGraphState=8;
-    else if(lastGraphState==2)
-      lastGraphState=9;     
-    else
-      lastGraphState=1;
-  }
+  if(mv<BAT_FLOAT)
+    proposedGraphState=1; //nothing
 
   //bulk
   if(mv>=BAT_FLOAT && mv<BAT_CHARGE)
+    proposedGraphState=2; //float
+
+  //charging
+  if(mv>=BAT_CHARGE)
+    proposedGraphState=3; //charge
+
+  //Figure transitions
+  if(proposedGraphState==1) //nothing
   {
-    if(lastGraphState==1)
-      lastGraphState=4;
-    else if(lastGraphState==2)
-      lastGraphState=9;
-    else
-      lastGraphState=1;  
+    if(lastGraphState==3) //charge
+    {
+      downFlag=true;
+      proposedGraphState=7; //charge to not
+    }
   }
- 
+  if(proposedGraphState==2) //float
+  {
+    if(lastGraphState==3) //charge
+    {
+      downFlag=true;
+      proposedGraphState=6; //charge to float
+    }
+  }  
+  if(proposedGraphState==3) //charge
+  {
+    if(lastGraphState==2) //float
+    {
+      upFlag=true;
+      proposedGraphState=5; //float to charge
+    }
+    if(lastGraphState==1) //not
+    {
+      upFlag=true;
+      proposedGraphState=4; //not to charge
+    }    
+  } 
+  if(upFlag && downFlag)
+  {
+    proposedGraphState=8; //up-down
+  }
+  if((upFlag || downFlag) && lastGraphState==8)
+  {
+    proposedGraphState=9; //multi up-down
+  }
+
+  //If flag, reset it
+  if(resetFlag)
+  {
+    lastGraphState=0;
+    downFlag=false;
+    upFlag=false;
+  }
+  else
+  {
+    lastGraphState=proposedGraphState;
+  }
+
+  return proposedGraphState;
 }
 
+//Called every minute
 void Battery::readThenAdd(long rtcNow)
 {  
+  static int minutes=0;
+  static int graphMinutes=0;
+  
   //Read current battery voltage
   long mv = getMilliVolts();
 
@@ -101,14 +145,20 @@ void Battery::readThenAdd(long rtcNow)
   if(minutes>=6)
   {
     minutes=0;
-    tenthHours++;
     mVTenthHourBuf.push(calcAvgFromBuffer(&mVMinBuf,-1));     
   }
 
-  if(tenthHours>=15)
+  //Graphing
+  graphMinutes++;
+  if(graphMinutes<45)
   {
-    tenthHours=0;
-    mVGraphBuf.push(calcAvgFromBuffer(&mVTenthHourBuf,-1));     
+    getGraphEntry(mv,false);
+  }
+  else
+  {
+    graphMinutes=0;
+    int graphChar=getGraphEntry(mv,true);
+    mVGraphBuf.push(graphChar);     
   }
 }
 

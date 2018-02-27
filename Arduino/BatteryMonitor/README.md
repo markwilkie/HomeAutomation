@@ -27,6 +27,18 @@ Voltage Screen
 -  Flt> time since last float ended
 -  Chg> same, but for charge
 
+Graph Screen  (each segment == 45 minutes)
+-  period (.) --> Not yet initialized
+-  Blank / Space --> no float or charge
+-  Underline --> Float
+-  Double bars at the top --> bulk charge
+-  bars with arrow on top --> float to bulk
+-  nothing with arrow --> straight to bulk
+-  Bar at top/bottom w/ line --> back and forth between two states
+-  Bar at top and bottom w/ down arrow --> bulk to float
+-  Bar at top w/ only arow --> bulk to nothing
+-  Bar at top/bottom w/ two lines --> multiple back and forth
+
 Status Screen
 -  Rst> time since SoC was set
 -  T> temperature in F

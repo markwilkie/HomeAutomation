@@ -8,11 +8,11 @@ void setupLCD()
 
   //create the custom chars
   lcd.createChar(0, bulk);
-  lcd.createChar(1, floatToBulk);
-  lcd.createChar(2, notToBulk);
-  lcd.createChar(3, upDown);
-  lcd.createChar(4, bulkToFloat);
-  lcd.createChar(5, bulkToNot);
+  lcd.createChar(1, notToBulk);  
+  lcd.createChar(2, floatToBulk);
+  lcd.createChar(3, bulkToFloat);
+  lcd.createChar(4, bulkToNot);
+  lcd.createChar(5, upDown);
   lcd.createChar(6, multUpDown);
 
   //turn backlight on
@@ -378,15 +378,16 @@ void graphScreen()
   numOfCursors=0; //Both ADC and time buckets for this screen
   lcd.noCursor();
 
-  /*
-    byte bulk[] = {
-    byte floatToBulk[] = {
-    byte notToBulk[] = {
-    byte upDown[] = {
-    byte bulkToFloat[] = {
-    byte bulkToNot[] = {
-    byte multUpDown[] = {
-   */
+  // 0=uninitiated
+  // 1=not
+  // 2=float
+  // 3=charging  
+  // 4=not to charging 
+  // 5=float to charging 
+  // 6=charging to float
+  // 7=charging to not
+  // 8=up/down
+  // 9=multi up/down    
 
   //Only do this if coming from another screen
   if(lastScreen!=GRAPH)
@@ -397,18 +398,21 @@ void graphScreen()
     currentCursor=0;
 
     //scroll through
-    for(int i=0;i<=16;i++)
+    for(int i=0;i<32;i++)
     {
-      int reading=battery.getmVGraphBuf(i);
-      lcd.write(reading);          
+      int graphChar=battery.getmVGraphBuf(i);
+
+      if(i>=16)
+        lcd.setCursor((i-16),1);
+      if(graphChar<0)
+        lcd.write('.');       
+      if(graphChar==0 || graphChar==1)
+        lcd.write(' '); 
+      if(graphChar==2)
+        lcd.write('_'); 
+      if(graphChar>2 && graphChar<10)
+        lcd.write(graphChar-3);
     }
-    lcd.write(0);
-    lcd.write(1);
-    lcd.write(2);
-    lcd.write(3);
-    lcd.write(4);
-    lcd.write(5);
-    lcd.write(6);
   }
 }
 

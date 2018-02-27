@@ -35,13 +35,11 @@ private:
   
   //Vars
   long vcc;
-  int minutes;
-  int tenthHours;
 
   //Circular buffers
   CircularBuffer<long> mVMinBuf = CircularBuffer<long>(6);  //used to populate the 10th of an hour buffer
   CircularBuffer<long> mVTenthHourBuf = CircularBuffer<long>(20); //used to determine duty cycle for the last 2 hours
-  CircularBuffer<long> mVGraphBuf = CircularBuffer<long>(16); //used to represent last 24 hours on the 16 char display 
+  CircularBuffer<int> mVGraphBuf = CircularBuffer<int>(32); //used to represent last 24 hours on the 16x2 char display 
 
   //Init onboard ADC buffer
   #define VOLTAGE_SAMPLE_SIZE 10
@@ -51,7 +49,7 @@ private:
   double calcSoCbyVoltage(double temperature);
   long getMilliVolts();
   long calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg);  
-  int currentGraph(long mv);
+  int getGraphEntry(long mv,bool resetFlag);
    
 public:
    //members
