@@ -35,12 +35,44 @@ int readAirSensor() {
 
     //Combine pm2.5 and pm10 into one value so we don't have to change the esp protocol
     int combValue=0;
-    combValue=data.pm25_env*100;
-    combValue=combValue+data.pm100_env;
+    combValue=convert(data.pm25_env)*100;
+    combValue=combValue+convert(data.pm100_env);
     Serial.print("\t\tComb: "); Serial.println(combValue);
 
     return combValue;
   }
+}
+
+int convert(int reading)
+{
+  int convertedValue=-1;
+
+  //uses index from https://blissair.com/what-is-pm-2-5.htm
+
+  if(reading>=0 && reading<=6)
+    convertedValue=0;
+  if(reading>=7 && reading<=12)
+    convertedValue=1;
+  if(reading>=13 && reading<=20)
+    convertedValue=2;
+  if(reading>=21 && reading<=27)
+    convertedValue=3;    
+  if(reading>=28 && reading<=35)
+    convertedValue=4;
+  if(reading>=36 && reading<=43)
+    convertedValue=5;
+  if(reading>=44 && reading<=55)
+    convertedValue=6;    
+  if(reading>=56 && reading<=106)
+    convertedValue=7;
+  if(reading>=107 && reading<=150)
+    convertedValue=8;
+  if(reading>=151 && reading<=200)
+    convertedValue=9;    
+  if(reading>=201)
+    convertedValue=10;
+
+  return convertedValue;
 }
 
 boolean readPMSdata(Stream *s) {
