@@ -12,7 +12,7 @@
 
 int readTemperature(void)
 {
-  return (int)dht.readTemperature(true);
+  return (int)dht.readTemperature();
 }
 
 int readHumidity(void)
