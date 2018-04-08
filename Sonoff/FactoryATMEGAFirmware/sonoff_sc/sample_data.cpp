@@ -2,15 +2,14 @@
 #include "sample_data.h"
 #include "TimerOne.h"
 
-#include "dht11.h"
 #define  AD_NUMREADINGS  (50)
 #define  NOISE_NUM    (10)
 #define  DHT11_NUMREADINGS  (5)
 #define VOLTAGE       (5.0)
-#define DUSTPIN        A1
+//#define DUSTPIN        15  //same as A1, but this is set and used in sonof_sc.ino
 #define LIGHTPIN       A3
 #define MICROPHONEPIN  A2
-#define DHT11PIN       6
+//#define DHT11PIN       6  //no longer used
 
 sensorDev sensor_dev[4];
 
@@ -30,7 +29,7 @@ static void initPwm(void)
 static void initData(void)
 {
     sensor_dev[0].total = 0;
-    sensor_dev[0].pin = DUSTPIN;
+    //sensor_dev[0].pin = DUSTPIN;
     sensor_dev[0].level = 0;
     sensor_dev[1].total = 0;
     sensor_dev[1].pin = LIGHTPIN;
@@ -40,7 +39,7 @@ static void initData(void)
     sensor_dev[2].level = 0;
     sensor_dev[3].temp_humi_total[0] = 0;
     sensor_dev[3].temp_humi_total[1] = 0;
-    sensor_dev[3].pin = DHT11PIN;
+    //sensor_dev[3].pin = DHT11PIN;  
 }
 void initDevice(void)
 {
@@ -50,29 +49,22 @@ void initDevice(void)
 }
 void getTempHumi(void)
 {
-    static uint8_t readIndex = 0;
-    static int16_t DHT11_readings[2][DHT11_NUMREADINGS] = {0};
-    if(getSensorData(DHT11PIN))
-    {
-        sensor_dev[3].temp_humi_total[0] -= DHT11_readings[0][readIndex];
-        sensor_dev[3].temp_humi_total[1] -= DHT11_readings[1][readIndex];
-        DHT11_readings[0][readIndex] = dht_temperature;
-        DHT11_readings[1][readIndex] = dht_humidity;
-        sensor_dev[3].temp_humi_total[0] += DHT11_readings[0][readIndex];
-        sensor_dev[3].temp_humi_total[1] += DHT11_readings[1][readIndex];
-        sensor_dev[3].temp_humi_average[0] = sensor_dev[3].temp_humi_total[0] / DHT11_NUMREADINGS;
-        sensor_dev[3].temp_humi_average[1] = sensor_dev[3].temp_humi_total[1] / DHT11_NUMREADINGS;
-        readIndex = readIndex + 1;
-        if(readIndex >= DHT11_NUMREADINGS)
-        {
-            readIndex = 0;
-        }  
-    }
-    else
-    {
-        Serial.println("it is error");
-      }
+  //temp
+  sensor_dev[3].temp_humi_average[0]=readTemperature();
+
+  //humi
+  sensor_dev[3].temp_humi_average[1]=readHumidity();  
+
+  Serial.print("\t\tTemp: "); Serial.print(sensor_dev[3].temp_humi_average[0]);
+  Serial.print("\t\tHumi: "); Serial.print(sensor_dev[3].temp_humi_average[1]);
 }
+
+void getDust(void)
+{
+    sensor_dev[0].level=readAirSensor();
+}
+
+
 void getAdcSensorValue(void)
 {
     static uint8_t readIndex = 0;
@@ -82,16 +74,20 @@ void getAdcSensorValue(void)
     static int16_t noise_max = -1;
     static int16_t noise_min = 1025;
     int16_t nosie_value_temp = 0;
-    for(uint8_t i = 0; i < 2; i++)
+
+    //Light
+    for(uint8_t i = 1; i < 2; i++) //only reads pins 1 
     {
         sensor_dev[i].total = sensor_dev[i].total- AD_readings[i][readIndex];
         AD_readings[i][readIndex] = analogRead(sensor_dev[i].pin);
         sensor_dev[i].total = AD_readings[i][readIndex] + sensor_dev[i].total;
         sensor_dev[i].average_value = sensor_dev[i].total / AD_NUMREADINGS;
-//        sensor_dev[i].voltage_value = sensor_dev[i].average_value * (VOLTAGE / 1023.0);
+        //  sensor_dev[i].voltage_value = sensor_dev[i].average_value * (VOLTAGE / 1023.0);
     }
     sensor_dev[1].level = (sensor_dev[1].average_value > 999)?(10):(sensor_dev[1].average_value / 100 + 1);
-    sensor_dev[0].level = (sensor_dev[0].average_value > 799)?(10):(sensor_dev[0].average_value / 80 + 1);
+    //sensor_dev[0].level = (sensor_dev[0].average_value > 799)?(10):(sensor_dev[0].average_value / 80 + 1);
+
+    //Microphone
     nosie_value_temp = analogRead(sensor_dev[2].pin);
     if(nosie_value_temp > noise_max)
     {
@@ -109,7 +105,7 @@ void getAdcSensorValue(void)
         sensor_dev[2].total = noise_readings[noise_index] + sensor_dev[2].total;
         sensor_dev[2].average_value =  sensor_dev[2].total / NOISE_NUM;
         sensor_dev[2].level = (sensor_dev[2].average_value > 999)?(10):(sensor_dev[2].average_value / 100 + 1);
-//        sensor_dev[2].voltage_value = sensor_dev[2].average_value * (VOLTAGE / 1023.0);
+        //sensor_dev[2].voltage_value = sensor_dev[2].average_value * (VOLTAGE / 1023.0);
         noise_index = noise_index + 1;
         readIndex = 0;
         noise_max = -1;

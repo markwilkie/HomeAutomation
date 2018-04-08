@@ -9,8 +9,14 @@
 #endif
 #include <inttypes.h>
 
+
 void initDevice(void);
 void getTempHumi(void);
+void getDust(void);
 void getAdcSensorValue(void);
+
+int readAirSensor(void);
+int readTemperature(void);
+int readHumidity(void);
 
 #endif

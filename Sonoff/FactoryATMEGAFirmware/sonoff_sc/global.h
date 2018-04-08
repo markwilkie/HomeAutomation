@@ -9,7 +9,6 @@
 #endif
 #include <inttypes.h>
 
-
 typedef struct _sensorDev
 {
     union
@@ -22,8 +21,8 @@ typedef struct _sensorDev
         uint16_t average_value;
         int8_t temp_humi_average[2];
     };
-    int8_t level;
-    int8_t last_level;
+    int16_t level;
+    int16_t last_level;
     int pin;
 }sensorDev;
 
