@@ -55,13 +55,15 @@ void getTempHumi(void)
   //humi
   sensor_dev[3].temp_humi_average[1]=readHumidity();  
 
-  Serial.print("\t\tTemp: "); Serial.print(sensor_dev[3].temp_humi_average[0]);
-  Serial.print("\t\tHumi: "); Serial.print(sensor_dev[3].temp_humi_average[1]);
+  //Serial.print("\t\tTemp: "); Serial.print(sensor_dev[3].temp_humi_average[0]);
+  //Serial.print("\t\tHumi: "); Serial.print(sensor_dev[3].temp_humi_average[1]);
 }
 
 void getDust(void)
 {
-    sensor_dev[0].level=readAirSensor();
+  int dustLevel = readAirSensor();
+  if(dustLevel>=0)
+    sensor_dev[0].level=dustLevel;
 }
 
 

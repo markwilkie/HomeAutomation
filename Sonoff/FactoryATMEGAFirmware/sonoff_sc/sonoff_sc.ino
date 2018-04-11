@@ -73,11 +73,11 @@ void debugData(void)
     Serial.print("humidity: ");
     Serial.println(sensor_dev[3].temp_humi_average[1]);
     Serial.print("light: ");
-    Serial.println(sensor_dev[1].average_value);
+    Serial.println(sensor_dev[1].level);
     Serial.print("noise: ");
-    Serial.println(sensor_dev[2].average_value);
+    Serial.println(sensor_dev[2].level);
     Serial.print("dusty: ");
-    Serial.println(sensor_dev[0].average_value);
+    Serial.println(sensor_dev[0].level);
 }
 void setup() {
   // put your setup code here, to run once:

@@ -14,7 +14,7 @@ int readAirSensor() {
   if (readPMSdata(&pmsSerial)) {
     // reading data was successful!
     //Serial.println();
-    Serial.println("---------------------------------------");
+    //Serial.println("\n---------------------------------------");
     //Serial.println("Concentration Units (standard)");
     //Serial.print("PM 1.0: "); Serial.print(data.pm10_standard);
     //Serial.print("\t\tPM 2.5: "); Serial.print(data.pm25_standard);
@@ -22,8 +22,8 @@ int readAirSensor() {
     //Serial.println("---------------------------------------");
     //Serial.println("Concentration Units (environmental)");
     //Serial.print("PM 1.0: "); Serial.print(data.pm10_env);
-    Serial.print("\t\tPM 2.5: "); Serial.print(data.pm25_env);
-    Serial.print("\t\tPM 10: "); Serial.println(data.pm100_env);
+    //Serial.print("\t\tPM 2.5: "); Serial.println(data.pm25_env);
+    //Serial.print("\t\tPM 10: "); Serial.println(data.pm100_env);
    // Serial.println("---------------------------------------");
     //Serial.print("Particles > 0.3um / 0.1L air:"); Serial.println(data.particles_03um);
     //Serial.print("Particles > 0.5um / 0.1L air:"); Serial.println(data.particles_05um);
@@ -35,11 +35,19 @@ int readAirSensor() {
 
     //Combine pm2.5 and pm10 into one value so we don't have to change the esp protocol
     int combValue=0;
-    combValue=convert(data.pm25_env)*100;
-    combValue=combValue+convert(data.pm100_env);
-    Serial.print("\t\tComb: "); Serial.println(combValue);
+    //combValue=convert(data.pm25_env)*100;
+    //combValue=combValue+convert(data.pm100_env);
+    //Serial.print("\t\tComb: "); Serial.println(combValue);
 
+    //return combValue;
+
+    combValue=convert(data.pm25_env);
+    //Serial.print("\t\tComb: "); Serial.println(combValue);
     return combValue;
+  }else
+  {
+    //return -1 as default
+    return -1;
   }
 }
 
