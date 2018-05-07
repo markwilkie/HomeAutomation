@@ -7,8 +7,8 @@
 //#include <Adafruit_INA219.h>
  
 // Connect to the WiFi
-const char* ssid = "WILKIE";
-const char* password = "123lauve";
+const char* ssid = "";
+const char* password = "";
 const char* mqtt_server = "192.168.15.24";
 const char* cmd_mqtt_topic = "myhome/esp8266/1/cmd"; 
 const char* status_mqtt_topic = "myhome/esp8266/1/status"; 
