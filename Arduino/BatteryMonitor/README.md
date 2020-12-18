@@ -12,7 +12,7 @@ Main Screen
 -  SoC> State of Charge.  At its core, this is a straight calculation based on voltage for my specific batteries.  However, the batteries need to be "at rest" for quite some time before this is an accurate indication.  Given this, the SoC is affected by tracking the in/out of the amps.  It is then reset using voltage when the battery is resting - presumably most every night.
 -  V> Battery voltage.  Remember, this will go way up during charging, and down a bit under heavy load.  Using SoC for a better indicator.
 -  Ah> This is the (close to real-time) net amps (as measured in Amp hours) that is going through the system.  For example, if the solar was putting out 4Ah, and the fridge was pulling 3Ah, it would read 1Ah.
--  Hr> This is a "guestament" of how many hours are remaining.  Note that is the "real time" guess, and it's using the current amp load only.  This does not take into account trends.  Currently, I don't have a screen for that, but can add one if warranted.
+-  Hr> This is a "guestament" of how many hours are remaining - to 50%.  Note that is the "real time" guess, and it's using the current amp load only.  This does not take into account trends.  Currently, I don't have a screen for that, but can add one if warranted.
 
 Sum Screen
 -  __circuit__>__bucket__> Shows the sum Ah value for a specific "circuit" and "time bucket".  See above for the circuits and buckets.

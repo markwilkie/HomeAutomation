@@ -49,13 +49,13 @@ void setup()
 
   //setup real time clock (RTC)
   rtc.begin();
-  rtc.adjust(0);  //set to epoch as a baseline
+  //rtc.adjust(0);  //set to epoch as a baseline
 
   //Precision ADC circuit buffers
   precADCList.begin();
 
   //Battery
-  battery.begin(readVcc(),temperatureRead());
+  battery.begin(readVcc(),temperatureRead(),rtc.now().unixtime());
  
   //init vars
   bootTime = rtc.now().unixtime();
@@ -247,4 +247,3 @@ long readVcc() {
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return result; // Vcc in millivolts
 }
-

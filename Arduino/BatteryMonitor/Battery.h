@@ -11,16 +11,18 @@
 class Battery {
 private:
   //Defines
-  #define BAT_FULL 13000
-  #define BAT_EMPTY 12400
-  #define AH 310
+  #define BAT_FULL 12830
+  #define BAT_EMPTY 12200
+  #define AH 230
+  #define TEMP_80 25  //deg f for 80% capacity
+  #define TEMP_85 35
+  #define TEMP_90 45
+  #define TEMP_95 60
+  #define TEMP_100 80
   #define CHARGE_EFFICIENCY 94
-  #define REST_CHARGE_LIMIT 1000
-  #define REST_DRAIN_LIMIT 5000
-  #define REST_WINDOW 72000  //20 hours
 
-  #define BAT_FLOAT 13500
-  #define BAT_CHARGE 14000
+  #define BAT_FLOAT 13700
+  #define BAT_CHARGE 14700
 
   //properties
   float stateOfCharge;
@@ -53,7 +55,7 @@ private:
    
 public:
    //members
-   void begin(long vcc,double temperature); //starts stuff up and inits buffer
+   void begin(long vcc,double temperature,long rtcNow); //starts stuff up and inits buffer
    void readThenAdd(long rtcNow); //reads according to sample size, then adds the result to the circular buffer
    double getVolts();
    double getSoC() const { return stateOfCharge; }

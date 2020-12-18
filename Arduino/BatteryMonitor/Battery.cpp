@@ -2,7 +2,7 @@
 #include "Arduino.h"
 #include "debug.h"
 
-void Battery::begin(long _vcc,double _temperature)
+void Battery::begin(long _vcc,double _temperature,long rtcNow)
 {
   //Set reference vcc
   vcc=_vcc;
@@ -17,6 +17,7 @@ void Battery::begin(long _vcc,double _temperature)
 
   //Zero SoC
   stateOfCharge=calcSoCbyVoltage(_temperature);
+  socReset=rtcNow;  //used to know how long ago the SoC was last set
 
   //Zero last float time
   floatTime=-1;
@@ -249,18 +250,9 @@ void Battery::adjustAh(long mAhFlow)
 //Return % state of charge based on battery level
 double Battery::calcSoCbyVoltage(double temperature)
 { 
-  //@50deg F --> 12.4V = 50%, 12:54V = 60%, 12.68V = 70%, 12.82V = 80%, 12.96V = 90%, 13.1V = 100%
-  //         -->              12.52V = 60%, 12.64V = 70%, 12.76V = 80%, 12.88V = 90%, 13V = 100%
   //
-  // 3.33mv adjust for each degree F temperature change  (lower temp means higher voltage for full)
-  //
-  int full=BAT_FULL; //@50deg F
+  int full=BAT_FULL; //@80deg F
   int empty=BAT_EMPTY;
-
-  //Adjust for temperature
-  int offset=(50-temperature)*3.33;
-  full=full+offset;
-  empty=empty+offset;
 
   //Get voltage
   long mv=getMilliVolts(); 
@@ -269,8 +261,19 @@ double Battery::calcSoCbyVoltage(double temperature)
   double incr=(full-empty)/50.0;  //gives voltage per 1% in mV  ("empty" is actually 50% of the battery capacity)
   double soc=(((mv-empty)/incr) + 50);
 
-  //set mahremaining based on SoC percentage  (this should fix itself over time)
-  mAhRemaining=(AH*(soc/100.0))*1000.0;
+  //Adjust for temperature
+  double tempPerc=TEMP_80;  //Set 80% as default
+  if(temperature>=TEMP_85 && temperature <TEMP_90)
+    tempPerc=.85;
+  if(temperature>=TEMP_90 && temperature <TEMP_95)
+    tempPerc=.90;
+  if(temperature>=TEMP_95 && temperature <TEMP_100)
+    tempPerc=.95;
+  if(temperature>=TEMP_100)
+    tempPerc=1;
+
+  //set mahremaining based on SoC percentage with temperature compensation  (this should fix itself over time)
+  mAhRemaining=(AH*((soc*tempPerc)/100.0))*1000.0;
 
   return soc;
 }
@@ -351,4 +354,3 @@ long Battery::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucket
 
   return avg;
 }
-
