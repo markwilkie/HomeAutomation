@@ -1,0 +1,29 @@
+{
+    "name": "ProbeMeasurement",
+    "attributes": {
+        "probe": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "title": "Number",
+                        "type": "number"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "mV"
+                        ],
+                        "default": "mV"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "value"
+                ]
+            },
+            "enumCommands": []
+        }
+    },
+    "commands": {}
+}

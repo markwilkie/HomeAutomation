@@ -1,0 +1,23 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Probe: {{probe.value}}{{probe.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Probe",
+            "displayType": "state",
+            "state": {
+                "label": "{{probe.value}}",
+                "unit": "probe.unit"
+            }
+        }
+    ],
+    "id": "radioamber53161.probemeasurement",
+    "version": 1
+}

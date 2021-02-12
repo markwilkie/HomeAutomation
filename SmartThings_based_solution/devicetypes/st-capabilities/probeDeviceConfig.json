@@ -1,0 +1,41 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "component": "main",
+                "capability": "sensor",
+                "version": 1,
+                "values": [],
+                "patch": []
+            },
+            {
+                "component": "main",
+                "capability": "radioamber53161.probemeasurement",
+                "version": 1,
+                "values": [],
+                "patch": []
+            }            
+        ],
+        "actions": [
+        ]
+    },
+    "detailView": [
+        {
+            "component": "main",
+            "capability": "sensor",
+            "version": 1,
+            "values": [],
+            "patch": []
+        },        
+        {
+            "component": "main",
+            "capability": "radioamber53161.probemeasurement",
+            "version": 1,
+            "values": [],
+            "patch": []
+        }
+    ],
+    "automation": {
+    },
+    "type": "dth"
+}
