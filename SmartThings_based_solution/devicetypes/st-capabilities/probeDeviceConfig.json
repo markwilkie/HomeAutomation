@@ -14,9 +14,23 @@
                 "version": 1,
                 "values": [],
                 "patch": []
-            }            
+            }
         ],
         "actions": [
+            {
+                "component": "main",
+                "capability": "sensor",
+                "version": 1,
+                "values": [],
+                "patch": []
+            },
+            {
+                "component": "main",
+                "capability": "radioamber53161.probemeasurement",
+                "version": 1,
+                "values": [],
+                "patch": []
+            }
         ]
     },
     "detailView": [
@@ -26,7 +40,7 @@
             "version": 1,
             "values": [],
             "patch": []
-        },        
+        },
         {
             "component": "main",
             "capability": "radioamber53161.probemeasurement",
@@ -36,6 +50,38 @@
         }
     ],
     "automation": {
+        "conditions": [
+            {
+                "component": "main",
+                "capability": "sensor",
+                "version": 1,
+                "values": [],
+                "patch": []
+            },
+            {
+                "component": "main",
+                "capability": "radioamber53161.probemeasurement",
+                "version": 1,
+                "values": [],
+                "patch": []
+            }
+        ],
+        "actions": [
+            {
+                "component": "main",
+                "capability": "sensor",
+                "version": 1,
+                "values": [],
+                "patch": []
+            },
+            {
+                "component": "main",
+                "capability": "radioamber53161.probemeasurement",
+                "version": 1,
+                "values": [],
+                "patch": []
+            }
+        ]
     },
     "type": "dth"
 }

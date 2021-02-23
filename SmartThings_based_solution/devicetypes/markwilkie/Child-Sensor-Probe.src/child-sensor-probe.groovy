@@ -12,7 +12,7 @@
  *
  */
 metadata {
-	definition (name: "Child Sensor Probe", namespace: "ogiewon", mnmn: "SmartThingsCommunity", vid: "48cc5407-583c-30e8-a113-8a33d50becb2") {
+	definition (name: "Child Sensor Probe", namespace: "ogiewon", mnmn: "SmartThingsCommunity", vid: "02b84e8a-83ff-30e9-b20c-1450e6301518") {
 		capability "radioamber53161.probemeasurement"
 		capability "Sensor"
 	}

@@ -2,7 +2,7 @@
     "dashboard": {
         "states": [
             {
-                "label": "Probe: {{probe.value}}{{probe.unit}}"
+                "label": "Probe: {{probe.value}}"
             }
         ],
         "actions": [],
@@ -13,11 +13,24 @@
             "label": "Probe",
             "displayType": "state",
             "state": {
-                "label": "{{probe.value}}",
+                "label": "probe.value",
                 "unit": "probe.unit"
             }
         }
     ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Probe",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "probe.value",
+                    "unit": "probe.unit"
+                }
+            }
+        ],
+        "actions": []
+    },
     "id": "radioamber53161.probemeasurement",
     "version": 1
 }
