@@ -1,0 +1,19 @@
+{
+  "onboardingConfig": {
+    "deviceOnboardingId": "Wilkie_Motion",
+    "mnId": "0A1b",
+    "setupId": "001",
+    "vid": "ST_3a4f2283-8abd-42f5-a267-91c5763b007e",
+    "deviceTypeId": "MotionSensor",
+    "ownershipValidationTypes": [
+      "JUSTWORKS"
+    ],
+    "identityType": "ED25519",
+    "deviceIntegrationProfileKey": {
+      "id": "e241acf5-1656-4f49-bc42-0ba666474ca6",
+      "majorVersion": 0,
+      "minorVersion": 1
+    },
+    "productId": "abc3c229-88b8-4a53-a8aa-068ea84e51ad"
+  }
+}
