@@ -1,0 +1,33 @@
+{
+    "id": "radioamber53161.windspeed",
+    "version": 1,
+    "status": "proposed",
+    "name": "windspeed",
+    "ephemeral": false,
+    "attributes": {
+        "speed": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "KTS"
+                        ],
+                        "default": "KTS"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "value"
+                ]
+            },
+            "enumCommands": []
+        }      
+    },
+    "commands": {}
+}

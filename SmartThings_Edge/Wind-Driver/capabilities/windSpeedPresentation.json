@@ -1,0 +1,36 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Wind: {{speed.value}} {{speed.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Wind Speed",
+            "displayType": "state",
+            "state": {
+                "label": "speed.value",
+                "unit": "speed.unit"
+            }
+        } 
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Wind Speed",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "speed.value",
+                    "unit": "speed.unit"
+                }
+            }       
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.windspeed",
+    "version": 1
+}

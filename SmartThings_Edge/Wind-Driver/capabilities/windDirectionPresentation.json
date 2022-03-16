@@ -1,0 +1,36 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Direction: {{direction.value}} {{direction.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Wind Direction",
+            "displayType": "state",
+            "state": {
+                "label": "direction.value",
+                "unit": "direction.unit"
+            }
+        } 
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Wind Direction",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "direction.value",
+                    "unit": "direction.unit"
+                }
+            }       
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.winddirection",
+    "version": 1
+}

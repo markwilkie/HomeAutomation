@@ -1,0 +1,5 @@
+name: 'Wind'
+packageKey: 'wilkie.wind'
+permissions:
+  discovery: {}
+  lan: {}

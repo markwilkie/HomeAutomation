@@ -1,0 +1,36 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Gust: {{gust.value}} {{gust.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Wind Gust",
+            "displayType": "state",
+            "state": {
+                "label": "gust.value",
+                "unit": "gust.unit"
+            }
+        } 
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Wind Gust",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "gust.value",
+                    "unit": "gust.unit"
+                }
+            }       
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.windgust",
+    "version": 1
+}

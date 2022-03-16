@@ -1,0 +1,33 @@
+{
+    "id": "radioamber53161.winddirection",
+    "version": 1,
+    "status": "proposed",
+    "name": "winddirection",
+    "ephemeral": false,
+    "attributes": {
+        "direction": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "DEG"
+                        ],
+                        "default": "DEG"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "value"
+                ]
+            },
+            "enumCommands": []
+        }      
+    },
+    "commands": {}
+}

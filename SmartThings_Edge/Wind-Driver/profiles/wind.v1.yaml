@@ -1,0 +1,12 @@
+name: wind.v1
+components:
+- id: main
+  capabilities:
+  - id: radioamber53161.windspeed
+    version: 1
+  - id: radioamber53161.winddirection
+    version: 1  
+  - id: radioamber53161.windgust
+    version: 1  
+  - id: refresh
+    version: 1
