@@ -16,7 +16,7 @@
                 "label": "gust.value",
                 "unit": "gust.unit"
             }
-        } 
+        }
     ],
     "automation": {
         "conditions": [

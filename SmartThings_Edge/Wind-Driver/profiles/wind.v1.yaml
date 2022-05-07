@@ -1,12 +1,28 @@
 name: wind.v1
 components:
 - id: main
+  name: "Wind Info"
+  label: "Current Wind Info"
   capabilities:
+  - id: refresh
+    version: 1
   - id: radioamber53161.windspeed
     version: 1
   - id: radioamber53161.winddirection
     version: 1  
   - id: radioamber53161.windgust
-    version: 1  
+    version: 1 
+  - id: radioamber53161.datetime
+    version: 1    
+- id: last12
+  label: "Last 12 Hours"
+  capabilities:
   - id: refresh
     version: 1
+  - id: radioamber53161.windgust
+    version: 1 
+  - id: radioamber53161.datetime
+    version: 1
+metadata: 
+  mnmn: SmartThingsCommunity 
+  vid: dd0601b8-a156-36bf-9c90-8e3c722b75fc

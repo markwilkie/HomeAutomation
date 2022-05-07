@@ -100,6 +100,32 @@ local windgust = [[
                     ]
                 },
                 "enumCommands": []
+            } 
+        },
+        "commands": {}
+    }
+]]
+
+local datetime = [[
+    {
+        "id": "radioamber53161.datetime",
+        "version": 1,
+        "status": "proposed",
+        "name": "datetime",
+        "ephemeral": false,
+        "attributes": {
+            "datetime": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "value": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": []
+                },
+                "enumCommands": []
             }      
         },
         "commands": {}
@@ -110,4 +136,5 @@ return {
 	windspeed = windspeed,
     winddirection = winddirection,
     windgust = windgust,
+    datetime = datetime
 }

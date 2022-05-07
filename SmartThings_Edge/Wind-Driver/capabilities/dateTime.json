@@ -1,0 +1,23 @@
+{
+    "id": "radioamber53161.datetime",
+    "version": 1,
+    "status": "proposed",
+    "name": "datetime",
+    "ephemeral": false,
+    "attributes": {
+        "datetime": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }      
+    },
+    "commands": {}
+}
