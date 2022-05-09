@@ -1,3 +1,4 @@
+#include "Debug.h"
 #include "WeatherStation.h"
 #include "WindHandler.h"
 
@@ -34,22 +35,48 @@ void IRAM_ATTR onTimer()
 
 
 //refresh wind data
-void refreshWind() {
-     DynamicJsonDocument doc(512);
-     
+void refreshWind() 
+{  
      //wind
+     int gustLast12Idx=getLast12MaxGustIndex();
+     DynamicJsonDocument doc(512);
      doc["wind_speed"] = convertToKTS(windSampleTotal/WIND_PERIOD_SIZE);
      doc["wind_direction"] = 180;
      doc["wind_gust"] = convertToKTS(gustMax);
-     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[getLast12MaxGustIndex()]);
-     doc["wind_gust_max_time"] = gustLast12Time[getLast12MaxGustIndex()];    //whatever the actual time was that the gust ocurred
+     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx]);
+     doc["wind_gust_max_time"] = gustLast12Time[gustLast12Idx];    //whatever the actual time was that the gust ocurred
      doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
      //send wind data back
-     Serial.println(F("Refreshing wind data..."));
      String buf;
      serializeJson(doc, buf);
      server.send(200, "application/json", buf);
+
+     VERBOSEPRINTLN("Successfuly refreshed wind data...");
+}
+
+//debug data
+void windDebugData()
+{
+     VERBOSEPRINTLN("---DEBUG DATA----");  
+     
+     VERBOSEPRINT("Running wind sample total: ");
+     VERBOSEPRINTLN(windSampleTotal);  
+     VERBOSEPRINT("Epoch: ");
+     VERBOSEPRINTLN(epoch);     
+     
+     VERBOSEPRINTLN("------\n");  
+     
+     DynamicJsonDocument doc(512);     
+     doc["windSampleTotal"] = windSampleTotal;
+     doc["epoch"] = epoch;
+
+     //send wind debug data back
+     String buf;
+     serializeJson(doc, buf);
+     server.send(200, "application/json", buf);
+
+     VERBOSEPRINTLN("Successfuly sent wind debug data...");     
 }
 
 // Serving refresh 
@@ -105,7 +132,7 @@ void refreshAll() {
      doc["solar_voltage_min_last12"] = 11.4;
      doc["solar_voltage_min_time"] = 1651374875;
                     
-     Serial.println(F("refreshing..."));
+     VERBOSEPRINTLN("refreshing...");
      String buf;
      serializeJson(doc, buf);
      server.send(200, "application/json", buf);
@@ -116,7 +143,7 @@ void getSettings() {
       // Allocate a temporary JsonDocument
       // Don't forget to change the capacity to match your requirements.
       // Use arduinojson.org/v6/assistant to compute the capacity.
-    //  StaticJsonDocument<512> doc;
+
       // You can use DynamicJsonDocument as well
       DynamicJsonDocument doc(512);
  
@@ -127,17 +154,13 @@ void getSettings() {
       if (server.arg("signalStrength")== "true"){
           doc["signalStrengh"] = WiFi.RSSI();
       }
-
-
       if (server.arg("freeHeap")== "true"){
           doc["freeHeap"] = ESP.getFreeHeap();
       }
  
-      Serial.print(F("Stream..."));
       String buf;
       serializeJson(doc, buf);
-      server.send(200, F("application/json"), buf);
-      Serial.print(F("done."));
+      server.send(200, "application/json", buf);
 }
 
 //The hub driver will POST epoch when refreshing data
@@ -148,15 +171,16 @@ void setEpoch() {
     DeserializationError error = deserializeJson(doc, postBody);
     if (error) {
         // if the file didn't open, print an error:
-        Serial.print(F("Error parsing JSON "));
-        Serial.println(error.c_str());
         sendErrorResponse("Error parsing json body! <br>" + (String)error.c_str());
+        ERRORPRINT("Error parsing JSON: ");
+        ERRORPRINTLN(error.c_str());        
         return;
     }
-    Serial.print(F("HTTP Method: "));
-    Serial.println(server.method());
+    VERBOSEPRINT("HTTP Method: ");
+    VERBOSEPRINTLN(server.method());
 
-    if (server.method() == HTTP_POST) {
+    if (server.method() == HTTP_POST) 
+    {
         //set epoch from server
         epoch = doc["epoch"].as<long>();
 
@@ -164,8 +188,8 @@ void setEpoch() {
         secondsSinceEpoch=0;
         portEXIT_CRITICAL_ISR(&timerMux);
 
-        Serial.print(F("Setting epoch to: "));
-        Serial.println(epoch);
+        VERBOSEPRINT("Setting epoch to: ");
+        VERBOSEPRINTLN(epoch);
        
         // Create the response
         // To get the status of the result you can get the http status so
@@ -175,7 +199,7 @@ void setEpoch() {
     
         String buf;
         serializeJson(doc, buf); 
-        server.send(201, F("application/json"), buf);
+        server.send(201,"application/json",buf);
         return;
     }
 }
@@ -184,34 +208,35 @@ void sendErrorResponse(String errorString)
 {
   DynamicJsonDocument doc(512);
   doc["status"] = "KO";
-  doc["message"] = F("No data found, or incorrect!");
+  doc["message"] = "No data found, or incorrect!";
   
-  Serial.print(F("Streaming error response..."));
   String buf;
   serializeJson(doc, buf);
+  server.send(400,"application/json",buf);
   
-  server.send(400, F("application/json"), buf);
-  Serial.println(F("done."));
+  ERRORPRINTLN("Streaming error response.  No data found, or incorrect!");
 }
  
 // Define routing
 void restServerRouting() {
     server.on("/", HTTP_GET, []() {
-        server.send(200, F("text/html"),
-            F("Welcome to the REST Web Server"));
+        server.send(200,"text/html",
+        "Welcome to the REST Web Server");
     });
 
     //GET
-    server.on(F("/refreshAll"), HTTP_GET, refreshAll);   //deprecated
-    server.on(F("/refreshWind"), HTTP_GET, refreshWind);
-    server.on(F("/settings"), HTTP_GET, getSettings);    //not currently used 
+    server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
+    server.on("/refreshWind", HTTP_GET, refreshWind);
+    server.on("/settings", HTTP_GET, getSettings);    //not currently used 
+    server.on("/debug", HTTP_GET, windDebugData);     //send debug data (also prints to serial
 
     //POST
-    server.on(F("/setEpoch"), HTTP_POST, setEpoch);   //called by the driver on the hub to set epoch
+    server.on("/setEpoch", HTTP_POST, setEpoch);   //called by the driver on the hub to set epoch
 }
  
 // Manage not found URL
-void handleNotFound() {
+void handleNotFound() 
+{
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -224,38 +249,59 @@ void handleNotFound() {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/plain", message);
+
+  ERRORPRINT("404 Error: ");
+  ERRORPRINTLN(message);
 }
  
-void setup(void) {
+void setup(void) 
+{
+  #if defined(ERRORDEF) || defined(VERBOSEDEF)
   Serial.begin(115200);
+  #endif
+
+  VERBOSEPRINTLN("--------------------------");
+  VERBOSEPRINTLN("Starting up");
+  
+  //free heap
+  float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
+  VERBOSEPRINT("Free Heap: (376360 is an empty sketch) ");
+  VERBOSEPRINTLN((int)ESP.getFreeHeap());
+  VERBOSEPRINT(heap);
+  VERBOSEPRINTLN("% used");
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  Serial.println("");
+
  
   // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
+  VERBOSEPRINT("Connecting to WIFI ");  
+  while (WiFi.status() != WL_CONNECTED) 
+  {
     delay(500);
-    Serial.print(".");
+    VERBOSEPRINT(".");
   }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  VERBOSEPRINTLN("");
+  VERBOSEPRINT("Connected to ");
+  VERBOSEPRINTLN(ssid);
+  VERBOSEPRINT("IP address: ");
+  VERBOSEPRINTLN(WiFi.localIP());
  
   // Activate mDNS this is used to be able to connect to the server
   // with local DNS hostmane esp8266.local
   if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
+    VERBOSEPRINTLN("MDNS responder started");
+  }
+  else
+  {
+    ERRORPRINTLN("ERROR: Unable to start MDNS responder");
   }
  
-  // Set server routing
+  // Set server routing and then start
   restServerRouting();
-  // Set not found response
   server.onNotFound(handleNotFound);
-  // Start server
   server.begin();
-  Serial.println("HTTP server started");
+  VERBOSEPRINTLN("HTTP server started");
 
   //Start timer to count time in seconds
   timer = timerBegin(0, 80, true);
@@ -265,6 +311,9 @@ void setup(void) {
 
   //Setup pulse counters
   initWindPulseCounter();
+
+  VERBOSEPRINTLN("Ready to go!");
+  VERBOSEPRINTLN("");
 }
  
 void loop(void) {

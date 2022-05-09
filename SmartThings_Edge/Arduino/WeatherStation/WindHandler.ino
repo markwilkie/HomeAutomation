@@ -13,7 +13,8 @@ void initWindPulseCounter(void)
   pcntFreqConfig.counter_h_lim = PCNT_H_LIM_VAL;             // Set Over flow Interupt / event value
   pcntFreqConfig.unit = PCNT_UNIT_Used;                      //  Set Pulsos unit to ne used
   pcntFreqConfig.channel = PCNT_CHANNEL_0;                   //  select PCNT channel 0
-  ESP_ERROR_CHECK(pcnt_unit_config(&pcntFreqConfig));        // Configure PCNT.
+
+  ESP_ERROR_CHECK(pcnt_unit_config(&pcntFreqConfig));                         // Configure PCNT.
 
   ESP_ERROR_CHECK(pcnt_set_filter_value(PCNT_UNIT_Used, PCNT_FILTER));        // Set filter value
   ESP_ERROR_CHECK(pcnt_filter_enable(PCNT_UNIT_Used));
@@ -23,7 +24,7 @@ void initWindPulseCounter(void)
   ESP_ERROR_CHECK(pcnt_intr_enable(PCNT_UNIT_Used));                          // Enable PCNT
   ESP_ERROR_CHECK(pcnt_counter_resume(PCNT_UNIT_Used));                       // Re-started PCNT.
 
-  Serial.println("PCNT Init Completed....");
+  VERBOSEPRINTLN("PCNT Init Completed");
 }
 
 //Anemometer pulse counter
@@ -36,14 +37,13 @@ void storeWindSample()
 
   //Set max gust if current sample is bigger than current max gust
   long currentTime=epoch+secondsSinceEpoch;
-  long periodLenghtInSec=WIND_PERIOD_MIN*60L;
-  if((currentPulseCount>gustMax) || ((currentTime-gustTime) > periodLenghtInSec))
+  if(currentPulseCount>gustMax)
   {
     gustTime=currentTime;
     gustMax=currentPulseCount;
   }
   //find new max gust if the gust has expired
-  if((currentTime-gustTime) > periodLenghtInSec)
+  if((currentTime-gustTime) > (WIND_PERIOD_MIN*60L))
   {
     gustTime=currentTime;
     gustMax=getCurrentMaxGust();
@@ -79,7 +79,7 @@ void storeWindSample()
 int getCurrentMaxGust()
 {
   int maxGust=0;
-  for(int idx=0;idx<windSampleTotal;idx++)
+  for(int idx=0;idx<WIND_PERIOD_SIZE;idx++)
   {
     if(windSamples[idx]>maxGust)
     {
