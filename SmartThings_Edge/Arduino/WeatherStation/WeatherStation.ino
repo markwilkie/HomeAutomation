@@ -2,6 +2,7 @@
 #include "WeatherStation.h"
 #include "WindHandler.h"
 #include "RainHandler.h"
+#include "BME280Handler.h"
 
 //Wifi
 const char* ssid = "WILKIE-LFP";
@@ -39,6 +40,14 @@ void IRAM_ATTR onTimer()
       rainSeconds=0;
       storeRainSample();
     }
+
+    //Check if we need to store BME280 sample
+    bmeSeconds++;
+    if(bmeSeconds>=BME_SAMPLE_SEC)
+    {
+      bmeSeconds=0;
+      storeBMESample();
+    }    
 }
 
 //------------------------------------------------------------
@@ -66,14 +75,16 @@ void refreshWind()
      VERBOSEPRINTLN("Successfuly refreshed wind data...");
 }
 
-//refresh wind data
+//refresh rain data
 void refreshRain() 
 {  
      //rain
+     DynamicJsonDocument doc(512);
      doc["rain_rate"] = .02;
      doc["rain_rate_last_hour"] = .03;
      doc["rain_max_rate_last12"] = 1.8;
      doc["rain_inches_last12"] = 1.5;
+     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
      //send rain data back
      String buf;
@@ -83,11 +94,35 @@ void refreshRain()
      VERBOSEPRINTLN("Successfuly refreshed rain data...");
 }
 
+
+//refresh bme data
+void refreshBME() 
+{  
+     //bme
+     DynamicJsonDocument doc(512);
+     doc["temperature"] = (bmeSamples[bmeSampleIdx-1].temperature*1.8)+32;
+     doc["humidity"] = bmeSamples[bmeSampleIdx-1].humidity;
+     doc["pressure"] = bmeSamples[bmeSampleIdx-1].pressure;
+     doc["dew_point"] = (((bmeSamples[bmeSampleIdx-1].temperature - (100 - bmeSamples[bmeSampleIdx-1].humidity) / 5))*1.8)*32;
+     doc["heat_index"] = 0;
+     doc["temperature_max_last12"] = (getMaxTemperature()*1.8)+32;
+     doc["temperature_min_last12"] = (getMinTemperature()*1.8)+32;
+     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+
+     //send rain data back
+     String buf;
+     serializeJson(doc, buf);
+     server.send(200, "application/json", buf);
+
+     VERBOSEPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
+}
+
 //debug data
 void debugData()
 {
   windDebugData();
   rainDebugData();
+  bmeDebugData();
 }
 
 //wind debug data
@@ -120,7 +155,7 @@ void rainDebugData()
      VERBOSEPRINTLN("---DEBUG DATA----");  
      
      VERBOSEPRINT("Running rain sample total: ");
-     VERBOSEPRINTLN(raindSampleTotal);  
+     VERBOSEPRINTLN(rainSampleTotal);  
      VERBOSEPRINT("Epoch: ");
      VERBOSEPRINTLN(epoch);     
      
@@ -138,19 +173,39 @@ void rainDebugData()
      VERBOSEPRINTLN("Successfuly sent rain debug data...");     
 }
 
+//rain debug data
+void bmeDebugData()
+{
+     VERBOSEPRINTLN("---DEBUG DATA----");  
+     
+     VERBOSEPRINT("Last reading (temperature, pressure, humidity): ");
+     VERBOSEPRINTLN(bmeSamples[bmeSampleIdx-1].temperature);  
+     VERBOSEPRINTLN(bmeSamples[bmeSampleIdx-1].pressure);  
+     VERBOSEPRINTLN(bmeSamples[bmeSampleIdx-1].humidity);   
+     VERBOSEPRINT("Min/Max Temperature: ");
+     VERBOSEPRINTLN(getMinTemperature()); 
+     VERBOSEPRINTLN(getMaxTemperature()); 
+     VERBOSEPRINT("Epoch: ");
+     VERBOSEPRINTLN(epoch);     
+     VERBOSEPRINTLN("------\n");  
+     
+     DynamicJsonDocument doc(512);     
+     doc["lastTemperatureReading"] = bmeSamples[bmeSampleIdx-1].temperature;
+     doc["lastHumidityReading"] = bmeSamples[bmeSampleIdx-1].humidity;
+     doc["lastPressureReading"] = bmeSamples[bmeSampleIdx-1].pressure;
+     doc["epoch"] = epoch;
+
+     //send rain debug data back
+     String buf;
+     serializeJson(doc, buf);
+     server.send(200, "application/json", buf);
+
+     VERBOSEPRINTLN("Successfuly sent bme debug data...");     
+}
+
 // Serving refresh 
 void refreshAll() {
      DynamicJsonDocument doc(512);
-
-     //temperature/humidity
-     doc["temp"] = 57;
-     doc["humidity"] = 45;
-     doc["dew"] = 44;
-     doc["pressure"] = 29.98;
-     doc["temp_max_last12"] = 63;
-     doc["temp_max_time"] = 1651374875;
-     doc["temp_min_last12"] = 44;
-     doc["temp_min_time"] = 1651374875;
      
      //sun
      doc["sun_intensity"] = 32;
@@ -281,6 +336,7 @@ void restServerRouting() {
     server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
     server.on("/refreshWind", HTTP_GET, refreshWind);
     server.on("/refreshRain", HTTP_GET, refreshRain);
+    server.on("/refreshBME", HTTP_GET, refreshBME);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 
     server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
 
@@ -368,6 +424,9 @@ void setup(void)
 
   //Setup pulse counters
   initWindPulseCounter();
+
+  //Setup BME280
+  setupBME();
 
   VERBOSEPRINTLN("Ready to go!");
   VERBOSEPRINTLN("");

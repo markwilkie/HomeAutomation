@@ -1,5 +1,5 @@
-#ifndef wind_h
-#define wind_h
+#ifndef rain_h
+#define rain_h
 
 #include "debug.h"
 #include "driver/pcnt.h"   //pulse counter for esp32
@@ -25,7 +25,7 @@ int rainSampleTotal = 0;            //running sum of pules (that is, samples)
 //Setup pulse counter 0
 #define PCNT_UNIT_Used      PCNT_UNIT_0                  /* Select the Pulse Count 0  as the unit..*/
 #define PCNT_H_LIM_VAL      10000                        /* Set the max limit to trigger the interrupt*/
-#define PCNT_INPUT_SIG_IO   2                            /* Pulse Input selected as GPIO 2 */
+#define PCNT_INPUT_SIG_IO   26                           /* Pulse Input selected as GPIO 26 */
 #define PCNT_FILTER         (2/portTICK_PERIOD_MS)       /* ms delay to filter out noise */
 
 #endif

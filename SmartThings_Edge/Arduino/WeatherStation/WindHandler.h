@@ -37,7 +37,7 @@ int gustLast12Idx = 0;              //index for where in the last 12 gust array 
 //Setup pulse counter 0
 #define PCNT_UNIT_Used      PCNT_UNIT_0                  /* Select the Pulse Count 0  as the unit..*/
 #define PCNT_H_LIM_VAL      10000                        /* Set the max limit to trigger the interrupt*/
-#define PCNT_INPUT_SIG_IO   4                            /* Pulse Input selected as GPIO 4 */
+#define PCNT_INPUT_SIG_IO   14                            /* Pulse Input selected as GPIO 14 */
 #define PCNT_FILTER         (2/portTICK_PERIOD_MS)       /* ms delay to filter out noise */
 
 //Setup wind vane
