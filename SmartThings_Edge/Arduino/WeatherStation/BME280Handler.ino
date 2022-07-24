@@ -22,7 +22,7 @@ void storeBMESample()
   bmeSampleIdx++;
 
   //If wraps, then reset AND store off high gust
-  if(bmeSampleIdx>=BME_SAMPLE_SEC)
+  if(bmeSampleIdx>=BME_LAST12_SIZE)
   {
     //reset pos
     bmeSampleIdx=0;  
@@ -50,7 +50,7 @@ float getMinTemperature()
   float minTemperature=0;
   for(int idx=0;idx<BME_LAST12_SIZE;idx++)
   {
-    if(bmeSamples[idx].temperature>minTemperature)
+    if(bmeSamples[idx].temperature<minTemperature)
     {
       minTemperature=bmeSamples[idx].temperature;
     }

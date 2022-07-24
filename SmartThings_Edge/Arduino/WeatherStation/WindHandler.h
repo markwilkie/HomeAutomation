@@ -29,10 +29,14 @@ static GustLast12Struct gustLast12[GUST_LAST12_SIZE];        //max gusts (one fo
 
 int windSeconds = 0;                //timer gets called every second, but we only want to read the pulse count and clear every SAMPLE_SIZE  (e.g. 3 seconds)
 int windSampleIdx = 0;              //index for where in the sample array we are
-int windSampleTotal = 0;            //running sum of pules (that is, samples)
+long windSampleTotal = 0;            //running sum of pules (that is, samples)
 int gustMax = 0;                    //current max gust (one sample)
-long gustTime = 0;                  //time of max gust in epoch
+unsigned long gustTime = 0;                  //time of max gust in epoch
 int gustLast12Idx = 0;              //index for where in the last 12 gust array we are
+
+//debug use
+long lastWindPulseCount = 0;
+bool pulseDetected=false;
 
 //Setup pulse counter 0
 #define PCNT_UNIT_Used      PCNT_UNIT_0                  /* Select the Pulse Count 0  as the unit..*/
@@ -41,7 +45,7 @@ int gustLast12Idx = 0;              //index for where in the last 12 gust array 
 #define PCNT_FILTER         (2/portTICK_PERIOD_MS)       /* ms delay to filter out noise */
 
 //Setup wind vane
-#define WIND_VANE_PIN       34                            /* wind vane pin */
+#define WIND_VANE_PIN       36                            /* wind vane pin */
 int windDirection = 0;
 
 #endif

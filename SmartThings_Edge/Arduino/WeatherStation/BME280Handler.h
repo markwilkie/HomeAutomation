@@ -25,7 +25,7 @@ typedef struct bmeStruct
 
 static BMEstruct bmeSamples[BME_LAST12_SIZE];     
 
-int bmeSeconds = 0;                //timer gets called every second, but we only want to read and clear every SAMPLE_SIZE
+int bmeSeconds = 0; //timer gets called every second, but we only want to read and clear every SAMPLE_SIZE
 int bmeSampleIdx = 0;              //index for where in the sample array we are
 
 #endif

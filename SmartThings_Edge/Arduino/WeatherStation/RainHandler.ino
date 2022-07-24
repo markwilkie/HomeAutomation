@@ -6,8 +6,8 @@ void initRainPulseCounter(void)
   
   pcnt_config_t pcntFreqConfig = { };                        // Declear variable for cinfig
   pcntFreqConfig.pulse_gpio_num = PCNT_INPUT_SIG_IO;         // Set the port ping using for counting
-  pcntFreqConfig.pos_mode = PCNT_COUNT_DIS;
-  pcntFreqConfig.neg_mode = PCNT_COUNT_INC;
+  pcntFreqConfig.pos_mode = PCNT_COUNT_INC;
+  pcntFreqConfig.neg_mode = PCNT_COUNT_DIS;
   pcntFreqConfig.lctrl_mode = PCNT_MODE_KEEP;
   pcntFreqConfig.hctrl_mode = PCNT_MODE_KEEP;
   pcntFreqConfig.counter_h_lim = PCNT_H_LIM_VAL;             // Set Over flow Interupt / event value
@@ -49,5 +49,3 @@ void storeRainSample()
     rainSampleIdx=0;  
   }
 }
-
-

@@ -35,6 +35,11 @@ void storeWindSample()
   pcnt_get_counter_value(PCNT_UNIT_Used, &currentPulseCount);
   pcnt_counter_clear(PCNT_UNIT_Used);
 
+  if(currentPulseCount>0)
+    pulseDetected=true;
+    
+  lastWindPulseCount=currentPulseCount;
+
   //find new max gust if the gust has expired
   long currentTime=epoch+secondsSinceEpoch;
   if((currentTime-gustTime) > (WIND_PERIOD_MIN*60L))
