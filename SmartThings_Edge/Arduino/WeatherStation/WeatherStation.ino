@@ -1,7 +1,6 @@
 #include "Debug.h"
 #include "WeatherStation.h"
 #include "WindHandler.h"
-#include "RainHandler.h"
 
 //Wifi
 const char* ssid = "WILKIE-LFP";
@@ -23,21 +22,12 @@ void IRAM_ATTR onTimer()
     secondsSinceEpoch++;
     portEXIT_CRITICAL_ISR(&timerMux);
 
-    //Check if we need to store anemometer and direction sample
+    //Check if we need to store anemometer sample
     windSeconds++;
     if(windSeconds>=WIND_SAMPLE_SEC)
     {
       windSeconds=0;
       storeWindSample();
-      storeWindDirection();
-    }
-
-    //Check if we need to store rain sample
-    rainSeconds++;
-    if(rainSeconds>=RAIN_SAMPLE_SEC)
-    {
-      rainSeconds=0;
-      storeRainSample();
     }
 }
 
@@ -51,11 +41,10 @@ void refreshWind()
      int gustLast12Idx=getLast12MaxGustIndex();
      DynamicJsonDocument doc(512);
      doc["wind_speed"] = convertToKTS(windSampleTotal/WIND_PERIOD_SIZE);
-     doc["wind_direction"] = windDirection;
+     doc["wind_direction"] = 180;
      doc["wind_gust"] = convertToKTS(gustMax);
-     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx].gust);
-     doc["wind_gust_direction_last12"] = gustLast12[gustLast12Idx].gustDirection;
-     doc["wind_gust_max_time"] = gustLast12[gustLast12Idx].gustTime;    //whatever the actual time was that the gust ocurred
+     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx]);
+     doc["wind_gust_max_time"] = gustLast12Time[gustLast12Idx];    //whatever the actual time was that the gust ocurred
      doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
      //send wind data back
@@ -66,31 +55,7 @@ void refreshWind()
      VERBOSEPRINTLN("Successfuly refreshed wind data...");
 }
 
-//refresh wind data
-void refreshRain() 
-{  
-     //rain
-     doc["rain_rate"] = .02;
-     doc["rain_rate_last_hour"] = .03;
-     doc["rain_max_rate_last12"] = 1.8;
-     doc["rain_inches_last12"] = 1.5;
-
-     //send rain data back
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
-
-     VERBOSEPRINTLN("Successfuly refreshed rain data...");
-}
-
 //debug data
-void debugData()
-{
-  windDebugData();
-  rainDebugData();
-}
-
-//wind debug data
 void windDebugData()
 {
      VERBOSEPRINTLN("---DEBUG DATA----");  
@@ -114,30 +79,6 @@ void windDebugData()
      VERBOSEPRINTLN("Successfuly sent wind debug data...");     
 }
 
-//rain debug data
-void rainDebugData()
-{
-     VERBOSEPRINTLN("---DEBUG DATA----");  
-     
-     VERBOSEPRINT("Running rain sample total: ");
-     VERBOSEPRINTLN(raindSampleTotal);  
-     VERBOSEPRINT("Epoch: ");
-     VERBOSEPRINTLN(epoch);     
-     
-     VERBOSEPRINTLN("------\n");  
-     
-     DynamicJsonDocument doc(512);     
-     doc["rainSampleTotal"] = rainSampleTotal;
-     doc["epoch"] = epoch;
-
-     //send rain debug data back
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
-
-     VERBOSEPRINTLN("Successfuly sent rain debug data...");     
-}
-
 // Serving refresh 
 void refreshAll() {
      DynamicJsonDocument doc(512);
@@ -152,6 +93,12 @@ void refreshAll() {
      doc["temp_min_last12"] = 44;
      doc["temp_min_time"] = 1651374875;
      
+     //rain
+     doc["rain_rate"] = .02;
+     doc["rain_rate_last_hour"] = .03;
+     doc["rain_max_rate_last12"] = 1.8;
+     doc["rain_inches_last12"] = 1.5;
+
      //sun
      doc["sun_intensity"] = 32;
      doc["sun_uv"] = 4;
@@ -280,9 +227,8 @@ void restServerRouting() {
     //GET
     server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
     server.on("/refreshWind", HTTP_GET, refreshWind);
-    server.on("/refreshRain", HTTP_GET, refreshRain);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 
-    server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
+    server.on("/debug", HTTP_GET, windDebugData);     //send debug data (also prints to serial
 
     //POST
     server.on("/setEpoch", HTTP_POST, setEpoch);   //called by the driver on the hub to set epoch
@@ -316,9 +262,6 @@ void setup(void)
 
   VERBOSEPRINTLN("--------------------------");
   VERBOSEPRINTLN("Starting up");
-
-  //init
-  initWindDataStructures();
   
   //free heap
   float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;

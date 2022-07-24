@@ -35,23 +35,23 @@ void storeWindSample()
   pcnt_get_counter_value(PCNT_UNIT_Used, &currentPulseCount);
   pcnt_counter_clear(PCNT_UNIT_Used);
 
-  //find new max gust if the gust has expired
-  long currentTime=epoch+secondsSinceEpoch;
-  if((currentTime-gustTime) > (WIND_PERIOD_MIN*60L))
-  {
-    gustTime=currentTime;
-    gustMax=getCurrentMaxGust();
-  }  
   //Set max gust if current sample is bigger than current max gust
+  long currentTime=epoch+secondsSinceEpoch;
   if(currentPulseCount>gustMax)
   {
     gustTime=currentTime;
     gustMax=currentPulseCount;
   }
+  //find new max gust if the gust has expired
+  if((currentTime-gustTime) > (WIND_PERIOD_MIN*60L))
+  {
+    gustTime=currentTime;
+    gustMax=getCurrentMaxGust();
+  }  
 
   //Calc running sum, and add count to sample array
   windSampleTotal=windSampleTotal-windSamples[windSampleIdx]+currentPulseCount;
-  windSamples[windSampleIdx]=currentPulseCount;
+  windSamples[windSampleIdx]=(byte)currentPulseCount;
 
   //Increment index
   windSampleIdx++;
@@ -63,9 +63,8 @@ void storeWindSample()
     windSampleIdx=0;  
 
     //Add current max gust 
-    gustLast12[gustLast12Idx].gust=gustMax;
-    gustLast12[gustLast12Idx].gustDirection=windDirection;
-    gustLast12[gustLast12Idx].gustTime=currentTime;
+    gustLast12[gustLast12Idx]=gustMax;
+    gustLast12Time[gustLast12Idx]=currentTime;
 
     //increment last12 pos
     gustLast12Idx++;
@@ -73,22 +72,6 @@ void storeWindSample()
     {
       gustLast12Idx=0;
     }
-  }
-}
-
-//init gust structure and wind sample arrays to zero
-void initWindDataStructures()
-{
-  for(int idx=0;idx<WIND_PERIOD_SIZE;idx++)
-  {
-    windSamples[idx]=0;
-  }
-
-  for(int idx=0;idx<GUST_LAST12_SIZE;idx++)
-  {
-    gustLast12[idx].gust=0;
-    gustLast12[idx].gustDirection=0;
-    gustLast12[idx].gustTime=0;
   }
 }
 
@@ -114,44 +97,14 @@ int getLast12MaxGustIndex()
   int maxGust=0;
   for(int idx=0;idx<GUST_LAST12_SIZE;idx++)
   {
-    if(gustLast12[idx].gust>maxGust)
+    if(gustLast12[idx]>maxGust)
     {
-      maxGust=gustLast12[idx].gust;
+      maxGust=gustLast12[idx];
       maxGustIdx=idx;
     }
   }
 
   return maxGustIdx;
-}
-
-int storeWindDirection()
-{
-  int adcValue = analogRead(WIND_VANE_PIN);
-  //VERBOSEPRINT("Wind vane raw ADC: ");
-  //VERBOSEPRINTLN(adcValue);
-
-  //
-  // the variable resistor in the voltage divider has a huge dead spot and is non-linear
-  //
-  if(adcValue > 3741 || adcValue <= 1)
-    windDirection=0;
-  if(adcValue > 12 && adcValue <= 405)
-    windDirection=45;    
-  if(adcValue > 330 && adcValue <= 805)
-    windDirection=90;    
-  if(adcValue > 805 && adcValue <= 1335)
-    windDirection=135;    
-  if(adcValue > 1335 && adcValue <= 1870)
-    windDirection=180;
-  if(adcValue > 1870 && adcValue <= 2410)
-    windDirection=225;
-  if(adcValue > 2300 && adcValue <= 3033)
-    windDirection=270;
-  if(adcValue > 3033 && adcValue <= 3741)
-    windDirection=315;
-
-  //VERBOSEPRINT("Wind Direction: ");
-  //VERBOSEPRINTLN(windDirection);       
 }
 
 //Convert pulses to kts

@@ -17,15 +17,9 @@
 #define WIND_PERIOD_SIZE    ((60/WIND_SAMPLE_SEC)*WIND_PERIOD_MIN) //# of samples we need to store for the period
 #define GUST_LAST12_SIZE    ((60/WIND_PERIOD_MIN)*12)              //# of max gusts (one per period) we need to store for the last 12 hours
 
-typedef struct gustStruct
-{
-  int gust;
-  int gustDirection;
-  long gustTime;
-} GustLast12Struct;
-
-static int windSamples[WIND_PERIOD_SIZE];                   //using bytes to save space as the count won't be more than 255 in one second
-static GustLast12Struct gustLast12[GUST_LAST12_SIZE];        //max gusts (one for each period) for the last 12 hours
+static byte windSamples[WIND_PERIOD_SIZE];                   //using bytes to save space as the count won't be more than 255 in one second
+static int gustLast12[GUST_LAST12_SIZE];                     //max gusts (one for each period) for the last 12 hours
+static long gustLast12Time[GUST_LAST12_SIZE];                //parallel array to store the time (epach) for each gust
 
 int windSeconds = 0;                //timer gets called every second, but we only want to read the pulse count and clear every SAMPLE_SIZE  (e.g. 3 seconds)
 int windSampleIdx = 0;              //index for where in the sample array we are
@@ -39,9 +33,5 @@ int gustLast12Idx = 0;              //index for where in the last 12 gust array 
 #define PCNT_H_LIM_VAL      10000                        /* Set the max limit to trigger the interrupt*/
 #define PCNT_INPUT_SIG_IO   4                            /* Pulse Input selected as GPIO 4 */
 #define PCNT_FILTER         (2/portTICK_PERIOD_MS)       /* ms delay to filter out noise */
-
-//Setup wind vane
-#define WIND_VANE_PIN       34                            /* wind vane pin */
-int windDirection = 0;
 
 #endif

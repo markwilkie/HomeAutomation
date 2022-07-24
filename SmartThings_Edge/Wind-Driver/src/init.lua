@@ -101,8 +101,7 @@ local function getWindData(driver, device)
 
       log.debug("Wind speed: "..windSpeed);
       log.debug("Wind direction: "..jsondata.wind_direction);
-      log.debug("Wind gust: "..windGust);
-      log.debug("Wind gust dir: "..jsondata.wind_gust_direction_last12);
+      log.debug("Wind gust: "..windGust);      
       log.debug("Last Gust Time: "..os.date("%a %X", jsondata.wind_gust_max_time));
       log.debug("Refresh successful - setting device as online");
 
@@ -110,7 +109,6 @@ local function getWindData(driver, device)
       device:emit_event(winddirection.direction(jsondata.wind_direction))
       device:emit_event(windgust.gust(windGust))
       device:emit_event(datetime.datetime(os.date("%a %X", jsondata.current_time)))
-      device:emit_component_event(device.profile.components['last12'],winddirection.direction(jsondata.wind_gust_direction_last12))
       device:emit_component_event(device.profile.components['last12'],windgust.gust(windGustLast12))
       device:emit_component_event(device.profile.components['last12'],datetime.datetime(os.date("%a %X", jsondata.wind_gust_max_time)))
     else
