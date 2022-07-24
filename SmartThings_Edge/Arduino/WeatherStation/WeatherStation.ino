@@ -1,6 +1,7 @@
 #include "Debug.h"
 #include "WeatherStation.h"
 #include "WindHandler.h"
+#include "BME280Handler.h"
 
 //Wifi
 const char* ssid = "WILKIE-LFP";
@@ -20,16 +21,9 @@ void IRAM_ATTR onTimer()
     //Increment main epoch closk
     portENTER_CRITICAL_ISR(&timerMux);
     secondsSinceEpoch++;
-    portEXIT_CRITICAL_ISR(&timerMux);
-
-    //Check if we need to store anemometer sample
     windSeconds++;
-    if(windSeconds>=WIND_SAMPLE_SEC)
-    {
-      windSeconds=0;
-      storeWindSample();
-      storeWindDirection();
-    }
+    bmeSeconds++;
+    portEXIT_CRITICAL_ISR(&timerMux); 
 }
 
 //------------------------------------------------------------
@@ -54,6 +48,32 @@ void refreshWind()
      server.send(200, "application/json", buf);
 
      VERBOSEPRINTLN("Successfuly refreshed wind data...");
+}
+
+//refresh bme data
+void refreshBME() 
+{  
+     //bme
+     int idx=bmeSampleIdx-1;
+     if(idx<0)
+      idx=0;
+      
+     DynamicJsonDocument doc(512);
+     doc["temperature"] = bmeSamples[idx].temperature;
+     doc["humidity"] = bmeSamples[idx].humidity;
+     doc["pressure"] = bmeSamples[idx].pressure;
+     doc["dew_point"] = 0; //(((bmeSamples[idx].temperature - (100 - bmeSamples[bmeSampleIdx-1].humidity) / 5))*1.8)*32;
+     doc["heat_index"] = 0;
+     doc["temperature_max_last12"] = getMaxTemperature();
+     doc["temperature_min_last12"] = getMinTemperature();
+     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+
+     //send rain data back
+     String buf;
+     serializeJson(doc, buf);
+     server.send(200, "application/json", buf);
+
+     VERBOSEPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
 }
 
 //debug data
@@ -228,6 +248,7 @@ void restServerRouting() {
     //GET
     server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
     server.on("/refreshWind", HTTP_GET, refreshWind);
+    server.on("/refreshBME", HTTP_GET, refreshBME);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 
     server.on("/debug", HTTP_GET, windDebugData);     //send debug data (also prints to serial
 
@@ -314,12 +335,35 @@ void setup(void)
   timerAlarmEnable(timer);  
 
   //Setup sensors
+  VERBOSEPRINTLN("Setting up sensors...");
   initWindPulseCounter();
+  setupBME();
 
   VERBOSEPRINTLN("Ready to go!");
   VERBOSEPRINTLN("");
 }
  
-void loop(void) {
+void loop(void) 
+{
+  //take care of webserver stuff
   server.handleClient();
+
+  //Check if we need to store anemometer sample
+  if(windSeconds>=WIND_SAMPLE_SEC)
+  {
+    windSeconds=0;
+    storeWindSample();
+    storeWindDirection();
+  }
+
+  //take care of webserver stuff before too much time goes by
+  yield();
+  server.handleClient();
+    
+  //Check if we need to store BME280 sample
+  if(bmeSeconds>=BME_SAMPLE_SEC)
+  {
+    bmeSeconds=0;
+    storeBMESample();
+  }
 }
