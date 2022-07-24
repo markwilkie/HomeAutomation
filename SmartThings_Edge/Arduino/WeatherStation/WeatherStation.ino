@@ -68,7 +68,7 @@ void refreshBME()
      doc["temperature_min_last12"] = getMinTemperature();
      doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
-     //send rain data back
+     //send bme data back
      String buf;
      serializeJson(doc, buf);
      server.send(200, "application/json", buf);
@@ -77,43 +77,55 @@ void refreshBME()
 }
 
 //debug data
-void windDebugData()
+void debugData()
 {
-     VERBOSEPRINTLN("---DEBUG DATA----");  
-     
+     //Serial write
+     VERBOSEPRINTLN("--- WIND DEBUG DATA----");    
      VERBOSEPRINT("Running wind sample total: ");
      VERBOSEPRINTLN(windSampleTotal);  
-     VERBOSEPRINT("Epoch: ");
-     VERBOSEPRINTLN(epoch);     
-     
-     VERBOSEPRINTLN("------\n");  
-     
-     DynamicJsonDocument doc(512);     
-     doc["windSampleTotal"] = windSampleTotal;
-     doc["epoch"] = epoch;
 
-     //send wind debug data back
+     VERBOSEPRINTLN("--- BME DEBUG DATA----");
+     int idx=bmeSampleIdx-1;
+     if(idx<0)
+      idx=0;
+     VERBOSEPRINT("temperature: ");
+     VERBOSEPRINTLN(bmeSamples[idx].temperature);
+     VERBOSEPRINT("humidity: ");
+     VERBOSEPRINTLN(bmeSamples[idx].humidity);
+     VERBOSEPRINT("pressure: ");
+     VERBOSEPRINTLN(bmeSamples[idx].pressure);
+     
+     VERBOSEPRINTLN("--- GENERAL DEBUG DATA----");   
+     VERBOSEPRINT("Epoch: ");
+     VERBOSEPRINTLN(epoch);        
+     
+     //Web write back
+     DynamicJsonDocument doc(512);     
+
+     //Wind
+     doc["windSampleTotal"] = windSampleTotal;
+
+     //BME
+     doc["temperature"] = bmeSamples[idx].temperature;
+     doc["humidity"] = bmeSamples[idx].humidity;
+     doc["pressure"] = bmeSamples[idx].pressure;
+
+     //General
+     doc["epoch"] = epoch;
+     doc["secondsSinceEpoch"] = secondsSinceEpoch;
+     
+     //send debug data back
      String buf;
      serializeJson(doc, buf);
      server.send(200, "application/json", buf);
 
-     VERBOSEPRINTLN("Successfuly sent wind debug data...");     
+     VERBOSEPRINTLN("Successfuly sent debug data...");     
 }
 
 // Serving refresh 
 void refreshAll() {
      DynamicJsonDocument doc(512);
-
-     //temperature/humidity
-     doc["temp"] = 57;
-     doc["humidity"] = 45;
-     doc["dew"] = 44;
-     doc["pressure"] = 29.98;
-     doc["temp_max_last12"] = 63;
-     doc["temp_max_time"] = 1651374875;
-     doc["temp_min_last12"] = 44;
-     doc["temp_min_time"] = 1651374875;
-     
+   
      //rain
      doc["rain_rate"] = .02;
      doc["rain_rate_last_hour"] = .03;
@@ -250,7 +262,7 @@ void restServerRouting() {
     server.on("/refreshWind", HTTP_GET, refreshWind);
     server.on("/refreshBME", HTTP_GET, refreshBME);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 
-    server.on("/debug", HTTP_GET, windDebugData);     //send debug data (also prints to serial
+    server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
 
     //POST
     server.on("/setEpoch", HTTP_POST, setEpoch);   //called by the driver on the hub to set epoch
