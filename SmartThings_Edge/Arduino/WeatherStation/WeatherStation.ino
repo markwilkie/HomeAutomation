@@ -28,6 +28,7 @@ void IRAM_ATTR onTimer()
     {
       windSeconds=0;
       storeWindSample();
+      storeWindDirection();
     }
 }
 
@@ -41,11 +42,11 @@ void refreshWind()
      int gustLast12Idx=getLast12MaxGustIndex();
      DynamicJsonDocument doc(512);
      doc["wind_speed"] = convertToKTS(windSampleTotal/WIND_PERIOD_SIZE);
-     doc["wind_direction"] = 180;
+     doc["wind_direction"] = windDirection;
      doc["wind_gust"] = convertToKTS(gustMax);
-     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx]);
-     doc["wind_gust_max_time"] = gustLast12Time[gustLast12Idx];    //whatever the actual time was that the gust ocurred
-     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx].gust);
+     doc["wind_gust_direction_last12"] = gustLast12[gustLast12Idx].gustDirection;
+     doc["wind_gust_max_time"] = gustLast12[gustLast12Idx].gustTime;    //whatever the actual time was that the gust ocurred
 
      //send wind data back
      String buf;
@@ -262,6 +263,9 @@ void setup(void)
 
   VERBOSEPRINTLN("--------------------------");
   VERBOSEPRINTLN("Starting up");
+
+  //init data structures
+  initWindDataStructures();
   
   //free heap
   float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
@@ -309,7 +313,7 @@ void setup(void)
   timerAlarmWrite(timer, 1000000, true);
   timerAlarmEnable(timer);  
 
-  //Setup pulse counters
+  //Setup sensors
   initWindPulseCounter();
 
   VERBOSEPRINTLN("Ready to go!");
