@@ -50,6 +50,34 @@ int readADC(int pin)
   return(sum/readNum);
 }
 
+double getVolts(int adcReading)
+{
+  return 3.3 / 4095 * adcReading;
+}
+
+double getUVIndex(int adcReading)
+{
+  //used to map voltage to intensity
+  double in_min=.99;
+  double in_max=2.8;
+  double out_min=0.0;
+  double out_max=15.0;
+  
+  double outputVoltage = getVolts(adcReading);
+  double uvIntensity = (outputVoltage - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  double index=uvIntensity * 1.61;
+
+  return index;
+}
+
+String isWet(int adcReading)
+{
+  if(adcReading > 10)
+    return "wet";
+  else
+    return "dry";
+}
+
 //return max cap voltage
 int getMaxCapVoltage()
 {

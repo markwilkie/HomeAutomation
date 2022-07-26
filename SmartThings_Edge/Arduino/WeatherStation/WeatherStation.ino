@@ -2,6 +2,7 @@
 #include "WeatherStation.h"
 #include "WindHandler.h"
 #include "BME280Handler.h"
+#include "EnvironmentCalculations.h"
 #include "ADCHandler.h"
 
 //Wifi
@@ -52,55 +53,89 @@ void refreshWind()
      VERBOSEPRINTLN("Successfuly refreshed wind data...");
 }
 
+//refresh weather data
+void refreshWeather() 
+{
+  DynamicJsonDocument doc(512); 
+
+  doc=refreshBMEDoc(doc);
+  doc=refreshADCDoc(doc);
+  
+  //send bme data back
+  String buf;
+  serializeJson(doc, buf);
+  server.send(200, "application/json", buf);
+  
+  VERBOSEPRINTLN("Successfuly refreshed general weather data...");
+}
+
 //refresh bme data
 void refreshBME() 
+{
+  DynamicJsonDocument doc(512); 
+
+  doc=refreshBMEDoc(doc);
+  
+  //send bme data back
+  String buf;
+  serializeJson(doc, buf);
+  server.send(200, "application/json", buf);
+  
+  VERBOSEPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
+}
+
+//refresh bme data
+DynamicJsonDocument refreshBMEDoc(DynamicJsonDocument doc) 
 {  
-     //bme
-     int idx=bmeSampleIdx-1;
-     if(idx<0)
-      idx=0;
-      
-     DynamicJsonDocument doc(512);
-     doc["temperature"] = bmeSamples[idx].temperature;
-     doc["humidity"] = bmeSamples[idx].humidity;
-     doc["pressure"] = bmeSamples[idx].pressure;
-     doc["dew_point"] = 0; //(((bmeSamples[idx].temperature - (100 - bmeSamples[bmeSampleIdx-1].humidity) / 5))*1.8)*32;
-     doc["heat_index"] = 0;
-     doc["temperature_max_last12"] = getMaxTemperature();
-     doc["temperature_min_last12"] = getMinTemperature();
-     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+  //bme
+  int idx=bmeSampleIdx-1;
+  if(idx<0)
+  idx=0;
+  
+  doc["temperature"] = bmeSamples[idx].temperature;
+  doc["humidity"] = bmeSamples[idx].humidity;
+  doc["pressure"] = bmeSamples[idx].pressure;
+  doc["dew_point"] = EnvironmentCalculations::DewPoint(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);
+  doc["heat_index"] = EnvironmentCalculations::HeatIndex(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);;
+  doc["temperature_max_last12"] = getMaxTemperature();
+  doc["temperature_min_last12"] = getMinTemperature();
+  doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
-     //send bme data back
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
-
-     VERBOSEPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
+  return doc;
 }
 
 //refresh adc data
 void refreshADC() 
+{
+  DynamicJsonDocument doc(512); 
+
+  doc=refreshADCDoc(doc);
+  
+  //send bme data back
+  String buf;
+  serializeJson(doc, buf);
+  server.send(200, "application/json", buf);
+  
+  VERBOSEPRINTLN("Successfuly refreshed ADC (cap voltage, ldr, moisture, uv) data...");
+}
+
+//refresh adc data
+DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc) 
 {  
-     //bme
+     //adc
      int idx=adcSampleIdx-1;
      if(idx<0)
       idx=0;
       
-     DynamicJsonDocument doc(512);
-     doc["cap_voltage"] = adcSamples[idx].capVoltage;
-     doc["ldr"] = adcSamples[idx].ldr;
-     doc["moisture"] = adcSamples[idx].moisture;
-     doc["uv"] = adcSamples[idx].uv;
+     doc["cap_voltage"] = (getVolts(adcSamples[idx].capVoltage)*2);  // doubled because two 10K voltage divider 
+     doc["ldr"] = map(adcSamples[idx].ldr, 0, 4095, 0, 100000);   //1-100000 brightness
+     doc["moisture"] = isWet(adcSamples[idx].moisture);
+     doc["uv"] = getUVIndex(adcSamples[idx].uv);
      doc["cap_voltage_max_last12"] = getMaxCapVoltage();
      doc["cap_voltage_min_last12"] = getMinCapVoltage();
      doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
-     //send bme data back
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
-
-     VERBOSEPRINTLN("Successfuly refreshed ADC (cap voltage, ldr, moisture, uv) data...");
+     return doc;
 }
 
 //debug data
@@ -287,6 +322,7 @@ void restServerRouting() {
     //GET
     server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
     server.on("/refreshWind", HTTP_GET, refreshWind);
+    server.on("/refreshWeather", HTTP_GET, refreshWeather);
     server.on("/refreshBME", HTTP_GET, refreshBME);
     server.on("/refreshADC", HTTP_GET, refreshADC);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 

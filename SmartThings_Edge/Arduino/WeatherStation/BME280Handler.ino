@@ -14,7 +14,7 @@ void storeBMESample()
   //Read BME
   BMEstruct bmeData;
   bmeData.temperature=bme.readTemperature();
-  bmeData.pressure=bme.readPressure() / 100.0F;
+  bmeData.pressure=bme.readPressure()/3386.3752577878;          // convert to inches of mercury  -  pa * 1inHg/3386.3752577878Pa */;
   bmeData.humidity=bme.readHumidity();
 
   //Add to sample array

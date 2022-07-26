@@ -12,7 +12,7 @@ components:
     version: 1
   - id: atmosphericPressureMeasurement
     version: 1
-  - id: windSpeed
+  - id: dewPoint
     version: 1
   - id: radioamber53161.atmospressure
     version: 1 
@@ -24,12 +24,3 @@ components:
     version: 1 
   - id: radioamber53161.datetime
     version: 1    
-- id: last12
-  label: "Last 12 Hours"
-  capabilities:
-  - id: refresh
-    version: 1
-  - id: temperatureMeasurement
-    version: 1      
-  - id: radioamber53161.datetime
-    version: 1

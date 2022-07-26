@@ -108,7 +108,7 @@ local function getWeatherData(driver, device)
   local success, data = send_lan_command(
     'http://192.168.15.108:80',
     'GET',
-    'refreshBME')
+    'refreshWeather')
 
     if(success) then
       log.debug("Refresh successful - setting device as online");
@@ -118,16 +118,18 @@ local function getWeatherData(driver, device)
       local temperature = tonumber(string.format("%.1f", jsondata.temperature))
       local humidity = tonumber(string.format("%.1f", jsondata.humidity))
       local pressure = tonumber(string.format("%.1f", jsondata.pressure))
-      --local windGustLast12 = tonumber(string.format("%.1f", jsondata.wind_gust_max_last12))
+      local dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
+      local uvIndex = tonumber(string.format("%.1f", jsondata.uv))
 
       device:emit_event(capabilities.temperatureMeasurement.temperature(temperature))
       device:emit_event(capabilities.relativeHumidityMeasurement.humidity(humidity))
-      device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(31))
+      device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(pressure))
       device:emit_event(atmospressure.pressure(pressure))
+      device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(uvIndex))
+      device:emit_event(capabilities.illuminanceMeasurement.illuminance(jsondata.ldr))
+      --device:emit_event(capabilities.waterSensor.water(jasondata.moisture))
+      device:emit_event(capabilities.dewPoint.dewpoint(dewPoint))
       device:emit_event(datetime.datetime(os.date("%a %X", jsondata.current_time)))
-      --device:emit_component_event(device.profile.components['last12'],windgust.gust(windGustLast12))
-      --device:emit_component_event(device.profile.components['last12'],winddirection.direction(jsondata.wind_gust_direction_last12))
-      --device:emit_component_event(device.profile.components['last12'],datetime.datetime(os.date("%a %X", jsondata.wind_gust_max_time)))
     else
       log.debug("Refresh NOT successful - setting device as offline");
       return false
