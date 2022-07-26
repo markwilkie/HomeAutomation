@@ -17,10 +17,10 @@ void storeADCSample()
   
   //Read ADC
   ADCstruct adcData;
-  adcData.capVoltage=readADC(CAP_VOLTAGE_PIN);
-  adcData.ldr=readADC(LDR_PIN);
-  adcData.moisture=readADC(MOISTURE_PIN);
-  adcData.uv=readADC(UV_PIN);
+  adcData.capVoltage=getVolts(readADC(CAP_VOLTAGE_PIN)*2);   //doubled because it's gone through a 10x10K divider
+  adcData.ldr=map(readADC(LDR_PIN), 0, 4095, 0, 100000);   //1-100000 brightness
+  adcData.moisture=isWet(readADC(MOISTURE_PIN));
+  adcData.uv=getUVIndex(readADC(UV_PIN));
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);

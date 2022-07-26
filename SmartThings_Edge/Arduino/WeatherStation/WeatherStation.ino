@@ -127,10 +127,10 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
      if(idx<0)
       idx=0;
       
-     doc["cap_voltage"] = (getVolts(adcSamples[idx].capVoltage)*2);  // doubled because two 10K voltage divider 
-     doc["ldr"] = map(adcSamples[idx].ldr, 0, 4095, 0, 100000);   //1-100000 brightness
-     doc["moisture"] = isWet(adcSamples[idx].moisture);
-     doc["uv"] = getUVIndex(adcSamples[idx].uv);
+     doc["cap_voltage"] = adcSamples[idx].capVoltage;
+     doc["ldr"] = adcSamples[idx].ldr;
+     doc["moisture"] = adcSamples[idx].moisture;
+     doc["uv"] = adcSamples[idx].u);
      doc["cap_voltage_max_last12"] = getMaxCapVoltage();
      doc["cap_voltage_min_last12"] = getMinCapVoltage();
      doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
