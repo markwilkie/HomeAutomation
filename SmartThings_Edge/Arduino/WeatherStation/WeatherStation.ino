@@ -2,6 +2,7 @@
 #include "WeatherStation.h"
 #include "WindHandler.h"
 #include "BME280Handler.h"
+#include "ADCHandler.h"
 
 //Wifi
 const char* ssid = "WILKIE-LFP";
@@ -23,6 +24,7 @@ void IRAM_ATTR onTimer()
     secondsSinceEpoch++;
     windSeconds++;
     bmeSeconds++;
+    adcSeconds++;
     portEXIT_CRITICAL_ISR(&timerMux); 
 }
 
@@ -74,6 +76,31 @@ void refreshBME()
      server.send(200, "application/json", buf);
 
      VERBOSEPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
+}
+
+//refresh adc data
+void refreshADC() 
+{  
+     //bme
+     int idx=adcSampleIdx-1;
+     if(idx<0)
+      idx=0;
+      
+     DynamicJsonDocument doc(512);
+     doc["cap_voltage"] = adcSamples[idx].capVoltage;
+     doc["ldr"] = adcSamples[idx].ldr;
+     doc["moisture"] = adcSamples[idx].moisture;
+     doc["uv"] = adcSamples[idx].uv;
+     doc["cap_voltage_max_last12"] = getMaxCapVoltage();
+     doc["cap_voltage_min_last12"] = getMinCapVoltage();
+     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+
+     //send bme data back
+     String buf;
+     serializeJson(doc, buf);
+     server.send(200, "application/json", buf);
+
+     VERBOSEPRINTLN("Successfuly refreshed ADC (cap voltage, ldr, moisture, uv) data...");
 }
 
 //debug data
@@ -261,6 +288,7 @@ void restServerRouting() {
     server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
     server.on("/refreshWind", HTTP_GET, refreshWind);
     server.on("/refreshBME", HTTP_GET, refreshBME);
+    server.on("/refreshADC", HTTP_GET, refreshADC);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 
     server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
 
@@ -350,6 +378,11 @@ void setup(void)
   VERBOSEPRINTLN("Setting up sensors...");
   initWindPulseCounter();
   setupBME();
+  setupADC();
+
+  //turn off air quality
+  pinMode(25,OUTPUT);
+  digitalWrite(25, LOW); 
 
   VERBOSEPRINTLN("Ready to go!");
   VERBOSEPRINTLN("");
@@ -378,4 +411,15 @@ void loop(void)
     bmeSeconds=0;
     storeBMESample();
   }
+
+  //take care of webserver stuff before too much time goes by
+  yield();
+  server.handleClient();
+    
+  //Check if we need to store ADC samples
+  if(adcSeconds>=ADC_SAMPLE_SEC)
+  {
+    adcSeconds=0;
+    storeADCSample();
+  }  
 }

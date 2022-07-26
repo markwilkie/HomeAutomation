@@ -20,9 +20,9 @@ components:
   - id: refresh
     version: 1
   - id: radioamber53161.windgust
-    version: 1 
+    version: 1      
   - id: radioamber53161.datetime
     version: 1
-metadata: 
-  mnmn: SmartThingsCommunity 
-  vid: dd0601b8-a156-36bf-9c90-8e3c722b75fc
+  metadata: 
+    mnmn: SmartThingsCommunity 
+    vid: ec16808d-1a43-32f7-a21a-7281310bbe03

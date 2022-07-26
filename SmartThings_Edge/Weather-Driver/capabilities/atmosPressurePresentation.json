@@ -2,7 +2,7 @@
     "dashboard": {
         "states": [
             {
-                "label": "Gust: {{gust.value}} {{gust.unit}}"
+                "label": "Pressure: {{pressure.value}} {{pressure.unit}}"
             }
         ],
         "actions": [],
@@ -10,26 +10,26 @@
     },
     "detailView": [
         {
-            "label": "Wind Gust",
+            "label": "Atmos Pressure",
             "displayType": "state",
             "state": {
-                "label": "{{gust.value}} {{gust.unit}}"
+                "label": "{{pressure.value}} {{pressure.unit}}"
             }
-        }
+        } 
     ],
     "automation": {
         "conditions": [
             {
-                "label": "Wind Gust",
+                "label": "Atmos Pressure",
                 "displayType": "numberField",
                 "numberField": {
-                    "value": "gust.value",
-                    "unit": "gust.unit"
+                    "value": "pressure.value",
+                    "unit": "pressure.unit"
                 }
             }       
         ],
         "actions": []
     },
-    "id": "radioamber53161.windgust",
+    "id": "radioamber53161.atmospressure",
     "version": 1
 }

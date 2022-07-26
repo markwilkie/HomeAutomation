@@ -8,14 +8,17 @@ local ltn12 = require('ltn12')
 local json = require('dkjson')
 
 -- Custom Capabiities
+local atmospressure = capabilities["radioamber53161.atmospressure"]
 local datetime = capabilities["radioamber53161.datetime"]
-local windspeed = capabilities["radioamber53161.windspeed"]
-local windgust = capabilities["radioamber53161.windgust"]
-local winddirection = capabilities["radioamber53161.winddirection"]
+
+--local capdefs = require "capabilitydefs"
+--local atmospressure = capabilities.build_cap_from_json_string(capdefs.atmospressure)
+--capabilities["radioamber53161.atmospressure"] = atmospressure
+--local datetime = capabilities.build_cap_from_json_string(capdefs.datetime)
+--capabilities["radioamber53161.datetime"] = datetime
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
-
 
 -----------------------------------------------------------------
 -- local functions
@@ -99,35 +102,32 @@ local function setEpoch()
 end
 
 -- Get latest wind updates
-local function getWindData(driver, device)
+local function getWeatherData(driver, device)
   log.debug(string.format("[%s] Calling refresh", device.device_network_id))
 
   local success, data = send_lan_command(
     'http://192.168.15.108:80',
     'GET',
-    'refreshWind')
+    'refreshBME')
 
     if(success) then
+      log.debug("Refresh successful - setting device as online");
+      
       local jsondata = json.decode(table.concat(data)..'}');
       
-      local windSpeed = tonumber(string.format("%.1f", jsondata.wind_speed))
-      local windGust = tonumber(string.format("%.1f", jsondata.wind_gust))
-      local windGustLast12 = tonumber(string.format("%.1f", jsondata.wind_gust_max_last12))
+      local temperature = tonumber(string.format("%.1f", jsondata.temperature))
+      local humidity = tonumber(string.format("%.1f", jsondata.humidity))
+      local pressure = tonumber(string.format("%.1f", jsondata.pressure))
+      --local windGustLast12 = tonumber(string.format("%.1f", jsondata.wind_gust_max_last12))
 
-      log.debug("Wind speed: "..windSpeed);
-      log.debug("Wind direction: "..jsondata.wind_direction);
-      log.debug("Wind gust: "..windGust);
-      log.debug("Wind gust dir: "..jsondata.wind_gust_direction_last12);     
-      log.debug("Last Gust Time: "..os.date("%a %X", jsondata.wind_gust_max_time));
-      log.debug("Refresh successful - setting device as online");
-
-      device:emit_event(windspeed.speed(windSpeed))
-      device:emit_event(winddirection.direction(jsondata.wind_direction))
-      device:emit_event(windgust.gust(windGust))
+      device:emit_event(capabilities.temperatureMeasurement.temperature(temperature))
+      device:emit_event(capabilities.relativeHumidityMeasurement.humidity(humidity))
+      device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(31))
+      device:emit_event(atmospressure.pressure(pressure))
       device:emit_event(datetime.datetime(os.date("%a %X", jsondata.current_time)))
-      device:emit_component_event(device.profile.components['last12'],windgust.gust(windGustLast12))
+      --device:emit_component_event(device.profile.components['last12'],windgust.gust(windGustLast12))
       --device:emit_component_event(device.profile.components['last12'],winddirection.direction(jsondata.wind_gust_direction_last12))
-      device:emit_component_event(device.profile.components['last12'],datetime.datetime(os.date("%a %X", jsondata.wind_gust_max_time)))
+      --device:emit_component_event(device.profile.components['last12'],datetime.datetime(os.date("%a %X", jsondata.wind_gust_max_time)))
     else
       log.debug("Refresh NOT successful - setting device as offline");
       return false
@@ -148,7 +148,7 @@ local function refresh(driver, device)
     return false
   end
 
-  if not getWindData(driver, device) then
+  if not getWeatherData(driver, device) then
     return false
   end
 
@@ -158,23 +158,23 @@ end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
 local function device_added(driver, device)
-  log.info("[" .. device.id .. "] Adding new wind device")
+  log.info("[" .. device.id .. "] Adding new weather device")
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
 local function device_init(driver, device)
-  log.info("[" .. device.id .. "] Initializing wind device")
+  log.info("[" .. device.id .. "] Initializing weather device")
 
   refresh(driver, device)
 end
 
 -- this is called when a device is removed by the cloud and synchronized down to the hub
 local function device_removed(driver, device)
-  log.info("[" .. device.id .. "] Removing wind device")
+  log.info("[" .. device.id .. "] Removing weather device")
 end
 
 -- create the driver object
-local wind_driver = Driver("wind", {
+local wind_driver = Driver("weather", {
   discovery = discovery.handle_discovery,
   lifecycle_handlers = {
     added = device_added,
@@ -183,9 +183,13 @@ local wind_driver = Driver("wind", {
   },
   supported_capabilities = {
     capabilities.refresh,
-    windspeed,
-    winddirection,
-    windgust,
+    capabilities.temperatureMeasurement,
+    capabilities.relativeHumidityMeasurement,
+    capabilities.atmosphericPressureMeasurement,
+    atmospressure,
+    capabilities.ultravioletIndex,
+    capabilities.illuminanceMeasurement,
+    capabilities.waterSensor,
     datetime
   },
   capability_handlers = {

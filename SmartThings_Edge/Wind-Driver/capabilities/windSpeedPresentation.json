@@ -13,8 +13,7 @@
             "label": "Wind Speed",
             "displayType": "state",
             "state": {
-                "label": "speed.value",
-                "unit": "speed.unit"
+                "label": "{{speed.value}} {{speed.unit}}"
             }
         } 
     ],

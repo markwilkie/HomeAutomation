@@ -1,0 +1,81 @@
+#include "ADCHandler.h"
+
+void setupADC()
+{
+  pinMode(CAP_VOLTAGE_PIN, INPUT);
+  pinMode(LDR_PIN, INPUT);
+  pinMode(MOISTURE_PIN, INPUT);
+  pinMode(UV_PIN, INPUT);
+
+  pinMode(UV_EN, OUTPUT);
+}
+
+void storeADCSample()
+{
+  //Enable stuff that needs it
+  digitalWrite(UV_EN, HIGH);
+  
+  //Read ADC
+  ADCstruct adcData;
+  adcData.capVoltage=readADC(CAP_VOLTAGE_PIN);
+  adcData.ldr=readADC(LDR_PIN);
+  adcData.moisture=readADC(MOISTURE_PIN);
+  adcData.uv=readADC(UV_PIN);
+
+  //Disable stuff that needs it
+  digitalWrite(UV_EN, LOW);
+
+  //Add to sample array
+  adcSamples[adcSampleIdx]=adcData;
+  adcSampleIdx++;
+
+  //If wraps, then reset 
+  if(adcSampleIdx>=ADC_LAST12_SIZE)
+  {
+    //reset pos
+    adcSampleIdx=0;  
+  }
+}
+
+int readADC(int pin)
+{
+  int readNum=10;
+  long sum=0;
+  for(int i=0;i<readNum;i++)
+  {
+    sum=sum+analogRead(pin);
+    delay(1);
+  }
+
+  return(sum/readNum);
+}
+
+//return max cap voltage
+int getMaxCapVoltage()
+{
+  int maxVoltage=0;
+  for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
+  {
+    if(adcSamples[idx].capVoltage>maxVoltage)
+    {
+      maxVoltage=adcSamples[idx].capVoltage;
+    }
+  }
+
+  return maxVoltage;
+}
+
+//return min cap voltage
+int getMinCapVoltage()
+{
+  int minVoltage=0;
+  for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
+  {
+    if(adcSamples[idx].capVoltage<minVoltage)
+    {
+      minVoltage=adcSamples[idx].capVoltage;
+    }
+  }
+
+  return minVoltage;
+}

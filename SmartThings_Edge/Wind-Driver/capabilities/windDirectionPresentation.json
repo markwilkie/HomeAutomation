@@ -13,8 +13,7 @@
             "label": "Wind Direction",
             "displayType": "state",
             "state": {
-                "label": "direction.value",
-                "unit": "direction.unit"
+                "label": "{{direction.value}} {{direction.unit}}"
             }
         } 
     ],

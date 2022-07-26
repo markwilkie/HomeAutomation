@@ -1,0 +1,5 @@
+name: 'Weather'
+packageKey: 'wilkie.weather'
+permissions:
+  discovery: {}
+  lan: {}
