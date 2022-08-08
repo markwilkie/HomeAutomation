@@ -113,20 +113,36 @@ local function getWindData(driver, device)
       local windSpeed = tonumber(string.format("%.1f", jsondata.wind_speed))
       local windGust = tonumber(string.format("%.1f", jsondata.wind_gust))
       local windGustLast12 = tonumber(string.format("%.1f", jsondata.wind_gust_max_last12))
+      local adjDirection = device.preferences.windVaneOffset+jsondata.wind_direction
+      if(adjDirection>359) then
+        adjDirection=adjDirection-359
+      end
+      if(adjDirection<0) then
+        adjDirection=adjDirection+359
+      end
+      local adjGustDirection = device.preferences.windVaneOffset+windGustLast12
+      if(adjGustDirection>359) then
+        adjGustDirection=adjGustDirection-359
+      end
+      if(adjGustDirection<0) then
+        adjGustDirection=adjGustDirection+359
+      end
+
 
       log.debug("Wind speed: "..windSpeed);
       log.debug("Wind direction: "..jsondata.wind_direction);
+      log.debug("Wind direction adj: "..adjDirection);
       log.debug("Wind gust: "..windGust);
       log.debug("Wind gust dir: "..jsondata.wind_gust_direction_last12);     
       log.debug("Last Gust Time: "..os.date("%a %X", jsondata.wind_gust_max_time));
       log.debug("Refresh successful - setting device as online");
 
       device:emit_event(windspeed.speed(windSpeed))
-      device:emit_event(winddirection.direction(jsondata.wind_direction))
+      device:emit_event(winddirection.direction(adjDirection))
       device:emit_event(windgust.gust(windGust))
       device:emit_event(datetime.datetime(os.date("%a %X", jsondata.current_time)))
       device:emit_component_event(device.profile.components['last12'],windgust.gust(windGustLast12))
-      --device:emit_component_event(device.profile.components['last12'],winddirection.direction(jsondata.wind_gust_direction_last12))
+      device:emit_component_event(device.profile.components['last12'],winddirection.direction(adjGustDirection))
       device:emit_component_event(device.profile.components['last12'],datetime.datetime(os.date("%a %X", jsondata.wind_gust_max_time)))
     else
       log.debug("Refresh NOT successful - setting device as offline");
@@ -164,6 +180,14 @@ end
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
 local function device_init(driver, device)
   log.info("[" .. device.id .. "] Initializing wind device")
+
+  -- Refresh schedule
+  device.thread:call_on_schedule(
+    600,
+    function ()
+      return refresh(driver, device)
+    end,
+    'Scheduled Refresh')
 
   refresh(driver, device)
 end

@@ -24,7 +24,7 @@ void initWindPulseCounter(void)
   ESP_ERROR_CHECK(pcnt_intr_enable(PCNT_UNIT_Used));                          // Enable PCNT
   ESP_ERROR_CHECK(pcnt_counter_resume(PCNT_UNIT_Used));                       // Re-started PCNT.
 
-  VERBOSEPRINTLN("PCNT Init Completed");
+  VERBOSEPRINTLN("Anemometer pulse counter active");
 }
 
 //Anemometer pulse counter

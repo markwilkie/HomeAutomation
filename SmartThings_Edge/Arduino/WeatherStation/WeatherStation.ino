@@ -44,6 +44,7 @@ void refreshWind()
      doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx].gust);
      doc["wind_gust_direction_last12"] = gustLast12[gustLast12Idx].gustDirection;
      doc["wind_gust_max_time"] = gustLast12[gustLast12Idx].gustTime;    //whatever the actual time was that the gust ocurred
+     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
      //send wind data back
      String buf;
@@ -91,14 +92,26 @@ DynamicJsonDocument refreshBMEDoc(DynamicJsonDocument doc)
   int idx=bmeSampleIdx-1;
   if(idx<0)
   idx=0;
+
+  int maxIndex=getMaxTemperatureIndex();
+  int minIndex=getMinTemperatureIndex();
+
+  float dewPoint = EnvironmentCalculations::DewPoint(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);
+  if(isnan(dewPoint))    dewPoint=0;
+  float heatIndex = EnvironmentCalculations::HeatIndex(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);
+  
   
   doc["temperature"] = bmeSamples[idx].temperature;
   doc["humidity"] = bmeSamples[idx].humidity;
   doc["pressure"] = bmeSamples[idx].pressure;
-  doc["dew_point"] = EnvironmentCalculations::DewPoint(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);
-  doc["heat_index"] = EnvironmentCalculations::HeatIndex(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);;
-  doc["temperature_max_last12"] = getMaxTemperature();
-  doc["temperature_min_last12"] = getMinTemperature();
+  doc["dew_point"] = dewPoint;
+  doc["heat_index"] = heatIndex;
+  doc["temperature_change_last_hour"] = getTemperatureChange();
+  doc["pressure_change_last_hour"] = getPressureChange();
+  doc["temperature_max_last12"] = bmeSamples[maxIndex].temperature;
+  doc["temperature_max_time_last12"] = bmeSamples[maxIndex].readingTime;
+  doc["temperature_min_last12"] = bmeSamples[minIndex].temperature;
+  doc["temperature_min_time_last12"] = bmeSamples[minIndex].readingTime;
   doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
   return doc;
@@ -127,12 +140,12 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
      if(idx<0)
       idx=0;
       
-     doc["cap_voltage"] = adcSamples[idx].capVoltage;
+     doc["voltage"] = adcSamples[idx].voltage;
      doc["ldr"] = adcSamples[idx].ldr;
      doc["moisture"] = adcSamples[idx].moisture;
-     doc["uv"] = adcSamples[idx].u);
-     doc["cap_voltage_max_last12"] = getMaxCapVoltage();
-     doc["cap_voltage_min_last12"] = getMinCapVoltage();
+     doc["uv"] = adcSamples[idx].uv;
+     doc["voltage_max_last12"] = getMaxVoltage();
+     doc["voltage_min_last12"] = getMinVoltage();
      doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
 
      return doc;

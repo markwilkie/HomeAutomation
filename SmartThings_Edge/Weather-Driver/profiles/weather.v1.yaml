@@ -23,4 +23,36 @@ components:
   - id: waterSensor
     version: 1 
   - id: radioamber53161.datetime
+    version: 1  
+- id: heatIndex
+  label: "Heat Index"
+  capabilities:
+  - id: refresh
     version: 1    
+  - id: temperatureMeasurement
+    version: 1
+- id: lastHour
+  label: "Change Last Hour"
+  capabilities:
+  - id: refresh
+    version: 1    
+  - id: temperatureMeasurement
+    version: 1    
+- id: last12Max
+  label: "Max Last 12 Hours"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: temperatureMeasurement
+    version: 1    
+  - id: radioamber53161.datetime
+    version: 1  
+- id: last12Min
+  label: "Min Last 12 Hours"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: temperatureMeasurement
+    version: 1  
+  - id: radioamber53161.datetime
+    version: 1  

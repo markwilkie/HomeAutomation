@@ -4,7 +4,7 @@
 #include "debug.h"
 
 //adc pins
-#define CAP_VOLTAGE_PIN 32
+#define VOLTAGE_PIN 32
 #define LDR_PIN         35
 #define MOISTURE_PIN    39
 #define UV_PIN          34
@@ -19,10 +19,10 @@
 //define data structures
 typedef struct adcStruct
 {
-  int capVoltage;
-  int ldr;
-  int moisture;
-  int uv;
+  float voltage;
+  long ldr;
+  String moisture;
+  float uv;
 } ADCstruct;
 
 static ADCstruct adcSamples[ADC_LAST12_SIZE];     

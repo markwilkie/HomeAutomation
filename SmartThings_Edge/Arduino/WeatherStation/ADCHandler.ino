@@ -2,7 +2,7 @@
 
 void setupADC()
 {
-  pinMode(CAP_VOLTAGE_PIN, INPUT);
+  pinMode(VOLTAGE_PIN, INPUT);
   pinMode(LDR_PIN, INPUT);
   pinMode(MOISTURE_PIN, INPUT);
   pinMode(UV_PIN, INPUT);
@@ -17,8 +17,8 @@ void storeADCSample()
   
   //Read ADC
   ADCstruct adcData;
-  adcData.capVoltage=getVolts(readADC(CAP_VOLTAGE_PIN)*2);   //doubled because it's gone through a 10x10K divider
-  adcData.ldr=map(readADC(LDR_PIN), 0, 4095, 0, 100000);   //1-100000 brightness
+  adcData.voltage=getVolts(readADC(VOLTAGE_PIN)*2);   //doubled because it's gone through a 10x10K divider
+  adcData.ldr=getIllum(readADC(LDR_PIN));   //1-100000 brightness
   adcData.moisture=isWet(readADC(MOISTURE_PIN));
   adcData.uv=getUVIndex(readADC(UV_PIN));
 
@@ -50,6 +50,11 @@ int readADC(int pin)
   return(sum/readNum);
 }
 
+long getIllum(int adcReading)
+{
+  return log(adcReading+1)/log(4095)*100000;
+}
+
 double getVolts(int adcReading)
 {
   return 3.3 / 4095 * adcReading;
@@ -67,26 +72,29 @@ double getUVIndex(int adcReading)
   double uvIntensity = (outputVoltage - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   double index=uvIntensity * 1.61;
 
+  if(index<0)
+    index=0;
+
   return index;
 }
 
 String isWet(int adcReading)
 {
-  if(adcReading > 10)
+  if(adcReading > 20)
     return "wet";
   else
     return "dry";
 }
 
 //return max cap voltage
-int getMaxCapVoltage()
+int getMaxVoltage()
 {
   int maxVoltage=0;
   for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
   {
-    if(adcSamples[idx].capVoltage>maxVoltage)
+    if(adcSamples[idx].voltage>maxVoltage)
     {
-      maxVoltage=adcSamples[idx].capVoltage;
+      maxVoltage=adcSamples[idx].voltage;
     }
   }
 
@@ -94,14 +102,14 @@ int getMaxCapVoltage()
 }
 
 //return min cap voltage
-int getMinCapVoltage()
+int getMinVoltage()
 {
   int minVoltage=0;
   for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
   {
-    if(adcSamples[idx].capVoltage<minVoltage)
+    if(adcSamples[idx].voltage<minVoltage)
     {
-      minVoltage=adcSamples[idx].capVoltage;
+      minVoltage=adcSamples[idx].voltage;
     }
   }
 

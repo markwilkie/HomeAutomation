@@ -116,20 +116,38 @@ local function getWeatherData(driver, device)
       local jsondata = json.decode(table.concat(data)..'}');
       
       local temperature = tonumber(string.format("%.1f", jsondata.temperature))
+      local heatindex = tonumber(string.format("%.1f", jsondata.heat_index))
       local humidity = tonumber(string.format("%.1f", jsondata.humidity))
       local pressure = tonumber(string.format("%.1f", jsondata.pressure))
       local dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
       local uvIndex = tonumber(string.format("%.1f", jsondata.uv))
 
+      local temperatureChangeLastHour = tonumber(string.format("%.1f", jsondata.temperature_change_last_hour))
+      local pressureChangeLastHour = tonumber(string.format("%.1f", jsondata.pressure_change_last_hour))
+
+      local maxTemperature = tonumber(string.format("%.1f", jsondata.temperature_max_last12))
+      local minTemperature = tonumber(string.format("%.1f", jsondata.temperature_min_last12))
+
       device:emit_event(capabilities.temperatureMeasurement.temperature(temperature))
       device:emit_event(capabilities.relativeHumidityMeasurement.humidity(humidity))
-      device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(pressure))
+      --device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(pressure))
       device:emit_event(atmospressure.pressure(pressure))
       device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(uvIndex))
       device:emit_event(capabilities.illuminanceMeasurement.illuminance(jsondata.ldr))
-      --device:emit_event(capabilities.waterSensor.water(jasondata.moisture))
+      device:emit_event(capabilities.waterSensor.water(jsondata.moisture))
       device:emit_event(capabilities.dewPoint.dewpoint(dewPoint))
       device:emit_event(datetime.datetime(os.date("%a %X", jsondata.current_time)))
+
+      device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(heatindex))
+
+      device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature(temperatureChangeLastHour))
+      --device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(pressureChangeLastHour))
+
+      device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature(maxTemperature))
+      device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(os.date("%a %X", jsondata.temperature_max_time_last12)))
+
+      device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature(minTemperature))
+      device:emit_component_event(device.profile.components['last12Min'],datetime.datetime(os.date("%a %X", jsondata.temperature_min_time_last12)))
     else
       log.debug("Refresh NOT successful - setting device as offline");
       return false
@@ -167,6 +185,14 @@ end
 local function device_init(driver, device)
   log.info("[" .. device.id .. "] Initializing weather device")
 
+  -- Refresh schedule
+  device.thread:call_on_schedule(
+    600,
+    function ()
+      return refresh(driver, device)
+    end,
+    'Scheduled Refresh')
+
   refresh(driver, device)
 end
 
@@ -183,17 +209,7 @@ local wind_driver = Driver("weather", {
     init = device_init,
     removed = device_removed
   },
-  supported_capabilities = {
-    capabilities.refresh,
-    capabilities.temperatureMeasurement,
-    capabilities.relativeHumidityMeasurement,
-    capabilities.atmosphericPressureMeasurement,
-    atmospressure,
-    capabilities.ultravioletIndex,
-    capabilities.illuminanceMeasurement,
-    capabilities.waterSensor,
-    datetime
-  },
+  supported_capabilities = {},
   capability_handlers = {
     -- Refresh command handler
     [capabilities.refresh.ID] = {
