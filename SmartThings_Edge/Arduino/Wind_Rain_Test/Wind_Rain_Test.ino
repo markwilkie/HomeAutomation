@@ -3,7 +3,6 @@
 #include "WindRain.h"
 
 #define TIMEDEEPSLEEP         10          // amount in seconds the ESP32 sleeps
-#define TIMEFACTOR        1000000     // factor between seconds and microseconds
 
 WindRain windRain;
 
@@ -42,7 +41,7 @@ void dump()
     Serial.print("Wind (kts): ");
     Serial.print(windRain.getWindSpeed(TIMEDEEPSLEEP));
     Serial.print("    Gust (kts): ");
-    Serial.println(windRain.getWindGustSpeed(TIMEFACTOR));     
+    Serial.println(windRain.getWindGustSpeed());     
 
     Serial.print("Rain (inches): ");
     Serial.println(windRain.getRainRate());         

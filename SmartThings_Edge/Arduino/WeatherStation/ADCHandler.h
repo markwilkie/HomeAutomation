@@ -17,17 +17,40 @@
 #define ADC_LAST12_SIZE    ((12*60*60)/BME_SAMPLE_SEC)   //# of samples we need to store for last 12
 
 //define data structures
-typedef struct adcStruct
+typedef struct ADCStructType
 {
   float voltage;
   long ldr;
   String moisture;
   float uv;
-} ADCstruct;
+};
 
-static ADCstruct adcSamples[ADC_LAST12_SIZE];     
+class ADCHandler 
+{
 
-int adcSeconds = 0; //timer gets called every second, but we only want to read and clear every SAMPLE_SIZE
-int adcSampleIdx = 0;              //index for where in the sample array we are
+  public:
+    ADCHandler();
+    void storeSamples();
+    float getVoltage();
+    long getIllumination();
+    String getMoisture();
+    float getUV();
+
+    float getMaxVoltage();
+    float getMinVoltage();
+    
+  private: 
+    ADCStructType adcData;
+    struct ADCStructType adcSamples[ADC_LAST12_SIZE];
+    int adcSampleIdx;              //index for where in the sample array we are
+    
+    int readADC(int);
+    long getIllum(int);
+    double getVolts(int);
+    double getUVIndex(int);
+    String isWet(int);
+    
+};
+
 
 #endif

@@ -98,8 +98,7 @@ debounce_max_cnt:
 //  .long 0
 
   /* current pin we're using.   */
-  .global current_io
-current_io:
+io_toggle:
   .long 0
 
 //
@@ -110,38 +109,30 @@ current_io:
   .text
   .global entry
 entry:
-  jump assign_pin 
+  /* if in the middle of a wind pulse, don't check rain to make sure we don't miss */
+    //problem is that it often stops in the middle of a pulse....
+  //move r3, wind_next_edge
+  //ld r0, r3, 0
+  //jumpr read_wind_now, 1, eq
   
-assign_pin:
   /* check whatever pin we didn't last time */
-  move r3, current_io
-  ld r0, r3, 0
-  jumpr set_pin_to_wind, 7, le
-  jump set_pin_to_rain
+  move r3, io_toggle
+  ld r2, r3, 0
+  add r2, r2, 1
+  and r2, r2, 1
+  st r2, r3, 0
+  jump read_wind_now, eq
+  jump read_rain_now
   
-set_pin_to_wind:
-  move r3, 16  //wind_io
-  move r2, current_io
-  //ld r3, r3, 0
-  st r3, r2, 0  
+read_wind_now:
   /* Increment tick count so we can measure gust by short pulses*/
   move r3, wind_tick_cnt
   ld r2, r3, 0
   add r2, r2, 1
   st r2, r3, 0
-  jump read_wind_now
-
-set_pin_to_rain:
-  move r3, 7  //rain_io
-  move r2, current_io
-  //ld r3, r3, 0
-  st r3, r2, 0   
-  jump read_rain_now
-
-read_wind_now:
-  /* Load io */
-  move r3, current_io
-  ld r3, r3, 0
+ 
+  /* Set pin */
+  move r3, 16
 
   /* Lower 16 IOs and higher need to be handled separately,
    * because r0-r3 registers are 16 bit wide.
@@ -157,8 +148,7 @@ read_wind_now:
 
 read_rain_now:
   /* Load io */
-  move r3, current_io
-  ld r3, r3, 0
+  move r3, 7
 
   /* Lower 16 IOs and higher need to be handled separately,
    * because r0-r3 registers are 16 bit wide.
@@ -285,14 +275,11 @@ trailing_detected:
   move r2, wind_tick_cnt
   ld r3, r3, 0
   ld r2, r2, 0
-  sub r3, r2, r3
+  sub r1, r2, r3
   jump pulse_lower, ov
   // Jump to pulse_lower when pulse_min is zero 
-  //  -- had to remove to save space
-  //move r3, wind_low_tick_cnt
-  //ld r2, r3, 0
-  //add r2, r2, 0
-  //jump pulse_lower, eq
+  add r3, r3, 0
+  jump pulse_lower, eq
   jump pulse_reset
 
 pulse_lower:

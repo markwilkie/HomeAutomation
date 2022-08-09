@@ -1,5 +1,6 @@
 #define ERRORDEF
-#define VERBOSEDEF
+#define INFODEF
+//#define VERBOSEDEF
 
 #ifdef ERRORDEF
   #define ERRORPRINT(...)   Serial.print(__VA_ARGS__)
@@ -11,6 +12,14 @@
   #define ERRORPRINTHEX(...)
   #define ERRORPRINTDEC(...)
   #define ERRORPRINTLN(...)
+#endif
+
+#ifdef INFODEF
+  #define INFOPRINT(...)   Serial.print(__VA_ARGS__)
+  #define INFOPRINTLN(...)   Serial.println(__VA_ARGS__)
+#else
+  #define INFOPRINT(...)
+  #define INFOPRINTLN(...)
 #endif
 
 #ifdef VERBOSEDEF

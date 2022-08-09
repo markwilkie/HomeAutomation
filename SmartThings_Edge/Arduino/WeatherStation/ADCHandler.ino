@@ -1,6 +1,6 @@
 #include "ADCHandler.h"
 
-void setupADC()
+ADCHandler::ADCHandler()
 {
   pinMode(VOLTAGE_PIN, INPUT);
   pinMode(LDR_PIN, INPUT);
@@ -10,13 +10,12 @@ void setupADC()
   pinMode(UV_EN, OUTPUT);
 }
 
-void storeADCSample()
+void ADCHandler::storeSamples()
 {
   //Enable stuff that needs it
   digitalWrite(UV_EN, HIGH);
   
   //Read ADC
-  ADCstruct adcData;
   adcData.voltage=getVolts(readADC(VOLTAGE_PIN)*2);   //doubled because it's gone through a 10x10K divider
   adcData.ldr=getIllum(readADC(LDR_PIN));   //1-100000 brightness
   adcData.moisture=isWet(readADC(MOISTURE_PIN));
@@ -37,7 +36,27 @@ void storeADCSample()
   }
 }
 
-int readADC(int pin)
+float ADCHandler::getVoltage()
+{
+  return adcData.voltage;
+}
+
+long ADCHandler::getIllumination()
+{
+  return adcData.ldr;
+}
+
+String ADCHandler::getMoisture()
+{
+  return adcData.moisture;
+}
+
+float ADCHandler::getUV()
+{
+  return adcData.uv;
+}
+
+int ADCHandler::readADC(int pin)
 {
   int readNum=10;
   long sum=0;
@@ -50,17 +69,17 @@ int readADC(int pin)
   return(sum/readNum);
 }
 
-long getIllum(int adcReading)
+long ADCHandler::getIllum(int adcReading)
 {
   return log(adcReading+1)/log(4095)*100000;
 }
 
-double getVolts(int adcReading)
+double ADCHandler::getVolts(int adcReading)
 {
   return 3.3 / 4095 * adcReading;
 }
 
-double getUVIndex(int adcReading)
+double ADCHandler::getUVIndex(int adcReading)
 {
   //used to map voltage to intensity
   double in_min=.99;
@@ -78,7 +97,7 @@ double getUVIndex(int adcReading)
   return index;
 }
 
-String isWet(int adcReading)
+String ADCHandler::isWet(int adcReading)
 {
   if(adcReading > 20)
     return "wet";
@@ -87,7 +106,7 @@ String isWet(int adcReading)
 }
 
 //return max cap voltage
-int getMaxVoltage()
+float ADCHandler::getMaxVoltage()
 {
   int maxVoltage=0;
   for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
@@ -102,7 +121,7 @@ int getMaxVoltage()
 }
 
 //return min cap voltage
-int getMinVoltage()
+float ADCHandler::getMinVoltage()
 {
   int minVoltage=0;
   for(int idx=0;idx<ADC_LAST12_SIZE;idx++)

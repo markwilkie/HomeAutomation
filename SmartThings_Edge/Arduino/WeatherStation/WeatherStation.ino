@@ -1,9 +1,19 @@
 #include "Debug.h"
 #include "WeatherStation.h"
-#include "WindHandler.h"
+#include "WindRainHandler.h"
 #include "BME280Handler.h"
-#include "EnvironmentCalculations.h"
 #include "ADCHandler.h"
+
+#include "Arduino.h"
+#include <WiFiClient.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ArduinoJson.h>
+
+//globals in ULP which survive deep sleep
+RTC_DATA_ATTR int bootCount = 0;
+RTC_DATA_ATTR long millisSinceEpoch = 0;
+long epoch=0;  //Epoch from hub
 
 //Wifi
 const char* ssid = "WILKIE-LFP";
@@ -12,46 +22,40 @@ const char* password = "4777ne178";
 //Start web api server
 WebServer server(80);
 
-//Timer vars
-volatile long secondsSinceEpoch;
-hw_timer_t * timer = NULL;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+//Handlers
+WindRainHandler windRainHandler;
+ADCHandler adcHandler;
+BME280Handler bmeHandler;
 
-//Timer ISR, called once a second
-void IRAM_ATTR onTimer() 
-{
-    //Increment main epoch closk
-    portENTER_CRITICAL_ISR(&timerMux);
-    secondsSinceEpoch++;
-    windSeconds++;
-    bmeSeconds++;
-    adcSeconds++;
-    portEXIT_CRITICAL_ISR(&timerMux); 
-}
 
 //------------------------------------------------------------
 
-
 //refresh wind data
-void refreshWind() 
-{  
-     //wind
-     int gustLast12Idx=getLast12MaxGustIndex();
-     DynamicJsonDocument doc(512);
-     doc["wind_speed"] = convertToKTS(windSampleTotal/WIND_PERIOD_SIZE);
-     doc["wind_direction"] = windDirection;
-     doc["wind_gust"] = convertToKTS(gustMax);
-     doc["wind_gust_max_last12"] = convertToKTS(gustLast12[gustLast12Idx].gust);
-     doc["wind_gust_direction_last12"] = gustLast12[gustLast12Idx].gustDirection;
-     doc["wind_gust_max_time"] = gustLast12[gustLast12Idx].gustTime;    //whatever the actual time was that the gust ocurred
-     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+void refreshWindRain() 
+{
+ //wind
+ int gustLast12Idx=windRainHandler.getLast12MaxGustIdx();
+ DynamicJsonDocument doc(512);
+ doc["wind_speed"] = windRainHandler.getWindSpeed();
+ doc["wind_direction"] = windRainHandler.getWindDirection();
+ doc["wind_gust"] = windRainHandler.getWindGustSpeed();
+ doc["wind_gust_max_last12"] = windRainHandler.getLast12MaxGustSpeed(gustLast12Idx);
+ doc["wind_gust_direction_last12"] = windRainHandler.getLast12MaxGustDirection(gustLast12Idx);
+ doc["wind_gust_max_time"] = windRainHandler.getLast12MaxGustTime(gustLast12Idx);    //whatever the actual time was that the gust ocurred
+ doc["current_time"] = epoch+(getSecondsSinceEpoch()); //send back the last epoch sent in + elapsed time since
 
-     //send wind data back
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
+ //rain
+ doc["rain_rate"] = windRainHandler.getRainRate();
+ doc["rain_rate_last_hour"] = windRainHandler.getRainRateLastHour();
+ doc["rain_max_rate_last12"] = windRainHandler.getMaxRainRateLast12();
+ doc["rain_inches_last12"] = windRainHandler.getTotalRainLast12();
 
-     VERBOSEPRINTLN("Successfuly refreshed wind data...");
+ //send wind/rain data back
+ String buf;
+ serializeJson(doc, buf);
+ server.send(200, "application/json", buf);
+
+ INFOPRINTLN("Successfuly refreshed wind and rain data...");
 }
 
 //refresh weather data
@@ -67,7 +71,7 @@ void refreshWeather()
   serializeJson(doc, buf);
   server.send(200, "application/json", buf);
   
-  VERBOSEPRINTLN("Successfuly refreshed general weather data...");
+  INFOPRINTLN("Successfuly refreshed general weather data...");
 }
 
 //refresh bme data
@@ -82,37 +86,24 @@ void refreshBME()
   serializeJson(doc, buf);
   server.send(200, "application/json", buf);
   
-  VERBOSEPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
+  INFOPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
 }
 
 //refresh bme data
 DynamicJsonDocument refreshBMEDoc(DynamicJsonDocument doc) 
 {  
-  //bme
-  int idx=bmeSampleIdx-1;
-  if(idx<0)
-  idx=0;
-
-  int maxIndex=getMaxTemperatureIndex();
-  int minIndex=getMinTemperatureIndex();
-
-  float dewPoint = EnvironmentCalculations::DewPoint(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);
-  if(isnan(dewPoint))    dewPoint=0;
-  float heatIndex = EnvironmentCalculations::HeatIndex(bmeSamples[idx].temperature, bmeSamples[idx].humidity, EnvironmentCalculations::TempUnit_Celsius);
-  
-  
-  doc["temperature"] = bmeSamples[idx].temperature;
-  doc["humidity"] = bmeSamples[idx].humidity;
-  doc["pressure"] = bmeSamples[idx].pressure;
-  doc["dew_point"] = dewPoint;
-  doc["heat_index"] = heatIndex;
-  doc["temperature_change_last_hour"] = getTemperatureChange();
-  doc["pressure_change_last_hour"] = getPressureChange();
-  doc["temperature_max_last12"] = bmeSamples[maxIndex].temperature;
-  doc["temperature_max_time_last12"] = bmeSamples[maxIndex].readingTime;
-  doc["temperature_min_last12"] = bmeSamples[minIndex].temperature;
-  doc["temperature_min_time_last12"] = bmeSamples[minIndex].readingTime;
-  doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+  doc["temperature"] = bmeHandler.getTemperature();
+  doc["humidity"] = bmeHandler.getHumidity();
+  doc["pressure"] = bmeHandler.getPressure();
+  doc["dew_point"] = bmeHandler.getDewPoint();
+  doc["heat_index"] = bmeHandler.getHeatIndex();
+  doc["temperature_change_last_hour"] = bmeHandler.getTemperatureChange();
+  doc["pressure_change_last_hour"] = bmeHandler.getPressureChange();
+  doc["temperature_max_last12"] = bmeHandler.getMaxTemperature();
+  doc["temperature_max_time_last12"] = bmeHandler.getMaxTemperatureTime();
+  doc["temperature_min_last12"] = bmeHandler.getMinTemperature();
+  doc["temperature_min_time_last12"] = bmeHandler.getMinTemperatureTime();
+  doc["current_time"] = epoch+(getSecondsSinceEpoch()); //send back the last epoch sent in + elapsed time since
 
   return doc;
 }
@@ -129,24 +120,19 @@ void refreshADC()
   serializeJson(doc, buf);
   server.send(200, "application/json", buf);
   
-  VERBOSEPRINTLN("Successfuly refreshed ADC (cap voltage, ldr, moisture, uv) data...");
+  INFOPRINTLN("Successfuly refreshed ADC (cap voltage, ldr, moisture, uv) data...");
 }
 
 //refresh adc data
 DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc) 
 {  
-     //adc
-     int idx=adcSampleIdx-1;
-     if(idx<0)
-      idx=0;
-      
-     doc["voltage"] = adcSamples[idx].voltage;
-     doc["ldr"] = adcSamples[idx].ldr;
-     doc["moisture"] = adcSamples[idx].moisture;
-     doc["uv"] = adcSamples[idx].uv;
-     doc["voltage_max_last12"] = getMaxVoltage();
-     doc["voltage_min_last12"] = getMinVoltage();
-     doc["current_time"] = epoch+secondsSinceEpoch; //send back the last epoch sent in + elapsed time since
+     doc["voltage"] = adcHandler.getVoltage();
+     doc["ldr"] = adcHandler.getIllumination();
+     doc["moisture"] = adcHandler.getMoisture();
+     doc["uv"] = adcHandler.getUV();
+     doc["voltage_max_last12"] = adcHandler.getMaxVoltage();
+     doc["voltage_min_last12"] = adcHandler.getMinVoltage();
+     doc["current_time"] = epoch+(getSecondsSinceEpoch()); //send back the last epoch sent in + elapsed time since
 
      return doc;
 }
@@ -154,31 +140,24 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
 //debug data
 void debugData()
 {
-     //Serial write
-     VERBOSEPRINTLN("--- WIND DEBUG DATA----");    
-     VERBOSEPRINT("Running wind sample total: ");
-     VERBOSEPRINTLN(windSampleTotal);  
-
-     VERBOSEPRINTLN("--- BME DEBUG DATA----");
-     int idx=bmeSampleIdx-1;
-     if(idx<0)
-      idx=0;
-     VERBOSEPRINT("temperature: ");
-     VERBOSEPRINTLN(bmeSamples[idx].temperature);
-     VERBOSEPRINT("humidity: ");
-     VERBOSEPRINTLN(bmeSamples[idx].humidity);
-     VERBOSEPRINT("pressure: ");
-     VERBOSEPRINTLN(bmeSamples[idx].pressure);
+  /*
+     INFOPRINTLN("--- BME DEBUG DATA----");
+     INFOPRINT("temperature: ");
+     INFOPRINTLN(bmeSamples[idx].temperature);
+     INFOPRINT("humidity: ");
+     INFOPRINTLN(bmeSamples[idx].humidity);
+     INFOPRINT("pressure: ");
+     INFOPRINTLN(bmeSamples[idx].pressure);
      
-     VERBOSEPRINTLN("--- GENERAL DEBUG DATA----");   
-     VERBOSEPRINT("Epoch: ");
-     VERBOSEPRINTLN(epoch);        
+     INFOPRINTLN("--- GENERAL DEBUG DATA----");   
+     INFOPRINT("Epoch: ");
+     INFOPRINTLN(epoch);        
      
      //Web write back
      DynamicJsonDocument doc(512);     
 
      //Wind
-     doc["windSampleTotal"] = windSampleTotal;
+     //doc["windSampleTotal"] = windSampleTotal;
 
      //BME
      doc["temperature"] = bmeSamples[idx].temperature;
@@ -187,14 +166,15 @@ void debugData()
 
      //General
      doc["epoch"] = epoch;
-     doc["secondsSinceEpoch"] = secondsSinceEpoch;
+     doc["secondsSinceEpoch"] = getSecondsSinceEpoch();
      
      //send debug data back
      String buf;
      serializeJson(doc, buf);
      server.send(200, "application/json", buf);
 
-     VERBOSEPRINTLN("Successfuly sent debug data...");     
+     INFOPRINTLN("Successfuly sent debug data...");   
+     */  
 }
 
 // Serving refresh 
@@ -207,16 +187,7 @@ void refreshAll() {
      doc["rain_max_rate_last12"] = 1.8;
      doc["rain_inches_last12"] = 1.5;
 
-     //sun
-     doc["sun_intensity"] = 32;
-     doc["sun_uv"] = 4;
-     doc["sun_intensity_max_last12"] = .02;
-     doc["sun_intensity_max_time"] = 1651374875;
-     doc["sun_uv_max_last12"] = 64;
-     doc["sun_uv_max_time"] = 1651374875;
-
      //environmental quality
-     doc["noise_level"] = 32;
      doc["air_quality_pm1"] = 62;
      doc["air_quality_pm25"] = 48;
      doc["air_quality_pm10"] = 73;
@@ -230,17 +201,8 @@ void refreshAll() {
      doc["air_quality_pm25_min_time"] = 1651374875;
      doc["air_quality_pm10_min_last12"] = 41;
      doc["air_quality_pm10_min_time"] = 1651374875;
-
-     //station health
-     doc["cap1_voltage"] = 2.6;
-     doc["cap2_voltage"] = 2.5;
-     doc["solar_voltage"] = 12.1;
-     doc["solar_voltage_max_last12"] = 12.6;
-     doc["solar_voltage_max_time"] = 1651374875;
-     doc["solar_voltage_min_last12"] = 11.4;
-     doc["solar_voltage_min_time"] = 1651374875;
-                    
-     VERBOSEPRINTLN("refreshing...");
+                   
+     INFOPRINTLN("refreshing...");
      String buf;
      serializeJson(doc, buf);
      server.send(200, "application/json", buf);
@@ -284,20 +246,17 @@ void setEpoch() {
         ERRORPRINTLN(error.c_str());        
         return;
     }
-    VERBOSEPRINT("HTTP Method: ");
-    VERBOSEPRINTLN(server.method());
+    INFOPRINT("HTTP Method: ");
+    INFOPRINTLN(server.method());
 
     if (server.method() == HTTP_POST) 
     {
         //set epoch from server
         epoch = doc["epoch"].as<long>();
+        millisSinceEpoch=0;
 
-        portENTER_CRITICAL_ISR(&timerMux);
-        secondsSinceEpoch=0;
-        portEXIT_CRITICAL_ISR(&timerMux);
-
-        VERBOSEPRINT("Setting epoch to: ");
-        VERBOSEPRINTLN(epoch);
+        INFOPRINT("Setting epoch to: ");
+        INFOPRINTLN(epoch);
        
         // Create the response
         // To get the status of the result you can get the http status so
@@ -334,7 +293,7 @@ void restServerRouting() {
 
     //GET
     server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
-    server.on("/refreshWind", HTTP_GET, refreshWind);
+    server.on("/refreshWindRain", HTTP_GET, refreshWindRain);
     server.on("/refreshWeather", HTTP_GET, refreshWeather);
     server.on("/refreshBME", HTTP_GET, refreshBME);
     server.on("/refreshADC", HTTP_GET, refreshADC);
@@ -367,44 +326,53 @@ void handleNotFound()
  
 void setup(void) 
 {
-  #if defined(ERRORDEF) || defined(VERBOSEDEF)
+  if(bootCount>0)
+  {
+    millisSinceEpoch=millisSinceEpoch+(TIMEDEEPSLEEP*1000);
+    INFOPRINT("Millis now: ");
+    INFOPRINTLN(millisSinceEpoch);
+  }
+  
+  #if defined(ERRORDEF) || defined(INFODEF) || defined(VERBOSEDEF)
   Serial.begin(115200);
   #endif
 
-  VERBOSEPRINTLN("--------------------------");
-  VERBOSEPRINTLN("Starting up");
+  ++bootCount;
 
-  //init data structures
-  initWindDataStructures();
+  INFOPRINT("Current boot count: ");
+  INFOPRINTLN(bootCount); 
+
+  INFOPRINTLN("--------------------------");
+  INFOPRINTLN("Starting up");
   
   //free heap
   float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
-  VERBOSEPRINT("Free Heap: (376360 is an empty sketch) ");
-  VERBOSEPRINTLN((int)ESP.getFreeHeap());
-  VERBOSEPRINT(heap);
-  VERBOSEPRINTLN("% used");
+  INFOPRINT("Free Heap: (376360 is an empty sketch) ");
+  INFOPRINT((int)ESP.getFreeHeap());
+  INFOPRINT(" -  ");
+  INFOPRINT(heap);
+  INFOPRINTLN("% used");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-
  
   // Wait for connection
-  VERBOSEPRINT("Connecting to WIFI ");  
+  INFOPRINT("Connecting to WIFI ");  
   while (WiFi.status() != WL_CONNECTED) 
   {
     delay(500);
-    VERBOSEPRINT(".");
+    INFOPRINT(".");
   }
-  VERBOSEPRINTLN("");
-  VERBOSEPRINT("Connected to ");
-  VERBOSEPRINTLN(ssid);
-  VERBOSEPRINT("IP address: ");
-  VERBOSEPRINTLN(WiFi.localIP());
+  INFOPRINTLN("");
+  INFOPRINT("Connected to ");
+  INFOPRINT(ssid);
+  INFOPRINT("  IP address: ");
+  INFOPRINTLN(WiFi.localIP());
  
   // Activate mDNS this is used to be able to connect to the server
   // with local DNS hostmane esp8266.local
   if (MDNS.begin("esp8266")) {
-    VERBOSEPRINTLN("MDNS responder started");
+    INFOPRINTLN("MDNS responder started");
   }
   else
   {
@@ -415,60 +383,43 @@ void setup(void)
   restServerRouting();
   server.onNotFound(handleNotFound);
   server.begin();
-  VERBOSEPRINTLN("HTTP server started");
+  INFOPRINTLN("HTTP server started");
 
-  //Start timer to count time in seconds
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 1000000, true);
-  timerAlarmEnable(timer);  
-
-  //Setup sensors
-  VERBOSEPRINTLN("Setting up sensors...");
-  initWindPulseCounter();
-  setupBME();
-  setupADC();
-
-  //turn off air quality
+  //turn off air quality  (make sure sustainable by adding a member function to ULP)
   pinMode(25,OUTPUT);
   digitalWrite(25, LOW); 
 
-  VERBOSEPRINTLN("Ready to go!");
-  VERBOSEPRINTLN("");
+  INFOPRINTLN("Ready to go!");
+  INFOPRINTLN("");
+
+  INFOPRINTLN("Reading sensors....");
+  windRainHandler.storeSamples(TIMEDEEPSLEEP);
+  bmeHandler.storeSamples();
+  adcHandler.storeSamples();
+
+  millisSinceEpoch=millisSinceEpoch+millis();   //add how long it's been since we last woke up
+  sleep();
 }
  
 void loop(void) 
 {
   //take care of webserver stuff
   server.handleClient();
+}
 
-  //Check if we need to store anemometer sample
-  if(windSeconds>=WIND_SAMPLE_SEC)
-  {
-    windSeconds=0;
-    storeWindSample();
-    storeWindDirection();
-  }
+void sleep(void) 
+{
+  INFOPRINTLN("Going to ESP deep sleep for " + String(TIMEDEEPSLEEP) + " seconds...  (night night)");
+  
+  esp_sleep_enable_timer_wakeup(TIMEDEEPSLEEP * TIMEFACTOR);
 
-  //take care of webserver stuff before too much time goes by
-  yield();
-  server.handleClient();
-    
-  //Check if we need to store BME280 sample
-  if(bmeSeconds>=BME_SAMPLE_SEC)
-  {
-    bmeSeconds=0;
-    storeBMESample();
-  }
+  esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
 
-  //take care of webserver stuff before too much time goes by
-  yield();
-  server.handleClient();
-    
-  //Check if we need to store ADC samples
-  if(adcSeconds>=ADC_SAMPLE_SEC)
-  {
-    adcSeconds=0;
-    storeADCSample();
-  }  
+  esp_deep_sleep_start(); 
+}
+
+int getSecondsSinceEpoch()
+{
+  return millisSinceEpoch/1000;
 }

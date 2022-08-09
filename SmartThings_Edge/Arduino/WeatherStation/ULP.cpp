@@ -3,67 +3,10 @@
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 
-Servo::Servo()
-{
-    //init vars
-    bootCount = 0;
-    timeSleep = 0;
-    ustartMillis = millis();
-
-    //Get things setup
-    setCpuFrequencyMhz(80);
-    setupPins(); 
-    setupULP();  
-}
-
-/****************\
-|*     start    *|
-\****************/
-void Servo::start()
-{
-    /* Start the program */
-    esp_err_t err_run = ulp_run(&ulp_entry - RTC_SLOW_MEM);
-    ESP_ERROR_CHECK(err_run);
-}
-
-//Should be called from each setup in main program as the processor wakes up
-int Servo::incrementBootCount()
-{
-    return ++bootCount;
-}
-
-/****************\
-|*     Pins      *|
-\****************/
-void Servo::setupPins()
-{
-    /* Initialize selected GPIO as RTC IO, enable input, sets pullup and pulldown */
-  /* GPIO used for wind pulse counting. */
-  rtc_gpio_init(wind_gpio_num);
-  rtc_gpio_set_direction(wind_gpio_num, RTC_GPIO_MODE_INPUT_ONLY);
-  rtc_gpio_pulldown_dis(wind_gpio_num);
-  rtc_gpio_pullup_en(wind_gpio_num);
-  rtc_gpio_hold_en(wind_gpio_num);
-
-  /* GPIO used for wind pulse counting. */
-  rtc_gpio_init(rain_gpio_num);
-  rtc_gpio_set_direction(rain_gpio_num, RTC_GPIO_MODE_INPUT_ONLY);
-  rtc_gpio_pulldown_en(rain_gpio_num);
-  rtc_gpio_pullup_dis(rain_gpio_num);
-  rtc_gpio_hold_en(rain_gpio_num);
-
-  /* turn off air quality sensor*/
-  rtc_gpio_init(air_gpio_num);
-  rtc_gpio_set_direction(air_gpio_num, RTC_GPIO_MODE_OUTPUT_ONLY);
-  rtc_gpio_pulldown_en(air_gpio_num);
-  rtc_gpio_pullup_dis(air_gpio_num);
-  rtc_gpio_hold_en(air_gpio_num);
-}
-
 /****************\
 |*     ULP      *|
 \****************/
-void Servo::setupULP()
+void ULP::setupULP()
 {
   esp_err_t err_load = ulp_load_binary(0, ulp_main_bin_start, (ulp_main_bin_end - ulp_main_bin_start) / sizeof(uint32_t));
   ESP_ERROR_CHECK(err_load);
@@ -89,37 +32,46 @@ void Servo::setupULP()
   //ulp_rain_io = rtc_gpio_desc[rain_gpio_num].rtc_num; /* map from GPIO# to RTC_IO# */
   ulp_debounce_max_cnt = 5;
      
-  ulp_wind_debounce_cntr = 5;
-  ulp_wind_next_edge = 1;
-  ulp_wind_tick_cnt = 0;
-  ulp_wind_low_tick_cnt = 10000;
+  //ulp_wind_debounce_cntr = 5;
+  //ulp_wind_next_edge = 1;
+  //ulp_wind_tick_cnt = 0;
+  ulp_wind_low_tick_cnt = 0;
 
-  ulp_rain_debounce_cntr = 5;
-  ulp_rain_next_edge = 1;
+  //ulp_rain_debounce_cntr = 5;
+  //ulp_rain_next_edge = 1;
+
+    /* Initialize selected GPIO as RTC IO, enable input, sets pullup and pulldown */
+  /* GPIO used for wind pulse counting. */
+  rtc_gpio_init(wind_gpio_num);
+  rtc_gpio_set_direction(wind_gpio_num, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pulldown_dis(wind_gpio_num);
+  rtc_gpio_pullup_en(wind_gpio_num);
+  rtc_gpio_hold_en(wind_gpio_num);
+
+  /* GPIO used for wind pulse counting. */
+  rtc_gpio_init(rain_gpio_num);
+  rtc_gpio_set_direction(rain_gpio_num, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pulldown_en(rain_gpio_num);
+  rtc_gpio_pullup_dis(rain_gpio_num);
+  rtc_gpio_hold_en(rain_gpio_num);
+
+  /* turn off air quality sensor*/
+  rtc_gpio_init(air_gpio_num);
+  rtc_gpio_set_direction(air_gpio_num, RTC_GPIO_MODE_OUTPUT_ONLY);
+  rtc_gpio_pulldown_en(air_gpio_num);
+  rtc_gpio_pullup_dis(air_gpio_num);
+  rtc_gpio_hold_en(air_gpio_num);  
   
   /* Set ULP wake up period to T = 4ms.
    * Minimum pulse width has to be T * (ulp_debounce_cntr + 1) = 24ms. */
   ulp_set_wakeup_period(0, ULPSLEEP);
+
+  /* Start the program */
+  esp_err_t err_run = ulp_run(&ulp_entry - RTC_SLOW_MEM);
+  ESP_ERROR_CHECK(err_run);  
 }
 
-/****************\
-|*    Sleep     *|
-\****************/
-void Servo::sleep() 
-{
-  Serial.println(F("Preparing deep sleep now"));
-
-  Serial.println("Set timer for sleep-wakeup every " + String(timeSleep) + " seconds");
-  esp_sleep_enable_timer_wakeup(timeSleep * TIMEFACTOR);
-
-  esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
-
-  Serial.println(F("Going into deep sleep now"));
-  esp_deep_sleep_start();
-}
-
-static uint32_t Servo::getRainPulseCount() 
+uint32_t ULP::getULPRainPulseCount() 
 {
   /* ULP program counts signal edges, convert that to the number of pulses */
   uint32_t pulse_cnt_from_ulp = (ulp_rain_edge_cnt & UINT16_MAX) / 2;
@@ -130,7 +82,7 @@ static uint32_t Servo::getRainPulseCount()
   return pulse_cnt_from_ulp;
 }
 
-static uint32_t Servo::getWindPulseCount() 
+uint32_t ULP::getULPWindPulseCount() 
 {
   /* ULP program counts signal edges, convert that to the number of pulses */
   uint32_t pulse_cnt_from_ulp = (ulp_wind_edge_cnt & UINT16_MAX) / 2;
@@ -141,20 +93,13 @@ static uint32_t Servo::getWindPulseCount()
   return pulse_cnt_from_ulp;
 }
 
-static uint32_t Servo::getShortestWindPulse() 
+uint32_t ULP::getULPShortestWindPulseTime() 
 {
   /* ULP program saves shortes pulse */
-  uint32_t pulse_time_min = (ulp_wind_low_tick_cnt & UINT16_MAX) * ULPSLEEP;
+  uint32_t pulse_time_min = ((ulp_wind_low_tick_cnt & UINT16_MAX) * ULPSLEEP) * GUSTFACTOR;
   
   /* Reset shortest edge */
-  ulp_wind_low_tick_cnt = 10000;
+  ulp_wind_low_tick_cnt = 0;
   
   return pulse_time_min;
-}
-
-long Servo::getElapsed(unsigned long compareMillis) 
-{
-  unsigned long currentMillis = millis();
-  unsigned long elapsedMillis = currentMillis - compareMillis;
-  return abs(elapsedMillis);
 }

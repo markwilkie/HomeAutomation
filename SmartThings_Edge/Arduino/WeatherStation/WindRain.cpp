@@ -1,19 +1,15 @@
 #include "WindRain.h"
+#include "WeatherStation.h"
+#include "Debug.h"
 
 RTC_DATA_ATTR ULP ulp;
-RTC_DATA_ATTR int bootCount = 0;
 
 WindRain::WindRain()
 {
-  ++bootCount;
-
-  Serial.print("Hi! \nCurrent boot count: ");
-  Serial.println(bootCount); 
-
   //only setup once
   if(bootCount==1)
   {
-    Serial.println("Setting up ULP");
+    INFOPRINTLN("Setting up ULP for pulse counting...  (only does this on first boot)");
     ulp.setupULP();
   }  
 }
@@ -21,12 +17,12 @@ WindRain::WindRain()
 float WindRain::getWindSpeed(int timeDeepSleep)
 {
   int windPulsesRaw = ulp.getULPWindPulseCount();
-  Serial.print("  Wind Pulses: ");
-  Serial.print(windPulsesRaw);
+  VERBOSEPRINT("Wind Pulses: ");
+  VERBOSEPRINT(windPulsesRaw);
 
   float wind = (((float)windPulsesRaw / (float)timeDeepSleep) * WINDFACTOR) / 20;  //there's 20 pulses per revolution 
-  Serial.print("   Wind (kts): ");
-  Serial.println(wind);
+  VERBOSEPRINT("   Wind (kts): ");
+  VERBOSEPRINTLN(wind);
 
   return wind;
 }
@@ -34,19 +30,16 @@ float WindRain::getWindSpeed(int timeDeepSleep)
 float WindRain::getWindGustSpeed()
 {
   uint32_t shortestWindPulseTime = ulp.getULPShortestWindPulseTime();
-  Serial.print("Shortest wind pulse Time (ms): ");
-  Serial.print(shortestWindPulseTime);
+  VERBOSEPRINT("Shortest wind pulse Time (ms): ");
+  VERBOSEPRINTLN(shortestWindPulseTime);
 
   if(shortestWindPulseTime==0)
     return 0;
 
   float pulsesPerSec = TIMEFACTOR/shortestWindPulseTime;  
-  Serial.print("  Pulses /s: ");
-  Serial.print(pulsesPerSec);
-  
   float windGust = ((float)pulsesPerSec * WINDFACTOR) / 20; 
-  Serial.print("   Gust (kts): ");
-  Serial.println(windGust);   
+  VERBOSEPRINT("Gust (kts): ");
+  VERBOSEPRINTLN(windGust);   
 
   return windGust;
 }
@@ -54,12 +47,12 @@ float WindRain::getWindGustSpeed()
 float WindRain::getRainRate()
 {
   int rainPulsesRaw = ulp.getULPRainPulseCount();
-  Serial.print("Rain Pulses: ");
-  Serial.print(rainPulsesRaw);
+  VERBOSEPRINT("Rain Pulses: ");
+  VERBOSEPRINT(rainPulsesRaw);
 
   float inchesRain = (float)rainPulsesRaw*RAINFACTOR;
-  Serial.print("   Rain (inches): ");
-  Serial.println(inchesRain); 
+  VERBOSEPRINT("   Rain (inches): ");
+  VERBOSEPRINTLN(inchesRain); 
 
   return inchesRain;
 }
