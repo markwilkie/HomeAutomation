@@ -109,9 +109,11 @@ io_toggle:
   .text
   .global entry
 entry:
-  jump assign_pin 
+  /* if in the middle of a wind pulse, don't check rain to make sure we don't miss */
+  move r3, wind_next_edge
+  ld r0, r3, 0
+  jumpr read_wind_now, 1, eq
   
-assign_pin:
   /* check whatever pin we didn't last time */
   move r3, io_toggle
   ld r2, r3, 0
