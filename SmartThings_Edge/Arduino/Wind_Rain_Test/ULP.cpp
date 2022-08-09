@@ -32,13 +32,13 @@ void ULP::setupULP()
   //ulp_rain_io = rtc_gpio_desc[rain_gpio_num].rtc_num; /* map from GPIO# to RTC_IO# */
   ulp_debounce_max_cnt = 5;
      
-  ulp_wind_debounce_cntr = 5;
-  ulp_wind_next_edge = 1;
-  ulp_wind_tick_cnt = 0;
-  ulp_wind_low_tick_cnt = 10000;
+  //ulp_wind_debounce_cntr = 5;
+  //ulp_wind_next_edge = 1;
+  //ulp_wind_tick_cnt = 0;
+  ulp_wind_low_tick_cnt = 0;
 
-  ulp_rain_debounce_cntr = 5;
-  ulp_rain_next_edge = 1;
+  //ulp_rain_debounce_cntr = 5;
+  //ulp_rain_next_edge = 1;
 
     /* Initialize selected GPIO as RTC IO, enable input, sets pullup and pulldown */
   /* GPIO used for wind pulse counting. */
@@ -93,13 +93,13 @@ uint32_t ULP::getULPWindPulseCount()
   return pulse_cnt_from_ulp;
 }
 
-uint32_t ULP::getULPShortestWindPulse() 
+uint32_t ULP::getULPShortestWindPulseTime() 
 {
   /* ULP program saves shortes pulse */
-  uint32_t pulse_time_min = (ulp_wind_low_tick_cnt & UINT16_MAX) * ULPSLEEP;
+  uint32_t pulse_time_min = ((ulp_wind_low_tick_cnt & UINT16_MAX) * ULPSLEEP) * GUSTFACTOR;
   
   /* Reset shortest edge */
-  ulp_wind_low_tick_cnt = 10000;
+  ulp_wind_low_tick_cnt = 0;
   
   return pulse_time_min;
 }

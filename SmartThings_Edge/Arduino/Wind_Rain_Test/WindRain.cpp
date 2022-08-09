@@ -33,11 +33,18 @@ float WindRain::getWindSpeed(int timeDeepSleep)
 
 float WindRain::getWindGustSpeed(int timeFactor)
 {
-  int shortestWindPulse = ulp.getULPShortestWindPulse();
-  Serial.print("Shortest wind pulse: ");
-  Serial.print(shortestWindPulse);
-    
-  float windGust = ((1 / ((float)shortestWindPulse / (float)timeFactor)) * WINDFACTOR)/20; 
+  uint32_t shortestWindPulseTime = ulp.getULPShortestWindPulseTime();
+  Serial.print("Shortest wind pulse Time (ms): ");
+  Serial.print(shortestWindPulseTime);
+
+  if(shortestWindPulseTime==0)
+    return 0;
+
+  float pulsesPerSec = timeFactor/shortestWindPulseTime;  
+  Serial.print("  Pulses /s: ");
+  Serial.print(pulsesPerSec);
+  
+  float windGust = ((float)pulsesPerSec * WINDFACTOR) / 20; 
   Serial.print("   Gust (kts): ");
   Serial.println(windGust);   
 
