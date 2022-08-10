@@ -1,13 +1,17 @@
 #include "BME280Handler.h"
 #include "EnvironmentCalculations.h"
 
-BME280Handler::BME280Handler()
+void BME280Handler::init()
 {
   //start things up
   unsigned status = bme.begin();  
   if (!status) {
       ERRORPRINTLN("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
   }  
+  else
+  {
+    INFOPRINTLN("Found BME280!");
+  }
 }
 
 void BME280Handler::storeSamples()
@@ -18,6 +22,13 @@ void BME280Handler::storeSamples()
   bmeData.humidity=bme.readHumidity();
   bmeData.readingTime=epoch+getSecondsSinceEpoch();
 
+  VERBOSEPRINT("Temperature: ");
+  VERBOSEPRINT(bmeData.temperature);
+  VERBOSEPRINT("  Humidity: ");
+  VERBOSEPRINT(bmeData.humidity);
+  VERBOSEPRINT("  Pressure: ");
+  VERBOSEPRINTLN(bmeData.pressure);
+  
   //Add to sample array
   bmeSamples[bmeSampleIdx]=bmeData;
   bmeSampleIdx++;

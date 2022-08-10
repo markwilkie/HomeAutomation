@@ -29,7 +29,7 @@ class ADCHandler
 {
 
   public:
-    ADCHandler();
+    void init();
     void storeSamples();
     float getVoltage();
     long getIllumination();

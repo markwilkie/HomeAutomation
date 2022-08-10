@@ -3,7 +3,7 @@
 #include "WindRainHandler.h"
 #include "WeatherStation.h"
 
-WindRainHandler::WindRainHandler()
+void WindRainHandler::init()
 {
   windSampleIdx=0;
   rainSampleIdx=0;

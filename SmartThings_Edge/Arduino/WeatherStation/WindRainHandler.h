@@ -22,7 +22,7 @@ class WindRainHandler
 {
 
   public:
-    WindRainHandler();
+    void init();
     void storeSamples(int);
     float getWindSpeed();
     float getWindGustSpeed();

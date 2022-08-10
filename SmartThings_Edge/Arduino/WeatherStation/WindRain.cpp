@@ -2,18 +2,6 @@
 #include "WeatherStation.h"
 #include "Debug.h"
 
-RTC_DATA_ATTR ULP ulp;
-
-WindRain::WindRain()
-{
-  //only setup once
-  if(bootCount==1)
-  {
-    INFOPRINTLN("Setting up ULP for pulse counting...  (only does this on first boot)");
-    ulp.setupULP();
-  }  
-}
-
 float WindRain::getWindSpeed(int timeDeepSleep)
 {
   int windPulsesRaw = ulp.getULPWindPulseCount();

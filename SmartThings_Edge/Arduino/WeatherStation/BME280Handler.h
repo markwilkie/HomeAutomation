@@ -25,7 +25,7 @@ class BME280Handler
 {
 
   public:
-    BME280Handler();
+    void init();
     void storeSamples();
     float getTemperature();
     float getPressure();

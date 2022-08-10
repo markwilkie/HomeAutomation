@@ -1,8 +1,10 @@
 #include "Debug.h"
+#include "ULP.h"
 #include "WeatherStation.h"
 #include "WindRainHandler.h"
 #include "BME280Handler.h"
 #include "ADCHandler.h"
+#include "PMS5003Handler.h"
 
 #include "Arduino.h"
 #include <WiFiClient.h>
@@ -12,7 +14,11 @@
 
 //globals in ULP which survive deep sleep
 RTC_DATA_ATTR int bootCount = 0;
+RTC_DATA_ATTR bool firstBoot = true;
 RTC_DATA_ATTR long millisSinceEpoch = 0;
+RTC_DATA_ATTR ULP ulp;
+
+//globals that get cleared each wake (boot) from deep sleep
 long epoch=0;  //Epoch from hub
 
 //Wifi
@@ -26,6 +32,7 @@ WebServer server(80);
 WindRainHandler windRainHandler;
 ADCHandler adcHandler;
 BME280Handler bmeHandler;
+PMS5003Handler pmsHandler;
 
 
 //------------------------------------------------------------
@@ -137,6 +144,23 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
      return doc;
 }
 
+//refresh air quality data
+void refreshPMS() 
+{
+ //pms 5003
+ DynamicJsonDocument doc(512);
+ doc["pm10"] = pmsHandler.getPM10Standard();
+ doc["pm25"] = pmsHandler.getPM25Standard();
+ doc["pm100"] = pmsHandler.getPM100Standard();
+ 
+ //send data back
+ String buf;
+ serializeJson(doc, buf);
+ server.send(200, "application/json", buf);
+
+ INFOPRINTLN("Successfuly refreshed PMS 5003...");
+}
+
 //debug data
 void debugData()
 {
@@ -175,37 +199,6 @@ void debugData()
 
      INFOPRINTLN("Successfuly sent debug data...");   
      */  
-}
-
-// Serving refresh 
-void refreshAll() {
-     DynamicJsonDocument doc(512);
-   
-     //rain
-     doc["rain_rate"] = .02;
-     doc["rain_rate_last_hour"] = .03;
-     doc["rain_max_rate_last12"] = 1.8;
-     doc["rain_inches_last12"] = 1.5;
-
-     //environmental quality
-     doc["air_quality_pm1"] = 62;
-     doc["air_quality_pm25"] = 48;
-     doc["air_quality_pm10"] = 73;
-     doc["noise_level_max_last12"] = 32;
-     doc["noise_level_max_time"] = 1651374875;
-     doc["air_quality_pm25_max_last12"] = 55;
-     doc["air_quality_pm25_max_time"] = 1651374875;
-     doc["air_quality_pm10_max_last12"] = 74;
-     doc["air_quality_pm10_max_time"] = 1651374875;
-     doc["air_quality_pm25_min_last12"] = 31;
-     doc["air_quality_pm25_min_time"] = 1651374875;
-     doc["air_quality_pm10_min_last12"] = 41;
-     doc["air_quality_pm10_min_time"] = 1651374875;
-                   
-     INFOPRINTLN("refreshing...");
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
 }
 
 // Serving setting
@@ -292,11 +285,12 @@ void restServerRouting() {
     });
 
     //GET
-    server.on("/refreshAll", HTTP_GET, refreshAll);   //deprecated
     server.on("/refreshWindRain", HTTP_GET, refreshWindRain);
+    server.on("/refreshWind", HTTP_GET, refreshWindRain);
     server.on("/refreshWeather", HTTP_GET, refreshWeather);
     server.on("/refreshBME", HTTP_GET, refreshBME);
     server.on("/refreshADC", HTTP_GET, refreshADC);
+    server.on("/refreshPMS", HTTP_GET, refreshPMS);
     server.on("/settings", HTTP_GET, getSettings);    //not currently used 
     server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
 
@@ -325,25 +319,35 @@ void handleNotFound()
 }
  
 void setup(void) 
-{
-  if(bootCount>0)
-  {
-    millisSinceEpoch=millisSinceEpoch+(TIMEDEEPSLEEP*1000);
-    INFOPRINT("Millis now: ");
-    INFOPRINTLN(millisSinceEpoch);
-  }
-  
+{ 
   #if defined(ERRORDEF) || defined(INFODEF) || defined(VERBOSEDEF)
   Serial.begin(115200);
   #endif
 
-  ++bootCount;
+  INFOPRINTLN("--------------------------");
+  INFOPRINTLN("Starting up");
 
+  ++bootCount;
   INFOPRINT("Current boot count: ");
   INFOPRINTLN(bootCount); 
 
-  INFOPRINTLN("--------------------------");
-  INFOPRINTLN("Starting up");
+  if(firstBoot)
+  {
+    INFOPRINTLN("Setting up ULP so we can count pulses and hold pins while in deep sleep...  (only does this on first boot)");
+    ulp.setupULP();
+    ulp.setupWindPin();
+    ulp.setupRainPin();
+    ulp.setupAirPin();
+
+    firstBoot=false;
+  }
+    
+  if(!firstBoot)
+  {
+    millisSinceEpoch=millisSinceEpoch+(TIMEDEEPSLEEP*1000);
+    INFOPRINT("Millis now: ");
+    INFOPRINTLN(millisSinceEpoch);
+  }  
   
   //free heap
   float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
@@ -353,6 +357,16 @@ void setup(void)
   INFOPRINT(heap);
   INFOPRINTLN("% used");
 
+  INFOPRINTLN("Init sensors....");
+  windRainHandler.init();
+  bmeHandler.init();
+  adcHandler.init();
+  pmsHandler.init();
+
+  INFOPRINTLN("turning on PMS5003....");
+  ulp.setAirPinHigh(true);
+
+  //Setup wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
  
@@ -385,26 +399,31 @@ void setup(void)
   server.begin();
   INFOPRINTLN("HTTP server started");
 
-  //turn off air quality  (make sure sustainable by adding a member function to ULP)
-  pinMode(25,OUTPUT);
-  digitalWrite(25, LOW); 
-
   INFOPRINTLN("Ready to go!");
   INFOPRINTLN("");
-
-  INFOPRINTLN("Reading sensors....");
-  windRainHandler.storeSamples(TIMEDEEPSLEEP);
-  bmeHandler.storeSamples();
-  adcHandler.storeSamples();
-
-  millisSinceEpoch=millisSinceEpoch+millis();   //add how long it's been since we last woke up
-  sleep();
 }
  
 void loop(void) 
 {
-  //take care of webserver stuff
-  server.handleClient();
+  readSensors();
+  
+  //take some time to care of webserver stuff  (this will be negotiated in the future)
+  INFOPRINTLN("Now listening on http....");
+  long startMillis=millis();
+  while(millis()<(startMillis+10000))
+    server.handleClient();
+
+  millisSinceEpoch=millisSinceEpoch+millis();   //add how long it's been since we last woke up
+  //sleep();    
+}
+
+void readSensors()
+{
+  INFOPRINTLN("Reading sensors....");
+  windRainHandler.storeSamples(TIMEDEEPSLEEP);
+  bmeHandler.storeSamples();
+  adcHandler.storeSamples();
+  pmsHandler.storeSamples();
 }
 
 void sleep(void) 

@@ -1,6 +1,6 @@
 #include "ADCHandler.h"
 
-ADCHandler::ADCHandler()
+void ADCHandler::init()
 {
   pinMode(VOLTAGE_PIN, INPUT);
   pinMode(LDR_PIN, INPUT);
