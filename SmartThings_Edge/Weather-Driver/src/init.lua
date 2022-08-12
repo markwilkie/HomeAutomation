@@ -7,6 +7,9 @@ local http = cosock.asyncify "socket.http"
 local ltn12 = require('ltn12')
 local json = require('dkjson')
 
+local myserver = require "myserver"
+local globals = require "globals"
+
 -- Custom Capabiities
 local atmospressure = capabilities["radioamber53161.atmospressure"]
 local datetime = capabilities["radioamber53161.datetime"]
@@ -112,7 +115,7 @@ local function getWeatherData(driver, device)
 
     if(success) then
       log.debug("Refresh successful - setting device as online");
-      
+    
       local jsondata = json.decode(table.concat(data)..'}');
       
       local temperature = tonumber(string.format("%.1f", jsondata.temperature))
@@ -128,7 +131,8 @@ local function getWeatherData(driver, device)
       local maxTemperature = tonumber(string.format("%.1f", jsondata.temperature_max_last12))
       local minTemperature = tonumber(string.format("%.1f", jsondata.temperature_min_last12))
 
-      device:emit_event(capabilities.temperatureMeasurement.temperature(temperature))
+      --device:emit_event(capabilities.temperatureMeasurement.temperature(temperature))  
+      device:emit_event(capabilities.temperatureMeasurement.temperature(globals.testTemp))
       device:emit_event(capabilities.relativeHumidityMeasurement.humidity(humidity))
       --device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(pressure))
       device:emit_event(atmospressure.pressure(pressure))
@@ -184,6 +188,9 @@ end
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
 local function device_init(driver, device)
   log.info("[" .. device.id .. "] Initializing weather device")
+
+  -- Startup Server
+  myserver.start_server(driver)  
 
   -- Refresh schedule
   device.thread:call_on_schedule(
