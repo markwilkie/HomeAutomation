@@ -14,12 +14,6 @@ local globals = require "globals"
 local atmospressure = capabilities["radioamber53161.atmospressure"]
 local datetime = capabilities["radioamber53161.datetime"]
 
---local capdefs = require "capabilitydefs"
---local atmospressure = capabilities.build_cap_from_json_string(capdefs.atmospressure)
---capabilities["radioamber53161.atmospressure"] = atmospressure
---local datetime = capabilities.build_cap_from_json_string(capdefs.datetime)
---capabilities["radioamber53161.datetime"] = datetime
-
 -- require custom handlers from driver package
 local discovery = require "discovery"
 
@@ -83,79 +77,72 @@ local function send_lan_command(url, method, path, body)
   return false, nil
 end
 
--- epoch post
-local function setEpoch()
+-- handshake post
+local function handshakeNow()
   local currentEpoch=os.time()-(7*60*60)
-  log.debug([[ {"epoch":]]..currentEpoch..[[} ]]);
+  log.debug("Handshaking Now:  "..[[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..server_ip..[[","hubPort":]]..server_port..[[ } ]]);
 
   local success, data = send_lan_command(
     'http://192.168.15.108:80',
     'POST',
-    'setEpoch',
-    [[ {"epoch":]]..currentEpoch..[[} ]])
+    'handshake',
+    [[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..server_ip..[[","hubPort":]]..server_port..[[ } ]])
 
     if(success) then
-      log.debug("Successfuly set Epoch to: "..currentEpoch);
+      log.debug("Successfuly handshook:  ( epoch: "..currentEpoch.." IP: "..server_ip.." Port: "..server_port);
     else
-      log.debug("Setting Epoch NOT successful");
+      log.debug("Handshaking NOT successful");
       return false
     end
 
     return true
 end
 
+function RefreshWeather(content)
+  log.debug("Refreshing Weather Data")
+  local jsondata = json.decode(content);
+
+  globals.currentTime = os.date("%a %X", jsondata.current_time)
+  globals.temperature = tonumber(string.format("%.1f", jsondata.temperature))
+  globals.heatindex = tonumber(string.format("%.1f", jsondata.heat_index))
+  globals.humidity = tonumber(string.format("%.1f", jsondata.humidity))
+  globals.pressure = tonumber(string.format("%.1f", jsondata.pressure))
+  globals.dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
+  globals.uvIndex = tonumber(string.format("%.1f", jsondata.uv))
+  globals.ldr = jsondata.ldr
+  globals.moisture = jsondata.moisture
+
+  globals.temperatureChangeLastHour = tonumber(string.format("%.1f", jsondata.temperature_change_last_hour))
+  globals.pressureChangeLastHour = tonumber(string.format("%.1f", jsondata.pressure_change_last_hour))
+
+  globals.maxTemperature = tonumber(string.format("%.1f", jsondata.temperature_max_last12))
+  globals.temperature_max_time_last12 = os.date("%a %X", jsondata.temperature_max_time_last12)
+  globals.minTemperature = tonumber(string.format("%.1f", jsondata.temperature_min_last12))
+  globals.temperature_min_time_last12 = os.date("%a %X", jsondata.temperature_main_time_last12)
+end
+
 -- Get latest wind updates
-local function getWeatherData(driver, device)
-  log.debug(string.format("[%s] Calling refresh", device.device_network_id))
+local function emitWeatherData(driver, device)
+  log.debug(string.format("[%s] Emiting Weather Data", device.device_network_id))
 
-  local success, data = send_lan_command(
-    'http://192.168.15.108:80',
-    'GET',
-    'refreshWeather')
+  device:emit_event(capabilities.temperatureMeasurement.temperature(globals.temperature))
+  device:emit_event(capabilities.relativeHumidityMeasurement.humidity(globals.humidity))
+  device:emit_event(atmospressure.pressure(globals.pressure))
+  device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(uglobals.vIndex))
+  device:emit_event(capabilities.illuminanceMeasurement.illuminance(globals.ldr))
+  device:emit_event(capabilities.waterSensor.water(globals.moisture))
+  device:emit_event(capabilities.dewPoint.dewpoint(globals.dewPoint))
+  device:emit_event(datetime.globals.currentTime)
 
-    if(success) then
-      log.debug("Refresh successful - setting device as online");
-    
-      local jsondata = json.decode(table.concat(data)..'}');
-      
-      local temperature = tonumber(string.format("%.1f", jsondata.temperature))
-      local heatindex = tonumber(string.format("%.1f", jsondata.heat_index))
-      local humidity = tonumber(string.format("%.1f", jsondata.humidity))
-      local pressure = tonumber(string.format("%.1f", jsondata.pressure))
-      local dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
-      local uvIndex = tonumber(string.format("%.1f", jsondata.uv))
+  device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(globals.heatindex))
+  device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature(globals.temperatureChangeLastHour))
+  --device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(globals.pressureChangeLastHour))
 
-      local temperatureChangeLastHour = tonumber(string.format("%.1f", jsondata.temperature_change_last_hour))
-      local pressureChangeLastHour = tonumber(string.format("%.1f", jsondata.pressure_change_last_hour))
+  device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature(globals.maxTemperature))
+  device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(globals.temperature_max_time_last12))
 
-      local maxTemperature = tonumber(string.format("%.1f", jsondata.temperature_max_last12))
-      local minTemperature = tonumber(string.format("%.1f", jsondata.temperature_min_last12))
-
-      --device:emit_event(capabilities.temperatureMeasurement.temperature(temperature))  
-      device:emit_event(capabilities.temperatureMeasurement.temperature(globals.testTemp))
-      device:emit_event(capabilities.relativeHumidityMeasurement.humidity(humidity))
-      --device:emit_event(capabilities.atmosphericPressureMeasurement.atmosphericPressure(pressure))
-      device:emit_event(atmospressure.pressure(pressure))
-      device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(uvIndex))
-      device:emit_event(capabilities.illuminanceMeasurement.illuminance(jsondata.ldr))
-      device:emit_event(capabilities.waterSensor.water(jsondata.moisture))
-      device:emit_event(capabilities.dewPoint.dewpoint(dewPoint))
-      device:emit_event(datetime.datetime(os.date("%a %X", jsondata.current_time)))
-
-      device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(heatindex))
-
-      device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature(temperatureChangeLastHour))
-      --device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(pressureChangeLastHour))
-
-      device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature(maxTemperature))
-      device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(os.date("%a %X", jsondata.temperature_max_time_last12)))
-
-      device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature(minTemperature))
-      device:emit_component_event(device.profile.components['last12Min'],datetime.datetime(os.date("%a %X", jsondata.temperature_min_time_last12)))
-    else
-      log.debug("Refresh NOT successful - setting device as offline");
-      return false
-    end
+  device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature(minTemperature))
+  device:emit_component_event(device.profile.components['last12Min'],datetime.datetime(globals.temperature_min_time_last12))
 
     return true
 end
@@ -168,11 +155,11 @@ end
 local function refresh(driver, device)
   log.debug(string.format("[%s] Calling refresh", device.device_network_id))
 
-  if not setEpoch() then
+  if not handshakeNow() then
     return false
   end
 
-  if not getWeatherData(driver, device) then
+  if not emitWeatherData(driver, device) then
     return false
   end
 

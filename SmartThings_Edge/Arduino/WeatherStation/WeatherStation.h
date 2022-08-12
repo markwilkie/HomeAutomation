@@ -13,6 +13,10 @@ extern RTC_DATA_ATTR int bootCount;
 extern RTC_DATA_ATTR long millisSinceEpoch;
 extern RTC_DATA_ATTR ULP ulp; 
 
-extern long epoch;  //Epoch from hub
+extern RTC_DATA_ATTR bool handshakeRequired;
+
+extern RTC_DATA_ATTR String hubAddress;
+extern RTC_DATA_ATTR int hubPort;
+extern RTC_DATA_ATTR long epoch;  //Epoch from hub
 
 #endif

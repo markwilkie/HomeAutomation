@@ -7,10 +7,6 @@ local globals = require "globals"
 
 local CLIENTSOCKTIMEOUT = 2
 local serversock
-local server_ip
-local server_port
-local channelID
-
 
 local function init_serversocket()
 
@@ -21,15 +17,6 @@ local function init_serversocket()
 
     return serversock
 
-end
-
-local function updateWeather(content)
-  local jsondata = json.decode(content);
-
-  globals.testTemp = jsondata.test1
-
-  log.debug("test1: ", jsondata.test1)
-  log.debug("test2: ", jsondata.test2)
 end
 
 local function watch_socket(_, sock)
@@ -97,7 +84,7 @@ local function watch_socket(_, sock)
 
   --if weather
   if url == '/weather' then
-    updateWeather(content)
+    RefreshWeather(content)
   end
 end
 
@@ -108,10 +95,11 @@ local function start_server(driver)
     server_ip, server_port = serversock:getsockname()
     log.info(string.format('**************************  Server started at %s:%s', server_ip, server_port))
   
-    channelID = driver:register_channel_handler(serversock, watch_socket, 'server')
+    driver:register_channel_handler(serversock, watch_socket, 'server')
   
 end
 
 return {
-    start_server = start_server
+    start_server = start_server,
+    RefreshWeather = RefreshWeather
   }
