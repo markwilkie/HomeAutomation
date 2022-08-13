@@ -97,26 +97,27 @@ void WeatherWifi::setupServerRouting() {
     server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
-void WeatherWifi::sendPostMessage(DynamicJsonDocument doc)
+void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc)
 {
   WiFiClient client;
   HTTPClient http;
     
   // Your Domain name with URL path or IP address with path
-  http.begin(client, hubAddress, hubPort);
+  String address="http://"+hubAddress+":"+hubPort+url;
+  INFOPRINTLN("Hub Address: "+address);
+  http.begin(client,address.c_str());
+  http.addHeader("Content-Type", "application/json");
 
   // Send HTTP POST request
   String buf;
   serializeJson(doc, buf);
   int httpResponseCode = http.POST(buf);
   
-  if (httpResponseCode>0) {
-    INFOPRINTLN("HTTP Response to Post: ");
-    INFOPRINTLN(httpResponseCode);
-  }
-  else {
+  if (httpResponseCode<0)
+  {
     ERRORPRINT("Error from POST Code: ");
     ERRORPRINTLN(httpResponseCode);
+    handshakeRequired=false;
   }
   // Free resources
   http.end();

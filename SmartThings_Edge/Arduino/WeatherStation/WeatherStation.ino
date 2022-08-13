@@ -71,7 +71,7 @@ void postWeather()
   doc=refreshADCDoc(doc);
   
   //send data
-  weatherWifi.sendPostMessage(doc);
+  weatherWifi.sendPostMessage("/weather",doc);
   
   INFOPRINTLN("Tried posting general weather data...");
 }
@@ -251,7 +251,7 @@ void syncWithHub()
 
       INFOPRINT("Hub info: ");
       INFOPRINT(hubAddress + ":" + hubPort);
-      INFOPRINT("Epoch: ");
+      INFOPRINT("  Epoch: ");
       INFOPRINTLN(epoch);
 
       //handshake no longer needed
@@ -344,7 +344,7 @@ void loop(void)
   weatherWifi.listen(10000);
 
   //Keep track of how long
-  millisSinceEpoch=millisSinceEpoch+millis();   //add how long it's been since we last woke up
+  millisSinceEpoch=millisSinceEpoch+(millis()-epoch);   //add how long it's been since we last woke up
   //sleep();    
 }
 

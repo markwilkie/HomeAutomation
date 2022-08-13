@@ -118,7 +118,7 @@ function RefreshWeather(content)
   globals.maxTemperature = tonumber(string.format("%.1f", jsondata.temperature_max_last12))
   globals.temperature_max_time_last12 = os.date("%a %X", jsondata.temperature_max_time_last12)
   globals.minTemperature = tonumber(string.format("%.1f", jsondata.temperature_min_last12))
-  globals.temperature_min_time_last12 = os.date("%a %X", jsondata.temperature_main_time_last12)
+  globals.temperature_min_time_last12 = os.date("%a %X", jsondata.temperature_min_time_last12)
 end
 
 -- Get latest wind updates
@@ -128,11 +128,11 @@ local function emitWeatherData(driver, device)
   device:emit_event(capabilities.temperatureMeasurement.temperature(globals.temperature))
   device:emit_event(capabilities.relativeHumidityMeasurement.humidity(globals.humidity))
   device:emit_event(atmospressure.pressure(globals.pressure))
-  device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(uglobals.vIndex))
+  device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(globals.uvIndex))
   device:emit_event(capabilities.illuminanceMeasurement.illuminance(globals.ldr))
   device:emit_event(capabilities.waterSensor.water(globals.moisture))
   device:emit_event(capabilities.dewPoint.dewpoint(globals.dewPoint))
-  device:emit_event(datetime.globals.currentTime)
+  device:emit_event(datetime.datetime(globals.currentTime))
 
   device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(globals.heatindex))
   device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature(globals.temperatureChangeLastHour))
@@ -141,7 +141,7 @@ local function emitWeatherData(driver, device)
   device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature(globals.maxTemperature))
   device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(globals.temperature_max_time_last12))
 
-  device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature(minTemperature))
+  device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature(globals.minTemperature))
   device:emit_component_event(device.profile.components['last12Min'],datetime.datetime(globals.temperature_min_time_last12))
 
     return true
@@ -181,7 +181,7 @@ local function device_init(driver, device)
 
   -- Refresh schedule
   device.thread:call_on_schedule(
-    600,
+    60,
     function ()
       return refresh(driver, device)
     end,

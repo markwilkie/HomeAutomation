@@ -34,7 +34,7 @@ class WeatherWifi
     DynamicJsonDocument readContent();
     void sendResponse(DynamicJsonDocument);
 
-    void sendPostMessage(DynamicJsonDocument);
+    void sendPostMessage(String,DynamicJsonDocument);
     
   private: 
     void setupServerRouting();

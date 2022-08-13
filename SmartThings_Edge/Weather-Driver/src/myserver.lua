@@ -49,19 +49,18 @@ local function watch_socket(_, sock)
       client:close()
     else
       url= line:match '/%a+'
-      print('url:', url)
     end        
     if not err then
       while line ~= "" do
         line, err  = client:receive()
-        log.debug ('Received:', line)
+        --log.debug ('Received:', line)
         if err ~= nil then
           log.warn("Error on client receive: " .. err)
           return
         end      
         if line:find('-Length:', 1, plaintext) ~= nil then  --get content length
           content_len = line:match '%d+'
-          log.debug ('Len:', content_len)
+          --log.debug ('Len:', content_len)
         end
       end
       
