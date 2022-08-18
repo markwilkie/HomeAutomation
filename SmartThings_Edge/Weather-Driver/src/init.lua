@@ -135,7 +135,7 @@ end
 
 -- Get latest weather updates
 local function emitWeatherData(driver, device)
-  log.info(string.format("[%s] Emiting Weather Data", device.device_network_id))
+  log.info(string.format("[%s] Emiting Weather Data...", device.device_network_id))
 
   device:emit_event(capabilities.temperatureMeasurement.temperature({value = globals.temperature, unit = 'F'}))
   device:emit_event(capabilities.relativeHumidityMeasurement.humidity(globals.humidity))
@@ -148,7 +148,7 @@ local function emitWeatherData(driver, device)
 
   device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(globals.heatindex))
   device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature({value = globals.temperatureChangeLastHour, unit = 'F'}))
-  --device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(globals.pressureChangeLastHour))
+  device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(globals.pressureChangeLastHour))
 
   device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature({value = globals.maxTemperature, unit = 'F'}))
   device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(globals.temperature_max_time_last12))

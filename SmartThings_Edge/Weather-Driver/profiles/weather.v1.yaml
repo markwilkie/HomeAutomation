@@ -10,8 +10,6 @@ components:
     version: 1
   - id: relativeHumidityMeasurement
     version: 1
-  - id: atmosphericPressureMeasurement
-    version: 1
   - id: dewPoint
     version: 1
   - id: radioamber53161.atmospressure
@@ -37,7 +35,9 @@ components:
   - id: refresh
     version: 1    
   - id: temperatureMeasurement
-    version: 1    
+    version: 1
+  - id: radioamber53161.atmospressure
+    version: 1         
 - id: last12Max
   label: "Max Last 12 Hours"
   capabilities:

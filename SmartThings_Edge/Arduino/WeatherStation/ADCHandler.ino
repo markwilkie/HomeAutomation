@@ -58,14 +58,30 @@ int ADCHandler::readADC(int pin)
   return(sum/readNum);
 }
 
-long ADCHandler::getIllum(int adcReading)
+long ADCHandler::getIllum(int ldr_raw_data)
 {
-  return log(adcReading+1)/log(4095)*100000;
+  float ldr_voltage;
+  float ldr_resistance;
+  float ldr_lux;
+
+  // LDR VOLTAGE CONVERSION
+  // Convert the raw digital data back to the voltage that was measured on the analog pin
+  ldr_voltage = (float) ldr_raw_data / MAX_ADC_READING * ADC_REF_VOLTAGE;
+
+  // LDR RESISTANCE CONVERSION
+  // resistance that the LDR would have for that voltage
+  ldr_resistance = (ldr_voltage * LDR_REF_RESISTANCE) / (ADC_REF_VOLTAGE - ldr_voltage);
+
+  // LDR LUX
+  // Change the code below to the proper conversion from ldr_resistance to ldr_lux
+  ldr_lux = LUX_CALC_SCALAR * pow(ldr_resistance, LUX_CALC_EXPONENT);
+
+  return ldr_lux;
 }
 
 double ADCHandler::getVolts(int adcReading)
 {
-  return 3.3 / 4095 * adcReading;
+  return ADC_REF_VOLTAGE / MAX_ADC_READING * adcReading;
 }
 
 double ADCHandler::getUVIndex(int adcReading)
