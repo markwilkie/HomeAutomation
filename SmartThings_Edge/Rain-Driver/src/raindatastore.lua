@@ -34,7 +34,7 @@ local function findLastHourTotal(hoursAgo)
   local totalentries=0
 
   for k, v in ipairs(histData) do  --ipairs gaurantees it's in index order
-    if v.epoch > hourAgo then
+    if v.time > hourAgo then
       break  --will return the last one right before this one
     end
     totalentries=totalentries+1
