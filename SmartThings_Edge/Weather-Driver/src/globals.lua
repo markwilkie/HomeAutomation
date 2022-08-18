@@ -1,6 +1,7 @@
 handshakeRequired = true
 server_ip = ""
 server_port = 0
+lastHeardFromWeather = 0
 
 --weather data
 temperature = nil
@@ -21,6 +22,7 @@ temperature_min_time_last12 = nil
 
 return {
     handshakeRequired = handshakeRequired,
+    lastHeardFromWeather = lastHeardFromWeather,
     server_ip = server_ip,
     server_port = server_port,
     currentTime = currentTime,

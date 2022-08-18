@@ -1,8 +1,5 @@
-local cosock = require "cosock" 
 local socket = require "cosock.socket"
 local log = require "log"
-local json = require('dkjson')
-
 local globals = require "globals"
 
 local CLIENTSOCKTIMEOUT = 2
@@ -19,62 +16,35 @@ local function init_serversocket()
 
 end
 
-local function watch_socket(_, sock)
-
-  local client, accept_err = sock:accept()
-
-  log.debug("Accepted connection from", client:getpeername())
-
-  if accept_err ~= nil then
-    log.info("Connection accept error: " .. accept_err)
-    sock:close()
-    return
-  end
-
-  client:settimeout(CLIENTSOCKTIMEOUT)
-
-  local line, err
+local function handle_post(client,line)
+  local err
   local content
   local content_len = 0
   local url = '/'
 
-  local ip, _, _ = client:getpeername()
-  if ip ~= nil then
+  --Make sure it's a POST and grab the url
+  url= line:match '/%a+'
 
-    do -- Receive all headers until blank line is found
-    line, err = client:receive()
-    log.debug ('Received:', line)
-    if line:find('POST', 1, plaintext) == nil then
-      log.warn("No POST....ignoring")
-      client:close()
-    else
-      url= line:match '/%a+'
-    end        
-    if not err then
-      while line ~= "" do
-        line, err  = client:receive()
-        --log.debug ('Received:', line)
-        if err ~= nil then
-          log.warn("Error on client receive: " .. err)
-          return
-        end      
-        if line:find('-Length:', 1, plaintext) ~= nil then  --get content length
-          content_len = line:match '%d+'
-          --log.debug ('Len:', content_len)
-        end
-      end
-      
-      -- Receive body here 
-      content, err = client:receive(tonumber(content_len))
-      log.debug ('content:', content)
-      if err ~= nil then
-        log.warn("Error on client receive: " .. err)
-        return
-      end
+  --Read through the rest of the header
+  while line ~= "" do
+    line, err  = client:receive()
+    --log.debug ('Received:', line)
+    if err ~= nil then
+      log.error("Error on client receive: " .. err)
+      return
+    end      
+    if line:find('-Length:', 1, plaintext) ~= nil then  --get content length
+      content_len = line:match '%d+'
+      --log.debug ('Len:', content_len)
     end
   end
-  else
-    log.warn("Could not get IP from getpeername()")
+  
+  -- Receive body here 
+  content, err = client:receive(tonumber(content_len))
+  log.debug ('content:', content)
+  if err ~= nil then
+    log.error("Error on client receive: " .. err)
+    return
   end
       
   OK_MSG = 'HTTP/1.1 200 OK\r\n\r\n'
@@ -87,12 +57,80 @@ local function watch_socket(_, sock)
   end
 end
 
+local function handle_get(client,line)
+
+  --Get URL of GET
+  local url= line:match '/%a+'
+
+  if url == '/epoch' then
+    log.debug("Sending epoch back as requested")
+    local epochMsg = [[HTTP/1.1 200 OK
+
+{"epoch":]]..os.time()-(7*60*60)..[[}]]
+    client:send(epochMsg)
+    client:close()
+    return
+  end
+
+  --If we got this far, we don't recognize the request
+  log.error("Unrecognized GET request from client: "..line)
+  client:close()
+end
+
+local function watch_socket(_, sock)
+
+  local line, err
+
+  --Waiting for incoming
+  local client, accept_err = sock:accept()
+  if accept_err ~= nil then
+    log.error("Connection accept error: " .. accept_err .. " from " .. client:getpeername())
+    sock:close()
+    return
+  end
+  log.debug("Accepted connection from", client:getpeername())
+
+  --Set timeout
+  client:settimeout(CLIENTSOCKTIMEOUT)
+
+  --get peer name (ip of client)
+  local ip, _, _ = client:getpeername()
+  if ip == nil then
+    log.error("Could not get IP from getpeername()")
+    client:close()
+    return
+  end
+
+  --Receiving from client
+  line, err = client:receive()
+  if err ~= nil then
+    log.error("Error on client receive: " .. err)
+    client:close()
+    return
+  end
+
+  --Make sure it's a POST or GET and grab the url
+  log.debug ('Received:', line)
+  if line:find('POST', 1, plaintext) ~= nil then
+    handle_post(client,line)
+    return
+  end
+  if line:find('GET', 1, plaintext) ~= nil then
+    handle_get(client,line)
+    return
+  end
+
+  --If we got this far, we don't recognize the request
+  log.error("Unrecognized request from client: "..line)
+  client:close()
+end
+
 local function start_server(driver)
 
     -- Startup Server
     serversock = init_serversocket()
-    server_ip, server_port = serversock:getsockname()
-    log.info(string.format('**************************  Server started at %s:%s', server_ip, server_port))
+    globals.server_ip, globals.server_port = serversock:getsockname()
+    log.info(string.format('**************************  Server started at %s:%s', globals.server_ip, globals.server_port))
   
     driver:register_channel_handler(serversock, watch_socket, 'server')
   

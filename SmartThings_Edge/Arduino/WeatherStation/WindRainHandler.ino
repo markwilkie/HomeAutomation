@@ -21,7 +21,7 @@ void WindRainHandler::storeSamples(int sampleTime)
   GustStructType gustData;
   gustData.gust = windGustSpeed;
   gustData.gustDirection = windDirection;
-  gustData.gustTime = epoch+(getSecondsSinceEpoch());
+  gustData.gustTime = currentTime();
   gustLast12[windSampleIdx]=gustData;
 
   rainLast12[rainSampleIdx]=rainRate;

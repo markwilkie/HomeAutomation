@@ -11,7 +11,6 @@
 
 //sample setup
 #define BME_SAMPLE_SEC     600                           //how often we're reading the sensor in seconds
-#define BME_LAST12_SIZE   ((12*60*60)/BME_SAMPLE_SEC)    //# of samples we need to store for last 12
 
 typedef struct BMEStructType
 {
@@ -31,22 +30,14 @@ class BME280Handler
     float getPressure();
     float getHumidity();
     float getDewPoint();
-    float getHeatIndex();
-    
-    float getMaxTemperature();
-    long getMaxTemperatureTime();
-    float getMinTemperature();
-    long getMinTemperatureTime();
-    float getTemperatureChange();
-    float getPressureChange();  
+    float getHeatIndex(); 
+
     long getReadingTime();
     
   private: 
-    struct BMEStructType bmeSamples[BME_LAST12_SIZE];
     Adafruit_BME280 bme; // I2C
     BMEStructType bmeData;
 
-    int bmeSampleIdx;              //index for where in the sample array we are
 };
 
 

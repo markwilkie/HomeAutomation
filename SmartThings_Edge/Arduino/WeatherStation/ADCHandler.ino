@@ -23,17 +23,6 @@ void ADCHandler::storeSamples()
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
-
-  //Add to sample array
-  adcSamples[adcSampleIdx]=adcData;
-  adcSampleIdx++;
-
-  //If wraps, then reset 
-  if(adcSampleIdx>=ADC_LAST12_SIZE)
-  {
-    //reset pos
-    adcSampleIdx=0;  
-  }
 }
 
 float ADCHandler::getVoltage()
@@ -103,34 +92,4 @@ String ADCHandler::isWet(int adcReading)
     return "wet";
   else
     return "dry";
-}
-
-//return max cap voltage
-float ADCHandler::getMaxVoltage()
-{
-  int maxVoltage=0;
-  for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
-  {
-    if(adcSamples[idx].voltage>maxVoltage)
-    {
-      maxVoltage=adcSamples[idx].voltage;
-    }
-  }
-
-  return maxVoltage;
-}
-
-//return min cap voltage
-float ADCHandler::getMinVoltage()
-{
-  int minVoltage=0;
-  for(int idx=0;idx<ADC_LAST12_SIZE;idx++)
-  {
-    if(adcSamples[idx].voltage<minVoltage)
-    {
-      minVoltage=adcSamples[idx].voltage;
-    }
-  }
-
-  return minVoltage;
 }

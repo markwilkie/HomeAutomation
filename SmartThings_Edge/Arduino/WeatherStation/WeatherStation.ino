@@ -11,18 +11,21 @@
 #include <ArduinoJson.h>
 
 //globals in ULP which survive deep sleep
-RTC_DATA_ATTR int bootCount = 0;
 RTC_DATA_ATTR bool firstBoot = true;
-RTC_DATA_ATTR long millisSinceEpoch = 0;
 RTC_DATA_ATTR ULP ulp;
 
 //when true, ESP goes into a high battery drain state of waiting for a /handshake POST message
 RTC_DATA_ATTR bool handshakeRequired = true;
 
 //info from hub obtained by handshaking
-RTC_DATA_ATTR String hubAddress;
+RTC_DATA_ATTR char hubAddress[30];
 RTC_DATA_ATTR int hubPort;
-RTC_DATA_ATTR long epoch;  //Epoch from hub
+RTC_DATA_ATTR long epoch=0;  //Epoch from hub
+RTC_DATA_ATTR long timeToPost = 0;  //seconds for when to http POST
+
+//time keeping
+long millisAtEpoch = 0;
+
 
 //Wifi
 WeatherWifi weatherWifi;
@@ -48,7 +51,7 @@ void refreshWindRain()
  doc["wind_gust_max_last12"] = windRainHandler.getLast12MaxGustSpeed(gustLast12Idx);
  doc["wind_gust_direction_last12"] = windRainHandler.getLast12MaxGustDirection(gustLast12Idx);
  doc["wind_gust_max_time"] = windRainHandler.getLast12MaxGustTime(gustLast12Idx);    //whatever the actual time was that the gust ocurred
- doc["current_time"] = epoch+(getSecondsSinceEpoch()); //send back the last epoch sent in + elapsed time since
+ doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
  //rain
  doc["rain_rate"] = windRainHandler.getRainRate();
@@ -97,13 +100,7 @@ DynamicJsonDocument refreshBMEDoc(DynamicJsonDocument doc)
   doc["pressure"] = bmeHandler.getPressure();
   doc["dew_point"] = bmeHandler.getDewPoint();
   doc["heat_index"] = bmeHandler.getHeatIndex();
-  doc["temperature_change_last_hour"] = bmeHandler.getTemperatureChange();
-  doc["pressure_change_last_hour"] = bmeHandler.getPressureChange();
-  doc["temperature_max_last12"] = bmeHandler.getMaxTemperature();
-  doc["temperature_max_time_last12"] = bmeHandler.getMaxTemperatureTime();
-  doc["temperature_min_last12"] = bmeHandler.getMinTemperature();
-  doc["temperature_min_time_last12"] = bmeHandler.getMinTemperatureTime();
-  doc["current_time"] = epoch+(getSecondsSinceEpoch()); //send back the last epoch sent in + elapsed time since
+  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
   return doc;
 }
@@ -128,9 +125,7 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
      doc["ldr"] = adcHandler.getIllumination();
      doc["moisture"] = adcHandler.getMoisture();
      doc["uv"] = adcHandler.getUV();
-     doc["voltage_max_last12"] = adcHandler.getMaxVoltage();
-     doc["voltage_min_last12"] = adcHandler.getMinVoltage();
-     doc["current_time"] = epoch+(getSecondsSinceEpoch()); //send back the last epoch sent in + elapsed time since
+     doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
      return doc;
 }
@@ -214,29 +209,6 @@ void getSettings()
       //weatherWifi.sendResponse(doc);
 }
 
-//The hub driver will POST epoch when refreshing data
-void setEpoch() 
-{
-  DynamicJsonDocument doc=weatherWifi.readContent();
-
-  if (weatherWifi.isPost()) 
-  {
-        //set epoch from server
-        epoch = doc["epoch"].as<long>();
-        millisSinceEpoch=0;
-
-        INFOPRINT("Setting epoch to: ");
-        INFOPRINTLN(epoch);
-       
-        // Create the response
-        // To get the status of the result you can get the http status so
-        // this part can be unusefully
-        DynamicJsonDocument doc(512);
-        doc["status"] = "OK";
-        weatherWifi.sendResponse(doc);
-    }
-}
-
 //The hub driver will POST ip, port, and epoch when handshaking
 void syncWithHub() 
 {
@@ -244,25 +216,27 @@ void syncWithHub()
 
   if (weatherWifi.isPost()) 
   {
-      hubAddress = doc["hubAddress"].as<String>();
+      String ip = doc["hubAddress"].as<String>();
+      ip.toCharArray(hubAddress, ip.length()+1);
       hubPort = doc["hubPort"].as<int>();
       epoch = doc["epoch"].as<long>();
-      millisSinceEpoch=0;
+      millisAtEpoch=millis();
 
       INFOPRINT("Hub info: ");
-      INFOPRINT(hubAddress + ":" + hubPort);
+      INFOPRINT(ip + ":" + hubPort);
       INFOPRINT("  Epoch: ");
       INFOPRINTLN(epoch);
-
-      //handshake no longer needed
-      handshakeRequired = false;
-     
+    
       // Create the response
       // To get the status of the result you can get the http status so
       // this part can be unusefully
       DynamicJsonDocument doc(512);
       doc["status"] = "OK";   
       weatherWifi.sendResponse(doc);
+
+      //handshake no longer needed
+      handshakeRequired = false;
+      weatherWifi.disableWifi();
   }
 }
 
@@ -275,9 +249,8 @@ void setup(void)
   INFOPRINTLN("--------------------------");
   INFOPRINTLN("Starting up");
 
-  ++bootCount;
-  INFOPRINT("Current boot count: ");
-  INFOPRINTLN(bootCount); 
+  //setup LED pin
+  pinMode(LED_BUILTIN, OUTPUT);
 
   if(firstBoot)
   {
@@ -287,16 +260,13 @@ void setup(void)
     ulp.setupRainPin();
     ulp.setupAirPin();
 
+    //start wifi and http server
+    weatherWifi.startWifi();
+    weatherWifi.startServer();    
+
     firstBoot=false;
   }
-    
-  if(!firstBoot)
-  {
-    millisSinceEpoch=millisSinceEpoch+(TIMEDEEPSLEEP*1000);
-    INFOPRINT("Millis now: ");
-    INFOPRINTLN(millisSinceEpoch);
-  }  
-  
+ 
   //free heap
   float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
   INFOPRINT("Free Heap: (376360 is an empty sketch) ");
@@ -324,12 +294,19 @@ void setup(void)
     ERRORPRINTLN("ERROR: Unable to start MDNS responder");
   }
 
-  //wifi
-  weatherWifi.initWifi();
-  weatherWifi.startServer();
- 
   INFOPRINTLN("Ready to go!");
   INFOPRINTLN("");
+}
+
+//Requesting a new epoch when I wake up
+void getEpoch()
+{
+  DynamicJsonDocument doc = weatherWifi.sendGetMessage("/epoch");
+  epoch = doc["epoch"].as<long>();
+  millisAtEpoch = millis();
+
+  INFOPRINT("Now setting Epoch: ");
+  INFOPRINTLN(epoch);
 }
  
 void loop(void) 
@@ -338,14 +315,32 @@ void loop(void)
   readSensors();
 
   //POST sensor data
-  postWeather();
+  if(!handshakeRequired && currentTime() >= timeToPost)
+  {
+    weatherWifi.startWifi();
+    getEpoch();
+    postWeather();
+    timeToPost=currentTime()+WIFITIME;
+    weatherWifi.disableWifi();
+  }
 
-  //Check in w/ web server
-  weatherWifi.listen(10000);
-
-  //Keep track of how long
-  millisSinceEpoch=millisSinceEpoch+(millis()-epoch);   //add how long it's been since we last woke up
-  //sleep();    
+  //Check in w/ web server if we're in handshake mode
+  if(handshakeRequired)
+  {
+    if(!weatherWifi.isConnected())
+    {
+      weatherWifi.startWifi();
+      weatherWifi.startServer();    
+    }
+    weatherWifi.listen(10000);
+  }
+  else
+  {
+    //INFOPRINT("Delaying (instead of sleeping) for ");
+    //INFOPRINTLN(TIMEDEEPSLEEP);
+    //delay(TIMEDEEPSLEEP*1000);
+    sleep();      
+  } 
 }
 
 void readSensors()
@@ -366,10 +361,23 @@ void sleep(void)
   esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
 
+  epoch=epoch+TIMEDEEPSLEEP; //add on how much we plan on sleeping now
   esp_deep_sleep_start(); 
 }
 
-int getSecondsSinceEpoch()
+int currentTime()
 {
-  return millisSinceEpoch/1000;
+  return epoch+((millis()-millisAtEpoch)/1000);
+}
+
+void blinkLED(int times,int onDuration,int offDuration)
+{
+  for(int i=0;i<times;i++)
+  {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(onDuration);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(offDuration);
+    
+  }
 }

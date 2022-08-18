@@ -3,8 +3,14 @@
 
 WebServer server(80);
 
-void WeatherWifi::initWifi()
+void WeatherWifi::startWifi()
 {
+  esp_wifi_start();
+  WiFi.disconnect(false);  // Reconnect the network
+  WiFi.mode(WIFI_STA);    // Switch WiFi on
+  INFOPRINTLN("Wifi enabled...");
+  blinkLED(4,50,50);
+  
   //Setup wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASSWORD);
@@ -14,15 +20,18 @@ void WeatherWifi::initWifi()
   INFOPRINT("Connecting to WIFI ");  
   while (WiFi.status() != WL_CONNECTED) 
   {
+    blinkLED(4,200,50);
     connectCount++;
     delay(500);
     INFOPRINT(".");
     if(connectCount>40)
     {
+      blinkLED(20,10,10);
       ERRORPRINTLN("Could not connect to Wifi, restarting board");
       ESP.restart();
     }
   }
+
   INFOPRINTLN("");
   INFOPRINT("Connected to ");
   INFOPRINT(SSID);
@@ -37,6 +46,19 @@ void WeatherWifi::startServer()
   //server.onNotFound(handleNotFound);
   server.begin();
   INFOPRINTLN("HTTP server started");  
+}
+
+void WeatherWifi::disableWifi()
+{ 
+  WiFi.disconnect(true);  // Disconnect from the network
+  WiFi.mode(WIFI_OFF);    // Switch WiFi off
+  esp_wifi_stop();
+  INFOPRINTLN("Wifi disabled...");  
+}
+
+bool WeatherWifi::isConnected()
+{
+  return (WiFi.status() == WL_CONNECTED);
 }
 
 void WeatherWifi::listen(long millisToWait)
@@ -93,7 +115,6 @@ void WeatherWifi::setupServerRouting() {
     server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
 
     //POST
-    server.on("/setEpoch", HTTP_POST, setEpoch);   //called by the driver on the hub to set epoch
     server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
@@ -103,7 +124,8 @@ void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc)
   HTTPClient http;
     
   // Your Domain name with URL path or IP address with path
-  String address="http://"+hubAddress+":"+hubPort+url;
+  String ip = String(hubAddress);
+  String address="http://"+ip+":"+hubPort+url;
   INFOPRINTLN("Hub Address: "+address);
   http.begin(client,address.c_str());
   http.addHeader("Content-Type", "application/json");
@@ -117,10 +139,45 @@ void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc)
   {
     ERRORPRINT("Error from POST Code: ");
     ERRORPRINTLN(httpResponseCode);
-    handshakeRequired=false;
+    handshakeRequired=true;
   }
+  
   // Free resources
   http.end();
+}
+
+DynamicJsonDocument WeatherWifi::sendGetMessage(String url)
+{
+  DynamicJsonDocument doc(1024);
+  WiFiClient client;
+  HTTPClient http;
+    
+  // Your Domain name with URL path or IP address with path
+  String ip = String(hubAddress);
+  String address="http://"+ip+":"+hubPort+url;
+  INFOPRINTLN("Hub Address: "+address);
+  http.begin(client,address.c_str());
+
+  // Send HTTP GET request
+  int httpResponseCode = http.GET();
+
+  if (httpResponseCode<0)
+  {
+    ERRORPRINT("Error from GET Code: ");
+    ERRORPRINTLN(httpResponseCode);
+    handshakeRequired=true;
+    return doc;
+  }
+
+  //get payload
+  String payload = http.getString();
+    
+  // Free resources
+  http.end();
+
+  //return payload
+  deserializeJson(doc, payload);  
+  return DynamicJsonDocument(doc);
 }
 
 void WeatherWifi::sendErrorResponse(String errorString)

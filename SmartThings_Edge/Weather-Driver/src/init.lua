@@ -8,6 +8,7 @@ local ltn12 = require('ltn12')
 local json = require('dkjson')
 
 local myserver = require "myserver"
+local weatherdatastore = require "weatherdatastore"
 local globals = require "globals"
 
 -- Custom Capabiities
@@ -80,18 +81,19 @@ end
 -- handshake post
 local function handshakeNow()
   local currentEpoch=os.time()-(7*60*60)
-  log.debug("Handshaking Now:  "..[[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..server_ip..[[","hubPort":]]..server_port..[[ } ]]);
+  log.debug("Trying to handshake now:  "..[[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..globals.server_ip..[[","hubPort":]]..globals.server_port..[[ } ]]);
 
   local success, data = send_lan_command(
     'http://192.168.15.108:80',
     'POST',
     'handshake',
-    [[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..server_ip..[[","hubPort":]]..server_port..[[ } ]])
+    [[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..globals.server_ip..[[","hubPort":]]..globals.server_port..[[ } ]])
 
     if(success) then
-      log.debug("Successfuly handshook:  ( epoch: "..currentEpoch.." IP: "..server_ip.." Port: "..server_port);
+      log.info("Successfuly handshook:  ( epoch: "..currentEpoch.." IP: "..globals.server_ip.." Port: "..globals.server_port);
+      globals.handshakeRequired=false;
     else
-      log.debug("Handshaking NOT successful");
+      log.error("Handshaking NOT successful");
       return false
     end
 
@@ -99,9 +101,13 @@ local function handshakeNow()
 end
 
 function RefreshWeather(content)
-  log.debug("Refreshing Weather Data")
-  local jsondata = json.decode(content);
+  log.info("Refreshing Weather Data")
+  
+  globals.lastHeardFromWeather = os.time()
+  globals.handshakeRequired = false
+  globals.newDataAvailable = true
 
+  local jsondata = json.decode(content);
   globals.currentTime = os.date("%a %X", jsondata.current_time)
   globals.temperature = tonumber(string.format("%.1f", jsondata.temperature))
   globals.heatindex = tonumber(string.format("%.1f", jsondata.heat_index))
@@ -112,20 +118,26 @@ function RefreshWeather(content)
   globals.ldr = jsondata.ldr
   globals.moisture = jsondata.moisture
 
-  globals.temperatureChangeLastHour = tonumber(string.format("%.1f", jsondata.temperature_change_last_hour))
-  globals.pressureChangeLastHour = tonumber(string.format("%.1f", jsondata.pressure_change_last_hour))
+  --adding to the data store so we can do historical calc
+  weatherdatastore.insertData(jsondata.current_time,globals.temperature,globals.pressure)
 
-  globals.maxTemperature = tonumber(string.format("%.1f", jsondata.temperature_max_last12))
-  globals.temperature_max_time_last12 = os.date("%a %X", jsondata.temperature_max_time_last12)
-  globals.minTemperature = tonumber(string.format("%.1f", jsondata.temperature_min_last12))
-  globals.temperature_min_time_last12 = os.date("%a %X", jsondata.temperature_min_time_last12)
+  --do historical calc
+  globals.temperatureChangeLastHour = tonumber(string.format("%.1f",globals.temperature - weatherdatastore.temperatureHistory(1)))
+  globals.pressureChangeLastHour = tonumber(string.format("%.1f",globals.pressure - weatherdatastore.pressureHistory(1)))
+
+  local maxTime, maxTemperature = weatherdatastore.findMaxTemperature()
+  local minTime, minTemperature = weatherdatastore.findMinTemperature()
+  globals.maxTemperature = maxTemperature
+  globals.temperature_max_time_last12 = os.date("%a %X", maxTime)
+  globals.minTemperature = minTemperature
+  globals.temperature_min_time_last12 = os.date("%a %X", minTime)
 end
 
--- Get latest wind updates
+-- Get latest weather updates
 local function emitWeatherData(driver, device)
-  log.debug(string.format("[%s] Emiting Weather Data", device.device_network_id))
+  log.info(string.format("[%s] Emiting Weather Data", device.device_network_id))
 
-  device:emit_event(capabilities.temperatureMeasurement.temperature(globals.temperature))
+  device:emit_event(capabilities.temperatureMeasurement.temperature({value = globals.temperature, unit = 'F'}))
   device:emit_event(capabilities.relativeHumidityMeasurement.humidity(globals.humidity))
   device:emit_event(atmospressure.pressure(globals.pressure))
   device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(globals.uvIndex))
@@ -135,13 +147,13 @@ local function emitWeatherData(driver, device)
   device:emit_event(datetime.datetime(globals.currentTime))
 
   device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(globals.heatindex))
-  device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature(globals.temperatureChangeLastHour))
+  device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature({value = globals.temperatureChangeLastHour, unit = 'F'}))
   --device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(globals.pressureChangeLastHour))
 
-  device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature(globals.maxTemperature))
+  device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature({value = globals.maxTemperature, unit = 'F'}))
   device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(globals.temperature_max_time_last12))
 
-  device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature(globals.minTemperature))
+  device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature({value = globals.minTemperature, unit = 'F'}))
   device:emit_component_event(device.profile.components['last12Min'],datetime.datetime(globals.temperature_min_time_last12))
 
     return true
@@ -155,16 +167,28 @@ end
 local function refresh(driver, device)
   log.debug(string.format("[%s] Calling refresh", device.device_network_id))
 
-  if not handshakeNow() then
-    return false
+  --check if we've heard from devices lately
+  if os.time() > (globals.lastHeardFromWeather + 650) then
+    globals.handshakeRequired = true
+    log.warn("Haven't heard from Weather so going into handshake mode.")
   end
 
-  if not emitWeatherData(driver, device) then
-    return false
+  --hand shake if needed
+  if globals.handshakeRequired then
+    if not handshakeNow() then
+      return false
+    end
+  end
+
+  --Actually update the fields on the smart app
+  if globals.newDataAvailable then
+    globals.newDataAvailable = false
+    if not emitWeatherData(driver, device) then
+      return false
+    end
   end
 
   return true
-
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
@@ -196,7 +220,7 @@ local function device_removed(driver, device)
 end
 
 -- create the driver object
-local wind_driver = Driver("weather", {
+local weather_driver = Driver("weather", {
   discovery = discovery.handle_discovery,
   lifecycle_handlers = {
     added = device_added,
@@ -213,4 +237,4 @@ local wind_driver = Driver("weather", {
 })
 
 -- run the driver
-wind_driver:run()
+weather_driver:run()

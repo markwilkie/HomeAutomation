@@ -8,6 +8,7 @@
 #include <HTTPClient.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <esp_wifi.h>
 
 //Wifi
 #define SSID "WILKIE-LFP"
@@ -23,18 +24,23 @@ extern void debugData();
 extern void setEpoch();
 extern void syncWithHub();
 
+extern void blinkLED(int,int,int);
+
 class WeatherWifi 
 {
 
   public:
-    void initWifi();
+    void startWifi();
     void startServer();
+    void disableWifi();
     bool isPost();
+    bool isConnected();
     void listen(long);
     DynamicJsonDocument readContent();
     void sendResponse(DynamicJsonDocument);
 
     void sendPostMessage(String,DynamicJsonDocument);
+    DynamicJsonDocument sendGetMessage(String);
     
   private: 
     void setupServerRouting();
