@@ -64,7 +64,7 @@ bool WeatherWifi::isConnected()
 void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
-  INFOPRINTLN("Now listening on http....");
+  INFOPRINTLN("Listening on http");
   long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
     server.handleClient();
@@ -106,19 +106,13 @@ void WeatherWifi::setupServerRouting() {
     });
 
     //GET
-    server.on("/refreshWindRain", HTTP_GET, refreshWindRain);
-    server.on("/refreshWind", HTTP_GET, refreshWindRain);
-    server.on("/refreshBME", HTTP_GET, refreshBME);
-    server.on("/refreshADC", HTTP_GET, refreshADC);
-    server.on("/refreshPMS", HTTP_GET, refreshPMS);
-    server.on("/settings", HTTP_GET, getSettings);    //not currently used 
-    server.on("/debug", HTTP_GET, debugData);     //send debug data (also prints to serial
+    //server.on("/settings", HTTP_GET, getSettings);    //not currently used 
 
     //POST
     server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
-void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc)
+void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort)
 {
   WiFiClient client;
   HTTPClient http;
@@ -146,7 +140,7 @@ void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc)
   http.end();
 }
 
-DynamicJsonDocument WeatherWifi::sendGetMessage(String url)
+DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
 {
   DynamicJsonDocument doc(1024);
   WiFiClient client;

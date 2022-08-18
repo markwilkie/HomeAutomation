@@ -1,6 +1,6 @@
 local socket = require "cosock.socket"
 local log = require "log"
-local globals = require "globals"
+local commonglobals = require "_commonglobals"
 
 local CLIENTSOCKTIMEOUT = 2
 local serversock
@@ -54,6 +54,12 @@ local function handle_post(client,line)
   --if weather
   if url == '/weather' then
     RefreshWeather(content)
+  end
+  if url == '/wind' then
+    RefreshWind(content)
+  end
+  if url == '/rain' then
+    RefreshRain(content)
   end
 end
 
@@ -129,8 +135,8 @@ local function start_server(driver)
 
     -- Startup Server
     serversock = init_serversocket()
-    globals.server_ip, globals.server_port = serversock:getsockname()
-    log.info(string.format('**************************  Server started at %s:%s', globals.server_ip, globals.server_port))
+    commonglobals.server_ip, commonglobals.server_port = serversock:getsockname()
+    log.info(string.format('**************************  Server started at %s:%s', commonglobals.server_ip, commonglobals.server_port))
   
     driver:register_channel_handler(serversock, watch_socket, 'server')
   
@@ -138,5 +144,7 @@ end
 
 return {
     start_server = start_server,
-    RefreshWeather = RefreshWeather
+    RefreshWeather = RefreshWeather,
+    RefreshWind = RefreshWind,
+    RefreshRain = RefreshRain    
   }

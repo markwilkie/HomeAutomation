@@ -19,13 +19,20 @@ RTC_DATA_ATTR bool handshakeRequired = true;
 
 //info from hub obtained by handshaking
 RTC_DATA_ATTR char hubAddress[30];
-RTC_DATA_ATTR int hubPort;
+RTC_DATA_ATTR int hubWindPort;
+RTC_DATA_ATTR int hubWeatherPort;
+RTC_DATA_ATTR int hubRainPort;
 RTC_DATA_ATTR long epoch=0;  //Epoch from hub
 RTC_DATA_ATTR long timeToPost = 0;  //seconds for when to http POST
 
+//when to read sensors
+RTC_DATA_ATTR long timeToReadSensors=0;   //default
+RTC_DATA_ATTR long timeToReadWind=0;      //wind  (will be on a greater cadence)
+RTC_DATA_ATTR long timeToReadAir=0;       //air quality sensor which we'll rarely read
+RTC_DATA_ATTR bool airWarmedUp=false;     //air quality sensor will warm up for a full sleep cycle
+
 //time keeping
 long millisAtEpoch = 0;
-
 
 //Wifi
 WeatherWifi weatherWifi;
@@ -40,29 +47,33 @@ PMS5003Handler pmsHandler;
 //------------------------------------------------------------
 
 //refresh wind data
-void refreshWindRain() 
+void postWind() 
 {
  //wind
- int gustLast12Idx=windRainHandler.getLast12MaxGustIdx();
  DynamicJsonDocument doc(512);
  doc["wind_speed"] = windRainHandler.getWindSpeed();
  doc["wind_direction"] = windRainHandler.getWindDirection();
  doc["wind_gust"] = windRainHandler.getWindGustSpeed();
- doc["wind_gust_max_last12"] = windRainHandler.getLast12MaxGustSpeed(gustLast12Idx);
- doc["wind_gust_direction_last12"] = windRainHandler.getLast12MaxGustDirection(gustLast12Idx);
- doc["wind_gust_max_time"] = windRainHandler.getLast12MaxGustTime(gustLast12Idx);    //whatever the actual time was that the gust ocurred
  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
+ //send wind data back
+ weatherWifi.sendPostMessage("/wind",doc,hubWindPort);
+
+ INFOPRINTLN("Posted wind data...");
+}
+
+void postRain() 
+{
  //rain
+ DynamicJsonDocument doc(512);
  doc["rain_rate"] = windRainHandler.getRainRate();
- doc["rain_rate_last_hour"] = windRainHandler.getRainRateLastHour();
- doc["rain_max_rate_last12"] = windRainHandler.getMaxRainRateLast12();
- doc["rain_inches_last12"] = windRainHandler.getTotalRainLast12();
+ doc["moisture"] = adcHandler.getMoisture();
+ doc["current_time"] = currentTime();
 
- //send wind/rain data back
- weatherWifi.sendResponse(doc);
+ //send rain data back
+ weatherWifi.sendPostMessage("/rain",doc,hubRainPort);
 
- INFOPRINTLN("Successfuly refreshed wind and rain data...");
+ INFOPRINTLN("Posted rain data...");
 }
 
 //refresh weather data
@@ -72,24 +83,12 @@ void postWeather()
 
   doc=refreshBMEDoc(doc);
   doc=refreshADCDoc(doc);
+  doc=refreshPMSDoc(doc);
   
   //send data
-  weatherWifi.sendPostMessage("/weather",doc);
+  weatherWifi.sendPostMessage("/weather",doc,hubWeatherPort);
   
-  INFOPRINTLN("Tried posting general weather data...");
-}
-
-//refresh bme data
-void refreshBME() 
-{
-  DynamicJsonDocument doc(512); 
-
-  doc=refreshBMEDoc(doc);
-  
-  //send bme data back
-  weatherWifi.sendResponse(doc);
-  
-  INFOPRINTLN("Successfuly refreshed BME (temperature, humidity, pressure) data...");
+  INFOPRINTLN("Posted general weather data...");
 }
 
 //refresh bme data
@@ -106,107 +105,27 @@ DynamicJsonDocument refreshBMEDoc(DynamicJsonDocument doc)
 }
 
 //refresh adc data
-void refreshADC() 
-{
-  DynamicJsonDocument doc(512); 
-
-  doc=refreshADCDoc(doc);
-  
-  //send bme data back
-  weatherWifi.sendResponse(doc);
-  
-  INFOPRINTLN("Successfuly refreshed ADC (cap voltage, ldr, moisture, uv) data...");
-}
-
-//refresh adc data
 DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc) 
 {  
-     doc["voltage"] = adcHandler.getVoltage();
-     doc["ldr"] = adcHandler.getIllumination();
-     doc["moisture"] = adcHandler.getMoisture();
-     doc["uv"] = adcHandler.getUV();
-     doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
-
-     return doc;
+   doc["voltage"] = adcHandler.getVoltage();
+   doc["ldr"] = adcHandler.getIllumination();
+   doc["moisture"] = adcHandler.getMoisture();
+   doc["uv"] = adcHandler.getUV();
+   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
+  
+   return doc;
 }
 
 //refresh air quality data
-void refreshPMS() 
+DynamicJsonDocument refreshPMSDoc(DynamicJsonDocument doc) 
 {
  //pms 5003
- DynamicJsonDocument doc(512);
  doc["pm10"] = pmsHandler.getPM10Standard();
  doc["pm25"] = pmsHandler.getPM25Standard();
  doc["pm100"] = pmsHandler.getPM100Standard();
+ doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
  
- //send data back
- weatherWifi.sendResponse(doc);
-
- INFOPRINTLN("Successfuly refreshed PMS 5003...");
-}
-
-//debug data
-void debugData()
-{
-  /*
-     INFOPRINTLN("--- BME DEBUG DATA----");
-     INFOPRINT("temperature: ");
-     INFOPRINTLN(bmeSamples[idx].temperature);
-     INFOPRINT("humidity: ");
-     INFOPRINTLN(bmeSamples[idx].humidity);
-     INFOPRINT("pressure: ");
-     INFOPRINTLN(bmeSamples[idx].pressure);
-     
-     INFOPRINTLN("--- GENERAL DEBUG DATA----");   
-     INFOPRINT("Epoch: ");
-     INFOPRINTLN(epoch);        
-     
-     //Web write back
-     DynamicJsonDocument doc(512);     
-
-     //Wind
-     //doc["windSampleTotal"] = windSampleTotal;
-
-     //BME
-     doc["temperature"] = bmeSamples[idx].temperature;
-     doc["humidity"] = bmeSamples[idx].humidity;
-     doc["pressure"] = bmeSamples[idx].pressure;
-
-     //General
-     doc["epoch"] = epoch;
-     doc["secondsSinceEpoch"] = getSecondsSinceEpoch();
-     
-     //send debug data back
-     String buf;
-     serializeJson(doc, buf);
-     server.send(200, "application/json", buf);
-
-     INFOPRINTLN("Successfuly sent debug data...");   
-     */  
-}
-
-// Serving setting
-void getSettings() 
-{
-      // Allocate a temporary JsonDocument
-      // Don't forget to change the capacity to match your requirements.
-      // Use arduinojson.org/v6/assistant to compute the capacity.
-
-      // You can use DynamicJsonDocument as well
-      //DynamicJsonDocument doc(512);
- 
-      //doc["ip"] = WiFi.localIP().toString();
-      //doc["gw"] = WiFi.gatewayIP().toString();
-      //doc["nm"] = WiFi.subnetMask().toString();
- 
-      //if (server.arg("signalStrength")== "true"){
-      //    doc["signalStrengh"] = WiFi.RSSI();
-      //}
-      //if (server.arg("freeHeap")== "true"){
-      //    doc["freeHeap"] = ESP.getFreeHeap();
-      //}
- 
-      //weatherWifi.sendResponse(doc);
+ return doc;
 }
 
 //The hub driver will POST ip, port, and epoch when handshaking
@@ -218,12 +137,19 @@ void syncWithHub()
   {
       String ip = doc["hubAddress"].as<String>();
       ip.toCharArray(hubAddress, ip.length()+1);
-      hubPort = doc["hubPort"].as<int>();
       epoch = doc["epoch"].as<long>();
       millisAtEpoch=millis();
 
+      String deviceName = doc["deviceName"];
+      if(deviceName.equals("wind"))
+        hubWindPort = doc["hubPort"].as<int>();
+      if(deviceName.equals("weather"))
+        hubWeatherPort = doc["hubPort"].as<int>();
+      if(deviceName.equals("rain"))
+        hubRainPort = doc["hubPort"].as<int>();
+
       INFOPRINT("Hub info: ");
-      INFOPRINT(ip + ":" + hubPort);
+      INFOPRINT("Device: " + deviceName + "  IP: " + ip + ":" + doc["hubPort"].as<int>());
       INFOPRINT("  Epoch: ");
       INFOPRINTLN(epoch);
     
@@ -265,6 +191,7 @@ void setup(void)
     weatherWifi.startServer();    
 
     firstBoot=false;
+    airWarmedUp=false;
   }
  
   //free heap
@@ -275,15 +202,6 @@ void setup(void)
   INFOPRINT(heap);
   INFOPRINTLN("% used");
 
-  INFOPRINTLN("Init sensors....");
-  windRainHandler.init();
-  bmeHandler.init();
-  adcHandler.init();
-  pmsHandler.init();
-
-  INFOPRINTLN("turning on PMS5003....");
-  ulp.setAirPinHigh(true);
-
   // Activate mDNS this is used to be able to connect to the server
   // with local DNS hostmane esp8266.local
   if (MDNS.begin("esp8266")) {
@@ -292,7 +210,11 @@ void setup(void)
   else
   {
     ERRORPRINTLN("ERROR: Unable to start MDNS responder");
+    
   }
+
+  //make sure air quality sensor is off
+  ulp.setAirPinHigh(false);
 
   INFOPRINTLN("Ready to go!");
   INFOPRINTLN("");
@@ -301,25 +223,29 @@ void setup(void)
 //Requesting a new epoch when I wake up
 void getEpoch()
 {
-  DynamicJsonDocument doc = weatherWifi.sendGetMessage("/epoch");
+  DynamicJsonDocument doc = weatherWifi.sendGetMessage("/epoch",hubWeatherPort);
   epoch = doc["epoch"].as<long>();
   millisAtEpoch = millis();
 
-  INFOPRINT("Now setting Epoch: ");
+  INFOPRINT("Setting Epoch to ");
   INFOPRINTLN(epoch);
 }
  
 void loop(void) 
 {
-  //Read Sensors
-  readSensors();
+  //Read Sensors if we don't need handshake
+  if(!handshakeRequired)
+    readSensors();
 
   //POST sensor data
   if(!handshakeRequired && currentTime() >= timeToPost)
   {
-    weatherWifi.startWifi();
+    if(!weatherWifi.isConnected())
+      weatherWifi.startWifi();
     getEpoch();
     postWeather();
+    postWind();
+    postRain();
     timeToPost=currentTime()+WIFITIME;
     weatherWifi.disableWifi();
   }
@@ -336,20 +262,52 @@ void loop(void)
   }
   else
   {
-    //INFOPRINT("Delaying (instead of sleeping) for ");
-    //INFOPRINTLN(TIMEDEEPSLEEP);
-    //delay(TIMEDEEPSLEEP*1000);
     sleep();      
   } 
 }
 
 void readSensors()
 {
-  INFOPRINTLN("Reading sensors....");
-  windRainHandler.storeSamples(TIMEDEEPSLEEP);
-  bmeHandler.storeSamples();
-  adcHandler.storeSamples();
-  pmsHandler.storeSamples();
+  INFOPRINTLN("Checking if we should read sensors");
+  if(currentTime()>timeToReadSensors)
+  {
+    INFOPRINTLN("Reading most sensors");  
+    bmeHandler.init();
+    adcHandler.init();
+    delay(100);
+    
+    bmeHandler.storeSamples();
+    adcHandler.storeSamples();
+    timeToReadSensors=currentTime()+SENSORTIME;
+  }
+
+  if(currentTime()>timeToReadWind)
+  {
+    INFOPRINTLN("Reading wind now.");    
+    windRainHandler.storeSamples(WINDTIME);
+    timeToReadWind=currentTime()+WINDTIME;
+  }
+
+  if(currentTime()>timeToReadAir && !airWarmedUp)
+  {
+    INFOPRINTLN("Warming up air sensor");    
+    pmsHandler.init();
+    ulp.setAirPinHigh(true);
+    airWarmedUp=true;
+    timeToReadAir=currentTime()+TIMEDEEPSLEEP-10;  //warm up for at least a deep sleep cycle w/ a little buffer
+  }  
+
+  if(currentTime()>timeToReadAir && airWarmedUp)
+  {
+    INFOPRINTLN("Reading air now that it's warmed up.");    
+    if(pmsHandler.storeSamples())
+    {
+      //shut things down if we got a sample
+      ulp.setAirPinHigh(false);
+      airWarmedUp=false;
+      timeToReadAir=currentTime()+AIRTIME;
+    }
+  }
 }
 
 void sleep(void) 

@@ -2,7 +2,7 @@
 #define PMS5003_H
 #include <Arduino.h>
 
-#define TIMEOUT     1000  //how long to wait for data before erroring in ms
+#define TIMEOUT     5000  //how long to wait for data before erroring in ms
 #define TOTALTRIES  10    //how often to try while waiting to timeout
 
 struct pms5003data 

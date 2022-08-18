@@ -1,7 +1,3 @@
-handshakeRequired = true
-server_ip = ""
-server_port = 0
-lastHeardFromWeather = 0
 
 --weather data
 temperature = nil
@@ -11,7 +7,7 @@ pressure = nil
 dewPoint = nil
 uvIndex = nil
 ldr = nil
-moisture = nil
+pm25 = nil
 temperatureChangeLastHour = nil
 pressureChangeLastHour = nil
 maxTemperature = nil
@@ -21,10 +17,6 @@ temperature_max_time_last12 = nil
 temperature_min_time_last12 = nil
 
 return {
-    handshakeRequired = handshakeRequired,
-    lastHeardFromWeather = lastHeardFromWeather,
-    server_ip = server_ip,
-    server_port = server_port,
     currentTime = currentTime,
     temperature = temperature,
     humidity = humidity,
@@ -32,7 +24,7 @@ return {
     dewPoint = dewPoint,
     uvIndex = uvIndex,
     ldr = ldr,
-    moisture = moisture,
+    pm25 = pm25,
     temperatureChangeLastHour = temperatureChangeLastHour,
     pressureChangeLastHour = pressureChangeLastHour,
     maxTemperature = maxTemperature,

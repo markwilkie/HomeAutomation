@@ -5,13 +5,14 @@ void PMS5003Handler::init()
   pmsSensor.init();
 }
 
-void PMS5003Handler::storeSamples()
+bool PMS5003Handler::storeSamples()
 {
   bool success=pmsSensor.readPMSData();
   if(!success)
   {
     ERRORPRINTLN("Unable to read PMS5003 Sensor");
   }
+  return success;
 }
 
 int PMS5003Handler::getPM10Standard()

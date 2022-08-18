@@ -3,12 +3,6 @@
 #include "WindRainHandler.h"
 #include "WeatherStation.h"
 
-void WindRainHandler::init()
-{
-  windSampleIdx=0;
-  rainSampleIdx=0;
-}
-
 void WindRainHandler::storeSamples(int sampleTime)
 {
   //Store immediate values
@@ -17,23 +11,15 @@ void WindRainHandler::storeSamples(int sampleTime)
   windGustSpeed=windRain.getWindGustSpeed();
   rainRate=windRain.getRainRate();
 
-  //now store last 12
-  GustStructType gustData;
-  gustData.gust = windGustSpeed;
-  gustData.gustDirection = windDirection;
-  gustData.gustTime = currentTime();
-  gustLast12[windSampleIdx]=gustData;
+  //rolling averages  - https://stackoverflow.com/questions/10990618/calculate-rolling-moving-average-in-c/10990656#10990656
+  float alpha = 1.0/(WIFITIME/WINDTIME);   //number of buckets to calculate over
+  avgWindSpeed = (alpha * windSpeed) + (1.0 - alpha) * avgWindSpeed;
+  avgWindDirection = (alpha * windDirection) + (1.0 - alpha) * avgWindDirection;
+  avgRainRate = (alpha * rainRate) + (1.0 - alpha) * avgRainRate;  
 
-  rainLast12[rainSampleIdx]=rainRate;
-
-  //increment indexes
-  windSampleIdx++;
-  if(windSampleIdx>=GUST_LAST12_SIZE)
-    windSampleIdx=0; 
-
-  rainSampleIdx++;
-  if(rainSampleIdx>=RAIN_LAST12_SIZE)
-    rainSampleIdx=0; 
+  //max gust
+  if(windGustSpeed>maxGust)
+    maxGust=windGustSpeed;
 }
 
 int WindRainHandler::calcWindDirection()
@@ -79,78 +65,19 @@ int WindRainHandler::calcWindDirection()
 
 float WindRainHandler::getWindSpeed()
 {
-  return windSpeed;
+  return avgWindSpeed;
 }
 float WindRainHandler::getWindGustSpeed()
 {
+  windGustSpeed=maxGust;
+  maxGust=0;  //reset since we're reading
   return windGustSpeed;
 }
 float WindRainHandler::getRainRate()
 {
-  return rainRate;
+  return avgRainRate;
 }
 int WindRainHandler::getWindDirection()
 {
-  return windDirection;
-}
-
-int WindRainHandler::getLast12MaxGustIdx()
-{
-  int maxGustIdx=0;
-  int maxGust=0;
-  for(int idx=0;idx<GUST_LAST12_SIZE;idx++)
-  {
-    if(gustLast12[idx].gust>maxGust)
-    {
-      maxGust=gustLast12[idx].gust;
-      maxGustIdx=idx;
-    }
-  }
-
-  return maxGustIdx;
-}
-
-float WindRainHandler::getLast12MaxGustSpeed(int idx)
-{
-  return gustLast12[idx].gust;
-}
-
-int WindRainHandler::getLast12MaxGustDirection(int idx)
-{
-  return gustLast12[idx].gustDirection;
-}
-
-long WindRainHandler::getLast12MaxGustTime(int idx)
-{
-  return gustLast12[idx].gustTime;
-}
-
-float WindRainHandler::getRainRateLastHour()
-{
-  int idx=rainSampleIdx-((60*60)*WINDRAIN_SAMPLE_SEC);
-  return rainLast12[idx];
-}
-
-float WindRainHandler::getMaxRainRateLast12()
-{
-  float maxRate=0;
-  for(int idx=0;idx<RAIN_LAST12_SIZE;idx++)
-  {
-    if(rainLast12[idx]>maxRate)
-    {
-      maxRate=rainLast12[idx];
-    }
-  }
-  return maxRate;
-}
-
-float WindRainHandler::getTotalRainLast12() 
-{
-  float totalRain=0;
-  for(int idx=0;idx<RAIN_LAST12_SIZE;idx++)
-  {
-      totalRain=totalRain+rainLast12[idx];
-  }
-
-  return (totalRain/(RAIN_LAST12_SIZE/12));   //it's per hour....
+  return avgWindDirection;
 }

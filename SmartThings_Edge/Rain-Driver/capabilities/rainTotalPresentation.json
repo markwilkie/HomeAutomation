@@ -1,0 +1,35 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Rate: {{raintotal.value}} {{raintotal.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Rain Total",
+            "displayType": "state",
+            "state": {
+                "label": "{{raintotal.value}} {{raintotal.unit}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Rain Total",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "raintotal.value",
+                    "unit": "raintotal.unit"
+                }
+            }       
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.raintotal",
+    "version": 1
+}

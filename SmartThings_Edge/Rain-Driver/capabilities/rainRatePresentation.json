@@ -1,0 +1,35 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Rate: {{rainrate.value}} {{rainrate.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Rain Rate",
+            "displayType": "state",
+            "state": {
+                "label": "{{rainrate.value}} {{rainrate.unit}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Rain Rate",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "rainrate.value",
+                    "unit": "rainrate.unit"
+                }
+            }       
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.rainrate",
+    "version": 1
+}

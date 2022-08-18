@@ -1,0 +1,28 @@
+name: rain.v1
+components:
+- id: main
+  name: "Rain Info"
+  label: "Current Rain Info"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: radioamber53161.rainrate
+    version: 1
+  - id: waterSensor
+    version: 1  
+  - id: radioamber53161.datetime
+    version: 1      
+- id: lastHour
+  label: "Last Hour"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: radioamber53161.raintotal
+    version: 1      
+- id: last12Hour
+  label: "Last 12 Hours"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: radioamber53161.raintotal
+    version: 1    

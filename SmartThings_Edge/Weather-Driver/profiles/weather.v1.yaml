@@ -18,7 +18,7 @@ components:
     version: 1 
   - id: illuminanceMeasurement
     version: 1 
-  - id: waterSensor
+  - id: airQualitySensor
     version: 1 
   - id: radioamber53161.datetime
     version: 1  

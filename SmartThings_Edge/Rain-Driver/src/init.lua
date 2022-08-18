@@ -10,14 +10,13 @@ local json = require('dkjson')
 local commonglobals = require "_commonglobals"
 local myserver = require "_myserver"
 local myclient = require "_myclient"
-local winddatastore = require "winddatastore"
+local raindatastore = require "raindatastore"
 local globals = require "globals"
 
 -- Custom Capabiities
 local datetime = capabilities["radioamber53161.datetime"]
-local windspeed = capabilities["radioamber53161.windspeed"]
-local windgust = capabilities["radioamber53161.windgust"]
-local winddirection = capabilities["radioamber53161.winddirection"]
+local rainrate = capabilities["radioamber53161.rainrate"]
+local raintotal = capabilities["radioamber53161.raintotal"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
@@ -27,53 +26,35 @@ local discovery = require "discovery"
 -- local functions
 -----------------------------------------------------------------
 
-local function adjustWindDirection(currentDir)
-  currentDir=globals.windVaneOffset+currentDir
-  local adjWindDir=currentDir
-  if(currentDir>359) then
-    adjWindDir=currentDir-359
-  end
-  if(currentDir<0) then
-    adjWindDir=currentDir+359
-  end
-
-  return adjWindDir
-end
-
-function RefreshWind(content)
-  log.info("Refreshing Wind Data...")
+function RefreshRain(content)
+  log.info("Refreshing Rain Data")
   
   commonglobals.lastHeardFromESP = os.time()
   commonglobals.handshakeRequired = false
   commonglobals.newDataAvailable = true
 
   local jsondata = json.decode(content);
-  globals.windSpeed = tonumber(string.format("%.1f", jsondata.wind_speed))
-  globals.windGust = tonumber(string.format("%.1f", jsondata.wind_gust))
-  globals.winddirection = adjustWindDirection(jsondata.wind_direction)
+  globals.rainrate = tonumber(string.format("%.1f", jsondata.rain_rate))
+  globals.moisture = jsondata.moisture
   globals.currentTime = os.date("%a %X", jsondata.current_time)
 
   --adding to the data store so we can get max
-  winddatastore.insertData(jsondata.current_time,globals.windGust,globals.winddirection)
+  raindatastore.insertData(jsondata.current_time,globals.rainrate)
 
-  --get max gust info
-  local gusttime, gustspeed, gustdirection = winddatastore.findMaxGust()
-  globals.windGustLast12 = tonumber(string.format("%.1f", gustspeed))
-  globals.windGustDirectionLast12 = adjustWindDirection(gustdirection)
-  globals.windGustTimeLast12 = os.date("%a %X", gusttime)
+  --get historical info
+  globals.raintotallasthour = raindatastore.findLastHourTotal(1)
+  globals.raintotallast12hours = raindatastore.findLast12HoursTotal()
 end
 
--- Get latest wind updates
-local function emitWindData(driver, device)
-  log.info(string.format("[%s] Emiting Wind Data", device.device_network_id))
+-- Get latest rain updates
+local function emitRainData(driver, device)
+  log.info(string.format("[%s] Emiting Rain Data", device.device_network_id))
 
-  device:emit_event(windspeed.speed(globals.windSpeed))
-  device:emit_event(winddirection.direction(globals.winddirection))
-  device:emit_event(windgust.gust(globals.windGust))
+  device:emit_event(rainrate.rainrate(globals.rainrate))
+  device:emit_event(capabilities.waterSensor.water(globals.moisture))
   device:emit_event(datetime.datetime(globals.currentTime))
-  device:emit_component_event(device.profile.components['last12'],windgust.gust(globals.windGustLast12))
-  device:emit_component_event(device.profile.components['last12'],winddirection.direction(globals.windGustDirectionLast12))
-  device:emit_component_event(device.profile.components['last12'],datetime.datetime(globals.windGustTimeLast12))
+  device:emit_component_event(device.profile.components['lastHour'],raintotal.raintotal(globals.raintotallasthour))
+  device:emit_component_event(device.profile.components['last12Hour'],raintotal.raintotal(globals.raintotallast12hours))
 
   return true
 end
@@ -89,12 +70,12 @@ local function refresh(driver, device)
   --check if we've heard from devices lately
   if os.time() > (commonglobals.lastHeardFromESP + 650) then
     commonglobals.handshakeRequired = true
-    log.warn("Haven't heard from Wind so going into handshake mode.")
+    log.warn("Haven't heard from rain so going into handshake mode.")
   end
 
   --hand shake if needed
   if commonglobals.handshakeRequired then
-    if not myclient.handshakeNow("wind") then
+    if not myclient.handshakeNow("rain") then
       return false
     end
   end
@@ -102,7 +83,7 @@ local function refresh(driver, device)
   --Actually update the fields on the smart app
   if commonglobals.newDataAvailable then
     commonglobals.newDataAvailable = false
-    if not emitWindData(driver, device) then
+    if not emitRainData(driver, device) then
       return false
     end
   end
@@ -112,14 +93,12 @@ end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
 local function device_added(driver, device)
-  log.info("[" .. device.id .. "] Adding new wind device and setting preferences")
-
-  globals.windVaneOffset=device.preferences.windVaneOffset
+  log.info("[" .. device.id .. "] Adding new rain device")
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
 local function device_init(driver, device)
-  log.info("[" .. device.id .. "] Initializing wind device")
+  log.info("[" .. device.id .. "] Initializing rain device")
 
   -- Startup Server
   myserver.start_server(driver)  
@@ -137,24 +116,17 @@ end
 
 -- this is called when a device is removed by the cloud and synchronized down to the hub
 local function device_removed(driver, device)
-  log.info("[" .. device.id .. "] Removing wind device")
+  log.info("[" .. device.id .. "] Removing rain device")
 end
 
--- create the driver object
-local wind_driver = Driver("wind", {
+local rain_driver = Driver("rain", {
   discovery = discovery.handle_discovery,
   lifecycle_handlers = {
     added = device_added,
     init = device_init,
     removed = device_removed
   },
-  supported_capabilities = {
-    capabilities.refresh,
-    windspeed,
-    winddirection,
-    windgust,
-    datetime
-  },
+  supported_capabilities = {},
   capability_handlers = {
     -- Refresh command handler
     [capabilities.refresh.ID] = {
@@ -164,4 +136,4 @@ local wind_driver = Driver("wind", {
 })
 
 -- run the driver
-wind_driver:run()
+rain_driver:run()

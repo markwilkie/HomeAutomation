@@ -2,12 +2,14 @@
 local capabilities = require "st.capabilities"
 local Driver = require "st.driver"
 local log = require "log"
-local cosock = require "cosock"
-local http = cosock.asyncify "socket.http"
-local ltn12 = require('ltn12')
 local json = require('dkjson')
 
-local myserver = require "myserver"
+-- require custom handlers from driver package
+local discovery = require "discovery"
+
+local commonglobals = require "_commonglobals"
+local myserver = require "_myserver"
+local myclient = require "_myclient"
 local weatherdatastore = require "weatherdatastore"
 local globals = require "globals"
 
@@ -15,97 +17,18 @@ local globals = require "globals"
 local atmospressure = capabilities["radioamber53161.atmospressure"]
 local datetime = capabilities["radioamber53161.datetime"]
 
--- require custom handlers from driver package
-local discovery = require "discovery"
+
 
 -----------------------------------------------------------------
 -- local functions
 -----------------------------------------------------------------
 
--- dump tables
-local function dump(o)
-  if type(o) == 'table' then
-     local s = '{ '
-     for k,v in pairs(o) do
-        if type(k) ~= 'number' then k = '"'..k..'"' end
-        s = s .. '['..k..'] = ' .. dump(v) .. ','
-     end
-     return s .. '} '
-  else
-     return tostring(o)
-  end
-end
-
--- Send LAN HTTP Request
-local function send_lan_command(url, method, path, body)
-  local dest_url = url..'/'..path
-  local res_body = {}
-  local code
-
-  log.debug(string.format("Calling URL (v1.3): [%s]", dest_url))
-
-  -- HTTP Request
-  if(method=="POST") then
-    _, code = http.request({
-      method=method,
-      url=dest_url,
-      sink=ltn12.sink.table(res_body),
-      headers={
-        ['Content-Type'] = 'application/x-www-urlencoded',
-        ["Content-Length"] = body:len()
-      },
-      source = ltn12.source.string(body),
-    })
-  end
-
-  if(method=="GET") then
-    _, code = http.request({
-      method=method,
-      url=dest_url,
-      sink=ltn12.sink.table(res_body),
-      headers={
-        ['Content-Type'] = 'application/x-www-urlencoded'
-      }
-    })
-  end
-  log.debug(string.format("Returned HTTP Code: [%s]", code))
-  log.debug(dump(res_body))
-
-  -- Handle response
-  if code == 200 or code == 201 then
-    return true, res_body
-  end
-  return false, nil
-end
-
--- handshake post
-local function handshakeNow()
-  local currentEpoch=os.time()-(7*60*60)
-  log.debug("Trying to handshake now:  "..[[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..globals.server_ip..[[","hubPort":]]..globals.server_port..[[ } ]]);
-
-  local success, data = send_lan_command(
-    'http://192.168.15.108:80',
-    'POST',
-    'handshake',
-    [[ {"epoch":]]..currentEpoch..[[,"hubAddress":"]]..globals.server_ip..[[","hubPort":]]..globals.server_port..[[ } ]])
-
-    if(success) then
-      log.info("Successfuly handshook:  ( epoch: "..currentEpoch.." IP: "..globals.server_ip.." Port: "..globals.server_port);
-      globals.handshakeRequired=false;
-    else
-      log.error("Handshaking NOT successful");
-      return false
-    end
-
-    return true
-end
-
 function RefreshWeather(content)
   log.info("Refreshing Weather Data")
   
-  globals.lastHeardFromWeather = os.time()
-  globals.handshakeRequired = false
-  globals.newDataAvailable = true
+  commonglobals.lastHeardFromESP = os.time()
+  commonglobals.handshakeRequired = false
+  commonglobals.newDataAvailable = true
 
   local jsondata = json.decode(content);
   globals.currentTime = os.date("%a %X", jsondata.current_time)
@@ -116,7 +39,7 @@ function RefreshWeather(content)
   globals.dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
   globals.uvIndex = tonumber(string.format("%.1f", jsondata.uv))
   globals.ldr = jsondata.ldr
-  globals.moisture = jsondata.moisture
+  globals.pm25 = jsondata.pm25
 
   --adding to the data store so we can do historical calc
   weatherdatastore.insertData(jsondata.current_time,globals.temperature,globals.pressure)
@@ -135,14 +58,14 @@ end
 
 -- Get latest weather updates
 local function emitWeatherData(driver, device)
-  log.info(string.format("[%s] Emiting Weather Data...", device.device_network_id))
+  log.info(string.format("[%s] Emiting Weather Data", device.device_network_id))
 
   device:emit_event(capabilities.temperatureMeasurement.temperature({value = globals.temperature, unit = 'F'}))
   device:emit_event(capabilities.relativeHumidityMeasurement.humidity(globals.humidity))
   device:emit_event(atmospressure.pressure(globals.pressure))
   device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(globals.uvIndex))
   device:emit_event(capabilities.illuminanceMeasurement.illuminance(globals.ldr))
-  device:emit_event(capabilities.waterSensor.water(globals.moisture))
+  device:emit_event(capabilities.airQualitySensor.airQuality(globals.pm25))
   device:emit_event(capabilities.dewPoint.dewpoint(globals.dewPoint))
   device:emit_event(datetime.datetime(globals.currentTime))
 
@@ -168,21 +91,21 @@ local function refresh(driver, device)
   log.debug(string.format("[%s] Calling refresh", device.device_network_id))
 
   --check if we've heard from devices lately
-  if os.time() > (globals.lastHeardFromWeather + 650) then
-    globals.handshakeRequired = true
-    log.warn("Haven't heard from Weather so going into handshake mode.")
+  if os.time() > (commonglobals.lastHeardFromESP + 650) then
+    commonglobals.handshakeRequired = true
+    log.warn("Haven't heard from Weather so going into handshake mode")
   end
 
   --hand shake if needed
-  if globals.handshakeRequired then
-    if not handshakeNow() then
+  if commonglobals.handshakeRequired then
+    if not myclient.handshakeNow("weather") then
       return false
     end
   end
 
   --Actually update the fields on the smart app
-  if globals.newDataAvailable then
-    globals.newDataAvailable = false
+  if commonglobals.newDataAvailable then
+    commonglobals.newDataAvailable = false
     if not emitWeatherData(driver, device) then
       return false
     end
