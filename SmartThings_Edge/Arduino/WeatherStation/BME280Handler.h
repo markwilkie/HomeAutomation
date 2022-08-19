@@ -9,14 +9,6 @@
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-typedef struct BMEStructType
-{
-  float temperature;
-  float pressure;
-  float humidity;
-  long readingTime;
-};
-
 class BME280Handler 
 {
 
@@ -33,8 +25,11 @@ class BME280Handler
     
   private: 
     Adafruit_BME280 bme; // I2C
-    BMEStructType bmeData;
 
+    float temperature;
+    float pressure;
+    float humidity;
+    long readingTime;    
 };
 
 

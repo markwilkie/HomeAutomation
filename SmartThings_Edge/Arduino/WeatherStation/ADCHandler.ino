@@ -14,12 +14,28 @@ void ADCHandler::storeSamples()
 {
   //Enable stuff that needs it
   digitalWrite(UV_EN, HIGH);
-  
+  delay(100);
+
+  //raw
+  int _voltage = readADC(VOLTAGE_PIN);
+  int _ldr = readADC(LDR_PIN);
+  int _moisture = readADC(MOISTURE_PIN);
+  int _uv = readADC(UV_PIN);
+
+  VERBOSEPRINT("raw voltage: ");
+  VERBOSEPRINT(_voltage);
+  VERBOSEPRINT("  ldr: ");
+  VERBOSEPRINT(_ldr);
+  VERBOSEPRINT("  moisture: ");
+  VERBOSEPRINT(_moisture);  
+  VERBOSEPRINT("  uv: ");
+  VERBOSEPRINTLN(_uv);    
+ 
   //Read ADC
-  adcData.voltage=getVolts(readADC(VOLTAGE_PIN)*2);   //doubled because it's gone through a 10x10K divider
-  adcData.ldr=getIllum(readADC(LDR_PIN));   //1-100000 brightness
-  adcData.moisture=isWet(readADC(MOISTURE_PIN));
-  adcData.uv=getUVIndex(readADC(UV_PIN));
+  voltage=getVolts(_voltage*2);   //doubled because it's gone through a 10x10K divider
+  ldr=getIllum(_ldr);   //1-100000 brightness
+  moisture=isWet(_moisture);
+  uv=getUVIndex(_uv); 
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
@@ -27,22 +43,22 @@ void ADCHandler::storeSamples()
 
 float ADCHandler::getVoltage()
 {
-  return adcData.voltage;
+  return voltage;
 }
 
 long ADCHandler::getIllumination()
 {
-  return adcData.ldr;
+  return ldr;
 }
 
 String ADCHandler::getMoisture()
 {
-  return adcData.moisture;
+  return moisture;
 }
 
 float ADCHandler::getUV()
 {
-  return adcData.uv;
+  return uv;
 }
 
 int ADCHandler::readADC(int pin)

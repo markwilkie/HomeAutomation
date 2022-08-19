@@ -129,6 +129,11 @@ bool PMS5003::readPMSData()
     return false;
   }
 
+  //These will survive deep sleep
+  pm10_standard=data.pm10_standard;
+  pm25_standard=data.pm25_standard;
+  pm100_standard=data.pm100_standard;  
+
   VERBOSEPRINTLN("---------------------------------------");
   VERBOSEPRINTLN("Concentration Units (standard)");
   VERBOSEPRINT("PM 1.0: "); VERBOSEPRINT(data.pm10_standard);

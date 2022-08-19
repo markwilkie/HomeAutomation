@@ -37,6 +37,10 @@ class PMS5003
     uint16_t getParticles100um();
     
   private:
-    struct pms5003data data;    
+    struct pms5003data data;
+
+    uint16_t pm10_standard;
+    uint16_t pm25_standard;
+    uint16_t pm100_standard;
 };
 #endif

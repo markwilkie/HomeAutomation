@@ -24,15 +24,6 @@
 #define LUX_CALC_SCALAR         12500000
 #define LUX_CALC_EXPONENT       -1.405
 
-//define data structures
-typedef struct ADCStructType
-{
-  float voltage;
-  long ldr;
-  String moisture;
-  float uv;
-};
-
 class ADCHandler 
 {
 
@@ -45,14 +36,17 @@ class ADCHandler
     float getUV();
     
   private: 
-    ADCStructType adcData;
-    
+   
     int readADC(int);
     long getIllum(int);
     double getVolts(int);
     double getUVIndex(int);
     String isWet(int);
-    
+
+    float voltage;
+    long ldr;
+    String moisture;
+    float uv;    
 };
 
 

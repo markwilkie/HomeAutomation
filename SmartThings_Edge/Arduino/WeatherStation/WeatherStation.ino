@@ -19,9 +19,9 @@ RTC_DATA_ATTR bool handshakeRequired = true;
 
 //info from hub obtained by handshaking
 RTC_DATA_ATTR char hubAddress[30];
-RTC_DATA_ATTR int hubWindPort;
-RTC_DATA_ATTR int hubWeatherPort;
-RTC_DATA_ATTR int hubRainPort;
+RTC_DATA_ATTR int hubWindPort=0;
+RTC_DATA_ATTR int hubWeatherPort=0;
+RTC_DATA_ATTR int hubRainPort=0;
 RTC_DATA_ATTR long epoch=0;  //Epoch from hub
 RTC_DATA_ATTR long timeToPost = 0;  //seconds for when to http POST
 
@@ -38,10 +38,10 @@ long millisAtEpoch = 0;
 WeatherWifi weatherWifi;
 
 //Handlers
-WindRainHandler windRainHandler;
-ADCHandler adcHandler;
-BME280Handler bmeHandler;
-PMS5003Handler pmsHandler;
+RTC_DATA_ATTR WindRainHandler windRainHandler;
+RTC_DATA_ATTR ADCHandler adcHandler;
+RTC_DATA_ATTR BME280Handler bmeHandler;
+RTC_DATA_ATTR PMS5003Handler pmsHandler;
 
 
 //------------------------------------------------------------
@@ -160,9 +160,12 @@ void syncWithHub()
       doc["status"] = "OK";   
       weatherWifi.sendResponse(doc);
 
-      //handshake no longer needed
-      handshakeRequired = false;
-      weatherWifi.disableWifi();
+      //Let's see if we still need a handshake
+      if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0)
+      {
+        handshakeRequired = false;
+        weatherWifi.disableWifi();
+      }
   }
 }
 
@@ -234,20 +237,30 @@ void getEpoch()
 void loop(void) 
 {
   //Read Sensors if we don't need handshake
-  if(!handshakeRequired)
-    readSensors();
+  readSensors();
 
   //POST sensor data
-  if(!handshakeRequired && currentTime() >= timeToPost)
+  if(currentTime() >= timeToPost)
   {
     if(!weatherWifi.isConnected())
       weatherWifi.startWifi();
-    getEpoch();
-    postWeather();
-    postWind();
-    postRain();
-    timeToPost=currentTime()+WIFITIME;
-    weatherWifi.disableWifi();
+
+    if(hubWeatherPort>0)
+    {
+      getEpoch();
+      postWeather();
+    }
+    if(hubWindPort>0)
+      postWind();
+    if(hubRainPort>0)
+      postRain();
+
+    //only clear things out if handshake no longer needed
+    if(!handshakeRequired)
+    {
+      timeToPost=currentTime()+WIFITIME;
+      weatherWifi.disableWifi();
+    }
   }
 
   //Check in w/ web server if we're in handshake mode
@@ -267,14 +280,13 @@ void loop(void)
 }
 
 void readSensors()
-{
-  INFOPRINTLN("Checking if we should read sensors");
+{ 
   if(currentTime()>timeToReadSensors)
   {
-    INFOPRINTLN("Reading most sensors");  
+    INFOPRINTLN("Reading BME and ADC sensors");  
     bmeHandler.init();
     adcHandler.init();
-    delay(100);
+    delay(200);
     
     bmeHandler.storeSamples();
     adcHandler.storeSamples();
@@ -283,7 +295,7 @@ void readSensors()
 
   if(currentTime()>timeToReadWind)
   {
-    INFOPRINTLN("Reading wind now.");    
+    INFOPRINTLN("Reading wind data");    
     windRainHandler.storeSamples(WINDTIME);
     timeToReadWind=currentTime()+WINDTIME;
   }
@@ -291,7 +303,6 @@ void readSensors()
   if(currentTime()>timeToReadAir && !airWarmedUp)
   {
     INFOPRINTLN("Warming up air sensor");    
-    pmsHandler.init();
     ulp.setAirPinHigh(true);
     airWarmedUp=true;
     timeToReadAir=currentTime()+TIMEDEEPSLEEP-10;  //warm up for at least a deep sleep cycle w/ a little buffer
@@ -300,6 +311,7 @@ void readSensors()
   if(currentTime()>timeToReadAir && airWarmedUp)
   {
     INFOPRINTLN("Reading air now that it's warmed up.");    
+    pmsHandler.init();
     if(pmsHandler.storeSamples())
     {
       //shut things down if we got a sample

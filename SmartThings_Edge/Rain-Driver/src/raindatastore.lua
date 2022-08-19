@@ -31,7 +31,7 @@ local function findLastHourTotal(hoursAgo)
   local hourAgo=currentEpoch-(hoursAgo*60*60)
 
   local totalrain=0
-  local totalentries=0
+  local totalentries=1
 
   for k, v in ipairs(histData) do  --ipairs gaurantees it's in index order
     if v.time > hourAgo then
@@ -40,6 +40,7 @@ local function findLastHourTotal(hoursAgo)
     totalentries=totalentries+1
     totalrain=totalrain+v.rainrate
   end
+
   return totalrain*(12/totalentries)   --use ratio to get to a 12 hour approx as each entry is in/hour
 end
 
@@ -50,6 +51,7 @@ local function findLast12HoursTotal()
     totalentries=totalentries+1
     totalrain=totalrain+v.rainrate
   end
+
   return totalrain*(12/totalentries)   --use ratio to get to a 12 hour approx as each entry is in/hour
 end
 
