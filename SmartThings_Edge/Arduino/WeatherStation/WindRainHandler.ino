@@ -65,12 +65,23 @@ int WindRainHandler::calcWindDirection()
 
 float WindRainHandler::getWindSpeed()
 {
+  VERBOSEPRINT("Wind Speed: (raw/avg) ");
+  VERBOSEPRINTLN(windSpeed);  
+  VERBOSEPRINT(" ");
+  VERBOSEPRINTLN(avgWindSpeed); 
+  
   return avgWindSpeed;
 }
 float WindRainHandler::getWindGustSpeed()
-{
+{ 
+  VERBOSEPRINT("Wind Gust: (last/max) ");
+  VERBOSEPRINTLN(windGustSpeed);  
+  VERBOSEPRINT(" ");
+  VERBOSEPRINTLN(maxGust); 
+
   windGustSpeed=maxGust;
   maxGust=0;  //reset since we're reading
+ 
   return windGustSpeed;
 }
 float WindRainHandler::getRainRate()
@@ -79,5 +90,10 @@ float WindRainHandler::getRainRate()
 }
 int WindRainHandler::getWindDirection()
 {
+  VERBOSEPRINT("Wind Dir: (raw/avg) ");
+  VERBOSEPRINTLN(windDirection);  
+  VERBOSEPRINT(" ");
+  VERBOSEPRINTLN(avgWindDirection); 
+  
   return avgWindDirection;
 }
