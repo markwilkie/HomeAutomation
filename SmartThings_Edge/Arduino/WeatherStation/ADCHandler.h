@@ -4,7 +4,7 @@
 #include "debug.h"
 
 //
-#define MAX_ADC_READING 4095
+#define MAX_ADC_READING 4096  //4096 so we don't get div by zero
 #define ADC_REF_VOLTAGE 3.3
 
 //adc pins
@@ -20,7 +20,7 @@
 #define ADC_SAMPLE_SEC     600                           //how often we're reading the sensor in seconds
 
 //lux
-#define LDR_REF_RESISTANCE      9910     
+#define LDR_REF_RESISTANCE      10000         //is the other resistor in the divider     
 #define LUX_CALC_SCALAR         12500000
 #define LUX_CALC_EXPONENT       -1.405
 

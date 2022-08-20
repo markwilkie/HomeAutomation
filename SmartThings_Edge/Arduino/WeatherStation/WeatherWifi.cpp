@@ -127,6 +127,7 @@ void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
   // Send HTTP POST request
   String buf;
   serializeJson(doc, buf);
+  INFOPRINTLN("Content: "+buf);
   int httpResponseCode = http.POST(buf);
   
   if (httpResponseCode<0)
@@ -142,7 +143,7 @@ void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
 
 DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
 {
-  DynamicJsonDocument doc(1024);
+  DynamicJsonDocument doc(512);
   WiFiClient client;
   HTTPClient http;
     
@@ -171,12 +172,12 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
 
   //return payload
   deserializeJson(doc, payload);  
-  return DynamicJsonDocument(doc);
+  return doc;
 }
 
 void WeatherWifi::sendErrorResponse(String errorString)
 {
-  DynamicJsonDocument doc(512);
+  DynamicJsonDocument doc(48);
   doc["status"] = "KO";
   doc["message"] = "No data found, or incorrect!";
   

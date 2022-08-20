@@ -17,6 +17,11 @@ void WindRainHandler::storeSamples(int sampleTime)
   avgWindDirection = (alpha * windDirection) + (1.0 - alpha) * avgWindDirection;
   avgRainRate = (alpha * rainRate) + (1.0 - alpha) * avgRainRate;  
 
+  VERBOSEPRINT("-in store samples- Wind Speed: (raw/avg) ");
+  VERBOSEPRINT(windSpeed);  
+  VERBOSEPRINT(" ");
+  VERBOSEPRINTLN(avgWindSpeed); 
+
   //max gust
   if(windGustSpeed>maxGust)
     maxGust=windGustSpeed;
@@ -34,7 +39,7 @@ int WindRainHandler::calcWindDirection()
   adcValue=adcValue/smoothingLoop;
   
   VERBOSEPRINT("Wind vane raw ADC: ");
-  VERBOSEPRINT(adcValue);
+  VERBOSEPRINTLN(adcValue);
 
   //
   // the variable resistor in the voltage divider has a huge dead spot and is non-linear
@@ -66,7 +71,7 @@ int WindRainHandler::calcWindDirection()
 float WindRainHandler::getWindSpeed()
 {
   VERBOSEPRINT("Wind Speed: (raw/avg) ");
-  VERBOSEPRINTLN(windSpeed);  
+  VERBOSEPRINT(windSpeed);  
   VERBOSEPRINT(" ");
   VERBOSEPRINTLN(avgWindSpeed); 
   
@@ -75,7 +80,7 @@ float WindRainHandler::getWindSpeed()
 float WindRainHandler::getWindGustSpeed()
 { 
   VERBOSEPRINT("Wind Gust: (last/max) ");
-  VERBOSEPRINTLN(windGustSpeed);  
+  VERBOSEPRINT(windGustSpeed);  
   VERBOSEPRINT(" ");
   VERBOSEPRINTLN(maxGust); 
 
@@ -91,7 +96,7 @@ float WindRainHandler::getRainRate()
 int WindRainHandler::getWindDirection()
 {
   VERBOSEPRINT("Wind Dir: (raw/avg) ");
-  VERBOSEPRINTLN(windDirection);  
+  VERBOSEPRINT(windDirection);  
   VERBOSEPRINT(" ");
   VERBOSEPRINTLN(avgWindDirection); 
   

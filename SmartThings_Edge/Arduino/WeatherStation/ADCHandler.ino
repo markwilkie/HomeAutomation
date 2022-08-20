@@ -37,6 +37,16 @@ void ADCHandler::storeSamples()
   moisture=isWet(_moisture);
   uv=getUVIndex(_uv); 
 
+  VERBOSEPRINTLN("-------"); 
+  VERBOSEPRINT("voltage: ");
+  VERBOSEPRINT(voltage);
+  VERBOSEPRINT("  ldr: ");
+  VERBOSEPRINT(ldr);
+  VERBOSEPRINT("  moisture: ");
+  VERBOSEPRINT(moisture);  
+  VERBOSEPRINT("  uv: ");
+  VERBOSEPRINTLN(uv);   
+
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
 }
@@ -77,19 +87,20 @@ int ADCHandler::readADC(int pin)
 long ADCHandler::getIllum(int ldr_raw_data)
 {
   float ldr_voltage;
+  float ldr_resistor_voltage;
   float ldr_resistance;
   float ldr_lux;
 
-  // LDR VOLTAGE CONVERSION
-  // Convert the raw digital data back to the voltage that was measured on the analog pin
-  ldr_voltage = (float) ldr_raw_data / MAX_ADC_READING * ADC_REF_VOLTAGE;
+  //Convert adc reading to volts
+  ldr_voltage = getVolts(ldr_raw_data);
 
-  // LDR RESISTANCE CONVERSION
-  // resistance that the LDR would have for that voltage
-  ldr_resistance = (ldr_voltage * LDR_REF_RESISTANCE) / (ADC_REF_VOLTAGE - ldr_voltage);
+  //Now get voltage of the LDR itself 
+  ldr_resistor_voltage = ADC_REF_VOLTAGE - ldr_voltage;
 
+  //Now we can find the actual resistance of the ldr
+  ldr_resistance = (ldr_resistor_voltage/ldr_voltage)*LDR_REF_RESISTANCE;
+  
   // LDR LUX
-  // Change the code below to the proper conversion from ldr_resistance to ldr_lux
   ldr_lux = LUX_CALC_SCALAR * pow(ldr_resistance, LUX_CALC_EXPONENT);
 
   return ldr_lux;
@@ -97,20 +108,20 @@ long ADCHandler::getIllum(int ldr_raw_data)
 
 double ADCHandler::getVolts(int adcReading)
 {
-  return ADC_REF_VOLTAGE / MAX_ADC_READING * adcReading;
+  return ((float)adcReading / MAX_ADC_READING) * ADC_REF_VOLTAGE;
 }
 
 double ADCHandler::getUVIndex(int adcReading)
 {
   //used to map voltage to intensity
-  double in_min=.99;
-  double in_max=2.8;
+  double in_min=990;
+  double in_max=2800;
   double out_min=0.0;
   double out_max=15.0;
   
   double outputVoltage = getVolts(adcReading);
   double uvIntensity = (outputVoltage - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-  double index=uvIntensity * 1.61;
+  double index=uvIntensity * 1.61; 
 
   if(index<0)
     index=0;
@@ -120,7 +131,7 @@ double ADCHandler::getUVIndex(int adcReading)
 
 String ADCHandler::isWet(int adcReading)
 {
-  if(adcReading > 20)
+  if(adcReading > 1000)
     return "wet";
   else
     return "dry";

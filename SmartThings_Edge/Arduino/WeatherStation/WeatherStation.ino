@@ -156,7 +156,7 @@ void syncWithHub()
       // Create the response
       // To get the status of the result you can get the http status so
       // this part can be unusefully
-      DynamicJsonDocument doc(512);
+      DynamicJsonDocument doc(50);
       doc["status"] = "OK";   
       weatherWifi.sendResponse(doc);
 
