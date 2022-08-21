@@ -103,6 +103,9 @@ long ADCHandler::getIllum(int ldr_raw_data)
   // LDR LUX
   ldr_lux = LUX_CALC_SCALAR * pow(ldr_resistance, LUX_CALC_EXPONENT);
 
+  if(ldr_lux>100000)
+    ldr_lux=100000;   //this is the max that is acceptable
+
   return ldr_lux;
 }
 

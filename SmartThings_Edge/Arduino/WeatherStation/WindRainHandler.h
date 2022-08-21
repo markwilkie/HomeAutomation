@@ -31,8 +31,6 @@ class WindRainHandler
     //private vars
     float maxGust=0;
     float avgWindSpeed=0;
-    int avgWindDirection=0;
-    float avgRainRate=0;
 };
 
 #endif

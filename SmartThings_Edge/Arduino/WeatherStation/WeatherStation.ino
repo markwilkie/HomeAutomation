@@ -182,7 +182,25 @@ void setup(void)
   pinMode(LED_BUILTIN, OUTPUT);
 
   if(firstBoot)
-  {
+    initialSetup();
+
+  if(!firstBoot)
+    readWindRainSensor();
+
+  INFOPRINTLN("Ready to go!");
+  INFOPRINTLN("");
+}
+
+void initialSetup()
+{
+    //free heap
+    float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
+    INFOPRINT("Free Heap: (376360 is an empty sketch) ");
+    INFOPRINT((int)ESP.getFreeHeap());
+    INFOPRINT(" -  ");
+    INFOPRINT(heap);
+    INFOPRINTLN("% used");
+      
     INFOPRINTLN("Setting up ULP so we can count pulses and hold pins while in deep sleep...  (only does this on first boot)");
     ulp.setupULP();
     ulp.setupWindPin();
@@ -195,32 +213,9 @@ void setup(void)
 
     firstBoot=false;
     airWarmedUp=false;
-  }
- 
-  //free heap
-  float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
-  INFOPRINT("Free Heap: (376360 is an empty sketch) ");
-  INFOPRINT((int)ESP.getFreeHeap());
-  INFOPRINT(" -  ");
-  INFOPRINT(heap);
-  INFOPRINTLN("% used");
 
-  // Activate mDNS this is used to be able to connect to the server
-  // with local DNS hostmane esp8266.local
-  if (MDNS.begin("esp8266")) {
-    INFOPRINTLN("MDNS responder started");
-  }
-  else
-  {
-    ERRORPRINTLN("ERROR: Unable to start MDNS responder");
-    
-  }
-
-  //make sure air quality sensor is off
-  ulp.setAirPinHigh(false);
-
-  INFOPRINTLN("Ready to go!");
-  INFOPRINTLN("");
+    //make sure air quality sensor is off
+    ulp.setAirPinHigh(false);
 }
 
 //Requesting a new epoch when I wake up
@@ -233,18 +228,20 @@ void getEpoch()
   INFOPRINT("Setting Epoch to ");
   INFOPRINTLN(epoch);
 }
- 
+
 void loop(void) 
 {
-  //Read Sensors if we don't need handshake
-  readSensors();
+  //Read Sensors if it's time to
+  readBMEandADCSensors();
+  readAirSensor();
 
-  //POST sensor data
+  //POST sensor data if it's time to
   if(currentTime() >= timeToPost)
   {
     if(!weatherWifi.isConnected())
       weatherWifi.startWifi();
 
+    //if we've got a port number from handshaking, go ahead and post
     if(hubWeatherPort>0)
     {
       getEpoch();
@@ -279,7 +276,7 @@ void loop(void)
   } 
 }
 
-void readSensors()
+void readBMEandADCSensors()
 { 
   if(currentTime()>timeToReadSensors)
   {
@@ -292,15 +289,11 @@ void readSensors()
     adcHandler.storeSamples();
     timeToReadSensors=currentTime()+SENSORTIME;
   }
+}
 
-  if(currentTime()>timeToReadWind)
-  {
-    INFOPRINTLN("Reading wind data");    
-    windRainHandler.storeSamples(WINDTIME);
-    timeToReadWind=currentTime()+WINDTIME;
-  }
-
-  if(currentTime()>timeToReadAir && !airWarmedUp)
+void readAirSensor()
+{
+    if(currentTime()>timeToReadAir && !airWarmedUp)
   {
     INFOPRINTLN("Warming up air sensor");    
     ulp.setAirPinHigh(true);
@@ -312,14 +305,20 @@ void readSensors()
   {
     INFOPRINTLN("Reading air now that it's warmed up.");    
     pmsHandler.init();
-    if(pmsHandler.storeSamples())
-    {
-      //shut things down if we got a sample
-      ulp.setAirPinHigh(false);
-      airWarmedUp=false;
-      timeToReadAir=currentTime()+AIRTIME;
-    }
+    pmsHandler.storeSamples();
+    
+    //shut things down even if we didn't get a sample
+    ulp.setAirPinHigh(false);
+    airWarmedUp=false;
+    timeToReadAir=currentTime()+AIRTIME;
   }
+}
+
+//Should only be called when waking up from deep sleep
+void readWindRainSensor()
+{
+  INFOPRINTLN("Just work up, reading wind data");    
+  windRainHandler.storeSamples(TIMEDEEPSLEEP);
 }
 
 void sleep(void) 

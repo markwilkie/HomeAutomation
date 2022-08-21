@@ -10,8 +10,7 @@
 #define WIFITIME              600       // interval in seconds wifi will attempt to POST data to the hub
 
 #define SENSORTIME            WIFITIME      //default time most sensors will get a reading
-#define WINDTIME              TIMEDEEPSLEEP // interval in seconds we'll wake up the expensive air sensor
-#define AIRTIME               1800          // interval in seconds we'll wake up the expensive air sensor
+#define AIRTIME               1800          // interval in seconds we'll wake up the power hungry air sensor
 
 //globals in ULP which survive deep sleep
 extern RTC_DATA_ATTR ULP ulp;  //low power processor

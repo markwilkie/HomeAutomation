@@ -14,6 +14,9 @@ void ULP::setupULP()
 
   ulp_debounce_max_cnt = 5;
   ulp_wind_low_tick_cnt = 0;
+
+  // suppress boot messages
+  esp_deep_sleep_disable_rom_logging(); 
   
   /* Set ULP wake up period to T = 4ms.
    * Minimum pulse width has to be T * (ulp_debounce_cntr + 1) = 24ms. */

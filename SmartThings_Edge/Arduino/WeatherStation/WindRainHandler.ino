@@ -9,18 +9,18 @@ void WindRainHandler::storeSamples(int sampleTime)
   windSpeed=windRain.getWindSpeed(sampleTime);
   windDirection=calcWindDirection();
   windGustSpeed=windRain.getWindGustSpeed();
-  rainRate=windRain.getRainRate();
+  rainRate=rainRate+windRain.getRainRate();
 
   //rolling averages  - https://stackoverflow.com/questions/10990618/calculate-rolling-moving-average-in-c/10990656#10990656
-  float alpha = 1.0/(WIFITIME/WINDTIME);   //number of buckets to calculate over
+  float alpha = 1.0/(WIFITIME/(float)sampleTime);   //number of buckets to calculate over
   avgWindSpeed = (alpha * windSpeed) + (1.0 - alpha) * avgWindSpeed;
-  avgWindDirection = (alpha * windDirection) + (1.0 - alpha) * avgWindDirection;
-  avgRainRate = (alpha * rainRate) + (1.0 - alpha) * avgRainRate;  
 
   VERBOSEPRINT("-in store samples- Wind Speed: (raw/avg) ");
   VERBOSEPRINT(windSpeed);  
   VERBOSEPRINT(" ");
-  VERBOSEPRINTLN(avgWindSpeed); 
+  VERBOSEPRINT(avgWindSpeed); 
+  VERBOSEPRINT("   - wind Direction: ");
+  VERBOSEPRINTLN(windDirection);  
 
   //max gust
   if(windGustSpeed>maxGust)
@@ -91,14 +91,13 @@ float WindRainHandler::getWindGustSpeed()
 }
 float WindRainHandler::getRainRate()
 {
-  return avgRainRate;
+  rainRate=0;  //reset because we're reading
+  return rainRate;
 }
 int WindRainHandler::getWindDirection()
 {
-  VERBOSEPRINT("Wind Dir: (raw/avg) ");
-  VERBOSEPRINT(windDirection);  
-  VERBOSEPRINT(" ");
-  VERBOSEPRINTLN(avgWindDirection); 
+  VERBOSEPRINT("Wind Dir: ");
+  VERBOSEPRINTLN(windDirection);  
   
-  return avgWindDirection;
+  return windDirection;
 }
