@@ -87,7 +87,7 @@ uint32_t ULP::getULPWindPulseCount()
   /* ULP program counts signal edges, convert that to the number of pulses */
   uint32_t pulse_cnt_from_ulp = (ulp_wind_edge_cnt & UINT16_MAX) / 2;
   
-  /* In case of an odd number of edges, keep one until next time */
+  /* In case of an odd number of edges, keep one until next time (this is where the pulse counter is cleared*/
   ulp_wind_edge_cnt = ulp_wind_edge_cnt % 2;
   
   return pulse_cnt_from_ulp;

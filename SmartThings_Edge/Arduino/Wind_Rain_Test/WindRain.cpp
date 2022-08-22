@@ -18,6 +18,16 @@ WindRain::WindRain()
   }  
 }
 
+int WindRain::getTestVal()
+{
+  return testVal;
+}
+
+void WindRain::setTestVal(int val)
+{
+  testVal=val;
+}
+
 float WindRain::getWindSpeed(int timeDeepSleep)
 {
   int windPulsesRaw = ulp.getULPWindPulseCount();

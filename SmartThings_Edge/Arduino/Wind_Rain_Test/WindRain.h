@@ -16,8 +16,12 @@ class WindRain
     float getWindSpeed(int);
     float getWindGustSpeed();
     float getRainRate();
+
+    int getTestVal();
+    void setTestVal(int);
     
   private: 
+    int testVal;
 };
 
 #endif
