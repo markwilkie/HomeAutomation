@@ -11,7 +11,7 @@ class WindRain
 {
 
   public:
-    float getWindSpeed(int);
+    float getWindSpeed(long);
     float getWindGustSpeed();
     float getRainRate();
     

@@ -27,12 +27,8 @@ RTC_DATA_ATTR long timeToPost = 0;  //seconds for when to http POST
 
 //when to read sensors
 RTC_DATA_ATTR long timeToReadSensors=0;   //default
-RTC_DATA_ATTR long timeToReadWind=0;      //wind  (will be on a greater cadence)
 RTC_DATA_ATTR long timeToReadAir=0;       //air quality sensor which we'll rarely read
 RTC_DATA_ATTR bool airWarmedUp=false;     //air quality sensor will warm up for a full sleep cycle
-
-//time keeping
-long millisAtEpoch = 0;
 
 //Wifi
 WeatherWifi weatherWifi;
@@ -42,6 +38,9 @@ RTC_DATA_ATTR WindRainHandler windRainHandler;
 RTC_DATA_ATTR ADCHandler adcHandler;
 RTC_DATA_ATTR BME280Handler bmeHandler;
 RTC_DATA_ATTR PMS5003Handler pmsHandler;
+
+//time keeping
+long millisAtEpoch = 0;
 
 
 //------------------------------------------------------------
@@ -183,7 +182,7 @@ void setup(void)
   if(firstBoot)
     initialSetup();
 
-  if(!firstBoot)
+  if(!firstBoot && hubWindPort>0)
     readWindRainSensor();
 }
 
@@ -289,7 +288,7 @@ void readBMEandADCSensors()
 
 void readAirSensor()
 {
-    if(currentTime()>timeToReadAir && !airWarmedUp)
+  if(currentTime()>timeToReadAir && !airWarmedUp)
   {
     INFOPRINTLN("Warming up air sensor");    
     ulp.setAirPinHigh(true);
@@ -313,8 +312,8 @@ void readAirSensor()
 //Should only be called when waking up from deep sleep
 void readWindRainSensor()
 {
-  INFOPRINTLN("Just woke up, reading wind data");    
-  windRainHandler.storeSamples(TIMEDEEPSLEEP);
+  INFOPRINTLN("Just woke up, reading wind & rain data");    
+  windRainHandler.storeSamples();
 }
 
 void sleep(void) 

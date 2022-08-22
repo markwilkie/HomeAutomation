@@ -3,24 +3,36 @@
 #include "WindRainHandler.h"
 #include "WeatherStation.h"
 
-void WindRainHandler::storeSamples(int sampleTime)
+void WindRainHandler::storeSamples()
 {
+  //Find out how long it's been since the last reading so we can calc speed correctly 
+  long timeSinceLastReading = currentTime()-lastReadingTime;
+  lastReadingTime=currentTime();
+  
   //Store immediate values
-  windSpeed=windRain.getWindSpeed(sampleTime);
+  windSpeed=windRain.getWindSpeed(timeSinceLastReading);
   windDirection=calcWindDirection();
   windGustSpeed=windRain.getWindGustSpeed();
   rainRate=rainRate+windRain.getRainRate();
 
-  //rolling averages  - https://stackoverflow.com/questions/10990618/calculate-rolling-moving-average-in-c/10990656#10990656
-  float alpha = 1.0/(WIFITIME/(float)sampleTime);   //number of buckets to calculate over
-  avgWindSpeed = (alpha * windSpeed) + (1.0 - alpha) * avgWindSpeed;
+  //calc average
+  totalSpeed=totalSpeed+windSpeed;
+  speedSamples++;
 
-  VERBOSEPRINT("-in store samples- Wind Speed: (raw/avg) ");
+  //rolling averages  - https://stackoverflow.com/questions/10990618/calculate-rolling-moving-average-in-c/10990656#10990656
+  //float alpha = 1.0/(WIFITIME/(float)timeSinceLastReading);   //number of buckets to calculate over
+  //float newAvgWindSpeed = (alpha * windSpeed) + (1.0 - alpha) * avgWindSpeed;
+
+  VERBOSEPRINT("-In StoreSamples -");
+  //VERBOSEPRINT(alpha);  
+  VERBOSEPRINT("  Wind Speed: (raw/avg) ");
   VERBOSEPRINT(windSpeed);  
   VERBOSEPRINT(" ");
-  VERBOSEPRINT(avgWindSpeed); 
+  VERBOSEPRINT(totalSpeed/(float)speedSamples); 
   VERBOSEPRINT("   - wind Direction: ");
   VERBOSEPRINTLN(windDirection);  
+
+  //avgWindSpeed=newAvgWindSpeed;
 
   //max gust
   if(windGustSpeed>maxGust)
@@ -62,19 +74,20 @@ int WindRainHandler::calcWindDirection()
   if(adcValue > 3033 && adcValue <= 3741)
     direction=315;
 
-  VERBOSEPRINT("   Wind Direction: ");
-  VERBOSEPRINTLN(direction);  
-
   return direction;
 }
 
 float WindRainHandler::getWindSpeed()
 {
+  float avgWindSpeed=totalSpeed/(float)speedSamples;
+  totalSpeed=0;
+  speedSamples=0;
+  
   VERBOSEPRINT("Wind Speed: (raw/avg) ");
   VERBOSEPRINT(windSpeed);  
   VERBOSEPRINT(" ");
   VERBOSEPRINTLN(avgWindSpeed); 
-  
+
   return avgWindSpeed;
 }
 float WindRainHandler::getWindGustSpeed()

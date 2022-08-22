@@ -8,11 +8,14 @@
 //  Setup
 #define WIND_VANE_PIN       36                               // wind vane pin */
 
+//Time keeping
+extern int currentTime();
+
 class WindRainHandler 
 {
 
   public:
-    void storeSamples(int);
+    void storeSamples();
     float getWindSpeed();
     float getWindGustSpeed();
     float getRainRate();
@@ -30,7 +33,11 @@ class WindRainHandler
 
     //private vars
     float maxGust=0;
-    float avgWindSpeed=0;
+    long lastReadingTime;
+
+    //used to calc avg speed
+    float totalSpeed;
+    int speedSamples;
 };
 
 #endif

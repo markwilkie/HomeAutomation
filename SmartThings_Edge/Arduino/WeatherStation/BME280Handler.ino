@@ -8,10 +8,6 @@ void BME280Handler::init()
   if (!status) {
       ERRORPRINTLN("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
   }  
-  else
-  {
-    VERBOSEPRINTLN("Found BME280!");
-  }
 }
 
 void BME280Handler::storeSamples()

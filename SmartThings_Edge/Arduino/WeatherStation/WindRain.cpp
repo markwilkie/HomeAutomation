@@ -2,15 +2,16 @@
 #include "WeatherStation.h"
 #include "Debug.h"
 
-float WindRain::getWindSpeed(int timeDeepSleep)
-{
+//Time since the last reading is passed in
+float WindRain::getWindSpeed(long timeSinceLastReading)
+{ 
   int windPulsesRaw = ulp.getULPWindPulseCount();
   VERBOSEPRINT("Wind Pulses: ");
   VERBOSEPRINT(windPulsesRaw);
+  VERBOSEPRINT("  Time Elapsed: ");
+  VERBOSEPRINTLN(timeSinceLastReading);
 
-  float wind = (((float)windPulsesRaw / (float)timeDeepSleep) * WINDFACTOR) / 20;  //there's 20 pulses per revolution 
-  VERBOSEPRINT("   Wind (kts): ");
-  VERBOSEPRINTLN(wind);
+  float wind = (((float)windPulsesRaw / (float)timeSinceLastReading) * WINDFACTOR) / 20.0;  //there's 20 pulses per revolution 
 
   return wind;
 }
@@ -26,8 +27,6 @@ float WindRain::getWindGustSpeed()
 
   float pulsesPerSec = TIMEFACTOR/shortestWindPulseTime;  
   float windGust = ((float)pulsesPerSec * WINDFACTOR) / 20; 
-  VERBOSEPRINT("Gust (kts): ");
-  VERBOSEPRINTLN(windGust);   
 
   return windGust;
 }
@@ -36,11 +35,9 @@ float WindRain::getRainRate()
 {
   int rainPulsesRaw = ulp.getULPRainPulseCount();
   VERBOSEPRINT("Rain Pulses: ");
-  VERBOSEPRINT(rainPulsesRaw);
+  VERBOSEPRINTLN(rainPulsesRaw);
 
   float inchesRain = (float)rainPulsesRaw*RAINFACTOR;
-  VERBOSEPRINT("   Rain (inches): ");
-  VERBOSEPRINTLN(inchesRain); 
 
   return inchesRain;
 }

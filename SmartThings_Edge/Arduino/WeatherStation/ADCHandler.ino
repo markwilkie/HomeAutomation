@@ -47,8 +47,8 @@ float ADCHandler::getVoltage()
 long ADCHandler::getIllumination()
 {
   long ldr=getIllum(_ldr);   //1-100000 brightness;
-  VERBOSEPRINT("LDR: ");
-  VERBOSEPRINTLN(ldr);
+  VERBOSEPRINT(" LDR: ");
+  VERBOSEPRINT(ldr);
   
   return ldr;
 }
@@ -56,7 +56,7 @@ long ADCHandler::getIllumination()
 String ADCHandler::getMoisture()
 {
   String moisture=isWet(_moisture);
-  VERBOSEPRINT("Moisture: ");
+  VERBOSEPRINT(" Moisture: ");
   VERBOSEPRINTLN(moisture); 
     
   return moisture;
