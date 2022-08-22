@@ -36,17 +36,17 @@ class ADCHandler
     float getUV();
     
   private: 
-   
     int readADC(int);
     long getIllum(int);
     double getVolts(int);
     double getUVIndex(int);
     String isWet(int);
 
-    float voltage;
-    long ldr;
-    String moisture;
-    float uv;    
+    int _voltage;
+    int _ldr;
+    int _moisture;
+    int _uv;    
+     
 };
 
 

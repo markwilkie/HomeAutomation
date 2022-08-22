@@ -17,35 +17,19 @@ void ADCHandler::storeSamples()
   delay(100);
 
   //raw
-  int _voltage = readADC(VOLTAGE_PIN);
-  int _ldr = readADC(LDR_PIN);
-  int _moisture = readADC(MOISTURE_PIN);
-  int _uv = readADC(UV_PIN);
+  _voltage = readADC(VOLTAGE_PIN);
+  _ldr = readADC(LDR_PIN);
+  _moisture = readADC(MOISTURE_PIN);
+  _uv = readADC(UV_PIN);
 
-  VERBOSEPRINT("raw voltage: ");
+  VERBOSEPRINT("RAW ADC VALUES: voltage: ");
   VERBOSEPRINT(_voltage);
   VERBOSEPRINT("  ldr: ");
   VERBOSEPRINT(_ldr);
   VERBOSEPRINT("  moisture: ");
   VERBOSEPRINT(_moisture);  
   VERBOSEPRINT("  uv: ");
-  VERBOSEPRINTLN(_uv);    
- 
-  //Read ADC
-  voltage=getVolts(_voltage*2);   //doubled because it's gone through a 10x10K divider
-  ldr=getIllum(_ldr);   //1-100000 brightness
-  moisture=isWet(_moisture);
-  uv=getUVIndex(_uv); 
-
-  VERBOSEPRINTLN("-------"); 
-  VERBOSEPRINT("voltage: ");
-  VERBOSEPRINT(voltage);
-  VERBOSEPRINT("  ldr: ");
-  VERBOSEPRINT(ldr);
-  VERBOSEPRINT("  moisture: ");
-  VERBOSEPRINT(moisture);  
-  VERBOSEPRINT("  uv: ");
-  VERBOSEPRINTLN(uv);   
+  VERBOSEPRINTLN(_uv);     
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
@@ -53,21 +37,37 @@ void ADCHandler::storeSamples()
 
 float ADCHandler::getVoltage()
 {
-  return voltage;
+  float voltage=getVolts(_voltage*2);  //doubled because it's gone through a 10x10K divider;
+  VERBOSEPRINT("Voltage: ");
+  VERBOSEPRINT(voltage);
+  
+  return voltage;   
 }
 
 long ADCHandler::getIllumination()
 {
+  long ldr=getIllum(_ldr);   //1-100000 brightness;
+  VERBOSEPRINT("LDR: ");
+  VERBOSEPRINTLN(ldr);
+  
   return ldr;
 }
 
 String ADCHandler::getMoisture()
 {
+  String moisture=isWet(_moisture);
+  VERBOSEPRINT("Moisture: ");
+  VERBOSEPRINTLN(moisture); 
+    
   return moisture;
 }
 
 float ADCHandler::getUV()
 {
+  float uv=getUVIndex(_uv);
+  VERBOSEPRINT("UV: ");
+  VERBOSEPRINTLN(uv);  
+    
   return uv;
 }
 
@@ -117,13 +117,14 @@ double ADCHandler::getVolts(int adcReading)
 double ADCHandler::getUVIndex(int adcReading)
 {
   //used to map voltage to intensity
-  double in_min=990;
-  double in_max=2800;
+  double in_min=.99;
+  double in_max=2.8;
   double out_min=0.0;
   double out_max=15.0;
   
   double outputVoltage = getVolts(adcReading);
   double uvIntensity = (outputVoltage - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  uvIntensity = uvIntensity +(uvIntensity*.1);   //adding 10% because of plastic cover
   double index=uvIntensity * 1.61; 
 
   if(index<0)

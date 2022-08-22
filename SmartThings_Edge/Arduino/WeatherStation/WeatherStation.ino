@@ -176,7 +176,6 @@ void setup(void)
   #endif
 
   INFOPRINTLN("--------------------------");
-  INFOPRINTLN("Starting up");
 
   //setup LED pin
   pinMode(LED_BUILTIN, OUTPUT);
@@ -186,9 +185,6 @@ void setup(void)
 
   if(!firstBoot)
     readWindRainSensor();
-
-  INFOPRINTLN("Ready to go!");
-  INFOPRINTLN("");
 }
 
 void initialSetup()
@@ -317,7 +313,7 @@ void readAirSensor()
 //Should only be called when waking up from deep sleep
 void readWindRainSensor()
 {
-  INFOPRINTLN("Just work up, reading wind data");    
+  INFOPRINTLN("Just woke up, reading wind data");    
   windRainHandler.storeSamples(TIMEDEEPSLEEP);
 }
 

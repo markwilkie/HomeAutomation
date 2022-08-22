@@ -64,7 +64,7 @@ bool WeatherWifi::isConnected()
 void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
-  INFOPRINTLN("Listening on http");
+  VERBOSEPRINTLN("Listening on http");
   long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
     server.handleClient();
