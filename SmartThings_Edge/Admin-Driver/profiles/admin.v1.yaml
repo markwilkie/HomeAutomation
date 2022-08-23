@@ -1,0 +1,10 @@
+name: admin.v1
+components:
+- id: main
+  name: "Weather Administration"
+  label: "Weather Administration"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: radioamber53161.datetime
+    version: 1       

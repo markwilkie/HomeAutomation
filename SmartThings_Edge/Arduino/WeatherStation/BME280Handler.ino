@@ -4,6 +4,7 @@
 void BME280Handler::init()
 {
   //start things up
+  Wire.begin();
   unsigned status = bme.begin();  
   if (!status) {
       ERRORPRINTLN("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
@@ -13,9 +14,10 @@ void BME280Handler::init()
 void BME280Handler::storeSamples()
 {
   //Read BME
-  temperature=bme.readTemperature();
-  pressure=bme.readPressure();
-  humidity=bme.readHumidity();
+  BME280::TempUnit tempUnit(BME280::TempUnit_Fahrenheit );
+  BME280::PresUnit presUnit(BME280::PresUnit_Pa);
+  bme.read(pressure, temperature, humidity, tempUnit, presUnit);
+  
   readingTime=currentTime();
 
   VERBOSEPRINT("Temperature: ");
