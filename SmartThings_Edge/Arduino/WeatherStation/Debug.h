@@ -2,10 +2,13 @@
 #define INFODEF
 #define VERBOSEDEF
 
-#ifdef ERRORDEF
+#define WIFILOGGER
+
+#if defined(ERRORDEF) && defined(WIFILOGGER)
+  #define ERRORPRINT(...)   logger.log(__VA_ARGS__,false);Serial.print(__VA_ARGS__)
+  #define ERRORPRINTLN(...)   logger.log(__VA_ARGS__,true);Serial.println(__VA_ARGS__)
+#elif ERRORDEF
   #define ERRORPRINT(...)   Serial.print(__VA_ARGS__)
-  #define ERRORPRINTDEC(...)  Serial.print(__VA_ARGS__,DEC)
-  #define ERRORPRINTHEX(...)  Serial.print(__VA_ARGS__,HEX)
   #define ERRORPRINTLN(...)   Serial.println(__VA_ARGS__)
 #else
   #define ERRORPRINT(...)
@@ -14,7 +17,10 @@
   #define ERRORPRINTLN(...)
 #endif
 
-#ifdef INFODEF
+#if defined(INFODEF) && defined(WIFILOGGER)
+  #define INFOPRINT(...)   logger.log(__VA_ARGS__,false);Serial.print(__VA_ARGS__)
+  #define INFOPRINTLN(...)   logger.log(__VA_ARGS__,true);Serial.println(__VA_ARGS__)
+#elif defined(INFODEF)
   #define INFOPRINT(...)   Serial.print(__VA_ARGS__)
   #define INFOPRINTLN(...)   Serial.println(__VA_ARGS__)
 #else
@@ -22,12 +28,12 @@
   #define INFOPRINTLN(...)
 #endif
 
-#ifdef VERBOSEDEF
-  #define VERBOSEPRINT(...)       Serial.print (__VA_ARGS__)
-  #define VERBOSEPRINTDEC(...)    Serial.print(__VA_ARGS__,DEC)
-  #define VERBOSEPRINTHEX(...)    Serial.print(__VA_ARGS__,HEX)
-  #define VERBOSEPRINTHEXLN(...)  Serial.println(__VA_ARGS__,HEX)
-  #define VERBOSEPRINTLN(...)     Serial.println (__VA_ARGS__)
+#if defined(VERBOSEDEF) && defined(WIFILOGGER)
+  #define VERBOSEPRINT(...)   logger.log(__VA_ARGS__,false);Serial.print(__VA_ARGS__)
+  #define VERBOSEPRINTLN(...)   logger.log(__VA_ARGS__,true);Serial.println(__VA_ARGS__)
+#elif defined(VERBOSEDEF)
+  #define VERBOSEPRINT(...)   Serial.print(__VA_ARGS__)
+  #define VERBOSEPRINTLN(...)   Serial.println(__VA_ARGS__)
 #else
   #define VERBOSEPRINT(...)
   #define VERBOSEPRINTHEX(...)

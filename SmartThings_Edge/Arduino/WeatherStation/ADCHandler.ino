@@ -135,7 +135,7 @@ double ADCHandler::getUVIndex(int adcReading)
 
 String ADCHandler::isWet(int adcReading)
 {
-  if(adcReading > 1000)
+  if(adcReading > WET_THRESHOLD)
     return "wet";
   else
     return "dry";

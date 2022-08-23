@@ -1,6 +1,7 @@
 #ifndef adc_h
 #define adc_h
 
+#include "logger.h"
 #include "debug.h"
 
 //
@@ -23,6 +24,9 @@
 #define LDR_REF_RESISTANCE      10000         //is the other resistor in the divider     
 #define LUX_CALC_SCALAR         12500000
 #define LUX_CALC_EXPONENT       -1.405
+
+//moisture
+#define WET_THRESHOLD           450
 
 class ADCHandler 
 {

@@ -1,6 +1,7 @@
 #ifndef bme_h
 #define bme_h
 
+#include "logger.h"
 #include "debug.h"
 #include <Wire.h>
 #include <SPI.h>

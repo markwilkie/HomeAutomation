@@ -1,7 +1,12 @@
+#include <Arduino.h>
+#include "logger.h"
+#include "debug.h"
+#include "WeatherStation.h"
+
+extern Logger logger;
+
 #ifndef WINDRAIN_H
 #define WINDRAIN_H
-
-#include <Arduino.h>
 
 #define TIMEFACTOR        1000000     // factor between seconds and microseconds
 #define WINDFACTOR        3.4         // 3.4 km/h per revolution, or 20 pulses

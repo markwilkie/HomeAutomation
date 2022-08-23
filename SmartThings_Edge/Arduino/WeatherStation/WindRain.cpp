@@ -1,6 +1,4 @@
 #include "WindRain.h"
-#include "WeatherStation.h"
-#include "Debug.h"
 
 //Time since the last reading is passed in
 float WindRain::getWindSpeed(long timeSinceLastReading)
@@ -20,7 +18,7 @@ float WindRain::getWindGustSpeed()
 {
   uint32_t shortestWindPulseTime = ulp.getULPShortestWindPulseTime();
   VERBOSEPRINT("Shortest wind pulse Time (ms): ");
-  VERBOSEPRINTLN(shortestWindPulseTime);
+  VERBOSEPRINTLN((int)shortestWindPulseTime);
 
   if(shortestWindPulseTime==0)
     return 0;

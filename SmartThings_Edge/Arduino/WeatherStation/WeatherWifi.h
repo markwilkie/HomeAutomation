@@ -1,7 +1,11 @@
+#include "logger.h"
+#include "debug.h"
+#include "WeatherStation.h"
+
+extern Logger logger;
+
 #ifndef weatherwifi_h
 #define weatherwifi_h
-
-#include "WeatherStation.h"
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -9,6 +13,7 @@
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
+
 
 //Wifi
 #define SSID "WILKIE-LFP"

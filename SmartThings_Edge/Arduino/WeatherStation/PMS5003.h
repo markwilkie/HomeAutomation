@@ -1,6 +1,11 @@
+#include <Arduino.h>
+#include "logger.h"
+#include "debug.h"
+
+extern Logger logger;
+
 #ifndef PMS5003_H
 #define PMS5003_H
-#include <Arduino.h>
 
 #define TIMEOUT     5000  //how long to wait for data before erroring in ms
 #define TOTALTRIES  10    //how often to try while waiting to timeout

@@ -1,4 +1,5 @@
 #include "Debug.h"
+#include "logger.h"
 #include "ULP.h"
 #include "WeatherWifi.h"
 #include "WeatherStation.h"
@@ -9,6 +10,10 @@
 
 #include "Arduino.h"
 #include <ArduinoJson.h>
+
+//Globals
+WeatherWifi weatherWifi;
+long millisAtEpoch = 0;
 
 //globals in ULP which survive deep sleep
 RTC_DATA_ATTR bool firstBoot = true;
@@ -30,17 +35,13 @@ RTC_DATA_ATTR long timeToReadSensors=0;   //default
 RTC_DATA_ATTR long timeToReadAir=0;       //air quality sensor which we'll rarely read
 RTC_DATA_ATTR bool airWarmedUp=false;     //air quality sensor will warm up for a full sleep cycle
 
-//Wifi
-WeatherWifi weatherWifi;
-
 //Handlers
 RTC_DATA_ATTR WindRainHandler windRainHandler;
 RTC_DATA_ATTR ADCHandler adcHandler;
 RTC_DATA_ATTR BME280Handler bmeHandler;
 RTC_DATA_ATTR PMS5003Handler pmsHandler;
 
-//time keeping
-long millisAtEpoch = 0;
+
 
 
 //------------------------------------------------------------
@@ -204,7 +205,7 @@ void initialSetup()
 
     //start wifi and http server
     weatherWifi.startWifi();
-    weatherWifi.startServer();    
+    weatherWifi.startServer();   
 
     firstBoot=false;
     airWarmedUp=false;
@@ -234,7 +235,9 @@ void loop(void)
   if(currentTime() >= timeToPost)
   {
     if(!weatherWifi.isConnected())
+    {
       weatherWifi.startWifi();
+    }
 
     //if we've got a port number from handshaking, go ahead and post
     if(hubWeatherPort>0)
@@ -245,7 +248,7 @@ void loop(void)
     if(hubWindPort>0)
       postWind();
     if(hubRainPort>0)
-      postRain();
+      postRain();  
 
     //only clear things out if handshake no longer needed
     if(!handshakeRequired)
@@ -254,14 +257,14 @@ void loop(void)
       weatherWifi.disableWifi();
     }
   }
-
+ 
   //Check in w/ web server if we're in handshake mode
   if(handshakeRequired)
   {
     if(!weatherWifi.isConnected())
     {
       weatherWifi.startWifi();
-      weatherWifi.startServer();    
+      weatherWifi.startServer();  
     }
     weatherWifi.listen(10000);
   }

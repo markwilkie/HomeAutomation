@@ -6,11 +6,10 @@
 #include <ESPmDNS.h>
 
 //defines
-#define TIMEDEEPSLEEP         150       // amount in seconds the ESP32 will deep sleep at a time.  
 #define WIFITIME              600       // interval in seconds wifi will attempt to POST data to the hub
-
+#define TIMEDEEPSLEEP         WIFITIME  // amount in seconds the ESP32 will deep sleep at a time.  
 #define SENSORTIME            WIFITIME      //default time most sensors will get a reading
-#define AIRTIME               1800          // interval in seconds we'll wake up the power hungry air sensor
+#define AIRTIME               3600          // interval in seconds we'll wake up the power hungry air sensor
 
 //globals in ULP which survive deep sleep
 extern RTC_DATA_ATTR ULP ulp;  //low power processor

@@ -1,7 +1,7 @@
 #include "WeatherWifi.h"
-#include "debug.h"
 
 WebServer server(80);
+Logger logger;
 
 void WeatherWifi::startWifi()
 {
@@ -36,7 +36,13 @@ void WeatherWifi::startWifi()
   INFOPRINT("Connected to ");
   INFOPRINT(SSID);
   INFOPRINT("  IP address: ");
-  INFOPRINTLN(WiFi.localIP());
+  INFOPRINTLN(WiFi.localIP().toString());
+
+  //Init logger and send logs if defined
+  #ifdef WIFILOGGER 
+    logger.init();
+    logger.sendLogs();
+  #endif
 }
 
 void WeatherWifi::startServer()
@@ -50,6 +56,11 @@ void WeatherWifi::startServer()
 
 void WeatherWifi::disableWifi()
 { 
+  //First, let's send logs
+  #ifdef WIFILOGGER 
+    logger.sendLogs();
+  #endif
+  
   WiFi.disconnect(true);  // Disconnect from the network
   WiFi.mode(WIFI_OFF);    // Switch WiFi off
   esp_wifi_stop();
@@ -68,6 +79,11 @@ void WeatherWifi::listen(long millisToWait)
   long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
     server.handleClient();
+
+  //It's been a bit, so let's send any logs we have
+  #ifdef WIFILOGGER 
+    logger.sendLogs();
+  #endif    
 }
 
 void WeatherWifi::sendResponse(DynamicJsonDocument doc)

@@ -2,6 +2,7 @@
 #define pms_h
 
 #include "PMS5003.h"
+#include "logger.h"
 #include "debug.h"
 
 class PMS5003Handler 

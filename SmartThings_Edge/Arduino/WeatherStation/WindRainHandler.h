@@ -2,6 +2,7 @@
 #define windrainhandler_h
 
 #include "WindRain.h"
+#include "logger.h"
 #include "debug.h"
 
 //
