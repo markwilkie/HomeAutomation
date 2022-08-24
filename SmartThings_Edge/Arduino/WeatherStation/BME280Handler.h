@@ -4,7 +4,9 @@
 #include "logger.h"
 #include "debug.h"
 #include <Wire.h>
-#include <BME280I2C.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -23,7 +25,7 @@ class BME280Handler
     long getReadingTime();
     
   private: 
-    BME280I2C bme; // I2C
+    Adafruit_BME280 bme; // I2C
 
     float temperature;
     float pressure;

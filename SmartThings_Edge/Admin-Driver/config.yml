@@ -1,5 +1,0 @@
-name: 'Rain'
-packageKey: 'wilkie.rain'
-permissions:
-  discovery: {}
-  lan: {}
