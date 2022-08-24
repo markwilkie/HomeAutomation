@@ -38,6 +38,36 @@ void WeatherWifi::startWifi()
   INFOPRINT("  IP address: ");
   INFOPRINTLN(WiFi.localIP().toString());
 
+  //Init OTA
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      INFOPRINTLN("Starting OTA updating ");
+    })
+    .onEnd([]() {
+      INFOPRINTLN("\nEnd OTA");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      ERRORPRINT("OTA Error: ");
+      ERRORPRINTLN(error);
+      if (error == OTA_AUTH_ERROR) { ERRORPRINTLN("Auth Failed"); }
+      else if (error == OTA_BEGIN_ERROR){ ERRORPRINTLN("Begin Failed"); }
+      else if (error == OTA_CONNECT_ERROR){ ERRORPRINTLN("Connect Failed"); }
+      else if (error == OTA_RECEIVE_ERROR) { ERRORPRINTLN("Receive Failed"); }
+       else if (error == OTA_END_ERROR) { ERRORPRINTLN("End Failed"); }
+    });
+
+  ArduinoOTA.begin();
+
   //Init logger and send logs if defined
   #ifdef WIFILOGGER 
     logger.init();
@@ -75,10 +105,13 @@ bool WeatherWifi::isConnected()
 void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
-  VERBOSEPRINTLN("Listening on http");
+  VERBOSEPRINTLN("Listening on http and OTA");
   long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
+  {
     server.handleClient();
+    ArduinoOTA.handle();
+  }
 
   //It's been a bit, so let's send any logs we have
   #ifdef WIFILOGGER 
