@@ -11,6 +11,9 @@ extern Logger logger;
 #include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <WebServer.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
 
