@@ -102,6 +102,11 @@ bool WeatherWifi::isConnected()
   return (WiFi.status() == WL_CONNECTED);
 }
 
+int WeatherWifi::getRSSI()
+{
+  return WiFi.RSSI();
+}
+
 void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)

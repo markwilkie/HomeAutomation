@@ -41,6 +41,7 @@ class WeatherWifi
     void startWifi();
     void startServer();
     void disableWifi();
+    int getRSSI();
     bool isPost();
     bool isConnected();
     void listen(long);

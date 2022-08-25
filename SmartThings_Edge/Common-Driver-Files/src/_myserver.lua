@@ -51,7 +51,10 @@ local function handle_post(client,line)
   client:send(OK_MSG)
   client:close()
 
-  --if weather
+  --refresh based on url
+  if url == '/admin' then
+    RefreshAdmin(content)
+  end
   if url == '/weather' then
     RefreshWeather(content)
   end
@@ -68,12 +71,46 @@ local function handle_get(client,line)
   --Get URL of GET
   local url= line:match '/%a+'
 
+  --epoch request only
   if url == '/epoch' then
     log.debug("Sending epoch back as requested")
     local epochMsg = [[HTTP/1.1 200 OK
 
 {"epoch":]]..os.time()-(7*60*60)..[[}]]
     client:send(epochMsg)
+    client:close()
+    return
+  end
+
+  --full settings request
+  if url == '/settings' then
+    log.debug("Sending settings back as requested")
+    local settingsMsg = [[HTTP/1.1 200 OK
+
+{"epoch":]]..os.time()-(7*60*60)
+
+    if(adminPort>0) then
+      settingsMsg=settingsMsg..[[,"adminPort":]]..adminPort
+    end
+    if(weatherPort>0) then
+      settingsMsg=settingsMsg..[[,"weatherPort":]]..weatherPort
+    end
+    if(windPort>0) then
+      settingsMsg=settingsMsg..[[,"windPort":]]..windPort
+    end
+    if(rainPort>0) then
+      settingsMsg=settingsMsg..[[,"rainPort":]]..rainPort
+    end
+
+    --Put ESP in wifi only mode (usually for OTA updates)
+    local flag="false"
+    if(commonglobals.wifiOnly) then
+      flag="true"
+    end
+    settingsMsg=settingsMsg..[[,"wifionly_flag":]]..flag..[[}]]
+
+    log.debug("Content: "..settingsMsg)
+    client:send(settingsMsg)
     client:close()
     return
   end
@@ -146,5 +183,6 @@ return {
     start_server = start_server,
     RefreshWeather = RefreshWeather,
     RefreshWind = RefreshWind,
-    RefreshRain = RefreshRain    
+    RefreshRain = RefreshRain,
+    RefreshAdmin = RefreshAdmin
   }

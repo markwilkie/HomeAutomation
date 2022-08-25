@@ -14,6 +14,7 @@
 //Globals
 WeatherWifi weatherWifi;
 long millisAtEpoch = 0;
+bool wifiOnly = false;   //true so esp never sleeps.  Mostly used for OTA
 
 //globals in ULP which survive deep sleep
 RTC_DATA_ATTR bool firstBoot = true;
@@ -27,6 +28,7 @@ RTC_DATA_ATTR char hubAddress[30];
 RTC_DATA_ATTR int hubWindPort=0;
 RTC_DATA_ATTR int hubWeatherPort=0;
 RTC_DATA_ATTR int hubRainPort=0;
+RTC_DATA_ATTR int hubAdminPort=0;
 RTC_DATA_ATTR long epoch=0;  //Epoch from hub
 RTC_DATA_ATTR long timeToPost = 0;  //seconds for when to http POST
 
@@ -41,44 +43,99 @@ RTC_DATA_ATTR ADCHandler adcHandler;
 RTC_DATA_ATTR BME280Handler bmeHandler;
 RTC_DATA_ATTR PMS5003Handler pmsHandler;
 
-
-
-
 //------------------------------------------------------------
+
+//Get on the same page with the admin driver
+void syncSettings()
+{
+  if(!hubAdminPort)
+    return;
+
+  DynamicJsonDocument doc = weatherWifi.sendGetMessage("/settings",hubAdminPort);
+  epoch = doc["epoch"].as<long>();
+  wifiOnly= doc["wifionly_flag"];
+  millisAtEpoch = millis();
+
+  INFOPRINT("Setting Epoch to ");
+  INFOPRINTLN(epoch);
+
+  if(wifiOnly) {
+    INFOPRINTLN("-------------> Wifi is on and ESP will not sleep - ready for OTA"); }
+  else {
+    INFOPRINTLN("-------------> ESP will sleep now - ready for normal operation"); }
+
+  //Send settings back
+  postAdmin();
+}
+
+//refresh admin data
+void postAdmin() 
+{
+  if(!hubAdminPort)
+    return;
+
+  //admin
+  DynamicJsonDocument doc(512);
+
+  if(hubWeatherPort>0)
+    doc["hubWeatherPort"] = hubWeatherPort;
+  if(hubWindPort>0)
+    doc["hubWindPort"] = hubWindPort;
+  if(hubRainPort>0)
+    doc["hubRainPort"] = hubRainPort; 
+  doc["voltage"] = adcHandler.getVoltage();
+  doc["wifi_strength"] = weatherWifi.getRSSI();
+  doc["health assesment"] = "n/a";
+  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
+
+  //send admin data back
+  weatherWifi.sendPostMessage("/admin",doc,hubAdminPort);
+
+  INFOPRINTLN("Posted admin data...");
+}
 
 //refresh wind data
 void postWind() 
 {
- //wind
- DynamicJsonDocument doc(512);
- doc["wind_speed"] = windRainHandler.getWindSpeed();
- doc["wind_direction"] = windRainHandler.getWindDirection();
- doc["wind_gust"] = windRainHandler.getWindGustSpeed();
- doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
+  if(!hubWindPort)
+    return;
 
- //send wind data back
- weatherWifi.sendPostMessage("/wind",doc,hubWindPort);
+  //wind
+  DynamicJsonDocument doc(512);
+  doc["wind_speed"] = windRainHandler.getWindSpeed();
+  doc["wind_direction"] = windRainHandler.getWindDirection();
+  doc["wind_gust"] = windRainHandler.getWindGustSpeed();
+  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
- INFOPRINTLN("Posted wind data...");
+  //send wind data back
+  weatherWifi.sendPostMessage("/wind",doc,hubWindPort);
+
+  INFOPRINTLN("Posted wind data...");
 }
 
 void postRain() 
 {
- //rain
- DynamicJsonDocument doc(512);
- doc["rain_rate"] = windRainHandler.getRainRate();
- doc["moisture"] = adcHandler.getMoisture();
- doc["current_time"] = currentTime();
+  if(!hubRainPort)
+    return;
 
- //send rain data back
- weatherWifi.sendPostMessage("/rain",doc,hubRainPort);
+  //rain
+  DynamicJsonDocument doc(512);
+  doc["rain_rate"] = windRainHandler.getRainRate();
+  doc["moisture"] = adcHandler.getMoisture();
+  doc["current_time"] = currentTime();
 
- INFOPRINTLN("Posted rain data...");
+  //send rain data back
+  weatherWifi.sendPostMessage("/rain",doc,hubRainPort);
+
+  INFOPRINTLN("Posted rain data...");
 }
 
 //refresh weather data
 void postWeather() 
 {
+  if(!hubWeatherPort)
+    return;
+
   DynamicJsonDocument doc(512); 
 
   doc=refreshBMEDoc(doc);
@@ -141,6 +198,8 @@ void syncWithHub()
       millisAtEpoch=millis();
 
       String deviceName = doc["deviceName"];
+      if(deviceName.equals("admin"))
+        hubAdminPort = doc["hubPort"].as<int>();
       if(deviceName.equals("wind"))
         hubWindPort = doc["hubPort"].as<int>();
       if(deviceName.equals("weather"))
@@ -160,8 +219,8 @@ void syncWithHub()
       doc["status"] = "OK";   
       weatherWifi.sendResponse(doc);
 
-      //Let's see if we still need a handshake
-      if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0)
+      //Let's see if we still need a handshake (or are in OTA mode)
+      if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0 && hubAdminPort>0 && !wifiOnly)
       {
         handshakeRequired = false;
         weatherWifi.disableWifi();
@@ -214,17 +273,6 @@ void initialSetup()
     ulp.setAirPinHigh(false);
 }
 
-//Requesting a new epoch when I wake up
-void getEpoch()
-{
-  DynamicJsonDocument doc = weatherWifi.sendGetMessage("/epoch",hubWeatherPort);
-  epoch = doc["epoch"].as<long>();
-  millisAtEpoch = millis();
-
-  INFOPRINT("Setting Epoch to ");
-  INFOPRINTLN(epoch);
-}
-
 void loop(void) 
 {
   //Read Sensors if it's time to
@@ -240,18 +288,13 @@ void loop(void)
     }
 
     //if we've got a port number from handshaking, go ahead and post
-    if(hubWeatherPort>0)
-    {
-      getEpoch();
-      postWeather();
-    }
-    if(hubWindPort>0)
-      postWind();
-    if(hubRainPort>0)
-      postRain();  
+    syncSettings();
+    postWeather();
+    postWind();
+    postRain();  
 
-    //only clear things out if handshake no longer needed
-    if(!handshakeRequired)
+    //only clear things out if handshake no longer needed and we're not in OTA mode
+    if(!handshakeRequired && !wifiOnly)
     {
       timeToPost=currentTime()+WIFITIME;
       weatherWifi.disableWifi();
@@ -259,7 +302,7 @@ void loop(void)
   }
  
   //Check in w/ web server if we're in handshake mode
-  if(handshakeRequired)
+  if(handshakeRequired || wifiOnly)
   {
     if(!weatherWifi.isConnected())
     {
@@ -270,13 +313,13 @@ void loop(void)
   }
   else
   {
-    sleep();      
+    sleep();   //deep sleep   
   } 
 }
 
 void readBMEandADCSensors()
 { 
-  if(currentTime()>timeToReadSensors)
+  if(currentTime()>=timeToReadSensors)
   {
     INFOPRINTLN("Reading BME and ADC sensors");  
     bmeHandler.init();
@@ -291,7 +334,7 @@ void readBMEandADCSensors()
 
 void readAirSensor()
 {
-  if(currentTime()>timeToReadAir && !airWarmedUp)
+  if(currentTime()>=timeToReadAir && !airWarmedUp)
   {
     INFOPRINTLN("Warming up air sensor");    
     ulp.setAirPinHigh(true);
@@ -299,7 +342,7 @@ void readAirSensor()
     timeToReadAir=currentTime()+TIMEDEEPSLEEP-10;  //warm up for at least a deep sleep cycle w/ a little buffer
   }  
 
-  if(currentTime()>timeToReadAir && airWarmedUp)
+  if(currentTime()>=timeToReadAir && airWarmedUp)
   {
     INFOPRINTLN("Reading air now that it's warmed up.");    
     pmsHandler.init();

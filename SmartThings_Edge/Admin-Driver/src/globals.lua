@@ -3,6 +3,6 @@
 currentTime = nil
 
 return {
-    currentTime = currentTime  
+    currentTime = currentTime
 }
 
