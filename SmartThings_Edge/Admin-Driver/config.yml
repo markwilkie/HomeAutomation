@@ -1,5 +1,5 @@
-name: 'Rain'
-packageKey: 'wilkie.rain'
+name: 'Admin'
+packageKey: 'wilkie.admin'
 permissions:
   discovery: {}
   lan: {}

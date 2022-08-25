@@ -8,11 +8,11 @@ extern WeatherWifi weatherWifi;
 
 void Logger::init()
 {
-  //errorLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Error, "\033[0;31m", "weatherstation", " ");
-  //warningLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Warning, "\033[0;33m", "weatherstation", " ");
-  //noticeLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Notice, "\033[0;36m", "weatherstation", " ");
-  //debugLog= new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Debug, "\033[0;32m","weatherstation", " ");
-  infoLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Info, "\033[0;34m", "weatherstation", " ");
+  //errorLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Error, "\033[0;31m", PAPERTRAIL_SYSTEMNAME, " ");
+  //warningLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Warning, "\033[0;33m", PAPERTRAIL_SYSTEMNAME, " ");
+  //noticeLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Notice, "\033[0;36m", PAPERTRAIL_SYSTEMNAME, " ");
+  //debugLog= new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Debug, "\033[0;32m",PAPERTRAIL_SYSTEMNAME, " ");
+  infoLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Info, "\033[0;34m", PAPERTRAIL_SYSTEMNAME, " ");
 }
 
 void Logger::sendLogs()

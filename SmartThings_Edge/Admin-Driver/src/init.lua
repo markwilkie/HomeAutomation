@@ -75,9 +75,26 @@ local function refresh(driver, device)
   return true
 end
 
+-- callback to handle an `on` capability command
+local function switch_on(driver, device, command)
+  log.debug(string.format("[%s] calling wifi only (on) v5.1", device.device_network_id))
+  commonglobals.wifiOnly = true
+  device:emit_event(capabilities.switch.switch.on())
+end
+
+-- callback to handle an `off` capability command
+local function switch_off(driver, device, command)
+  log.debug(string.format("[%s] calling wifi only (off) v5.1", device.device_network_id))
+  commonglobals.wifiOnly = false
+  device:emit_event(capabilities.switch.switch.off())
+end
+
 -- this is called once a device is added by the cloud and synchronized down to the hub
 local function device_added(driver, device)
   log.info("[" .. device.id .. "] Adding new admin device")
+
+  -- set a default or queried state for each capability attribute
+  device:emit_event(capabilities.switch.switch.off())
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
@@ -110,11 +127,15 @@ local admin_driver = Driver("admin", {
     init = device_init,
     removed = device_removed
   },
-  supported_capabilities = {},
-  capability_handlers = {
+  capability_handlers = 
+  {
     -- Refresh command handler
     [capabilities.refresh.ID] = {
-    [capabilities.refresh.commands.refresh.NAME] = refresh
+      [capabilities.refresh.commands.refresh.NAME] = refresh
+    },
+    [capabilities.switch.ID] = {
+      [capabilities.switch.commands.on.NAME] = switch_on,
+      [capabilities.switch.commands.off.NAME] = switch_off,
     }
   }
 })
