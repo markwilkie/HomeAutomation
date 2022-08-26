@@ -15,6 +15,21 @@ bool PMS5003Handler::storeSamples()
   return success;
 }
 
+int PMS5003Handler::getPM0_3um()
+{
+  return pmsSensor.getParticles03um();
+}
+
+int PMS5003Handler::getPM2_5um()
+{
+  return pmsSensor.getParticles25um();
+}
+
+int PMS5003Handler::getPM10_0um()
+{
+  return pmsSensor.getParticles100um();
+}
+
 int PMS5003Handler::getPM10Standard()
 {
   return pmsSensor.getpm10_standard();

@@ -14,6 +14,10 @@ class PMS5003Handler
     int getPM10Standard();
     int getPM25Standard();
     int getPM100Standard();
+
+    int getPM0_3um();
+    int getPM2_5um();
+    int getPM10_0um();
     
   private: 
     PMS5003 pmsSensor; // I2C

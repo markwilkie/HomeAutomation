@@ -68,7 +68,7 @@ local function send_lan_command(url, method, path, body)
     log.debug("About to Handshake:  "..content);
   
     local success, data = send_lan_command(
-      'http://192.168.15.108:80',
+      'http://192.168.15.143:80',
       'POST',
       'handshake',
       content)

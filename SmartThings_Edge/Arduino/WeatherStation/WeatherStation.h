@@ -7,6 +7,7 @@
 
 //defines
 #define WIFITIME              600       // interval in seconds wifi will attempt to POST data to the hub
+#define HTTPSERVERTIME        30        // time blocking in server listen for handshaking while in loop
 #define TIMEDEEPSLEEP         WIFITIME  // amount in seconds the ESP32 will deep sleep at a time.  
 #define SENSORTIME            WIFITIME      //default time most sensors will get a reading
 #define AIRTIME               3600          // interval in seconds we'll wake up the power hungry air sensor

@@ -9,7 +9,7 @@
 #define ADC_REF_VOLTAGE 3.3
 
 //adc pins
-#define VOLTAGE_PIN     32
+#define VOLTAGE_PIN     15   //32
 #define LDR_PIN         35
 #define MOISTURE_PIN    39
 #define UV_PIN          34

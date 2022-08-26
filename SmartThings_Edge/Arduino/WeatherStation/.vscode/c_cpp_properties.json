@@ -106,6 +106,7 @@
                 "C:\\Users\\mawilkie\\Documents\\Arduino\\libraries\\Adafruit_Unified_Sensor",
                 "C:\\Users\\mawilkie\\Documents\\Arduino\\libraries\\Adafruit_BME280_Library",
                 "C:\\Users\\mawilkie\\Documents\\Arduino\\libraries\\Adafruit_BusIO",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\1.0.6\\libraries\\Preferences\\src",
                 "C:\\Users\\mawilkie\\Documents\\Arduino\\libraries\\BME280\\src",
                 "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\1.0.6\\libraries\\FS\\src",
                 "c:\\users\\mawilkie\\appdata\\local\\arduino15\\packages\\esp32\\tools\\xtensa-esp32-elf-gcc\\1.22.0-97-gc752ad5-5.2.0\\xtensa-esp32-elf\\include\\c++\\5.2.0",

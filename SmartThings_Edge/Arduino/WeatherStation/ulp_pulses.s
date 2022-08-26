@@ -268,7 +268,7 @@ rain_edge_detected:
   add r2, r2, 1
   st r2, r3, 0
   /* Compare edge_count to wake up value to save overflows */
-  move r3, 30000
+  move r3, 10000
   sub r3, r3, r2
   jump wake_up, eq
   halt

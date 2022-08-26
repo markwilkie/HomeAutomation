@@ -5,11 +5,12 @@ Logger logger;
 
 void WeatherWifi::startWifi()
 {
+  serverOnFlag=false;  //clearly, the server is not yet on
+
   esp_wifi_start();
   WiFi.disconnect(false);  // Reconnect the network
   WiFi.mode(WIFI_STA);    // Switch WiFi on
   INFOPRINTLN("Wifi enabled...");
-  blinkLED(4,50,50);
   
   //Setup wifi
   WiFi.mode(WIFI_STA);
@@ -20,13 +21,14 @@ void WeatherWifi::startWifi()
   INFOPRINT("Connecting to WIFI ");  
   while (WiFi.status() != WL_CONNECTED) 
   {
-    blinkLED(4,200,50);
     connectCount++;
     delay(500);
     INFOPRINT(".");
     if(connectCount>40)
     {
-      blinkLED(20,10,10);
+      //Blink because we couldn't connect to wifi  (5x250)
+      blinkLED(5,250,250);
+
       ERRORPRINTLN("Could not connect to Wifi, restarting board");
       ESP.restart();
     }
@@ -81,7 +83,13 @@ void WeatherWifi::startServer()
   setupServerRouting();
   //server.onNotFound(handleNotFound);
   server.begin();
+  serverOnFlag=true;
   INFOPRINTLN("HTTP server started");  
+}
+
+bool WeatherWifi::isServerOn()
+{
+  return serverOnFlag;
 }
 
 void WeatherWifi::disableWifi()
@@ -94,6 +102,7 @@ void WeatherWifi::disableWifi()
   WiFi.disconnect(true);  // Disconnect from the network
   WiFi.mode(WIFI_OFF);    // Switch WiFi off
   esp_wifi_stop();
+  serverOnFlag=false;
   INFOPRINTLN("Wifi disabled...");  
 }
 
@@ -166,8 +175,9 @@ void WeatherWifi::setupServerRouting() {
     server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
-void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort)
+bool WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort)
 {
+  bool success=true;
   WiFiClient client;
   HTTPClient http;
     
@@ -189,10 +199,13 @@ void WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
     ERRORPRINT("Error from POST Code: ");
     ERRORPRINTLN(httpResponseCode);
     handshakeRequired=true;
+    success=false;
   }
   
   // Free resources
   http.end();
+
+  return success;
 }
 
 DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)

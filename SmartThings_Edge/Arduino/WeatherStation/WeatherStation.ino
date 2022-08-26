@@ -9,9 +9,11 @@
 #include "PMS5003Handler.h"
 
 #include "Arduino.h"
+#include <Preferences.h>
 #include <ArduinoJson.h>
 
 //Globals
+Preferences preferences;
 WeatherWifi weatherWifi;
 long millisAtEpoch = 0;
 bool wifiOnly = false;   //true so esp never sleeps.  Mostly used for OTA
@@ -89,7 +91,8 @@ void postAdmin()
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
   //send admin data back
-  weatherWifi.sendPostMessage("/admin",doc,hubAdminPort);
+  if(!weatherWifi.sendPostMessage("/admin",doc,hubAdminPort))
+    hubAdminPort=0;
 
   INFOPRINTLN("Posted admin data...");
 }
@@ -108,7 +111,8 @@ void postWind()
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
   //send wind data back
-  weatherWifi.sendPostMessage("/wind",doc,hubWindPort);
+  if(!weatherWifi.sendPostMessage("/wind",doc,hubWindPort))
+    hubWeatherPort=0;
 
   INFOPRINTLN("Posted wind data...");
 }
@@ -125,7 +129,8 @@ void postRain()
   doc["current_time"] = currentTime();
 
   //send rain data back
-  weatherWifi.sendPostMessage("/rain",doc,hubRainPort);
+  if(!weatherWifi.sendPostMessage("/rain",doc,hubRainPort))
+    hubRainPort=0;
 
   INFOPRINTLN("Posted rain data...");
 }
@@ -143,7 +148,8 @@ void postWeather()
   doc=refreshPMSDoc(doc);
   
   //send data
-  weatherWifi.sendPostMessage("/weather",doc,hubWeatherPort);
+  if(!weatherWifi.sendPostMessage("/weather",doc,hubWeatherPort))
+    hubRainPort=0;
   
   INFOPRINTLN("Posted general weather data...");
 }
@@ -177,9 +183,9 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
 DynamicJsonDocument refreshPMSDoc(DynamicJsonDocument doc) 
 {
  //pms 5003
- doc["pm10"] = pmsHandler.getPM10Standard();
- doc["pm25"] = pmsHandler.getPM25Standard();
- doc["pm100"] = pmsHandler.getPM100Standard();
+ doc["pm03"] = pmsHandler.getPM0_3um();
+ doc["pm25"] = pmsHandler.getPM2_5um();
+ doc["pm100"] = pmsHandler.getPM10_0um();
  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
  
  return doc;
@@ -240,14 +246,15 @@ void setup(void)
   pinMode(LED_BUILTIN, OUTPUT);
 
   if(firstBoot)
-    initialSetup();
-
-  if(!firstBoot && hubWindPort>0)
-    readWindRainSensor();
+    initialSetup();   
 }
 
 void initialSetup()
 {
+    //blink led (1x2000,3x250)
+    blinkLED(1,2000,500);
+    blinkLED(3,250,250);
+
     //free heap
     float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
     INFOPRINT("Free Heap: (376360 is an empty sketch) ");
@@ -255,6 +262,9 @@ void initialSetup()
     INFOPRINT(" -  ");
     INFOPRINT(heap);
     INFOPRINTLN("% used");
+
+    //Setting up flash 
+    //preferences.begin("weather", false); 
       
     INFOPRINTLN("Setting up ULP so we can count pulses and hold pins while in deep sleep...  (only does this on first boot)");
     ulp.setupULP();
@@ -275,74 +285,85 @@ void initialSetup()
 
 void loop(void) 
 {
-  //Read Sensors if it's time to
-  readBMEandADCSensors();
-  readAirSensor();
+  //Read Sensors if it's time to  (each member function checks its own time)
+  readSensors();
+  readAirSensor();  //this one is seperate because we don't read it very often as it takes a lot of power
 
   //POST sensor data if it's time to
   if(currentTime() >= timeToPost)
-  {
-    if(!weatherWifi.isConnected())
-    {
-      weatherWifi.startWifi();
-    }
+    postSensorData();
 
-    //if we've got a port number from handshaking, go ahead and post
-    syncSettings();
-    postWeather();
-    postWind();
-    postRain();  
-
-    //only clear things out if handshake no longer needed and we're not in OTA mode
-    if(!handshakeRequired && !wifiOnly)
-    {
-      timeToPost=currentTime()+WIFITIME;
-      weatherWifi.disableWifi();
-    }
-  }
- 
   //Check in w/ web server if we're in handshake mode
   if(handshakeRequired || wifiOnly)
   {
+    //Blink because we're handshaking (2x500)
+    blinkLED(2,500,250);
+
+    //start wifi if not already on
     if(!weatherWifi.isConnected())
-    {
       weatherWifi.startWifi();
-      weatherWifi.startServer();  
-    }
-    weatherWifi.listen(10000);
+
+    //start server and listen on it if not already started
+    if(!weatherWifi.isServerOn())
+      weatherWifi.startServer();
+
+    //listen for a bit
+    weatherWifi.listen(HTTPSERVERTIME*1000);
   }
-  else
+
+  //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
+  if(!handshakeRequired && !wifiOnly)
   {
-    sleep();   //deep sleep   
-  } 
+    timeToPost=currentTime()+WIFITIME-(WIFITIME*.1);  //10% buffer
+    weatherWifi.disableWifi();
+    sleep();   //deep sleep
+  }    
 }
 
-void readBMEandADCSensors()
+void postSensorData()
+{
+  //Fire up wifi if not already connected
+  if(!weatherWifi.isConnected())
+    weatherWifi.startWifi();
+
+  //if we've got a port number from handshaking, go ahead and post
+  syncSettings();
+  postWeather();
+  postWind();
+  postRain();  
+}
+
+void readSensors()
 { 
-  if(currentTime()>=timeToReadSensors)
-  {
-    INFOPRINTLN("Reading BME and ADC sensors");  
-    bmeHandler.init();
-    adcHandler.init();
-    delay(200);
-    
-    bmeHandler.storeSamples();
-    adcHandler.storeSamples();
-    timeToReadSensors=currentTime()+SENSORTIME;
-  }
+  if(currentTime()<timeToReadSensors)
+    return;
+
+  INFOPRINTLN("Reading Wind, Rain, BME and ADC sensors");  
+  windRainHandler.storeSamples();
+  bmeHandler.init();
+  adcHandler.init();
+  delay(200);
+  
+  bmeHandler.storeSamples();
+  adcHandler.storeSamples();
+  timeToReadSensors=currentTime()+SENSORTIME-(SENSORTIME*.1);
 }
 
 void readAirSensor()
 {
-  if(currentTime()>=timeToReadAir && !airWarmedUp)
+  if(currentTime()<timeToReadAir)
+    return;
+
+  if(!airWarmedUp)
   {
     INFOPRINTLN("Warming up air sensor");    
     ulp.setAirPinHigh(true);
     airWarmedUp=true;
-    timeToReadAir=currentTime()+TIMEDEEPSLEEP-10;  //warm up for at least a deep sleep cycle w/ a little buffer
+    timeToReadAir=currentTime()+TIMEDEEPSLEEP-(TIMEDEEPSLEEP*.1);  //warm up for at least a deep sleep cycle w/ a little buffer
+    return;
   }  
 
-  if(currentTime()>=timeToReadAir && airWarmedUp)
+  if(airWarmedUp)
   {
     INFOPRINTLN("Reading air now that it's warmed up.");    
     pmsHandler.init();
@@ -351,15 +372,9 @@ void readAirSensor()
     //shut things down even if we didn't get a sample
     ulp.setAirPinHigh(false);
     airWarmedUp=false;
-    timeToReadAir=currentTime()+AIRTIME;
+    timeToReadAir=currentTime()+AIRTIME-(AIRTIME*.1);
+    return;
   }
-}
-
-//Should only be called when waking up from deep sleep
-void readWindRainSensor()
-{
-  INFOPRINTLN("Just woke up, reading wind & rain data");    
-  windRainHandler.storeSamples();
 }
 
 void sleep(void) 

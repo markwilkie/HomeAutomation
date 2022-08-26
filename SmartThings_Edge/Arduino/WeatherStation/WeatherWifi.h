@@ -44,17 +44,20 @@ class WeatherWifi
     int getRSSI();
     bool isPost();
     bool isConnected();
+    bool isServerOn();
     void listen(long);
     DynamicJsonDocument readContent();
     void sendResponse(DynamicJsonDocument);
 
-    void sendPostMessage(String,DynamicJsonDocument,int);
+    bool sendPostMessage(String,DynamicJsonDocument,int);
     DynamicJsonDocument sendGetMessage(String,int);
     
   private: 
     void setupServerRouting();
     void handleNotFound();
     void sendErrorResponse(String);
+
+    bool serverOnFlag;
 };
 
 #endif

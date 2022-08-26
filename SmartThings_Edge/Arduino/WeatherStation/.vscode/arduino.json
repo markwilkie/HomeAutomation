@@ -2,6 +2,6 @@
     "configuration": "FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
     "board": "esp32:esp32:esp32doit-devkit-v1",
     "sketch": "WeatherStation.ino",
-    "port": "192.168.15.108",
+    "port": "192.168.15.143",
     "output": "C:\\Users\\mawilkie\\Documents\\ArduinoBuilds\\WeatherStation"
 }
