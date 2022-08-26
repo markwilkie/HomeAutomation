@@ -225,12 +225,9 @@ void syncWithHub()
       doc["status"] = "OK";   
       weatherWifi.sendResponse(doc);
 
-      //Let's see if we still need a handshake (or are in OTA mode)
-      if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0 && hubAdminPort>0 && !wifiOnly)
-      {
+      //Let's see if we still need a handshake 
+      if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0 && hubAdminPort>0)
         handshakeRequired = false;
-        weatherWifi.disableWifi();
-      }
   }
 }
 
@@ -247,6 +244,11 @@ void setup(void)
 
   if(firstBoot)
     initialSetup();   
+
+  //read wind and rain sensor  (it's hear because we must be sure to read (clear) the register during windy conditions so there's no overflow
+  //   it is known that on initial boot, there's no epoch which makes the canculations for wind be invalid.  a full  cycle must be waited for and it'll clear itself
+  INFOPRINTLN("Reading wind and rain sensors");
+  windRainHandler.storeSamples();
 }
 
 void initialSetup()
@@ -338,8 +340,7 @@ void readSensors()
   if(currentTime()<timeToReadSensors)
     return;
 
-  INFOPRINTLN("Reading Wind, Rain, BME and ADC sensors");  
-  windRainHandler.storeSamples();
+  INFOPRINTLN("Reading BME and ADC sensors");  
   bmeHandler.init();
   adcHandler.init();
   delay(200);
