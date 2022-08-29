@@ -32,11 +32,9 @@ void WindRainHandler::storeSamples()
   VERBOSEPRINT("   - wind Direction: ");
   VERBOSEPRINTLN(windDirection);  
 
-  //avgWindSpeed=newAvgWindSpeed;
-
-  //max gust
-  if(windGustSpeed>maxGust)
-    maxGust=windGustSpeed;
+  //max gust (but makes sure it's within bounds)
+  if(windGustSpeed>maxGust && windGustSpeed<(windSpeed*GUSTLIMIT))
+    maxGust=windGustSpeed;  
 }
 
 int WindRainHandler::calcWindDirection()
@@ -79,7 +77,10 @@ int WindRainHandler::calcWindDirection()
 
 float WindRainHandler::getWindSpeed()
 {
-  float avgWindSpeed=totalSpeed/(float)speedSamples;
+  float avgWindSpeed=totalSpeed;
+  if(speedSamples > 1) 
+    totalSpeed/(float)speedSamples;
+
   totalSpeed=0;
   speedSamples=0;
   
@@ -104,8 +105,9 @@ float WindRainHandler::getWindGustSpeed()
 }
 float WindRainHandler::getRainRate()
 {
+  float currentRainRate=rainRate;
   rainRate=0;  //reset because we're reading
-  return rainRate;
+  return currentRainRate;
 }
 int WindRainHandler::getWindDirection()
 {

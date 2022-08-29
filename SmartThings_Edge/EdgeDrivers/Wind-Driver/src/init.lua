@@ -67,6 +67,9 @@ end
 local function emitWindData(driver, device)
   log.info(string.format("[%s] Emiting Wind Data", device.device_network_id))
 
+  --setting preferences
+  globals.windVaneOffset=device.preferences.windVaneOffset  
+
   device:emit_event(windspeed.speed(globals.windSpeed))
   device:emit_event(winddirection.direction(globals.winddirection))
   device:emit_event(windgust.gust(globals.windGust))

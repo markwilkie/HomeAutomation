@@ -6,5 +6,11 @@ components:
   capabilities:
   - id: refresh
     version: 1
-  - id: switch
+  - id: voltageMeasurement
+    version: 1  
+  - id: signalStrength
     version: 1
+  - id: radioamber53161.datetime
+    version: 1 
+  - id: switch
+    version: 1    

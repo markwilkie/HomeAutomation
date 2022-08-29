@@ -30,7 +30,9 @@ function RefreshAdmin(content)
   commonglobals.handshakeRequired = false
   commonglobals.newDataAvailable = true
 
-  local jsondata = json.decode(content);
+  local jsondata = json.decode(content)
+  globals.rssi = jsondata.wifi_strength
+  globals.voltage = jsondata.voltage
   globals.currentTime = os.date("%a %X", jsondata.current_time)
 end
 
@@ -38,6 +40,9 @@ end
 local function emitAdminData(driver, device)
   log.info(string.format("[%s] Emiting Admin Data", device.device_network_id))
 
+  device:emit_event(capabilities.signalStrength.rssi(globals.rssi))
+  device:emit_event(capabilities.signalStrength.lqi(0))
+  device:emit_event(capabilities.voltageMeasurement.voltage(globals.voltage))
   device:emit_event(datetime.datetime(globals.currentTime))
 
   return true
@@ -60,7 +65,8 @@ local function refresh(driver, device)
   --hand shake if needed
   if commonglobals.handshakeRequired then
     if not myclient.handshakeNow("admin") then
-      return false
+      --return false
+      return true
     end
   end
 
@@ -68,7 +74,8 @@ local function refresh(driver, device)
   if commonglobals.newDataAvailable then
     commonglobals.newDataAvailable = false
     if not emitAdminData(driver, device) then
-      return false
+      --return false
+      return true
     end
   end
 
@@ -77,15 +84,18 @@ end
 
 -- callback to handle an `on` capability command
 local function switch_on(driver, device, command)
-  log.debug(string.format("[%s] calling wifi only (on) v5.1", device.device_network_id))
+  log.debug(string.format("[%s] calling wifi only (on)", device.device_network_id))
   commonglobals.wifiOnly = true
+  --device:emit_component_event(device.profile.components['wifiOnly'],capabilities.switch.switch.on())
   device:emit_event(capabilities.switch.switch.on())
 end
 
 -- callback to handle an `off` capability command
 local function switch_off(driver, device, command)
-  log.debug(string.format("[%s] calling wifi only (off) v5.1", device.device_network_id))
+  --  command.component   (in theory this work)
+  log.debug(string.format("[%s] calling wifi only (off)", device.device_network_id))
   commonglobals.wifiOnly = false
+  --device:emit_component_event(device.profile.components['wifiOnly'],capabilities.switch.switch.off())
   device:emit_event(capabilities.switch.switch.off())
 end
 
@@ -94,7 +104,8 @@ local function device_added(driver, device)
   log.info("[" .. device.id .. "] Adding new admin device")
 
   -- set a default or queried state for each capability attribute
-  device:emit_event(capabilities.switch.switch.off())
+  --device:emit_component_event(device.profile.components['wifiOnly'],capabilities.switch.switch.off())
+  --device:emit_event(capabilities.switch.switch.off())
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
@@ -113,6 +124,9 @@ local function device_init(driver, device)
     'Scheduled Refresh')
 
   refresh(driver, device)
+
+  -- mark device as online so it can be controlled from the app
+  device:online()
 end
 
 -- this is called when a device is removed by the cloud and synchronized down to the hub

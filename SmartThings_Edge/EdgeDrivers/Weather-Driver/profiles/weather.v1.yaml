@@ -18,7 +18,7 @@ components:
     version: 1 
   - id: illuminanceMeasurement
     version: 1 
-  - id: airQualitySensor
+  - id: dustSensor
     version: 1 
   - id: radioamber53161.datetime
     version: 1  
@@ -37,22 +37,4 @@ components:
   - id: temperatureMeasurement
     version: 1
   - id: radioamber53161.atmospressure
-    version: 1         
-- id: last12Max
-  label: "Max Last 12 Hours"
-  capabilities:
-  - id: refresh
     version: 1
-  - id: temperatureMeasurement
-    version: 1    
-  - id: radioamber53161.datetime
-    version: 1  
-- id: last12Min
-  label: "Min Last 12 Hours"
-  capabilities:
-  - id: refresh
-    version: 1
-  - id: temperatureMeasurement
-    version: 1  
-  - id: radioamber53161.datetime
-    version: 1  

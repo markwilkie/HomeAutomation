@@ -287,14 +287,6 @@ void initialSetup()
 
 void loop(void) 
 {
-  //Read Sensors if it's time to  (each member function checks its own time)
-  readSensors();
-  readAirSensor();  //this one is seperate because we don't read it very often as it takes a lot of power
-
-  //POST sensor data if it's time to
-  if(currentTime() >= timeToPost)
-    postSensorData();
-
   //Check in w/ web server if we're in handshake mode
   if(handshakeRequired || wifiOnly)
   {
@@ -312,6 +304,14 @@ void loop(void)
     //listen for a bit
     weatherWifi.listen(HTTPSERVERTIME*1000);
   }
+
+  //Read Sensors if it's time to  (each member function checks its own time)
+  readSensors();
+  readAirSensor();  //this one is seperate because we don't read it very often as it takes a lot of power
+
+  //POST sensor data if it's time to
+  if(currentTime() >= timeToPost)
+    postSensorData();  
 
   //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
   if(!handshakeRequired && !wifiOnly)

@@ -23,6 +23,7 @@ float WindRain::getWindGustSpeed()
   if(shortestWindPulseTime==0)
     return 0;
 
+  //figure gust
   float pulsesPerSec = TIMEFACTOR/shortestWindPulseTime;  
   float windGust = ((float)pulsesPerSec * WINDFACTOR) / 20; 
 

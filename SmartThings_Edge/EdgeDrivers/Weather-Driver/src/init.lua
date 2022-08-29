@@ -40,20 +40,14 @@ function RefreshWeather(content)
   globals.uvIndex = tonumber(string.format("%.1f", jsondata.uv))
   globals.ldr = jsondata.ldr
   globals.pm25 = jsondata.pm25
+  globals.pm100 = jsondata.pm100
 
   --adding to the data store so we can do historical calc
   weatherdatastore.insertData(jsondata.current_time,globals.temperature,globals.pressure)
 
-  --do historical calc
+  --do historical calc  (e.g. last hour change)
   globals.temperatureChangeLastHour = tonumber(string.format("%.1f",globals.temperature - weatherdatastore.temperatureHistory(1)))
   globals.pressureChangeLastHour = tonumber(string.format("%.1f",globals.pressure - weatherdatastore.pressureHistory(1)))
-
-  local maxTime, maxTemperature = weatherdatastore.findMaxTemperature()
-  local minTime, minTemperature = weatherdatastore.findMinTemperature()
-  globals.maxTemperature = maxTemperature
-  globals.temperature_max_time_last12 = os.date("%a %X", maxTime)
-  globals.minTemperature = minTemperature
-  globals.temperature_min_time_last12 = os.date("%a %X", minTime)
 end
 
 -- Get latest weather updates
@@ -65,21 +59,15 @@ local function emitWeatherData(driver, device)
   device:emit_event(atmospressure.pressure(globals.pressure))
   device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(globals.uvIndex))
   device:emit_event(capabilities.illuminanceMeasurement.illuminance(globals.ldr))
-  device:emit_event(capabilities.airQualitySensor.airQuality(globals.pm25))
+  device:emit_event(capabilities.dustSensor.dustLevel(globals.pm100))
+  device:emit_event(capabilities.dustSensor.fineDustLevel(globals.pm25))
   device:emit_event(capabilities.dewPoint.dewpoint(globals.dewPoint))
   device:emit_event(datetime.datetime(globals.currentTime))
 
   device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(globals.heatindex))
   device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature({value = globals.temperatureChangeLastHour, unit = 'F'}))
   device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(globals.pressureChangeLastHour))
-
-  device:emit_component_event(device.profile.components['last12Max'],capabilities.temperatureMeasurement.temperature({value = globals.maxTemperature, unit = 'F'}))
-  device:emit_component_event(device.profile.components['last12Max'],datetime.datetime(globals.temperature_max_time_last12))
-
-  device:emit_component_event(device.profile.components['last12Min'],capabilities.temperatureMeasurement.temperature({value = globals.minTemperature, unit = 'F'}))
-  device:emit_component_event(device.profile.components['last12Min'],datetime.datetime(globals.temperature_min_time_last12))
-
-    return true
+  return true
 end
 
 -------------

@@ -26,30 +26,6 @@ local function insertData(epoch,temperature,pressure)
   dump(histData)
 end
 
-local function findMaxTemperature()
-  local epoch=histData[1].epoch
-  local maxTemperature=histData[1].temperature
-  for k, v in pairs(histData) do
-    if v.temperature > maxTemperature then
-      maxTemperature = v.temperature
-      epoch = v.epoch
-    end
-  end
-  return epoch,maxTemperature
-end
-
-local function findMinTemperature()
-  local epoch=histData[1].epoch
-  local minTemperature=histData[1].temperature
-  for k, v in pairs(histData) do
-    if v.temperature < minTemperature then
-      minTemperature = v.temperature
-      epoch = v.epoch
-    end
-  end
-  return epoch,minTemperature
-end
-
 --temp last n hours
 local function temperatureHistory(hoursAgo)
   local currentEpoch=os.time()-(7*60*60)
@@ -82,8 +58,6 @@ end
 
  return {
     insertData = insertData,
-    findMaxTemperature = findMaxTemperature,
-    findMinTemperature = findMinTemperature,
     temperatureHistory = temperatureHistory,
     pressureHistory = pressureHistory
   }

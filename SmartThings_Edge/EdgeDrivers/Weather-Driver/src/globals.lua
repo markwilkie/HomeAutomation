@@ -8,6 +8,7 @@ dewPoint = nil
 uvIndex = nil
 ldr = nil
 pm25 = nil
+pm100 = nil
 temperatureChangeLastHour = nil
 pressureChangeLastHour = nil
 maxTemperature = nil
@@ -25,6 +26,7 @@ return {
     uvIndex = uvIndex,
     ldr = ldr,
     pm25 = pm25,
+    pm100 = pm100,
     temperatureChangeLastHour = temperatureChangeLastHour,
     pressureChangeLastHour = pressureChangeLastHour,
     maxTemperature = maxTemperature,

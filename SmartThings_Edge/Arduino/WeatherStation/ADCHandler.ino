@@ -73,15 +73,51 @@ float ADCHandler::getUV()
 
 int ADCHandler::readADC(int pin)
 {
-  int readNum=10;
-  long sum=0;
-  for(int i=0;i<readNum;i++)
+  int tries=0; 
+  float sampleSum = 0;
+  float mean = 0.0;
+  float sqDevSum = 0.0;
+  float stdDev = 0.0;
+  float tolerance = 0.0;
+
+  //Try to get a clean read that is within tolerance
+  while(tries<MAXTRIES)
   {
-    sum=sum+analogRead(pin);
-    delay(1);
+    tries++;
+
+    //Read samples and sum them
+    for(int i = 0; i < SAMPLES; i++) {
+      sampleValues[i] = analogRead(pin);
+      sampleSum += sampleValues[i];
+      delay(WAITTIME); // set this to whatever you want
+    }
+
+    //calc mean
+    mean = sampleSum/float(SAMPLES);
+
+    //calc std deviation  (throw out bad reads)
+    for(int i = 0; i < SAMPLES; i++) 
+    {
+      sqDevSum += pow((mean - float(sampleValues[i])), 2);
+    }
+    stdDev = sqrt(sqDevSum/float(SAMPLES));  
+
+    //are we within tolerance?
+    tolerance = (MAX_ADC_READING*(TOLERANCE/100.0));
+    if(stdDev<tolerance)
+      break;
   }
 
-  return(sum/readNum);
+  //Throw error if we're messed up
+  if(stdDev>tolerance)
+  {
+    ERRORPRINT("ADC read's standard deviation was out of tolerance: (avg/stdDev) ");
+    ERRORPRINT(mean);
+    ERRORPRINT("/");
+    ERRORPRINTLN(stdDev);
+  }
+
+  return(mean);
 }
 
 long ADCHandler::getIllum(int ldr_raw_data)

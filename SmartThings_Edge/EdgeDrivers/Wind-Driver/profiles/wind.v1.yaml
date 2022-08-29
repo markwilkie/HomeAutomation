@@ -6,12 +6,12 @@ components:
   capabilities:
   - id: refresh
     version: 1
+  - id: radioamber53161.windgust
+    version: 1 
   - id: radioamber53161.windspeed
     version: 1
   - id: radioamber53161.winddirection
     version: 1  
-  - id: radioamber53161.windgust
-    version: 1 
   - id: radioamber53161.datetime
     version: 1    
 - id: last12

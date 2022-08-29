@@ -7,6 +7,11 @@
 //
 #define MAX_ADC_READING 4096  //4096 so we don't get div by zero
 #define ADC_REF_VOLTAGE 3.3
+#define SAMPLES   10          //number of samples to take
+#define WAITTIME  20          //time to wait between samples in ms
+#define TOLERANCE 1           //% of max adc reading to e used to determine if we need to resample
+#define MAXTRIES  3           //# of times we'll try and get a clean read that is within tolerance
+
 
 //adc pins
 #define VOLTAGE_PIN     15   //32
@@ -50,7 +55,8 @@ class ADCHandler
     int _ldr;
     int _moisture;
     int _uv;    
-     
+
+    long sampleValues[SAMPLES];
 };
 
 
