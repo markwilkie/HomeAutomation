@@ -79,7 +79,7 @@ bool PMS5003::readPMSData()
     
     if(tryNumber>TOTALTRIES)
     {
-      ERRORPRINTLN("Timed out waiting for data");
+      ERRORPRINTLN("ERROR: Timed out waiting for data from PMS5003 air quality sensor");
       return false;
     }
     
@@ -124,7 +124,7 @@ bool PMS5003::readPMSData()
   memcpy((void *)&data, (void *)buffer_u16, 30);
  
   if (sum != data.checksum) {
-    ERRORPRINTLN("Checksum failure");
+    ERRORPRINTLN("ERROR: Checksum failure on PMS5003");
     return false;
   }
 

@@ -31,7 +31,7 @@
 #define LUX_CALC_EXPONENT       -1.405
 
 //moisture
-#define WET_THRESHOLD           4
+#define WET_THRESHOLD           120
 
 class ADCHandler 
 {

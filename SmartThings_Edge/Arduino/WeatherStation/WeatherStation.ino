@@ -1,5 +1,6 @@
 #include "Debug.h"
 #include "logger.h"
+#include "version.h"
 #include "ULP.h"
 #include "WeatherWifi.h"
 #include "WeatherStation.h"
@@ -87,6 +88,7 @@ void postAdmin()
     doc["hubRainPort"] = hubRainPort; 
   doc["voltage"] = adcHandler.getVoltage();
   doc["wifi_strength"] = weatherWifi.getRSSI();
+  doc["firmware_version"] = SKETCH_VERSION;
   doc["health assesment"] = "n/a";
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
@@ -303,6 +305,13 @@ void loop(void)
 
     //listen for a bit
     weatherWifi.listen(HTTPSERVERTIME*1000);
+
+    //Since we're not deep sleeping (e.g. booting), be sure and read the wind/rain sensor when we read the others.  Otherwise, we'll do this on each boot.
+    if(currentTime()>=timeToReadSensors)
+    {
+      INFOPRINTLN("Reading wind and rain sensors (in loop)");
+      windRainHandler.storeSamples();    
+    }
   }
 
   //Read Sensors if it's time to  (each member function checks its own time)

@@ -106,15 +106,26 @@ int ADCHandler::readADC(int pin)
     tolerance = (MAX_ADC_READING*(TOLERANCE/100.0));
     if(stdDev<tolerance)
       break;
+
+    INFOPRINT("WARNING: ADC read's standard deviation was out of tolerance - trying again: (pin/avg/stdDev) ");
+    INFOPRINT(pin);
+    INFOPRINT("/");
+    INFOPRINT(mean);
+    INFOPRINT("/");
+    INFOPRINTLN(stdDev);
+    delay(500); 
   }
 
   //Throw error if we're messed up
   if(stdDev>tolerance)
   {
-    ERRORPRINT("ADC read's standard deviation was out of tolerance: (avg/stdDev) ");
+    ERRORPRINT("ERROR: ADC read's standard deviation was out of tolerance - returning zero: (pin/avg/stdDev) ");
+    INFOPRINT(pin);
+    INFOPRINT("/");
     ERRORPRINT(mean);
     ERRORPRINT("/");
     ERRORPRINTLN(stdDev);
+    mean=0;
   }
 
   return(mean);

@@ -6,7 +6,7 @@ void BME280Handler::init()
   //start things up
   unsigned status = bme.begin();  
   if (!status) {
-      ERRORPRINTLN("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
+      ERRORPRINTLN("ERROR: Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
   }  
 }
 

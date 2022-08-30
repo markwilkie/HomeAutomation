@@ -29,7 +29,7 @@ void WeatherWifi::startWifi()
       //Blink because we couldn't connect to wifi  (5x250)
       blinkLED(5,250,250);
 
-      ERRORPRINTLN("Could not connect to Wifi, restarting board");
+      ERRORPRINTLN("ERROR: Could not connect to Wifi, restarting board");
       ESP.restart();
     }
   }
@@ -59,7 +59,7 @@ void WeatherWifi::startWifi()
       //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      ERRORPRINT("OTA Error: ");
+      ERRORPRINT("ERROR: OTA Problem: ");
       ERRORPRINTLN(error);
       if (error == OTA_AUTH_ERROR) { ERRORPRINTLN("Auth Failed"); }
       else if (error == OTA_BEGIN_ERROR){ ERRORPRINTLN("Begin Failed"); }
@@ -149,7 +149,7 @@ DynamicJsonDocument WeatherWifi::readContent()
   {
       // if the file didn't open, print an error:
       sendErrorResponse("Error parsing json body! <br>" + (String)error.c_str());
-      ERRORPRINT("Error parsing JSON: ");
+      ERRORPRINT("ERROR: Problem parsing JSON: ");
       ERRORPRINTLN(error.c_str());        
   }
 
@@ -196,7 +196,7 @@ bool WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
   
   if (httpResponseCode<0)
   {
-    ERRORPRINT("Error from POST Code: ");
+    ERRORPRINT("ERROR: POST http Code: ");
     ERRORPRINTLN(httpResponseCode);
     handshakeRequired=true;
     success=false;
@@ -225,7 +225,7 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
 
   if (httpResponseCode<0)
   {
-    ERRORPRINT("Error from GET Code: ");
+    ERRORPRINT("ERROR: GET http Code: ");
     ERRORPRINTLN(httpResponseCode);
     handshakeRequired=true;
     return doc;
@@ -252,7 +252,7 @@ void WeatherWifi::sendErrorResponse(String errorString)
   serializeJson(doc, buf);
   server.send(400,"application/json",buf);
   
-  ERRORPRINTLN("Streaming error response.  No data found, or incorrect!");
+  ERRORPRINTLN("ERROR: Could not stream error response back to client.  No data found, or incorrect!");
 }
 
 // Manage not found URL
@@ -271,6 +271,6 @@ void WeatherWifi::handleNotFound()
   }
   server.send(404, "text/plain", message);
 
-  ERRORPRINT("404 Error: ");
+  ERRORPRINT("ERROR: 404 ");
   ERRORPRINTLN(message);
 }

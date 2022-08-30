@@ -19,21 +19,30 @@ void WindRainHandler::storeSamples()
   totalSpeed=totalSpeed+windSpeed;
   speedSamples++;
 
-  //rolling averages  - https://stackoverflow.com/questions/10990618/calculate-rolling-moving-average-in-c/10990656#10990656
-  //float alpha = 1.0/(WIFITIME/(float)timeSinceLastReading);   //number of buckets to calculate over
-  //float newAvgWindSpeed = (alpha * windSpeed) + (1.0 - alpha) * avgWindSpeed;
-
-  VERBOSEPRINT("-In StoreSamples -");
-  //VERBOSEPRINT(alpha);  
+  VERBOSEPRINT("In StoreSamples -");
   VERBOSEPRINT("  Wind Speed: (raw/avg) ");
   VERBOSEPRINT(windSpeed);  
-  VERBOSEPRINT(" ");
+  VERBOSEPRINT("/");
   VERBOSEPRINT(totalSpeed/(float)speedSamples); 
-  VERBOSEPRINT("   - wind Direction: ");
+  VERBOSEPRINT("   - Gust Speed: (current/old max) ");
+  VERBOSEPRINT(windGustSpeed);  
+  VERBOSEPRINT("/");
+  VERBOSEPRINT(maxGust);   
+  VERBOSEPRINT("   - Wind Direction: ");
   VERBOSEPRINTLN(windDirection);  
 
   //max gust (but makes sure it's within bounds)
-  if(windGustSpeed>maxGust && windGustSpeed<(windSpeed*GUSTLIMIT))
+  if(windGustSpeed>(windSpeed*GUSTLIMIT))
+  {
+    ERRORPRINT("WARNING: Gust is over limit, which probably means glitch.  (gust/limit): ");
+    ERRORPRINT(windGustSpeed);  
+    ERRORPRINT("/");  
+    ERRORPRINTLN(windSpeed);  
+    ERRORPRINTLN("Setting gust to last wind speed instead."); 
+
+    windGustSpeed=windSpeed;
+  }
+  if(windGustSpeed>maxGust)
     maxGust=windGustSpeed;  
 }
 
@@ -84,20 +93,10 @@ float WindRainHandler::getWindSpeed()
   totalSpeed=0;
   speedSamples=0;
   
-  VERBOSEPRINT("Wind Speed: (raw/avg) ");
-  VERBOSEPRINT(windSpeed);  
-  VERBOSEPRINT(" ");
-  VERBOSEPRINTLN(avgWindSpeed); 
-
   return avgWindSpeed;
 }
 float WindRainHandler::getWindGustSpeed()
 { 
-  VERBOSEPRINT("Wind Gust: (last/max) ");
-  VERBOSEPRINT(windGustSpeed);  
-  VERBOSEPRINT(" ");
-  VERBOSEPRINTLN(maxGust); 
-
   windGustSpeed=maxGust;
   maxGust=0;  //reset since we're reading
  
@@ -110,9 +109,6 @@ float WindRainHandler::getRainRate()
   return currentRainRate;
 }
 int WindRainHandler::getWindDirection()
-{
-  VERBOSEPRINT("Wind Dir: ");
-  VERBOSEPRINTLN(windDirection);  
-  
+{ 
   return windDirection;
 }

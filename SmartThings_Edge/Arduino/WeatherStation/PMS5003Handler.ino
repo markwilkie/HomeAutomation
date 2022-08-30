@@ -10,7 +10,7 @@ bool PMS5003Handler::storeSamples()
   bool success=pmsSensor.readPMSData();
   if(!success)
   {
-    ERRORPRINTLN("Unable to read PMS5003 Sensor");
+    ERRORPRINTLN("ERROR: Unable to read PMS5003 Sensor");
   }
   return success;
 }
