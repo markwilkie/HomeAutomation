@@ -8,7 +8,7 @@
 //
 //  Setup
 #define WIND_VANE_PIN     36          // wind vane pin */
-#define GUSTLIMIT         4           // x times wind speed.  supposed to catch glithes by making sure gust is not cazy higher than the wind speed generally
+#define GUSTLIMIT         7           // x times wind speed.  supposed to catch glithes by making sure gust is not cazy higher than the wind speed generally
 
 //Time keeping
 extern int currentTime();

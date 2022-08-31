@@ -185,9 +185,8 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
 DynamicJsonDocument refreshPMSDoc(DynamicJsonDocument doc) 
 {
  //pms 5003
- doc["pm03"] = pmsHandler.getPM0_3um();
- doc["pm25"] = pmsHandler.getPM2_5um();
- doc["pm100"] = pmsHandler.getPM10_0um();
+ doc["pm25"] = pmsHandler.getPM25Standard();;
+ doc["pm100"] = pmsHandler.getPM100Standard();;
  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
  
  return doc;

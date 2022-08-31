@@ -38,8 +38,7 @@ void ADCHandler::storeSamples()
 float ADCHandler::getVoltage()
 {
   float voltage=getVolts(_voltage*2);  //doubled because it's gone through a 10x10K divider;
-  VERBOSEPRINT("Voltage: ");
-  VERBOSEPRINT(voltage);
+  voltage=voltage*VOLTAGE_CALIB;
   
   return voltage;   
 }
@@ -47,8 +46,6 @@ float ADCHandler::getVoltage()
 long ADCHandler::getIllumination()
 {
   long ldr=getIllum(_ldr);   //1-100000 brightness;
-  VERBOSEPRINT(" LDR: ");
-  VERBOSEPRINT(ldr);
   
   return ldr;
 }
@@ -56,8 +53,6 @@ long ADCHandler::getIllumination()
 String ADCHandler::getMoisture()
 {
   String moisture=isWet(_moisture);
-  VERBOSEPRINT(" Moisture: ");
-  VERBOSEPRINTLN(moisture); 
     
   return moisture;
 }
@@ -65,8 +60,6 @@ String ADCHandler::getMoisture()
 float ADCHandler::getUV()
 {
   float uv=getUVIndex(_uv);
-  VERBOSEPRINT("UV: ");
-  VERBOSEPRINTLN(uv);  
     
   return uv;
 }
@@ -143,6 +136,8 @@ long ADCHandler::getIllum(int ldr_raw_data)
 
   //Now get voltage of the LDR itself 
   ldr_resistor_voltage = ADC_REF_VOLTAGE - ldr_voltage;
+  if(ldr_resistor_voltage<=0)
+    return 0;
 
   //Now we can find the actual resistance of the ldr
   ldr_resistance = (ldr_resistor_voltage/ldr_voltage)*LDR_REF_RESISTANCE;
@@ -171,7 +166,6 @@ double ADCHandler::getUVIndex(int adcReading)
   
   double outputVoltage = getVolts(adcReading);
   double uvIntensity = (outputVoltage - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-  uvIntensity = uvIntensity +(uvIntensity*.1);   //adding 10% because of plastic cover
   double index=uvIntensity * 1.61; 
 
   if(index<0)

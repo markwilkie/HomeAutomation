@@ -5,16 +5,15 @@
 #include "debug.h"
 
 //
-#define MAX_ADC_READING 4096  //4096 so we don't get div by zero
-#define ADC_REF_VOLTAGE 3.3
+#define MAX_ADC_READING 4095
+#define ADC_REF_VOLTAGE 3.3  
 #define SAMPLES   10          //number of samples to take
 #define WAITTIME  20          //time to wait between samples in ms
 #define TOLERANCE 1           //% of max adc reading to e used to determine if we need to resample
-#define MAXTRIES  3           //# of times we'll try and get a clean read that is within tolerance
-
+#define MAXTRIES  3           //# of times we'll try and get a clean read that is within tolerance  
 
 //adc pins
-#define VOLTAGE_PIN     15   //32
+#define VOLTAGE_PIN     15   //32 on doit board
 #define LDR_PIN         35
 #define MOISTURE_PIN    39
 #define UV_PIN          34
@@ -23,12 +22,15 @@
 #define UV_EN           27
 
 //sample setup
-#define ADC_SAMPLE_SEC     600                           //how often we're reading the sensor in seconds
+#define ADC_SAMPLE_SEC     600                //how often we're reading the sensor in seconds
 
 //lux
 #define LDR_REF_RESISTANCE      10000         //is the other resistor in the divider     
 #define LUX_CALC_SCALAR         12500000
 #define LUX_CALC_EXPONENT       -1.405
+
+//voltage
+#define VOLTAGE_CALIB           1.11          //calibration for calc'ing voltage
 
 //moisture
 #define WET_THRESHOLD           120
