@@ -4,12 +4,8 @@
 float WindRain::getWindSpeed(long timeSinceLastReading)
 { 
   int windPulsesRaw = ulp.getULPWindPulseCount();
-  VERBOSEPRINT("Wind Pulses: ");
-  VERBOSEPRINT(windPulsesRaw);
-  VERBOSEPRINT("  Time Elapsed: ");
-  VERBOSEPRINTLN(timeSinceLastReading);
-
   float wind = (((float)windPulsesRaw / (float)timeSinceLastReading) * WINDFACTOR) / 20.0;  //there's 20 pulses per revolution 
+  logger.log(VERBOSE,"Wind Pulses: %d, Time Elpased: %d, Calc'd speed: %f",windPulsesRaw,timeSinceLastReading,wind);
 
   return wind;
 }
@@ -17,9 +13,6 @@ float WindRain::getWindSpeed(long timeSinceLastReading)
 float WindRain::getWindGustSpeed()
 {
   uint32_t shortestWindPulseTime = ulp.getULPShortestWindPulseTime();
-  VERBOSEPRINT("Shortest wind pulse Time (ms): ");
-  VERBOSEPRINTLN((int)shortestWindPulseTime);
-
   if(shortestWindPulseTime==0)
     return 0;
 
@@ -27,16 +20,17 @@ float WindRain::getWindGustSpeed()
   float pulsesPerSec = TIMEFACTOR/shortestWindPulseTime;  
   float windGust = ((float)pulsesPerSec * WINDFACTOR) / 20; 
 
+  logger.log(VERBOSE,"Shortest wind pulse Time (ms): %d, calc'd speed: %f",(int)shortestWindPulseTime,windGust);
+
   return windGust;
 }
 
 float WindRain::getRainRate()
 {
   int rainPulsesRaw = ulp.getULPRainPulseCount();
-  VERBOSEPRINT("Rain Pulses: ");
-  VERBOSEPRINTLN(rainPulsesRaw);
-
   float inchesRain = (float)rainPulsesRaw*RAINFACTOR;
+
+  logger.log(VERBOSE,"Rain Pulses: %d, calc'd inches: %f",rainPulsesRaw,inchesRain);
 
   return inchesRain;
 }

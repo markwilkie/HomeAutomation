@@ -33,7 +33,7 @@
 #define VOLTAGE_CALIB           1.11          //calibration for calc'ing voltage
 
 //moisture
-#define WET_THRESHOLD           120
+#define WET_THRESHOLD           350
 
 class ADCHandler 
 {

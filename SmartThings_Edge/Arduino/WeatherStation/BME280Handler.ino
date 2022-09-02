@@ -1,12 +1,15 @@
 #include "BME280Handler.h"
 #include "EnvironmentCalculations.h"
 
+extern Logger logger;
+extern int currentTime();
+
 void BME280Handler::init()
 {
   //start things up
   unsigned status = bme.begin();  
   if (!status) {
-      ERRORPRINTLN("ERROR: Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
+      logger.log(ERROR,"Could not find a valid BME280 sensor");
   }  
 }
 
@@ -18,12 +21,7 @@ void BME280Handler::storeSamples()
   humidity=bme.readHumidity();
   readingTime=currentTime();
 
-  VERBOSEPRINT("Temperature: ");
-  VERBOSEPRINT(temperature);
-  VERBOSEPRINT("  Humidity: ");
-  VERBOSEPRINT(humidity);
-  VERBOSEPRINT("  Pressure: ");
-  VERBOSEPRINTLN(pressure);  
+  logger.log(VERBOSE,"Temperature: %f, Humidity: %f, Pressure: %f",temperature,humidity,pressure);
 }
 
 float BME280Handler::getTemperature()

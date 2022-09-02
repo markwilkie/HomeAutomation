@@ -90,3 +90,146 @@ void Logger::log(const char input[],bool cr)
   
  logCache[logCacheIndex]='\0';
 }
+
+/**
+ * --------------------------------------------------------------
+ * Perform simple printing of formatted data
+ * Supported conversion specifiers: 
+ *      d, i     signed int
+ *      u        unsigned int
+ *      ld, li   signed long
+ *      lu       unsigned long
+ *      f        double
+ *      c        char
+ *      s        string
+ *      %        '%'
+ * Usage: %[conversion specifier]
+ * Note: This function does not support these format specifiers: 
+ *      [flag][min width][precision][length modifier]
+ * 
+ * https://medium.com/@kslooi/print-formatted-data-in-arduino-serial-aaea9ca840e3
+ * --------------------------------------------------------------
+ */
+bool Logger::log(int logLevel,const char *fmt, ...) 
+{ 
+  /* buffer for storing the formatted data */
+  char buf[SERIAL_PRINTF_MAX_BUFF];
+  char *pbuf = buf;
+  bool bufferOverflow=false;
+  int len=0;
+  char *svar;
+  String astr;
+
+  //Let's make sure we're not out of bounds
+  if(strlen(fmt)>SERIAL_PRINTF_MAX_BUFF)
+  {
+    memcpy(buf,fmt,SERIAL_PRINTF_MAX_BUFF-1);
+    pbuf+=SERIAL_PRINTF_MAX_BUFF-1;
+    bufferOverflow=true;
+  }  
+  
+  /* pointer to the variable arguments list */
+  va_list pargs;
+  
+  /* Initialise pargs to point to the first optional argument */
+  va_start(pargs, fmt);
+  /* Iterate through the formatted string to replace all 
+  conversion specifiers with the respective values */
+  while(*fmt && !bufferOverflow) 
+  {
+    if(*fmt == '%') 
+    {
+      switch(*(++fmt)) 
+      {
+        case 'd': 
+        case 'i': 
+          if((pbuf-buf+10)>=SERIAL_PRINTF_MAX_BUFF){
+            bufferOverflow=true; }
+          else{
+            pbuf += sprintf(pbuf, "%d", va_arg(pargs, int));}
+          break;
+        case 'u': 
+          if((pbuf-buf+10)>=SERIAL_PRINTF_MAX_BUFF){
+            bufferOverflow=true; }
+          else{
+            pbuf += sprintf(pbuf, "%u", va_arg(pargs, unsigned int));}
+          break;
+        case 'l': 
+          switch(*(++fmt)) 
+          {
+            case 'd': 
+            case 'i': 
+              if((pbuf-buf+10)>=SERIAL_PRINTF_MAX_BUFF){
+                bufferOverflow=true; }
+              else{
+                pbuf += sprintf(pbuf, "%ld", va_arg(pargs, long));}
+              break;
+            case 'u': 
+              if((pbuf-buf+10)>=SERIAL_PRINTF_MAX_BUFF){
+                bufferOverflow=true; }
+              else{
+                pbuf += sprintf( pbuf, "%lu", va_arg(pargs, unsigned long));}           
+              break;
+          }
+          break;
+        case 'f': 
+          if((pbuf-buf+15)>=SERIAL_PRINTF_MAX_BUFF){
+            bufferOverflow=true; }
+          else{
+            pbuf += strlen(dtostrf( va_arg(pargs, double), 1, F_PRECISION, pbuf));}        
+          break;       
+        case 'c':
+          *(pbuf++) = (char)va_arg(pargs, int);
+          break;
+        case 's': 
+          svar=va_arg(pargs, char *);
+          len=strlen(svar);
+          if((pbuf-buf+len)>=SERIAL_PRINTF_MAX_BUFF){
+            bufferOverflow=true; }
+          else{           
+            pbuf += sprintf(pbuf, "%s", svar);}         
+          break;
+        case 'S': 
+          astr=va_arg(pargs, String);
+          len=strlen(astr.c_str());
+          if((pbuf-buf+len)>=SERIAL_PRINTF_MAX_BUFF){
+            bufferOverflow=true; }
+          else{           
+            pbuf += sprintf(pbuf, "%s", astr.c_str());}         
+          break;
+        case '%':
+          *(pbuf++) = '%';
+          break;
+        default:
+          break;
+      }
+    }
+    else 
+    {
+      *(pbuf++) = *fmt;
+    }
+
+    fmt++;
+  }
+  
+  *pbuf = '\0';
+  
+  va_end(pargs);
+
+  if(bufferOverflow)
+  {
+    ERRORPRINTLN("Buffer overflow in logs - truncating.");
+  }
+
+  if(logLevel==INFO) {
+    INFOPRINTLN(buf); }
+  else if(logLevel==WARNING) {
+    WARNPRINTLN(buf); }
+  else if(logLevel==ERROR) {
+    ERRORPRINTLN(buf); }
+  else {
+    VERBOSEPRINTLN(buf); }
+  
+  //Serial.print(buf);
+  return !bufferOverflow;
+}

@@ -59,13 +59,12 @@ void syncSettings()
   wifiOnly= doc["wifionly_flag"];
   millisAtEpoch = millis();
 
-  INFOPRINT("Setting Epoch to ");
-  INFOPRINTLN(epoch);
+  logger.log(INFO,"Setting Epoch to %ld",epoch);
 
   if(wifiOnly) {
-    INFOPRINTLN("-------------> Wifi is on and ESP will not sleep - ready for OTA"); }
+    logger.log(WARNING,"-------------> Wifi is on and ESP will not sleep - ready for OTA"); }
   else {
-    INFOPRINTLN("-------------> ESP will sleep now - ready for normal operation"); }
+    logger.log(INFO,"-------------> ESP will sleep now - ready for normal operation"); }
 
   //Send settings back
   postAdmin();
@@ -96,7 +95,7 @@ void postAdmin()
   if(!weatherWifi.sendPostMessage("/admin",doc,hubAdminPort))
     hubAdminPort=0;
 
-  INFOPRINTLN("Posted admin data...");
+  logger.log(INFO,"Posted admin data...");
 }
 
 //refresh wind data
@@ -108,7 +107,8 @@ void postWind()
   //wind
   DynamicJsonDocument doc(512);
   doc["wind_speed"] = windRainHandler.getWindSpeed();
-  doc["wind_direction"] = windRainHandler.getWindDirection();
+  doc["wind_direction"] = windRainHandler.getDirectionInDeg();
+  doc["wind_direction_label"] = windRainHandler.getDirectionLabel();
   doc["wind_gust"] = windRainHandler.getWindGustSpeed();
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
@@ -116,7 +116,7 @@ void postWind()
   if(!weatherWifi.sendPostMessage("/wind",doc,hubWindPort))
     hubWeatherPort=0;
 
-  INFOPRINTLN("Posted wind data...");
+  logger.log(INFO,"Posted wind data...");
 }
 
 void postRain() 
@@ -134,7 +134,7 @@ void postRain()
   if(!weatherWifi.sendPostMessage("/rain",doc,hubRainPort))
     hubRainPort=0;
 
-  INFOPRINTLN("Posted rain data...");
+  logger.log(INFO,"Posted rain data...");
 }
 
 //refresh weather data
@@ -153,7 +153,7 @@ void postWeather()
   if(!weatherWifi.sendPostMessage("/weather",doc,hubWeatherPort))
     hubRainPort=0;
   
-  INFOPRINTLN("Posted general weather data...");
+  logger.log(INFO,"Posted general weather data...");
 }
 
 //refresh bme data
@@ -214,10 +214,7 @@ void syncWithHub()
       if(deviceName.equals("rain"))
         hubRainPort = doc["hubPort"].as<int>();
 
-      INFOPRINT("Hub info: ");
-      INFOPRINT("Device: " + deviceName + "  IP: " + ip + ":" + doc["hubPort"].as<int>());
-      INFOPRINT("  Epoch: ");
-      INFOPRINTLN(epoch);
+      logger.log(VERBOSE,"Hub info - Device: %s, IP: %S, Port: %d, Epoch: %ld",deviceName,ip,doc["hubPort"].as<int>(),epoch);
     
       // Create the response
       // To get the status of the result you can get the http status so
@@ -238,7 +235,7 @@ void setup(void)
   Serial.begin(115200);
   #endif
 
-  INFOPRINTLN("--------------------------");
+  logger.log(INFO,"--------------------------");
 
   //setup LED pin
   pinMode(LED_BUILTIN, OUTPUT);
@@ -248,7 +245,7 @@ void setup(void)
 
   //read wind and rain sensor  (it's hear because we must be sure to read (clear) the register during windy conditions so there's no overflow
   //   it is known that on initial boot, there's no epoch which makes the canculations for wind be invalid.  a full  cycle must be waited for and it'll clear itself
-  INFOPRINTLN("Reading wind and rain sensors");
+  logger.log(INFO,"Reading wind and rain sensors");
   windRainHandler.storeSamples();
 }
 
@@ -260,16 +257,12 @@ void initialSetup()
 
     //free heap
     float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
-    INFOPRINT("Free Heap: (376360 is an empty sketch) ");
-    INFOPRINT((int)ESP.getFreeHeap());
-    INFOPRINT(" -  ");
-    INFOPRINT(heap);
-    INFOPRINTLN("% used");
+    logger.log(INFO,"Free Heap: %d or %f% used",(int)ESP.getFreeHeap(),heap);
 
     //Setting up flash 
     //preferences.begin("weather", false); 
       
-    INFOPRINTLN("Setting up ULP so we can count pulses and hold pins while in deep sleep...  (only does this on first boot)");
+    logger.log(INFO,"Setting up ULP so we can count pulses and hold pins while in deep sleep...  (only does this on first boot)");
     ulp.setupULP();
     ulp.setupWindPin();
     ulp.setupRainPin();
@@ -308,7 +301,7 @@ void loop(void)
     //Since we're not deep sleeping (e.g. booting), be sure and read the wind/rain sensor when we read the others.  Otherwise, we'll do this on each boot.
     if(currentTime()>=timeToReadSensors)
     {
-      INFOPRINTLN("Reading wind and rain sensors (in loop)");
+      logger.log(INFO,"Reading wind and rain sensors (in loop)");
       windRainHandler.storeSamples();    
     }
   }
@@ -348,7 +341,7 @@ void readSensors()
   if(currentTime()<timeToReadSensors)
     return;
 
-  INFOPRINTLN("Reading BME and ADC sensors");  
+  logger.log(INFO,"Reading BME and ADC sensors");  
   bmeHandler.init();
   adcHandler.init();
   delay(200);
@@ -360,12 +353,20 @@ void readSensors()
 
 void readAirSensor()
 {
+  //Check time 
   if(currentTime()<timeToReadAir)
     return;
 
+  //Check if we've got enough voltage.  At night, there's usually less than 5v and readings are wonky
+  if(adcHandler.getVoltage()<PMSMINVOLTAGE)
+  {
+    logger.log(WARNING,"Voltage too low to take a PMS5003 reading (%f volts)",adcHandler.getVoltage());
+    return;
+  }
+
   if(!airWarmedUp)
   {
-    INFOPRINTLN("Warming up air sensor");    
+    logger.log(INFO,"Warming up air sensor");    
     ulp.setAirPinHigh(true);
     airWarmedUp=true;
     timeToReadAir=currentTime()+TIMEDEEPSLEEP-(TIMEDEEPSLEEP*.1);  //warm up for at least a deep sleep cycle w/ a little buffer
@@ -374,7 +375,7 @@ void readAirSensor()
 
   if(airWarmedUp)
   {
-    INFOPRINTLN("Reading air now that it's warmed up.");    
+    logger.log(INFO,"Reading air now that it's warmed up.");    
     pmsHandler.init();
     pmsHandler.storeSamples();
     
@@ -388,7 +389,7 @@ void readAirSensor()
 
 void sleep(void) 
 {
-  INFOPRINTLN("Going to ESP deep sleep for " + String(TIMEDEEPSLEEP) + " seconds...  (night night)");
+  logger.log(INFO,"Going to ESP deep sleep for %d seconds.  (night night)",TIMEDEEPSLEEP);
   
   esp_sleep_enable_timer_wakeup(TIMEDEEPSLEEP * TIMEFACTOR);
 

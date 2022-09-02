@@ -1,5 +1,7 @@
 #include "ADCHandler.h"
 
+extern Logger logger;
+
 void ADCHandler::init()
 {
   pinMode(VOLTAGE_PIN, INPUT);
@@ -22,14 +24,7 @@ void ADCHandler::storeSamples()
   _moisture = readADC(MOISTURE_PIN);
   _uv = readADC(UV_PIN);
 
-  VERBOSEPRINT("RAW ADC VALUES: voltage: ");
-  VERBOSEPRINT(_voltage);
-  VERBOSEPRINT("  ldr: ");
-  VERBOSEPRINT(_ldr);
-  VERBOSEPRINT("  moisture: ");
-  VERBOSEPRINT(_moisture);  
-  VERBOSEPRINT("  uv: ");
-  VERBOSEPRINTLN(_uv);     
+  logger.log(VERBOSE,"RAW ADC VALUES: voltage: %d, LDR: %d, Moisture: %d, UV: %d",_voltage,_ldr,_moisture,_uv);  
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
@@ -100,24 +95,14 @@ int ADCHandler::readADC(int pin)
     if(stdDev<tolerance)
       break;
 
-    INFOPRINT("WARNING: ADC read's standard deviation was out of tolerance - trying again: (pin/avg/stdDev) ");
-    INFOPRINT(pin);
-    INFOPRINT("/");
-    INFOPRINT(mean);
-    INFOPRINT("/");
-    INFOPRINTLN(stdDev);
+    logger.log(WARNING,"ADC read's standard deviation was out of tolerance - trying again (pin/avg/stdDev) %d/%f/%f",pin,mean,stdDev);
     delay(500); 
   }
 
   //Throw error if we're messed up
   if(stdDev>tolerance)
   {
-    ERRORPRINT("ERROR: ADC read's standard deviation was out of tolerance - returning zero: (pin/avg/stdDev) ");
-    INFOPRINT(pin);
-    INFOPRINT("/");
-    ERRORPRINT(mean);
-    ERRORPRINT("/");
-    ERRORPRINTLN(stdDev);
+    logger.log(WARNING,"ADC read's standard deviation was out of tolerance - returning zero: (pin/avg/stdDev) %d/%f/%f",pin,mean,stdDev);
     mean=0;
   }
 

@@ -7,8 +7,9 @@ extern Logger logger;
 #ifndef PMS5003_H
 #define PMS5003_H
 
-#define TIMEOUT     5000  //how long to wait for data before erroring in ms
-#define TOTALTRIES  10    //how often to try while waiting to timeout
+#define PMSTIMEOUT      5000  //how long to wait for data before erroring in ms
+#define PMSTOTALTRIES   10    //how often to try while waiting to timeout
+#define PMSMINVOLTAGE   4.0   //won't try and get a reading if below this voltage
 
 struct pms5003data 
 {

@@ -77,13 +77,13 @@ bool PMS5003::readPMSData()
   {
     tryNumber++;
     
-    if(tryNumber>TOTALTRIES)
+    if(tryNumber>PMSTOTALTRIES)
     {
-      ERRORPRINTLN("ERROR: Timed out waiting for data from PMS5003 air quality sensor");
+      logger.log(ERROR,"Timed out waiting for data from PMS5003 air quality sensor");
       return false;
     }
     
-    delay((TIMEOUT/TOTALTRIES));
+    delay((PMSTIMEOUT/PMSTOTALTRIES));
   }
   
   // Read a byte at a time until we get to the special '0x42' start-byte
@@ -124,7 +124,7 @@ bool PMS5003::readPMSData()
   memcpy((void *)&data, (void *)buffer_u16, 30);
  
   if (sum != data.checksum) {
-    ERRORPRINTLN("ERROR: Checksum failure on PMS5003");
+    logger.log(ERROR,"Checksum failure on PMS5003");
     return false;
   }
 
@@ -133,24 +133,16 @@ bool PMS5003::readPMSData()
   pm25_standard=data.pm25_standard;
   pm100_standard=data.pm100_standard;  
 
-  VERBOSEPRINTLN("---------------------------------------");
-  VERBOSEPRINTLN("Concentration Units (standard)");
-  VERBOSEPRINT("PM 1.0: "); VERBOSEPRINT(data.pm10_standard);
-  VERBOSEPRINT("\t\tPM 2.5: "); VERBOSEPRINT(data.pm25_standard);
-  VERBOSEPRINT("\t\tPM 10: "); VERBOSEPRINTLN(data.pm100_standard);
-  VERBOSEPRINTLN("---------------------------------------");
-  VERBOSEPRINTLN("Concentration Units (environmental)");
-  VERBOSEPRINT("PM 1.0: "); VERBOSEPRINT(data.pm10_env);
-  VERBOSEPRINT("\t\tPM 2.5: "); VERBOSEPRINT(data.pm25_env);
-  VERBOSEPRINT("\t\tPM 10: "); VERBOSEPRINTLN(data.pm100_env);
-  VERBOSEPRINTLN("---------------------------------------");
-  VERBOSEPRINT("Particles > 0.3um / 0.1L air:"); VERBOSEPRINTLN(data.particles_03um);
-  VERBOSEPRINT("Particles > 0.5um / 0.1L air:"); VERBOSEPRINTLN(data.particles_05um);
-  VERBOSEPRINT("Particles > 1.0um / 0.1L air:"); VERBOSEPRINTLN(data.particles_10um);
-  VERBOSEPRINT("Particles > 2.5um / 0.1L air:"); VERBOSEPRINTLN(data.particles_25um);
-  VERBOSEPRINT("Particles > 5.0um / 0.1L air:"); VERBOSEPRINTLN(data.particles_50um);
-  VERBOSEPRINT("Particles > 10.0 um / 0.1L air:"); VERBOSEPRINTLN(data.particles_100um);
-  VERBOSEPRINTLN("---------------------------------------"); 
+  logger.log(VERBOSE,"---------------------------------------");
+  logger.log(VERBOSE,"Concentration Standard Units PM 1.0: %d, PM 2.5: %d, PM 10: %d",data.pm10_standard,data.pm25_standard,data.pm100_standard);
+  logger.log(VERBOSE,"---------------------------------------");
+  logger.log(VERBOSE,"Particles > 0.3um / 0.1L air: %d",data.particles_03um);
+  logger.log(VERBOSE,"Particles > 0.5um / 0.1L air: %d",data.particles_05um);
+  logger.log(VERBOSE,"Particles > 1.0um / 0.1L air: %d",data.particles_10um);
+  logger.log(VERBOSE,"Particles > 2.5um / 0.1L air: %d",data.particles_25um);
+  logger.log(VERBOSE,"Particles > 5.0um / 0.1L air: %d",data.particles_50um);
+  logger.log(VERBOSE,"Particles > 10.0 um / 0.1L air: %d",data.particles_100um);
+  logger.log(VERBOSE,"---------------------------------------"); 
   
   // success!
   return true;

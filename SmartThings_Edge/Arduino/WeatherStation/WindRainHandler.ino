@@ -11,7 +11,7 @@ void WindRainHandler::storeSamples()
   
   //Store immediate values
   windSpeed=windRain.getWindSpeed(timeSinceLastReading);
-  windDirection=calcWindDirection();
+  rawDirectioninDegrees=calcWindDirection();
   windGustSpeed=windRain.getWindGustSpeed();
   rainRate=rainRate+windRain.getRainRate();
 
@@ -19,27 +19,12 @@ void WindRainHandler::storeSamples()
   totalSpeed=totalSpeed+windSpeed;
   speedSamples++;
 
-  VERBOSEPRINT("In StoreSamples -");
-  VERBOSEPRINT("  Wind Speed: (raw/avg) ");
-  VERBOSEPRINT(windSpeed);  
-  VERBOSEPRINT("/");
-  VERBOSEPRINT(totalSpeed/(float)speedSamples); 
-  VERBOSEPRINT("   - Gust Speed: (current/old max) ");
-  VERBOSEPRINT(windGustSpeed);  
-  VERBOSEPRINT("/");
-  VERBOSEPRINT(maxGust);   
-  VERBOSEPRINT("   - Wind Direction: ");
-  VERBOSEPRINTLN(windDirection);  
+  logger.log(VERBOSE,"Samples - Wind Speed: (raw/avg) %f/%f, Gust Speed: (current/old max) %f/%f, Direction: %d",windSpeed,totalSpeed/(float)speedSamples,windGustSpeed,maxGust,rawDirectioninDegrees);
 
   //max gust (but makes sure it's within bounds)
   if(windGustSpeed>(windSpeed*GUSTLIMIT))
   {
-    ERRORPRINT("WARNING: Gust is over limit, which probably means glitch.  (gust/limit): ");
-    ERRORPRINT(windGustSpeed);  
-    ERRORPRINT("/");  
-    ERRORPRINTLN(windSpeed);  
-    ERRORPRINTLN("Setting gust to last wind speed instead."); 
-
+    logger.log(WARNING,"Gust is over limit, setting to last wind speed.  (gust/limit): %f/%f",windGustSpeed,windSpeed*GUSTLIMIT);
     windGustSpeed=windSpeed;
   }
   if(windGustSpeed>maxGust)
@@ -56,9 +41,7 @@ int WindRainHandler::calcWindDirection()
     delay(10);
   }
   adcValue=adcValue/smoothingLoop;
-  
-  VERBOSEPRINT("Wind vane raw ADC: ");
-  VERBOSEPRINTLN(adcValue);
+  logger.log(VERBOSE,"Wind vane raw ADC: %d",adcValue);
 
   //
   // the variable resistor in the voltage divider has a huge dead spot and is non-linear
@@ -108,7 +91,42 @@ float WindRainHandler::getRainRate()
   rainRate=0;  //reset because we're reading
   return currentRainRate;
 }
-int WindRainHandler::getWindDirection()
+int WindRainHandler::getDirectionInDeg()
+{
+  int dir=rawDirectioninDegrees+WIND_DIR_OFFSET;
+  if(dir>359)
+    dir=dir-359;
+  if(dir<0)
+    dir=dir+359;
+
+  logger.log(VERBOSE,"Wind Direction adjusted: %d",dir);      
+
+  return dir;
+}
+
+String WindRainHandler::getDirectionLabel()
 { 
-  return windDirection;
+  String dirLabel="-";
+  int dir=getDirectionInDeg();
+  
+  if(dir>=338 || dir<=22) 
+    dirLabel="N";
+  if(dir>22 && dir<68) 
+    dirLabel="NE";   
+  if(dir>=68 && dir<=112) 
+    dirLabel="E";    
+  if(dir>112 && dir<158) 
+    dirLabel="SE";    
+  if(dir>=158 && dir<=202) 
+    dirLabel="S";    
+  if(dir>202 && dir<248) 
+    dirLabel="SW";  
+  if(dir>=248 && dir<=292) 
+    dirLabel="W";     
+  if(dir>292 && dir<338) 
+    dirLabel="NW";  
+
+  logger.log(VERBOSE,"Wind Direction Label: %S",dirLabel);    
+
+  return dirLabel;
 }

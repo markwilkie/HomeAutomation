@@ -10,7 +10,7 @@ void WeatherWifi::startWifi()
   esp_wifi_start();
   WiFi.disconnect(false);  // Reconnect the network
   WiFi.mode(WIFI_STA);    // Switch WiFi on
-  INFOPRINTLN("Wifi enabled...");
+  logger.log(INFO,"Wifi enabled...");
   
   //Setup wifi
   WiFi.mode(WIFI_STA);
@@ -18,27 +18,23 @@ void WeatherWifi::startWifi()
  
   // Wait for connection
   int connectCount = 0;
-  INFOPRINT("Connecting to WIFI ");  
+  logger.log(INFO,"Connecting to WIFI ");  
   while (WiFi.status() != WL_CONNECTED) 
   {
     connectCount++;
     delay(500);
-    INFOPRINT(".");
+    VERBOSEPRINT(".");
     if(connectCount>40)
     {
       //Blink because we couldn't connect to wifi  (5x250)
       blinkLED(5,250,250);
 
-      ERRORPRINTLN("ERROR: Could not connect to Wifi, restarting board");
+      logger.log(ERROR,"Could not connect to Wifi, restarting board");
       ESP.restart();
     }
   }
 
-  INFOPRINTLN("");
-  INFOPRINT("Connected to ");
-  INFOPRINT(SSID);
-  INFOPRINT("  IP address: ");
-  INFOPRINTLN(WiFi.localIP().toString());
+  logger.log(INFO,"Connected to %s, IP: %S",SSID,WiFi.localIP().toString());
 
   //Init OTA
   ArduinoOTA
@@ -50,22 +46,21 @@ void WeatherWifi::startWifi()
         type = "filesystem";
 
       // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      INFOPRINTLN("Starting OTA updating ");
+      logger.log(WARNING,"Starting OTA updating ");
     })
     .onEnd([]() {
-      INFOPRINTLN("\nEnd OTA");
+      logger.log(INFO,"\nEnd OTA");
     })
     .onProgress([](unsigned int progress, unsigned int total) {
       //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      ERRORPRINT("ERROR: OTA Problem: ");
-      ERRORPRINTLN(error);
-      if (error == OTA_AUTH_ERROR) { ERRORPRINTLN("Auth Failed"); }
-      else if (error == OTA_BEGIN_ERROR){ ERRORPRINTLN("Begin Failed"); }
-      else if (error == OTA_CONNECT_ERROR){ ERRORPRINTLN("Connect Failed"); }
-      else if (error == OTA_RECEIVE_ERROR) { ERRORPRINTLN("Receive Failed"); }
-       else if (error == OTA_END_ERROR) { ERRORPRINTLN("End Failed"); }
+      logger.log(ERROR,"OTA Problem: %s",error);
+      if (error == OTA_AUTH_ERROR) { logger.log(ERROR,"Auth Failed"); }
+      else if (error == OTA_BEGIN_ERROR){ logger.log(ERROR,"Begin Failed"); }
+      else if (error == OTA_CONNECT_ERROR){ logger.log(ERROR,"Connect Failed"); }
+      else if (error == OTA_RECEIVE_ERROR) { logger.log(ERROR,"Receive Failed"); }
+       else if (error == OTA_END_ERROR) { logger.log(ERROR,"End Failed"); }
     });
 
   ArduinoOTA.begin();
@@ -84,7 +79,7 @@ void WeatherWifi::startServer()
   //server.onNotFound(handleNotFound);
   server.begin();
   serverOnFlag=true;
-  INFOPRINTLN("HTTP server started");  
+  logger.log(INFO,"HTTP server started");  
 }
 
 bool WeatherWifi::isServerOn()
@@ -103,7 +98,7 @@ void WeatherWifi::disableWifi()
   WiFi.mode(WIFI_OFF);    // Switch WiFi off
   esp_wifi_stop();
   serverOnFlag=false;
-  INFOPRINTLN("Wifi disabled...");  
+  logger.log(INFO,"Wifi disabled...");  
 }
 
 bool WeatherWifi::isConnected()
@@ -119,7 +114,7 @@ int WeatherWifi::getRSSI()
 void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
-  VERBOSEPRINTLN("Listening on http and OTA");
+  logger.log(INFO,"Listening on http and OTA");
   long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
   {
@@ -149,8 +144,7 @@ DynamicJsonDocument WeatherWifi::readContent()
   {
       // if the file didn't open, print an error:
       sendErrorResponse("Error parsing json body! <br>" + (String)error.c_str());
-      ERRORPRINT("ERROR: Problem parsing JSON: ");
-      ERRORPRINTLN(error.c_str());        
+      logger.log(ERROR,"Problem parsing JSON: %S",error);      
   }
 
   return doc;
@@ -184,20 +178,19 @@ bool WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
   // Your Domain name with URL path or IP address with path
   String ip = String(hubAddress);
   String address="http://"+ip+":"+hubPort+url;
-  INFOPRINTLN("Hub Address: "+address);
+  logger.log(INFO,"Hub Address: %S",address);
   http.begin(client,address.c_str());
   http.addHeader("Content-Type", "application/json");
 
   // Send HTTP POST request
   String buf;
   serializeJson(doc, buf);
-  INFOPRINTLN("Content: "+buf);
+  logger.log(INFO,"Content: %S",buf);
   int httpResponseCode = http.POST(buf);
   
   if (httpResponseCode<0)
   {
-    ERRORPRINT("ERROR: POST http Code: ");
-    ERRORPRINTLN(httpResponseCode);
+    logger.log(ERROR,"POST http Code: %d",httpResponseCode);
     handshakeRequired=true;
     success=false;
   }
@@ -217,7 +210,7 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
   // Your Domain name with URL path or IP address with path
   String ip = String(hubAddress);
   String address="http://"+ip+":"+hubPort+url;
-  INFOPRINTLN("Hub Address: "+address);
+  logger.log(INFO,"Hub Address: %S",address);
   http.begin(client,address.c_str());
 
   // Send HTTP GET request
@@ -225,8 +218,7 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
 
   if (httpResponseCode<0)
   {
-    ERRORPRINT("ERROR: GET http Code: ");
-    ERRORPRINTLN(httpResponseCode);
+    logger.log(ERROR,"GET http Code: %d",httpResponseCode);
     handshakeRequired=true;
     return doc;
   }
@@ -252,7 +244,7 @@ void WeatherWifi::sendErrorResponse(String errorString)
   serializeJson(doc, buf);
   server.send(400,"application/json",buf);
   
-  ERRORPRINTLN("ERROR: Could not stream error response back to client.  No data found, or incorrect!");
+  logger.log(ERROR,"Could not stream error response back to client.  No data found, or incorrect!");
 }
 
 // Manage not found URL
@@ -271,6 +263,5 @@ void WeatherWifi::handleNotFound()
   }
   server.send(404, "text/plain", message);
 
-  ERRORPRINT("ERROR: 404 ");
-  ERRORPRINTLN(message);
+  logger.log(ERROR,"404 - %S",message);
 }
