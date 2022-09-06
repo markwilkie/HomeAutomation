@@ -18,6 +18,7 @@ local datetime = capabilities["radioamber53161.datetime"]
 local windspeed = capabilities["radioamber53161.windspeed"]
 local windgust = capabilities["radioamber53161.windgust"]
 local winddirection = capabilities["radioamber53161.winddirection"]
+local winddirectiontext = capabilities["radioamber53161.winddirectiontext"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
@@ -27,21 +28,8 @@ local discovery = require "discovery"
 -- local functions
 -----------------------------------------------------------------
 
-local function adjustWindDirection(currentDir)
-  currentDir=globals.windVaneOffset+currentDir
-  local adjWindDir=currentDir
-  if(currentDir>359) then
-    adjWindDir=currentDir-359
-  end
-  if(currentDir<0) then
-    adjWindDir=currentDir+359
-  end
-
-  return adjWindDir
-end
-
 function RefreshWind(content)
-  log.info("Refreshing Wind Data...")
+  log.debug("Refreshing Wind Data...")
   
   commonglobals.lastHeardFromESP = os.time()
   commonglobals.handshakeRequired = false
@@ -50,7 +38,7 @@ function RefreshWind(content)
   local jsondata = json.decode(content);
   globals.windSpeed = tonumber(string.format("%.1f", jsondata.wind_speed))
   globals.windGust = tonumber(string.format("%.1f", jsondata.wind_gust))
-  globals.winddirection = adjustWindDirection(jsondata.wind_direction)
+  globals.winddirection = jsondata.wind_direction_label .. " (" .. jsondata.wind_direction .. "°)"
   globals.currentTime = os.date("%a %X", jsondata.current_time)
 
   --adding to the data store so we can get max
@@ -59,23 +47,23 @@ function RefreshWind(content)
   --get max gust info
   local gusttime, gustspeed, gustdirection = winddatastore.findMaxGust()
   globals.windGustLast12 = tonumber(string.format("%.1f", gustspeed))
-  globals.windGustDirectionLast12 = adjustWindDirection(gustdirection)
+  globals.windGustDirectionLast12 = gustdirection
   globals.windGustTimeLast12 = os.date("%a %X", gusttime)
 end
 
 -- Get latest wind updates
 local function emitWindData(driver, device)
-  log.info(string.format("[%s] Emiting Wind Data", device.device_network_id))
+  log.info("Emiting Wind Data")
 
   --setting preferences
   globals.windVaneOffset=device.preferences.windVaneOffset  
 
-  device:emit_event(windspeed.speed(globals.windSpeed))
-  device:emit_event(winddirection.direction(globals.winddirection))
   device:emit_event(windgust.gust(globals.windGust))
+  device:emit_event(windspeed.speed(globals.windSpeed))
+  device:emit_event(winddirectiontext.directiontext(globals.winddirection))
   device:emit_event(datetime.datetime(globals.currentTime))
   device:emit_component_event(device.profile.components['last12'],windgust.gust(globals.windGustLast12))
-  device:emit_component_event(device.profile.components['last12'],winddirection.direction(globals.windGustDirectionLast12))
+  device:emit_component_event(device.profile.components['last12'],winddirectiontext.directiontext(globals.windGustDirectionLast12))
   device:emit_component_event(device.profile.components['last12'],datetime.datetime(globals.windGustTimeLast12))
 
   return true
@@ -87,7 +75,7 @@ end
 
 -- refresh handler
 local function refresh(driver, device)
-  log.debug(string.format("[%s] Calling refresh", device.device_network_id))
+  log.info("Calling refresh...")
 
   --check if we've heard from devices lately
   if os.time() > (commonglobals.lastHeardFromESP + 650) then

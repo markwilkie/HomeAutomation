@@ -1,0 +1,22 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Direction: {{directiontext.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Wind Direction",
+            "displayType": "state",
+            "state": {
+                "label": "{{directiontext.value}}"
+            }
+        } 
+    ],
+    "id": "radioamber53161.winddirectiontext",
+    "version": 1
+}

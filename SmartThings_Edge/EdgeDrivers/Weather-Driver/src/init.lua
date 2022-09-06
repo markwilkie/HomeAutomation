@@ -24,13 +24,20 @@ local datetime = capabilities["radioamber53161.datetime"]
 -----------------------------------------------------------------
 
 function RefreshWeather(content)
-  log.info("Refreshing Weather Data")
+  log.debug("Refreshing Weather Data")
   
   commonglobals.lastHeardFromESP = os.time()
   commonglobals.handshakeRequired = false
   commonglobals.newDataAvailable = true
 
   local jsondata = json.decode(content);
+
+  --Set read time if we have a new one
+  if jsondata.pms_read_time ~= globals.lastpmsreadtime and jsondata.pms_read_time > 0 then
+    globals.lastpmsreadtime = jsondata.pms_read_time
+  end
+
+  --Ok, now fill the rest of the globals
   globals.currentTime = os.date("%a %X", jsondata.current_time)
   globals.temperature = tonumber(string.format("%.1f", jsondata.temperature))
   globals.heatindex = tonumber(string.format("%.1f", jsondata.heat_index))
@@ -39,8 +46,8 @@ function RefreshWeather(content)
   globals.dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
   globals.uvIndex = tonumber(string.format("%.1f", jsondata.uv))
   globals.ldr = jsondata.ldr
-  globals.pm25 = jsondata.pm25
-  globals.pm100 = jsondata.pm100
+  globals.pm25 = jsondata.pm25AQI
+  globals.pm100 = jsondata.pm100AQI
 
   --adding to the data store so we can do historical calc
   weatherdatastore.insertData(jsondata.current_time,globals.temperature,globals.pressure)
@@ -52,7 +59,7 @@ end
 
 -- Get latest weather updates
 local function emitWeatherData(driver, device)
-  log.info(string.format("[%s] Emiting Weather Data", device.device_network_id))
+  log.info("Emiting Weather Data")
 
   device:emit_event(capabilities.temperatureMeasurement.temperature({value = globals.temperature, unit = 'F'}))
   device:emit_event(capabilities.relativeHumidityMeasurement.humidity(globals.humidity))
@@ -76,7 +83,7 @@ end
 
 -- refresh handler
 local function refresh(driver, device)
-  log.debug(string.format("[%s] Calling refresh", device.device_network_id))
+  log.info("Calling Refresh")
 
   --check if we've heard from devices lately
   if os.time() > (commonglobals.lastHeardFromESP + 650) then

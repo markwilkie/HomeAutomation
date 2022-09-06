@@ -9,9 +9,9 @@ components:
   - id: radioamber53161.windgust
     version: 1 
   - id: radioamber53161.windspeed
-    version: 1
-  - id: radioamber53161.winddirection
-    version: 1  
+    version: 1 
+  - id: radioamber53161.winddirectiontext
+    version: 1 
   - id: radioamber53161.datetime
     version: 1    
 - id: last12
@@ -21,18 +21,8 @@ components:
     version: 1
   - id: radioamber53161.windgust
     version: 1      
-  - id: radioamber53161.winddirection
+  - id: radioamber53161.winddirectiontext
     version: 1  
   - id: radioamber53161.datetime
     version: 1
-preferences:
-  - title: "WindVane Offset"
-    name: windVaneOffset
-    description: "Offset for windvane"
-    required: true
-    preferenceType: integer 
-    definition:
-      minimum: -180
-      maximum: 180
-      default: 0
     

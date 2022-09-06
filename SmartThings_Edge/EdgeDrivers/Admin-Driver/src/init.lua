@@ -24,7 +24,7 @@ local discovery = require "discovery"
 -----------------------------------------------------------------
 
 function RefreshAdmin(content)
-  log.info("Refreshing Admin Data")
+  log.debug("Refreshing Admin Data")
   
   commonglobals.lastHeardFromESP = os.time()
   commonglobals.handshakeRequired = false
@@ -32,13 +32,13 @@ function RefreshAdmin(content)
 
   local jsondata = json.decode(content)
   globals.rssi = jsondata.wifi_strength
-  globals.voltage = jsondata.voltage
+  globals.voltage = tonumber(string.format("%.1f", jsondata.voltage))
   globals.currentTime = os.date("%a %X", jsondata.current_time)
 end
 
 -- Get latest admin updates
 local function emitAdminData(driver, device)
-  log.info(string.format("[%s] Emiting Admin Data", device.device_network_id))
+  log.info("Emiting Admin Data")
 
   device:emit_event(capabilities.signalStrength.rssi(globals.rssi))
   device:emit_event(capabilities.voltageMeasurement.voltage(globals.voltage))
@@ -53,7 +53,7 @@ end
 
 -- refresh handler
 local function refresh(driver, device)
-  log.debug(string.format("[%s] Calling refresh", device.device_network_id))
+  log.warn("Calling Refresh")
 
   --check if we've heard from devices lately
   if os.time() > (commonglobals.lastHeardFromESP + 650) then
@@ -81,14 +81,14 @@ end
 
 -- callback to handle an `on` capability command
 local function switch_on(driver, device, command)
-  log.debug(string.format("[%s] calling wifi only (on) v5.1", device.device_network_id))
+  log.info("Setting Wifi Only Mode ON")
   commonglobals.wifiOnly = true
   device:emit_event(capabilities.switch.switch.on())
 end
 
 -- callback to handle an `off` capability command
 local function switch_off(driver, device, command)
-  log.debug(string.format("[%s] calling wifi only (off) v5.1", device.device_network_id))
+  log.info("Setting Wifi Only Mode OFF")
   commonglobals.wifiOnly = false
   device:emit_event(capabilities.switch.switch.off())
 end
@@ -98,10 +98,10 @@ local function device_added(driver, device)
   log.info("[" .. device.id .. "] Adding new admin device")
 
   -- set a default or queried state for each capability attribute
-  device:emit_event(capabilities.switch.switch.off())
-  device:emit_event(capabilities.voltageMeasurement.voltage(0))
-  device:emit_event(capabilities.signalStrength.rssi(0))
-  device:emit_event(capabilities.signalStrength.lqi(0))
+  --device:emit_event(capabilities.switch.switch.off())
+  --device:emit_event(capabilities.voltageMeasurement.voltage(0))
+  --device:emit_event(capabilities.signalStrength.rssi(0))
+  --device:emit_event(capabilities.signalStrength.lqi(0))
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.

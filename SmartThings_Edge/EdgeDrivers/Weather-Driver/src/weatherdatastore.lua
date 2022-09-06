@@ -2,28 +2,30 @@ local log = require "log"
 
 local histData = {}
 
-local function dump(t)
-    for k, v in pairs(t) do
+local function dumpWeather()
+    log.debug("*****Dump Weather*****")
+    for k, v in pairs(histData) do
       log.debug("key: ",k," values: ",v.epoch, v.temperature, v.pressure)
     end
 end
 
 -- remove entries older than 12 hours
-local function pruneData()
+local function pruneData(data)
   local currentEpoch=os.time()-(7*60*60)
   local cutTime=currentEpoch-(12*60*60)
 
-  for k, v in pairs(histData) do
+  for k, v in pairs(data) do
     if v.epoch < cutTime then
-      table.remove(histData,k)
+      table.remove(data,k)
     end
   end
 end
 
+--insert temp and pressure data
 local function insertData(epoch,temperature,pressure)
-  pruneData()
+  pruneData(histData)
   table.insert(histData,{epoch=epoch, temperature=temperature, pressure=pressure})
-  dump(histData)
+  dumpWeather()
 end
 
 --temp last n hours
@@ -55,6 +57,7 @@ local function pressureHistory(hoursAgo)
   end
   return pressure
 end
+
 
  return {
     insertData = insertData,

@@ -34,7 +34,7 @@ function RefreshRain(content)
   commonglobals.newDataAvailable = true
 
   local jsondata = json.decode(content);
-  globals.rainrate = tonumber(string.format("%.1f", jsondata.rain_rate))
+  globals.rainrate = tonumber(string.format("%.2f", jsondata.rain_rate))
   globals.moisture = jsondata.moisture
   globals.currentTime = os.date("%a %X", jsondata.current_time)
 
@@ -42,13 +42,13 @@ function RefreshRain(content)
   raindatastore.insertData(jsondata.current_time,globals.rainrate)
 
   --get historical info
-  globals.raintotallasthour = raindatastore.findLastHourTotal(1)
-  globals.raintotallast12hours = raindatastore.findLast12HoursTotal()
+  globals.raintotallasthour = tonumber(string.format("%.2f", raindatastore.findLastHourTotal(1)))   
+  globals.raintotallast12hours = tonumber(string.format("%.2f", raindatastore.findLast12HoursTotal()))   
 end
 
 -- Get latest rain updates
 local function emitRainData(driver, device)
-  log.info(string.format("[%s] Emiting Rain Data", device.device_network_id))
+  log.info("Emiting Rain Data")
 
   device:emit_event(rainrate.rainrate(globals.rainrate))
   device:emit_event(capabilities.waterSensor.water(globals.moisture))
@@ -65,7 +65,7 @@ end
 
 -- refresh handler
 local function refresh(driver, device)
-  log.debug(string.format("[%s] Calling refresh", device.device_network_id))
+  log.debug("Calling Refresh")
 
   --check if we've heard from devices lately
   if os.time() > (commonglobals.lastHeardFromESP + 650) then

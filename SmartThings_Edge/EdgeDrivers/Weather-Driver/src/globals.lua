@@ -7,6 +7,7 @@ pressure = nil
 dewPoint = nil
 uvIndex = nil
 ldr = nil
+lastpmsreadtime = nil
 pm25 = nil
 pm100 = nil
 temperatureChangeLastHour = nil

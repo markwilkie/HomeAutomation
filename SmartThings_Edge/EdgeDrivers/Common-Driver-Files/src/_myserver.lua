@@ -41,7 +41,7 @@ local function handle_post(client,line)
   
   -- Receive body here 
   content, err = client:receive(tonumber(content_len))
-  log.debug ('content:', content)
+  log.info ('content:', content)
   if err ~= nil then
     log.error("Error on client receive: " .. err)
     return
@@ -73,7 +73,7 @@ local function handle_get(client,line)
 
   --epoch request only
   if url == '/epoch' then
-    log.debug("Sending epoch back as requested")
+    log.info("Sending epoch back as requested")
     local epochMsg = [[HTTP/1.1 200 OK
 
 {"epoch":]]..os.time()-(7*60*60)..[[}]]
@@ -109,7 +109,7 @@ local function handle_get(client,line)
     end
     settingsMsg=settingsMsg..[[,"wifionly_flag":]]..flag..[[}]]
 
-    log.debug("Content: "..settingsMsg)
+    log.info("Content: "..settingsMsg)
     client:send(settingsMsg)
     client:close()
     return
