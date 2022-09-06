@@ -31,6 +31,7 @@ extern void getSettings();
 extern void debugData();
 extern void setEpoch();
 extern void syncWithHub();
+extern void putBoolPreference(const char* key, const bool value);
 
 extern void blinkLED(int,int,int);
 

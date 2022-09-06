@@ -29,7 +29,10 @@ void WeatherWifi::startWifi()
       //Blink because we couldn't connect to wifi  (5x250)
       blinkLED(5,250,250);
 
-      logger.log(ERROR,"Could not connect to Wifi, restarting board");
+      //Setting flag in flash to indicate that it was a wifiboot
+      putBoolPreference("WIFI_BOOT_FLAG",true);
+
+      logger.log(ERROR,"Could not connect to Wifi, restarting board  (obviously this only shows up on a serial connection)");
       ESP.restart();
     }
   }
@@ -65,11 +68,8 @@ void WeatherWifi::startWifi()
 
   ArduinoOTA.begin();
 
-  //Init logger and send logs if defined
-  #ifdef WIFILOGGER 
-    logger.init();
-    logger.sendLogs();
-  #endif
+  //send logs
+  logger.sendLogs(isConnected());
 }
 
 void WeatherWifi::startServer()
@@ -89,16 +89,15 @@ bool WeatherWifi::isServerOn()
 
 void WeatherWifi::disableWifi()
 { 
-  //First, let's send logs
-  #ifdef WIFILOGGER 
-    logger.sendLogs();
-  #endif
+  logger.log(INFO,"Disabling Wifi...");  
+
+  //Let's be sure and flush the log cache before shutting down
+  logger.sendLogs(isConnected());
   
   WiFi.disconnect(true);  // Disconnect from the network
   WiFi.mode(WIFI_OFF);    // Switch WiFi off
   esp_wifi_stop();
   serverOnFlag=false;
-  logger.log(INFO,"Wifi disabled...");  
 }
 
 bool WeatherWifi::isConnected()
@@ -123,9 +122,7 @@ void WeatherWifi::listen(long millisToWait)
   }
 
   //It's been a bit, so let's send any logs we have
-  #ifdef WIFILOGGER 
-    logger.sendLogs();
-  #endif    
+  logger.sendLogs(isConnected());
 }
 
 void WeatherWifi::sendResponse(DynamicJsonDocument doc)
@@ -185,12 +182,17 @@ bool WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
   // Send HTTP POST request
   String buf;
   serializeJson(doc, buf);
-  logger.log(INFO,"Content: %S",buf);
+  INFOPRINT("Content: ");
+  INFOPRINTLN(buf);
   int httpResponseCode = http.POST(buf);
   
   if (httpResponseCode<0)
   {
-    logger.log(ERROR,"POST http Code: %d",httpResponseCode);
+    ERRORPRINT("POST http Code: ");
+    VERBOSEPRINT(httpResponseCode);
+    VERBOSEPRINT(" - ");
+    VERBOSEPRINTLN(http.errorToString(httpResponseCode));
+
     handshakeRequired=true;
     success=false;
   }
@@ -218,7 +220,11 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
 
   if (httpResponseCode<0)
   {
-    logger.log(ERROR,"GET http Code: %d",httpResponseCode);
+    ERRORPRINT("GET http Code: ");
+    VERBOSEPRINT(httpResponseCode);
+    VERBOSEPRINT(" - ");
+    VERBOSEPRINTLN(http.errorToString(httpResponseCode));   
+
     handshakeRequired=true;
     return doc;
   }

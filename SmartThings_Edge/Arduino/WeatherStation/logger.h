@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "PapertrailLogger.h"
 #include "ULP.h"
+#include "debug.h"
 
 #define PAPERTRAIL_HOST       "logs4.papertrailapp.com"
 #define PAPERTRAIL_PORT       54449
@@ -28,8 +29,8 @@ class Logger
 {
 
   public:
-    void init();
-    void sendLogs();
+    Logger();
+    void sendLogs(bool wifiConnected);
     void log(const char *input ,bool cr);
     void log(String str, bool cr);
     void log(int number, bool cr);    

@@ -1,3 +1,9 @@
+#include "Arduino.h"
+//#include <ESPmDNS.h>
+#include <rom/rtc.h>
+#include <Preferences.h>
+#include <ArduinoJson.h>
+
 #include "Debug.h"
 #include "logger.h"
 #include "version.h"
@@ -8,10 +14,6 @@
 #include "BME280Handler.h"
 #include "ADCHandler.h"
 #include "PMS5003Handler.h"
-
-#include "Arduino.h"
-#include <Preferences.h>
-#include <ArduinoJson.h>
 
 //Globals
 Preferences preferences;
@@ -64,7 +66,12 @@ void syncSettings()
   if(wifiOnly) {
     logger.log(WARNING,"-------------> Wifi is on and ESP will not sleep - ready for OTA"); }
   else {
-    logger.log(INFO,"-------------> ESP will sleep now - ready for normal operation"); }
+    logger.log(INFO,"-------------> ESP is able to sleep now - ready for normal operation"); }
+
+  if(handshakeRequired)
+    logger.log(INFO,"Handshake mode active");
+  else
+    logger.log(INFO,"Handshake mode NOT active");
 
   //Send settings back
   postAdmin();
@@ -89,6 +96,11 @@ void postAdmin()
   doc["wifi_strength"] = weatherWifi.getRSSI();
   doc["firmware_version"] = SKETCH_VERSION;
   doc["health assesment"] = "n/a";
+  doc["free_heap"] = ESP.getFreeHeap();
+  doc["min_free_heap"] = ESP.getMinFreeHeap();
+  doc["pms_read_time"] = pmsHandler.getLastReadTime();  
+  doc["cp1_reset_code"] = rtc_get_reset_reason(0);
+  doc["cp1_reset_reason"] = getResetReason(0);
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
   //send admin data back
@@ -184,10 +196,14 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
 //refresh air quality data
 DynamicJsonDocument refreshPMSDoc(DynamicJsonDocument doc) 
 {
- //pms 5003
- doc["pm25"] = pmsHandler.getPM25Standard();;
- doc["pm100"] = pmsHandler.getPM100Standard();;
- doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
+  //pms 5003
+  doc["pm25"] = pmsHandler.getPM25Standard();;
+  doc["pm100"] = pmsHandler.getPM100Standard();
+  doc["pm25AQI"] = pmsHandler.getPM25AQI(); 
+  doc["pm25Label"] = pmsHandler.getPM25Label(); 
+  doc["pm100AQI"] = pmsHandler.getPM100AQI(); 
+  doc["pm100Label"] = pmsHandler.getPM100Label(); 
+  doc["pms_read_time"] = pmsHandler.getLastReadTime(); //send back the last epoch sent in + elapsed time since
  
  return doc;
 }
@@ -235,13 +251,30 @@ void setup(void)
   Serial.begin(115200);
   #endif
 
-  logger.log(INFO,"--------------------------");
-
   //setup LED pin
   pinMode(LED_BUILTIN, OUTPUT);
 
   if(firstBoot)
-    initialSetup();   
+  {
+    logger.log(INFO,"-------------------------- Booting");
+    logger.log(INFO,"CPU 0 Reset Code: %d Reason: %s",rtc_get_reset_reason(0),getResetReason(0));
+
+    //Check if wifi boot
+    if(getBoolPreference("WIFI_BOOT_FLAG"))
+    {
+      logger.log(ERROR,"ESP rebooted because it couldn't get a wifi connection");
+
+      //ok reset it now
+      putBoolPreference("WIFI_BOOT_FLAG",false);    
+    }    
+
+    //Important setup stuff
+    initialSetup();
+  }
+  else
+  {
+    logger.log(INFO,"-------------------------- Waking up");
+  }
 
   //read wind and rain sensor  (it's hear because we must be sure to read (clear) the register during windy conditions so there's no overflow
   //   it is known that on initial boot, there's no epoch which makes the canculations for wind be invalid.  a full  cycle must be waited for and it'll clear itself
@@ -317,6 +350,7 @@ void loop(void)
   //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
   if(!handshakeRequired && !wifiOnly)
   {
+    logger.log(INFO,"Going to ESP deep sleep for %d seconds.  (night night)",TIMEDEEPSLEEP);
     timeToPost=currentTime()+WIFITIME-(WIFITIME*.1);  //10% buffer
     weatherWifi.disableWifi();
     sleep();   //deep sleep
@@ -388,9 +422,7 @@ void readAirSensor()
 }
 
 void sleep(void) 
-{
-  logger.log(INFO,"Going to ESP deep sleep for %d seconds.  (night night)",TIMEDEEPSLEEP);
-  
+{ 
   esp_sleep_enable_timer_wakeup(TIMEDEEPSLEEP * TIMEFACTOR);
 
   esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
@@ -415,4 +447,50 @@ void blinkLED(int times,int onDuration,int offDuration)
     delay(offDuration);
     
   }
+}
+
+//Note ESP bug:  https://github.com/espressif/esp-idf/issues/494 
+const char* getResetReason(int icore) 
+{ 
+  const char* resetReason;
+  RESET_REASON reason = rtc_get_reset_reason( (RESET_REASON) icore); 
+
+  switch ( reason)
+  {
+    case 1 : resetReason="POWERON_RESET";break;          /**<1, Vbat power on reset*/
+    case 3 : resetReason="SW_RESET";break;               /**<3, Software reset digital core*/
+    case 4 : resetReason="OWDT_RESET";break;             /**<4, Legacy watch dog reset digital core*/
+    case 5 : resetReason="DEEPSLEEP_RESET";break;        /**<5, Deep Sleep reset digital core*/
+    case 6 : resetReason="SDIO_RESET";break;             /**<6, Reset by SLC module, reset digital core*/
+    case 7 : resetReason="TG0WDT_SYS_RESET";break;       /**<7, Timer Group0 Watch dog reset digital core*/
+    case 8 : resetReason="TG1WDT_SYS_RESET";break;       /**<8, Timer Group1 Watch dog reset digital core*/
+    case 9 : resetReason="RTCWDT_SYS_RESET";break;       /**<9, RTC Watch dog Reset digital core*/
+    case 10 : resetReason="INTRUSION_RESET";break;       /**<10, Instrusion tested to reset CPU*/
+    case 11 : resetReason="TGWDT_CPU_RESET";break;       /**<11, Time Group reset CPU*/
+    case 12 : resetReason="SW_CPU_RESET";break;          /**<12, Software reset CPU*/
+    case 13 : resetReason="RTCWDT_CPU_RESET";break;      /**<13, RTC Watch dog Reset CPU*/
+    case 14 : resetReason="EXT_CPU_RESET";break;         /**<14, for APP CPU, reseted by PRO CPU*/
+    case 15 : resetReason="RTCWDT_BROWN_OUT_RESET";break;/**<15, Reset when the vdd voltage is not stable*/
+    case 16 : resetReason="RTCWDT_RTC_RESET";break;      /**<16, RTC Watch dog reset digital core and rtc module*/
+    default : resetReason="NO_MEAN";
+  }
+
+  return resetReason;
+}
+
+//put bool named pair into flash
+void putBoolPreference(const char* key, const bool value)
+{
+  preferences.begin("lfpweather", false);
+  preferences.putBool(key, false);
+  preferences.end();
+}
+
+//returns false by default
+bool getBoolPreference(const char* key)
+{
+  preferences.begin("lfpweather", true);  //read only
+  bool retVal=preferences.getBool(key, false);
+  preferences.end();
+  return retVal;
 }

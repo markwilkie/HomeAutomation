@@ -1,12 +1,9 @@
 #include "logger.h"
-#include "weatherwifi.h"
 
 RTC_DATA_ATTR char logCache[MAXLOGSIZE];
 RTC_DATA_ATTR int logCacheIndex=0;
 
-extern WeatherWifi weatherWifi;
-
-void Logger::init()
+Logger::Logger()
 {
   //errorLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Error, "\033[0;31m", PAPERTRAIL_SYSTEMNAME, " ");
   //warningLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Warning, "\033[0;33m", PAPERTRAIL_SYSTEMNAME, " ");
@@ -15,12 +12,10 @@ void Logger::init()
   infoLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Info, "\033[0;34m", PAPERTRAIL_SYSTEMNAME, " ");
 }
 
-void Logger::sendLogs()
+void Logger::sendLogs(bool wifiConnected)
 {
+  //just return if there's nothing to send
   if(logCacheIndex<1)
-    return;
-
-  if(!weatherWifi.isConnected())    
     return;
 
   //make sure there's a <cr> at the end
@@ -30,9 +25,22 @@ void Logger::sendLogs()
     logCache[logCacheIndex]='\0';
   }
 
-  //Send
-  infoLog->printf("%s",logCache);
-  logCacheIndex=0;   //reset cache
+  //poor error handling means that the paper trail blows up and the cpu reboots if there's no wifi
+  if(wifiConnected)    
+  {
+    infoLog->printf("%s",logCache);
+    logCacheIndex=0;   //reset cache
+  }
+  else
+  {
+    #ifndef WIFILOGGER
+      Serial.print(logCache);
+      logCacheIndex=0;   //reset cache only if WIFI is defined
+    #endif
+  }
+
+  //reset cache
+
 }
 
 void Logger::log(int num,bool cr)
@@ -218,18 +226,38 @@ bool Logger::log(int logLevel,const char *fmt, ...)
 
   if(bufferOverflow)
   {
-    ERRORPRINTLN("Buffer overflow in logs - truncating.");
+    log(ANSI_COLOR_RED,false); 
+    log("ERROR: ",false);
+    log("Buffer overflow in logs - truncating.",false);
+    log(ANSI_COLOR_RESET,true)    ; 
   }
 
-  if(logLevel==INFO) {
-    INFOPRINTLN(buf); }
-  else if(logLevel==WARNING) {
-    WARNPRINTLN(buf); }
-  else if(logLevel==ERROR) {
-    ERRORPRINTLN(buf); }
-  else {
-    VERBOSEPRINTLN(buf); }
-  
+  if(logLevel==INFO) 
+  {
+    log(ANSI_COLOR_CYAN,false); 
+    log("INFO: ",false);
+    log(buf,false);
+    log(ANSI_COLOR_RESET,true)    ; 
+  }
+  else if(logLevel==WARNING)  
+  {
+    log(ANSI_COLOR_YELLOW,false); 
+    log("WARNING: ",false);
+    log(buf,false);
+    log(ANSI_COLOR_RESET,true)    ; 
+  }
+  else if(logLevel==ERROR)
+  {
+    log(ANSI_COLOR_RED,false); 
+    log("ERROR: ",false);
+    log(buf,false);
+    log(ANSI_COLOR_RESET,true);
+  }
+  else 
+  {
+    log(buf,true); 
+  }
+
   //Serial.print(buf);
   return !bufferOverflow;
 }

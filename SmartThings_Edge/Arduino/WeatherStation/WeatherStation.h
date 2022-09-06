@@ -1,10 +1,6 @@
 #ifndef weatherstation_h
 #define weatherstation_h
 
-#include "ULP.h"
-
-#include <ESPmDNS.h>
-
 //defines
 #define WIFITIME              600       // interval in seconds wifi will attempt to POST data to the hub
 #define HTTPSERVERTIME        30        // time blocking in server listen for handshaking while in loop

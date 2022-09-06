@@ -73,6 +73,13 @@ int ADCHandler::readADC(int pin)
   {
     tries++;
 
+    //reset for retries
+    sampleSum = 0;
+    mean = 0.0;
+    sqDevSum = 0.0;
+    stdDev = 0.0;
+    tolerance = 0.0;    
+
     //Read samples and sum them
     for(int i = 0; i < SAMPLES; i++) {
       sampleValues[i] = analogRead(pin);

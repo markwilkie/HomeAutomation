@@ -9,7 +9,7 @@
 #define ADC_REF_VOLTAGE 3.3  
 #define SAMPLES   10          //number of samples to take
 #define WAITTIME  20          //time to wait between samples in ms
-#define TOLERANCE 1           //% of max adc reading to e used to determine if we need to resample
+#define TOLERANCE 5           //% of max adc reading to e used to determine if we need to resample
 #define MAXTRIES  3           //# of times we'll try and get a clean read that is within tolerance  
 
 //adc pins
@@ -30,7 +30,7 @@
 #define LUX_CALC_EXPONENT       -1.405
 
 //voltage
-#define VOLTAGE_CALIB           1.11          //calibration for calc'ing voltage
+#define VOLTAGE_CALIB           1.05          //calibration for calc'ing voltage
 
 //moisture
 #define WET_THRESHOLD           350
