@@ -19,10 +19,12 @@
 Preferences preferences;
 WeatherWifi weatherWifi;
 long millisAtEpoch = 0;
-bool wifiOnly = false;   //true so esp never sleeps.  Mostly used for OTA
+bool wifiOnly = false;        //true so esp never sleeps.  Mostly used for OTA   
+int cycleTime = CYCLETIME;    //can be changed when in power saving mode   
 
 //globals in ULP which survive deep sleep
 RTC_DATA_ATTR bool firstBoot = true;
+RTC_DATA_ATTR bool powerSaverMode = false;
 RTC_DATA_ATTR ULP ulp;
 
 //when true, ESP goes into a high battery drain state of waiting for a /handshake POST message
@@ -99,8 +101,8 @@ void postAdmin()
   doc["free_heap"] = ESP.getFreeHeap();
   doc["min_free_heap"] = ESP.getMinFreeHeap();
   doc["pms_read_time"] = pmsHandler.getLastReadTime();  
-  doc["cp1_reset_code"] = rtc_get_reset_reason(0);
-  doc["cp1_reset_reason"] = getResetReason(0);
+  doc["cpu_reset_code"] = rtc_get_reset_reason(0);
+  doc["cpu_reset_reason"] = getResetReason(0);
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
   //send admin data back
@@ -251,6 +253,12 @@ void setup(void)
   Serial.begin(115200);
   #endif
 
+  //see if we need to adjust cycle time because we're in power saving mode
+  cycleTime=CYCLETIME;
+  if(powerSaverMode) {
+    cycleTime=POWERSAVERTIME; 
+  }  
+
   //setup LED pin
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -314,6 +322,9 @@ void initialSetup()
 
 void loop(void) 
 {
+  //Read most sensors if it's time to  (each member function checks its own time)
+  readSensors();
+    
   //Check in w/ web server if we're in handshake mode
   if(handshakeRequired || wifiOnly)
   {
@@ -339,9 +350,11 @@ void loop(void)
     }
   }
 
-  //Read Sensors if it's time to  (each member function checks its own time)
-  readSensors();
-  readAirSensor();  //this one is seperate because we don't read it very often as it takes a lot of power
+  //check if we need to be in power saving mode
+  checkPowerSavingMode();
+
+  //this one is seperate because we don't read it very often as it takes a lot of power
+  readAirSensor();  
 
   //POST sensor data if it's time to
   if(currentTime() >= timeToPost)
@@ -350,11 +363,31 @@ void loop(void)
   //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
   if(!handshakeRequired && !wifiOnly)
   {
-    logger.log(INFO,"Going to ESP deep sleep for %d seconds.  (night night)",TIMEDEEPSLEEP);
-    timeToPost=currentTime()+WIFITIME-(WIFITIME*.1);  //10% buffer
+    logger.log(INFO,"Going to ESP deep sleep for %d seconds.  (night night)",cycleTime);
+    timeToPost=currentTime()+cycleTime-(cycleTime*.1);  //10% buffer
     weatherWifi.disableWifi();
     sleep();   //deep sleep
   }    
+}
+
+void checkPowerSavingMode()
+{
+  //Check if we should be in power saver mode  (voltage of zero means that wifi is on because it can't read the pin)
+  float voltage=adcHandler.getVoltage();
+  if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode) {
+    logger.log(WARNING,"*** Still Power Saver Mode.  Deep sleeps will continue to be for %f hours. (%fV) ***",cycleTime/60.0,voltage);
+    cycleTime=POWERSAVERTIME;
+  }
+  if(voltage>POWERSAVERVOLTAGE && powerSaverMode) {
+    logger.log(WARNING,"*** Exiting Power Saver Mode.  Deep sleeps goes back to normal at %d seconds. (%fV) ***",cycleTime,voltage);
+    powerSaverMode=false;
+    cycleTime=CYCLETIME;
+  }
+  if(voltage<=POWERSAVERVOLTAGE && voltage>0 && !powerSaverMode) {
+    logger.log(WARNING,"*** Entering Power Saver Mode.  Deep sleeps will be for %f hours. (%fV) ***",cycleTime/60.0,voltage);
+    powerSaverMode=true;
+    cycleTime=POWERSAVERTIME;
+  }
 }
 
 void postSensorData()
@@ -382,19 +415,20 @@ void readSensors()
   
   bmeHandler.storeSamples();
   adcHandler.storeSamples();
-  timeToReadSensors=currentTime()+SENSORTIME-(SENSORTIME*.1);
+  timeToReadSensors=currentTime()+cycleTime-(cycleTime*.1);
 }
 
 void readAirSensor()
 {
-  //Check time 
+  //Check time and if we're in power saver mode
   if(currentTime()<timeToReadAir)
     return;
 
   //Check if we've got enough voltage.  At night, there's usually less than 5v and readings are wonky
-  if(adcHandler.getVoltage()<PMSMINVOLTAGE)
+  if(adcHandler.getVoltage()<PMSMINVOLTAGE || powerSaverMode)
   {
-    logger.log(WARNING,"Voltage too low to take a PMS5003 reading (%f volts)",adcHandler.getVoltage());
+    ulp.setAirPinHigh(false);  //make sure pin is low
+    logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVoltage());
     return;
   }
 
@@ -403,7 +437,7 @@ void readAirSensor()
     logger.log(INFO,"Warming up air sensor");    
     ulp.setAirPinHigh(true);
     airWarmedUp=true;
-    timeToReadAir=currentTime()+TIMEDEEPSLEEP-(TIMEDEEPSLEEP*.1);  //warm up for at least a deep sleep cycle w/ a little buffer
+    timeToReadAir=currentTime()+cycleTime-(cycleTime*.1);  //warm up for at least a deep sleep cycle w/ a little buffer
     return;
   }  
 
@@ -421,14 +455,15 @@ void readAirSensor()
   }
 }
 
+//Deep sleep
 void sleep(void) 
 { 
-  esp_sleep_enable_timer_wakeup(TIMEDEEPSLEEP * TIMEFACTOR);
+  esp_sleep_enable_timer_wakeup(cycleTime * TIMEFACTOR);
 
   esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
 
-  epoch=epoch+TIMEDEEPSLEEP; //add on how much we plan on sleeping now
+  epoch=epoch+cycleTime; //add on how much we plan on sleeping now
   esp_deep_sleep_start(); 
 }
 

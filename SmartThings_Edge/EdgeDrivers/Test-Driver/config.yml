@@ -1,0 +1,5 @@
+name: 'Test'
+packageKey: 'wilkie.test'
+permissions:
+  discovery: {}
+  lan: {}

@@ -1,0 +1,20 @@
+name: test.v1
+components:
+- id: main
+  name: "Test"
+  label: "Test"
+  capabilities:
+  - id: refresh
+    version: 1
+  - id: voltageMeasurement
+    version: 1  
+  - id: signalStrength
+    version: 1    
+  - id: fineDustHealthConcern
+    version: 1    
+  - id: dustHealthConcern
+    version: 1  
+  - id: radioamber53161.wifiswitch 
+    version: 1   
+  - id: radioamber53161.datetime
+    version: 1    

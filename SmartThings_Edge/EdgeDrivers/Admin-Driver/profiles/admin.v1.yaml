@@ -8,9 +8,9 @@ components:
     version: 1
   - id: voltageMeasurement
     version: 1  
+  - id: switch
+    version: 1 
   - id: signalStrength
     version: 1
   - id: radioamber53161.datetime
-    version: 1 
-  - id: switch
-    version: 1    
+    version: 1

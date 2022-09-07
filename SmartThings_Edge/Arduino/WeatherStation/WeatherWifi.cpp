@@ -113,7 +113,7 @@ int WeatherWifi::getRSSI()
 void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
-  logger.log(INFO,"Listening on http and OTA");
+  logger.log(INFO,"We're now handshaking or in OTA mode - Listening on http and OTA");
   long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
   {

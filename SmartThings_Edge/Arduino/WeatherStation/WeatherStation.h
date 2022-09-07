@@ -2,11 +2,11 @@
 #define weatherstation_h
 
 //defines
-#define WIFITIME              600       // interval in seconds wifi will attempt to POST data to the hub
-#define HTTPSERVERTIME        30        // time blocking in server listen for handshaking while in loop
-#define TIMEDEEPSLEEP         WIFITIME  // amount in seconds the ESP32 will deep sleep at a time.  
-#define SENSORTIME            WIFITIME      //default time most sensors will get a reading
-#define AIRTIME               3600          // interval in seconds we'll wake up the power hungry air sensor
+#define CYCLETIME             600               // interval in seconds sensors will be read and wifi will attempt to POST data to the hub  (deep sleeps inbetween)
+#define POWERSAVERTIME        7200              // interval in seconds that esp will deep sleep during power saver mode  (voltage below a threshold)
+#define HTTPSERVERTIME        30                // time blocking in server listen for handshaking while in loop
+#define AIRTIME               3600-CYCLETIME    // interval in seconds we'll wake up the power hungry air sensor  (minus WIFITIME because of warmup)
+#define POWERSAVERVOLTAGE     4.3               // voltage that ESP will go into power saving mode on  (long deep sleeps, no pms5003)
 
 //globals in ULP which survive deep sleep
 extern RTC_DATA_ATTR ULP ulp;  //low power processor
