@@ -46,31 +46,41 @@ void Logger::sendLogs(bool wifiConnected)
 void Logger::log(int num,bool cr)
 {
   //now, add number
-  String line="";
-  line = line + num;
+  char buf[11];
+  sprintf(buf,"%d",num);
 
   //Add last bit
-  log(line.c_str(),cr);
+  log(buf,cr);
 }
 
 void Logger::log(long num,bool cr)
 {
   //now, add number
-  String line="";
-  line = line + num;
+  char buf[11];
+  sprintf(buf,"%ld",num);
 
   //Add last bit
-  log(line.c_str(),cr);
+  log(buf,cr);
+}
+
+void Logger::log(unsigned long num,bool cr)
+{
+  //now, add number
+  char buf[11];
+  sprintf(buf,"%lu",num);
+
+  //Add last bit
+  log(buf,cr);
 }
 
 void Logger::log(float flt,bool cr)
 {
-  //now, add number
-  String line="";
-  line = line + flt;
+  /* 4 is mininum width, 2 is precision; float value is copied onto str_temp*/
+  char buf[15];
+  dtostrf(flt, 3, 2, buf);
 
   //Add last bit
-  log(line.c_str(),cr);
+  log(buf,cr);
 }
 
 void Logger::log(String str,bool cr)
@@ -196,14 +206,6 @@ bool Logger::log(int logLevel,const char *fmt, ...)
             bufferOverflow=true; }
           else{           
             pbuf += sprintf(pbuf, "%s", svar);}         
-          break;
-        case 'S': 
-          astr=va_arg(pargs, String);
-          len=strlen(astr.c_str());
-          if((pbuf-buf+len)>=SERIAL_PRINTF_MAX_BUFF){
-            bufferOverflow=true; }
-          else{           
-            pbuf += sprintf(pbuf, "%s", astr.c_str());}         
           break;
         case '%':
           *(pbuf++) = '%';

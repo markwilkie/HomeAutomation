@@ -12,7 +12,7 @@
 #define WIND_DIR_OFFSET   -70         // calibrate the wind vane
 
 //Time keeping
-extern int currentTime();
+extern unsigned long currentTime();
 
 class WindRainHandler 
 {
@@ -37,7 +37,7 @@ class WindRainHandler
 
     //private vars
     float maxGust=0;
-    long lastReadingTime;
+    unsigned long lastReadingTime;
 
     //used to calc avg speed
     float totalSpeed;

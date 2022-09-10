@@ -13,9 +13,10 @@
 #define MAXTRIES  3           //# of times we'll try and get a clean read that is within tolerance  
 
 //adc pins
-#define VOLTAGE_PIN     15   //32 on doit board
+// Note that 15 doesn't work when wifi is enabled
+#define VOLTAGE_PIN     39    // was 15
 #define LDR_PIN         35
-#define MOISTURE_PIN    39
+#define MOISTURE_PIN    15    // was 39  (15 is 32 on the doit board)
 #define UV_PIN          34
 
 //enable pins

@@ -16,7 +16,7 @@ extern RTC_DATA_ATTR char logCache[];
 extern RTC_DATA_ATTR int logCacheIndex;
 
 //For our printf implementation
-#define SERIAL_PRINTF_MAX_BUFF      256
+#define SERIAL_PRINTF_MAX_BUFF      512
 #define F_PRECISION                 2
 
 //Log Levels
@@ -35,6 +35,7 @@ class Logger
     void log(String str, bool cr);
     void log(int number, bool cr);    
     void log(long number, bool cr);    
+    void log(unsigned long number, bool cr);      
     void log(float number, bool cr);
     bool log(int,const char *fmt, ...);
     

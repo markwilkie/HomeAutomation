@@ -1,5 +1,4 @@
 #include "Arduino.h"
-//#include <ESPmDNS.h>
 #include <rom/rtc.h>
 #include <Preferences.h>
 #include <ArduinoJson.h>
@@ -18,7 +17,7 @@
 //Globals
 Preferences preferences;
 WeatherWifi weatherWifi;
-long millisAtEpoch = 0;
+unsigned long millisAtEpoch = 0;
 bool wifiOnly = false;        //true so esp never sleeps.  Mostly used for OTA   
 int cycleTime = CYCLETIME;    //can be changed when in power saving mode   
 
@@ -31,18 +30,18 @@ RTC_DATA_ATTR ULP ulp;
 RTC_DATA_ATTR bool handshakeRequired = true;
 
 //info from hub obtained by handshaking
-RTC_DATA_ATTR char hubAddress[30];
+RTC_DATA_ATTR char hubAddress[30]="";
 RTC_DATA_ATTR int hubWindPort=0;
 RTC_DATA_ATTR int hubWeatherPort=0;
 RTC_DATA_ATTR int hubRainPort=0;
 RTC_DATA_ATTR int hubAdminPort=0;
-RTC_DATA_ATTR long epoch=0;  //Epoch from hub
-RTC_DATA_ATTR long timeToPost = 0;  //seconds for when to http POST
+RTC_DATA_ATTR unsigned long epoch=0;  //Epoch from hub
+RTC_DATA_ATTR unsigned long timeToPost = 0;  //seconds for when to http POST
 
 //when to read sensors
-RTC_DATA_ATTR long timeToReadSensors=0;   //default
-RTC_DATA_ATTR long timeToReadAir=0;       //air quality sensor which we'll rarely read
-RTC_DATA_ATTR bool airWarmedUp=false;     //air quality sensor will warm up for a full sleep cycle
+RTC_DATA_ATTR unsigned long timeToReadSensors=0;   //default
+RTC_DATA_ATTR unsigned long timeToReadAir=0;       //air quality sensor which we'll rarely read
+RTC_DATA_ATTR bool airWarmedUp=false;              //air quality sensor will warm up for a full sleep cycle
 
 //Handlers
 RTC_DATA_ATTR WindRainHandler windRainHandler;
@@ -59,19 +58,19 @@ void syncSettings()
     return;
 
   DynamicJsonDocument doc = weatherWifi.sendGetMessage("/settings",hubAdminPort);
-  epoch = doc["epoch"].as<long>();
+  epoch = doc["epoch"].as<unsigned long>();
   wifiOnly= doc["wifionly_flag"];
   millisAtEpoch = millis();
 
-  logger.log(INFO,"Setting Epoch to %ld",epoch);
+  logger.log(INFO,"Setting Epoch to %s (%ld)",getTimeString(epoch),epoch);
 
   if(wifiOnly) {
-    logger.log(WARNING,"-------------> Wifi is on and ESP will not sleep - ready for OTA"); }
+    logger.log(WARNING,"Wifi is on and ESP will not sleep - ready for OTA updates"); }
   else {
-    logger.log(INFO,"-------------> ESP is able to sleep now - ready for normal operation"); }
+    logger.log(INFO,"ESP is able to sleep now - ready for normal operation"); }
 
   if(handshakeRequired)
-    logger.log(INFO,"Handshake mode active");
+    logger.log(WARNING,"Handshake mode active");
   else
     logger.log(INFO,"Handshake mode NOT active");
 
@@ -98,8 +97,7 @@ void postAdmin()
   doc["wifi_strength"] = weatherWifi.getRSSI();
   doc["firmware_version"] = SKETCH_VERSION;
   doc["health assesment"] = "n/a";
-  doc["free_heap"] = ESP.getFreeHeap();
-  doc["min_free_heap"] = ESP.getMinFreeHeap();
+  doc["heap_frag"] = (1.0-((float)ESP.getMinFreeHeap()/(float)ESP.getFreeHeap()))*100;
   doc["pms_read_time"] = pmsHandler.getLastReadTime();  
   doc["cpu_reset_code"] = rtc_get_reset_reason(0);
   doc["cpu_reset_reason"] = getResetReason(0);
@@ -219,7 +217,7 @@ void syncWithHub()
   {
       String ip = doc["hubAddress"].as<String>();
       ip.toCharArray(hubAddress, ip.length()+1);
-      epoch = doc["epoch"].as<long>();
+      epoch = doc["epoch"].as<unsigned long>();
       millisAtEpoch=millis();
 
       String deviceName = doc["deviceName"];
@@ -232,7 +230,7 @@ void syncWithHub()
       if(deviceName.equals("rain"))
         hubRainPort = doc["hubPort"].as<int>();
 
-      logger.log(VERBOSE,"Hub info - Device: %s, IP: %S, Port: %d, Epoch: %ld",deviceName,ip,doc["hubPort"].as<int>(),epoch);
+      logger.log(VERBOSE,"Hub info - Device: %s, IP: %s, Port: %d, Epoch: %ld  (%s)",deviceName,ip.c_str(),doc["hubPort"].as<int>(),epoch,getTimeString(epoch));
     
       // Create the response
       // To get the status of the result you can get the http status so
@@ -243,7 +241,11 @@ void syncWithHub()
 
       //Let's see if we still need a handshake 
       if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0 && hubAdminPort>0)
+      {
+        //Save address and ports to flash in case we reboot
+        putHubInfoIntoPreference();
         handshakeRequired = false;
+      }
   }
 }
 
@@ -268,12 +270,9 @@ void setup(void)
     logger.log(INFO,"CPU 0 Reset Code: %d Reason: %s",rtc_get_reset_reason(0),getResetReason(0));
 
     //Check if wifi boot
-    if(getBoolPreference("WIFI_BOOT_FLAG"))
+    if(getWifiBootFlag())
     {
-      logger.log(ERROR,"ESP rebooted because it couldn't get a wifi connection");
-
-      //ok reset it now
-      putBoolPreference("WIFI_BOOT_FLAG",false);    
+      logger.log(ERROR,"ESP rebooted because it couldn't get a wifi connection"); 
     }    
 
     //Important setup stuff
@@ -303,11 +302,20 @@ void initialSetup()
     //Setting up flash 
     //preferences.begin("weather", false); 
       
-    logger.log(INFO,"Setting up ULP so we can count pulses and hold pins while in deep sleep...  (only does this on first boot)");
+    logger.log(WARNING,"First Boot.  Now setting up ULP so we can count pulses and hold pins while in deep sleep...");
     ulp.setupULP();
     ulp.setupWindPin();
     ulp.setupRainPin();
     ulp.setupAirPin();
+
+    //Try and load address and ports from flash
+    getHubInfoFromPreference();
+
+    //Now let's see if we still need a handshake 
+    if(hubWindPort>0 && hubWeatherPort>0 && hubRainPort>0 && hubAdminPort>0)
+    {
+      handshakeRequired = false;
+    }     
 
     //start wifi and http server
     weatherWifi.startWifi();
@@ -324,7 +332,7 @@ void loop(void)
 {
   //Read most sensors if it's time to  (each member function checks its own time)
   readSensors();
-    
+  
   //Check in w/ web server if we're in handshake mode
   if(handshakeRequired || wifiOnly)
   {
@@ -361,10 +369,10 @@ void loop(void)
     postSensorData();  
 
   //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
-  if(!handshakeRequired && !wifiOnly)
+  if(!handshakeRequired && !wifiOnly || powerSaverMode)
   {
-    logger.log(INFO,"Going to ESP deep sleep for %d seconds.  (night night)",cycleTime);
     timeToPost=currentTime()+cycleTime-(cycleTime*.1);  //10% buffer
+    logger.log(INFO,"Going to ESP deep sleep for %d seconds, will wake up at %s.  (night night)",cycleTime,getTimeString(currentTime()+cycleTime));
     weatherWifi.disableWifi();
     sleep();   //deep sleep
   }    
@@ -375,18 +383,18 @@ void checkPowerSavingMode()
   //Check if we should be in power saver mode  (voltage of zero means that wifi is on because it can't read the pin)
   float voltage=adcHandler.getVoltage();
   if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode) {
-    logger.log(WARNING,"*** Still Power Saver Mode.  Deep sleeps will continue to be for %f hours. (%fV) ***",cycleTime/60.0,voltage);
     cycleTime=POWERSAVERTIME;
+    logger.log(WARNING,"*** Still Power Saver Mode.  Deep sleeps will continue to be for %f minutes. (%fV) ***",cycleTime/60.0,voltage);
   }
   if(voltage>POWERSAVERVOLTAGE && powerSaverMode) {
-    logger.log(WARNING,"*** Exiting Power Saver Mode.  Deep sleeps goes back to normal at %d seconds. (%fV) ***",cycleTime,voltage);
     powerSaverMode=false;
     cycleTime=CYCLETIME;
+    logger.log(WARNING,"*** Exiting Power Saver Mode.  Deep sleeps goes back to normal at %d seconds. (%fV) ***",cycleTime,voltage);
   }
   if(voltage<=POWERSAVERVOLTAGE && voltage>0 && !powerSaverMode) {
-    logger.log(WARNING,"*** Entering Power Saver Mode.  Deep sleeps will be for %f hours. (%fV) ***",cycleTime/60.0,voltage);
     powerSaverMode=true;
     cycleTime=POWERSAVERTIME;
+    logger.log(WARNING,"*** Entering Power Saver Mode.  Deep sleeps will be for %f minutes. (%fV) ***",cycleTime/60.0,voltage);
   }
 }
 
@@ -428,6 +436,8 @@ void readAirSensor()
   if(adcHandler.getVoltage()<PMSMINVOLTAGE || powerSaverMode)
   {
     ulp.setAirPinHigh(false);  //make sure pin is low
+    airWarmedUp=false;
+    timeToReadAir=(currentTime()+AIRTIME)-(AIRTIME*.1);
     logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVoltage());
     return;
   }
@@ -450,7 +460,8 @@ void readAirSensor()
     //shut things down even if we didn't get a sample
     ulp.setAirPinHigh(false);
     airWarmedUp=false;
-    timeToReadAir=currentTime()+AIRTIME-(AIRTIME*.1);
+    timeToReadAir=(currentTime()+AIRTIME)-(AIRTIME*.1);
+    logger.log(VERBOSE,"Setting next air sensor wakeup time to: %s (current: %s)",getTimeString(timeToReadAir),getTimeString(currentTime())); 
     return;
   }
 }
@@ -467,9 +478,29 @@ void sleep(void)
   esp_deep_sleep_start(); 
 }
 
-int currentTime()
+unsigned long currentTime()
 {
   return epoch+((millis()-millisAtEpoch)/1000);
+}
+
+// Print the UTC time from time_t, using C library functions.
+char *getTimeString(time_t now) 
+{
+  static char timeString[13];
+  
+  struct tm timeinfo;
+  gmtime_r(&now, &timeinfo);
+
+  int year = timeinfo.tm_year + 1900; // tm_year starts in year 1900 (!)
+  int month = timeinfo.tm_mon + 1; // tm_mon starts at 0 (!)
+  int day = timeinfo.tm_mday; // tm_mday starts at 1 though (!)
+  int hour = timeinfo.tm_hour;
+  int mins = timeinfo.tm_min;
+  int sec = timeinfo.tm_sec;
+  int day_of_week = timeinfo.tm_wday; // tm_wday starts with Sunday=0
+
+  sprintf(timeString,"%02d:%02d %02d/%02d ",hour, mins, month, day);
+  return timeString;
 }
 
 void blinkLED(int times,int onDuration,int offDuration)
@@ -513,19 +544,53 @@ const char* getResetReason(int icore)
   return resetReason;
 }
 
-//put bool named pair into flash
-void putBoolPreference(const char* key, const bool value)
+//Check if the ESP is booting because it couldn't get a wifi connection
+bool getWifiBootFlag()
 {
-  preferences.begin("lfpweather", false);
-  preferences.putBool(key, false);
+  //See if the flag is set
+  preferences.begin("lfpweather", true);  // read only
+  bool retVal=preferences.getBool("WIFI_BOOT_FLAG", false); // read only
+  preferences.end();
+
+  //If flag is set, reset now
+  if(retVal)
+  {
+    preferences.begin("lfpweather", false);  // read/write
+    preferences.putBool("WIFI_BOOT_FLAG", false);
+    preferences.end();    
+  }
+  
+  return retVal;  
+}
+
+//Set flag that says we couldn't get a wifi connection
+void setWifiBootFlag()
+{ 
+  preferences.begin("lfpweather", false);  // read/write
+  preferences.putBool("WIFI_BOOT_FLAG", true);
   preferences.end();
 }
 
-//returns false by default
-bool getBoolPreference(const char* key)
+//put bool named pair into flash
+void putHubInfoIntoPreference()
 {
-  preferences.begin("lfpweather", true);  //read only
-  bool retVal=preferences.getBool(key, false);
+  preferences.begin("lfpweather", false);
+  preferences.putBytes("hubAddress", hubAddress,30);
+  preferences.putInt("hubWindPort", hubWindPort);
+  preferences.putInt("hubWeatherPort", hubWeatherPort);
+  preferences.putInt("hubRainPort", hubRainPort);
+  preferences.putInt("hubAdminPort", hubAdminPort);  
   preferences.end();
-  return retVal;
+}
+
+//put bool named pair into flash
+void getHubInfoFromPreference()
+{
+  preferences.begin("lfpweather", true);
+  preferences.getBytes("hubAddress", hubAddress, 30);
+  hubWindPort=preferences.getInt("hubWindPort",0);
+  hubWeatherPort=preferences.getInt("hubWeatherPort",0);
+  hubRainPort=preferences.getInt("hubRainPort", 0);
+  hubAdminPort=preferences.getInt("hubAdminPort", 0);  
+  preferences.end();
 }

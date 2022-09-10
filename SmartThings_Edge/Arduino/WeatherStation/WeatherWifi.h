@@ -31,7 +31,7 @@ extern void getSettings();
 extern void debugData();
 extern void setEpoch();
 extern void syncWithHub();
-extern void putBoolPreference(const char* key, const bool value);
+extern void setWifiBootFlag();
 
 extern void blinkLED(int,int,int);
 
@@ -50,13 +50,13 @@ class WeatherWifi
     DynamicJsonDocument readContent();
     void sendResponse(DynamicJsonDocument);
 
-    bool sendPostMessage(String,DynamicJsonDocument,int);
-    DynamicJsonDocument sendGetMessage(String,int);
+    bool sendPostMessage(const char*,DynamicJsonDocument,int);
+    DynamicJsonDocument sendGetMessage(const char*,int);
     
   private: 
     void setupServerRouting();
     void handleNotFound();
-    void sendErrorResponse(String);
+    void sendErrorResponse(const char*);
 
     bool serverOnFlag;
 };

@@ -18,7 +18,7 @@ struct breakPoint
 
 struct concenReading
 {
-  int epoch;
+  unsigned long epoch;
   int pm25;
   int pm100;
 };

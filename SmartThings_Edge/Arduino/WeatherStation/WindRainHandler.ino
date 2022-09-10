@@ -126,7 +126,7 @@ String WindRainHandler::getDirectionLabel()
   if(dir>292 && dir<338) 
     dirLabel="NW";  
 
-  logger.log(VERBOSE,"Wind Direction Label: %S",dirLabel);    
+  logger.log(VERBOSE,"Wind Direction Label: %s",dirLabel.c_str());    
 
   return dirLabel;
 }

@@ -22,7 +22,7 @@ class BME280Handler
     float getDewPoint();
     float getHeatIndex(); 
 
-    long getReadingTime();
+    unsigned long getReadingTime();
     
   private: 
     Adafruit_BME280 bme; // I2C
@@ -30,7 +30,7 @@ class BME280Handler
     float temperature;
     float pressure;
     float humidity;
-    long readingTime;    
+    unsigned long readingTime;    
 };
 
 

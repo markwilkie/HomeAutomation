@@ -1,6 +1,7 @@
 #include "PMS5003Handler.h"
 
-extern int currentTime();
+extern unsigned long currentTime();
+extern char* getTimeString(unsigned long);
 
 void PMS5003Handler::init()
 {
@@ -17,7 +18,7 @@ bool PMS5003Handler::storeSamples()
   bool success=pmsSensor.readPMSData();
   if(success)
   {
-    logger.log(VERBOSE,"Logging concentration: time: %d, pm25: %d, pm100 %d at index: %d",currentTime(),getPM25Standard(), getPM100Standard(),currentIdx);
+    logger.log(VERBOSE,"Logging concentration: time: %ld, pm25: %d, pm100 %d at index: %d",currentTime(),getPM25Standard(), getPM100Standard(),currentIdx);
     concenHistory[currentIdx]={currentTime(), getPM25Standard(), getPM100Standard()};
     
     //take care of index

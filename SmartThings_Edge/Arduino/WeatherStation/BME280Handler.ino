@@ -2,7 +2,7 @@
 #include "EnvironmentCalculations.h"
 
 extern Logger logger;
-extern int currentTime();
+extern unsigned long currentTime();
 
 void BME280Handler::init()
 {
@@ -39,7 +39,7 @@ float BME280Handler::getHumidity()
   return humidity;
 }
 
-long BME280Handler::getReadingTime()
+unsigned long BME280Handler::getReadingTime()
 {
   return readingTime;
 }

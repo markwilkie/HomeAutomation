@@ -10,7 +10,6 @@ void WeatherWifi::startWifi()
   esp_wifi_start();
   WiFi.disconnect(false);  // Reconnect the network
   WiFi.mode(WIFI_STA);    // Switch WiFi on
-  logger.log(INFO,"Wifi enabled...");
   
   //Setup wifi
   WiFi.mode(WIFI_STA);
@@ -18,26 +17,25 @@ void WeatherWifi::startWifi()
  
   // Wait for connection
   int connectCount = 0;
-  logger.log(INFO,"Connecting to WIFI ");  
+  logger.log(INFO,"Connecting to WIFI...");  
   while (WiFi.status() != WL_CONNECTED) 
   {
     connectCount++;
     delay(500);
-    VERBOSEPRINT(".");
     if(connectCount>40)
     {
       //Blink because we couldn't connect to wifi  (5x250)
       blinkLED(5,250,250);
 
       //Setting flag in flash to indicate that it was a wifiboot
-      putBoolPreference("WIFI_BOOT_FLAG",true);
+      setWifiBootFlag();
 
       logger.log(ERROR,"Could not connect to Wifi, restarting board  (obviously this only shows up on a serial connection)");
       ESP.restart();
     }
   }
 
-  logger.log(INFO,"Connected to %s, IP: %S",SSID,WiFi.localIP().toString());
+  logger.log(INFO,"Connected to %s, IP: %s",SSID,WiFi.localIP().toString().c_str());
 
   //Init OTA
   ArduinoOTA
@@ -114,7 +112,7 @@ void WeatherWifi::listen(long millisToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
   logger.log(INFO,"We're now handshaking or in OTA mode - Listening on http and OTA");
-  long startMillis=millis();
+  unsigned long startMillis=millis();
   while(millis()<(startMillis+millisToWait))
   {
     server.handleClient();
@@ -140,8 +138,8 @@ DynamicJsonDocument WeatherWifi::readContent()
   if (error) 
   {
       // if the file didn't open, print an error:
-      sendErrorResponse("Error parsing json body! <br>" + (String)error.c_str());
-      logger.log(ERROR,"Problem parsing JSON: %S",error);      
+      sendErrorResponse(error.c_str());
+      logger.log(ERROR,"Problem parsing JSON: %s",error.c_str());      
   }
 
   return doc;
@@ -166,23 +164,23 @@ void WeatherWifi::setupServerRouting() {
     server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
-bool WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort)
+bool WeatherWifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
 {
   bool success=true;
   WiFiClient client;
   HTTPClient http;
+  char address[128];
     
   // Your Domain name with URL path or IP address with path
-  String ip = String(hubAddress);
-  String address="http://"+ip+":"+hubPort+url;
-  logger.log(INFO,"Hub Address: %S",address);
-  http.begin(client,address.c_str());
+  sprintf(address,"http://%s:%d%s",hubAddress,hubPort,url);  
+  logger.log(INFO,"Hub Address: %s",address);
+  http.begin(client,address);
   http.addHeader("Content-Type", "application/json");
 
   // Send HTTP POST request
   String buf;
   serializeJson(doc, buf);
-  INFOPRINT("Content: ");
+  INFOPRINT("POST Content: ");
   INFOPRINTLN(buf);
   int httpResponseCode = http.POST(buf);
   
@@ -203,17 +201,17 @@ bool WeatherWifi::sendPostMessage(String url,DynamicJsonDocument doc,int hubPort
   return success;
 }
 
-DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
+DynamicJsonDocument WeatherWifi::sendGetMessage(const char*url,int hubPort)
 {
   DynamicJsonDocument doc(512);
   WiFiClient client;
   HTTPClient http;
+  char address[128];
     
   // Your Domain name with URL path or IP address with path
-  String ip = String(hubAddress);
-  String address="http://"+ip+":"+hubPort+url;
-  logger.log(INFO,"Hub Address: %S",address);
-  http.begin(client,address.c_str());
+  sprintf(address,"http://%s:%d%s",hubAddress,hubPort,url);  
+  logger.log(INFO,"get Hub Address: %s",address);
+  http.begin(client,address);
 
   // Send HTTP GET request
   int httpResponseCode = http.GET();
@@ -240,11 +238,11 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(String url,int hubPort)
   return doc;
 }
 
-void WeatherWifi::sendErrorResponse(String errorString)
+void WeatherWifi::sendErrorResponse(const char*errorString)
 {
   DynamicJsonDocument doc(48);
   doc["status"] = "KO";
-  doc["message"] = "No data found, or incorrect!";
+  doc["message"] = errorString;
   
   String buf;
   serializeJson(doc, buf);
@@ -269,5 +267,5 @@ void WeatherWifi::handleNotFound()
   }
   server.send(404, "text/plain", message);
 
-  logger.log(ERROR,"404 - %S",message);
+  logger.log(ERROR,"404 - %s",message.c_str());
 }

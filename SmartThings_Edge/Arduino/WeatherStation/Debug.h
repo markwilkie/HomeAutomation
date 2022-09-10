@@ -18,7 +18,7 @@
 #if defined(ERRORDEF) && defined(WIFILOGGER)
   #define ERRORPRINT(...)   logger.log(ANSI_COLOR_RED,false);logger.log("ERROR: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,false)
   #define ERRORPRINTLN(...)   logger.log(ANSI_COLOR_RED,false);logger.log("ERROR: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
-#elif ERRORDEF
+#elif defined(ERRORDEF)
   #define ERRORPRINT(...)   Serial.print("ERROR: ");Serial.print(__VA_ARGS__)
   #define ERRORPRINTLN(...)   Serial.print("ERROR: ");Serial.println(__VA_ARGS__)
 #else
@@ -31,7 +31,7 @@
 #if defined(WARNDEF) && defined(WIFILOGGER)
   #define WARNPRINT(...)   logger.log(ANSI_COLOR_YELLOW,false);logger.log("WARNING: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,false)
   #define WARNPRINTLN(...)   logger.log(ANSI_COLOR_YELLOW,false);logger.log("WARNING: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
-#elif defined(ERRORDEF)
+#elif defined(WARNDEF)
   #define WARNPRINT(...)   Serial.print("WARNING: ");Serial.print(__VA_ARGS__)
   #define WARNPRINTLN(...)   Serial.print("WARNING: ");Serial.println(__VA_ARGS__)
 #else
