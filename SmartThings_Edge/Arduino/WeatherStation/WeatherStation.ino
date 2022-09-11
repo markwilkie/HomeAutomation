@@ -19,7 +19,6 @@ Preferences preferences;
 WeatherWifi weatherWifi;
 unsigned long millisAtEpoch = 0;
 bool wifiOnly = false;        //true so esp never sleeps.  Mostly used for OTA   
-int cycleTime = CYCLETIME;    //can be changed when in power saving mode   
 
 //globals in ULP which survive deep sleep
 RTC_DATA_ATTR bool firstBoot = true;
@@ -37,12 +36,10 @@ RTC_DATA_ATTR int hubWeatherPort=0;
 RTC_DATA_ATTR int hubRainPort=0;
 RTC_DATA_ATTR int hubAdminPort=0;
 RTC_DATA_ATTR unsigned long epoch=0;  //Epoch from hub
-RTC_DATA_ATTR unsigned long timeToPost = 0;  //seconds for when to http POST
 
-//when to read sensors
-RTC_DATA_ATTR unsigned long timeToReadSensors=0;   //default
+//when to read air sensor
 RTC_DATA_ATTR unsigned long timeToReadAir=0;       //air quality sensor which we'll rarely read
-RTC_DATA_ATTR bool airWarmedUp=false;              //air quality sensor will warm up for a full sleep cycle
+RTC_DATA_ATTR bool airWarmingUp=false;             //air quality sensor will warm up for a full sleep cycle
 
 //Handlers
 RTC_DATA_ATTR WindRainHandler windRainHandler;
@@ -97,9 +94,11 @@ void postAdmin()
   doc["voltage"] = adcHandler.getVoltage();
   doc["wifi_strength"] = weatherWifi.getRSSI();
   doc["firmware_version"] = SKETCH_VERSION;
-  doc["health assesment"] = "n/a";
   doc["heap_frag"] = (1.0-((float)ESP.getMinFreeHeap()/(float)ESP.getFreeHeap()))*100;
-  doc["pms_read_time"] = pmsHandler.getLastReadTime();  
+  doc["pms_read_time"] = pmsHandler.getLastReadTime();
+  doc["power_saver_mode"] = powerSaverMode;   
+  doc["wifi_only"] = wifiOnly;
+  doc["boost_mode"] = boostMode;
   doc["cpu_reset_code"] = rtc_get_reset_reason(0);
   doc["cpu_reset_reason"] = getResetReason(0);
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
@@ -256,12 +255,6 @@ void setup(void)
   Serial.begin(115200);
   #endif
 
-  //see if we need to adjust cycle time because we're in power saving mode
-  cycleTime=CYCLETIME;
-  if(powerSaverMode) {
-    cycleTime=POWERSAVERTIME; 
-  }  
-
   //setup LED pin
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -324,7 +317,7 @@ void initialSetup()
     weatherWifi.startServer();   
 
     firstBoot=false;
-    airWarmedUp=false;
+    airWarmingUp=false;
 
     //make sure air quality sensor is off and boost is on by default
     ulp.setAirPinHigh(false);
@@ -354,11 +347,8 @@ void loop(void)
     weatherWifi.listen(HTTPSERVERTIME*1000);
 
     //Since we're not deep sleeping (e.g. booting), be sure and read the wind/rain sensor when we read the others.  Otherwise, we'll do this on each boot.
-    if(currentTime()>=timeToReadSensors)
-    {
-      logger.log(INFO,"Reading wind and rain sensors (in loop)");
-      windRainHandler.storeSamples();    
-    }
+    logger.log(INFO,"Reading wind and rain sensors (in loop)");
+    windRainHandler.storeSamples();    
   }
 
   //check if we need to be in power saving mode
@@ -367,17 +357,16 @@ void loop(void)
   //this one is seperate because we don't read it very often as it takes a lot of power
   readAirSensor();  
 
-  //POST sensor data if it's time to
-  if(currentTime() >= timeToPost)
-    postSensorData();  
+  //POST sensor data
+  postSensorData();  
 
   //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
   if(!handshakeRequired && !wifiOnly || powerSaverMode)
   {
-    timeToPost=currentTime()+cycleTime-(cycleTime*.1);  //10% buffer
-    logger.log(INFO,"Going to ESP deep sleep for %d seconds, will wake up at %s.  (night night)",cycleTime,getTimeString(currentTime()+cycleTime));
+    int sleepSeconds=getSleepSeconds();
+    logger.log(INFO,"Going to ESP deep sleep for %d seconds, will wake up at %s.  (night night)",sleepSeconds,getTimeString(currentTime()+sleepSeconds));
     weatherWifi.disableWifi();
-    sleep();   //deep sleep
+    sleep(sleepSeconds);   //deep sleep
   }    
 }
 
@@ -399,18 +388,15 @@ void checkPowerSavingMode()
 
   //Check if we should be in power saver mode  (voltage of zero means that wifi is on because it can't read the pin)
   if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode) {
-    cycleTime=POWERSAVERTIME;
-    logger.log(WARNING,"*** Still Power Saver Mode.  Deep sleeps will continue to be for %f minutes. (%fV) ***",cycleTime/60.0,voltage);
+    logger.log(WARNING,"*** Still Power Saver Mode.. (%fV) ***",voltage);
   }
   if(voltage>POWERSAVERVOLTAGE && powerSaverMode) {
     powerSaverMode=false;
-    cycleTime=CYCLETIME;
-    logger.log(WARNING,"*** Exiting Power Saver Mode.  Deep sleeps goes back to normal at %d seconds. (%fV) ***",cycleTime,voltage);
+    logger.log(WARNING,"*** Exiting Power Saver Mode. (%fV) ***",voltage);
   }
   if(voltage<=POWERSAVERVOLTAGE && voltage>0 && !powerSaverMode) {
     powerSaverMode=true;
-    cycleTime=POWERSAVERTIME;
-    logger.log(WARNING,"*** Entering Power Saver Mode.  Deep sleeps will be for %f minutes. (%fV) ***",cycleTime/60.0,voltage);
+    logger.log(WARNING,"*** Entering Power Saver Mode. (%fV) ***",voltage);
   }
 }
 
@@ -429,9 +415,6 @@ void postSensorData()
 
 void readSensors()
 { 
-  if(currentTime()<timeToReadSensors)
-    return;
-
   logger.log(INFO,"Reading BME and ADC sensors");  
   bmeHandler.init();
   adcHandler.init();
@@ -439,7 +422,6 @@ void readSensors()
   
   bmeHandler.storeSamples();
   adcHandler.storeSamples();
-  timeToReadSensors=currentTime()+cycleTime-(cycleTime*.1);
 }
 
 void readAirSensor()
@@ -454,24 +436,24 @@ void readAirSensor()
     ulp.setAirPinHigh(false);  //make sure pin is low
     if(!boostMode)    
       ulp.setBoostPinHigh(false);    
-    airWarmedUp=false;
-    timeToReadAir=(currentTime()+AIRTIME)-(AIRTIME*.1);
+    airWarmingUp=false;
+    timeToReadAir=(currentTime()+AIRREADTIME)-10;  //100 is just a buffer
     logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVoltage());
     return;
   }
 
-  if(!airWarmedUp)
+  if(!airWarmingUp)
   {
     logger.log(INFO,"Warming up air sensor");    
     ulp.setAirPinHigh(true);
     if(!boostMode)    
       ulp.setBoostPinHigh(true);
-    airWarmedUp=true;
-    timeToReadAir=currentTime()+cycleTime-(cycleTime*.1);  //warm up for at least a deep sleep cycle w/ a little buffer
+    airWarmingUp=true;
+    timeToReadAir=(currentTime()+AIRWARMUPTIME)-5;  //5 is just a buffer
     return;
   }  
 
-  if(airWarmedUp)
+  if(airWarmingUp)
   {
     logger.log(INFO,"Reading air now that it's warmed up.");    
     pmsHandler.init();
@@ -481,22 +463,41 @@ void readAirSensor()
     ulp.setAirPinHigh(false);
     if(!boostMode)
       ulp.setBoostPinHigh(false);    
-    airWarmedUp=false;
-    timeToReadAir=(currentTime()+AIRTIME)-(AIRTIME*.1);
-    logger.log(VERBOSE,"Setting next air sensor wakeup time to: %s (current: %s)",getTimeString(timeToReadAir),getTimeString(currentTime())); 
+    airWarmingUp=false;
+    timeToReadAir=(currentTime()+AIRREADTIME)-10;  //100 is just a buffer
+    logger.log(VERBOSE,"Setting next air sensor wakeup time to: %s",getTimeString(timeToReadAir)); 
     return;
   }
 }
 
-//Deep sleep
-void sleep(void) 
-{ 
-  esp_sleep_enable_timer_wakeup(cycleTime * TIMEFACTOR);
+//Determine how long to sleep for
+int getSleepSeconds()
+{
+  //see if we're in power saver mode, thus sleeping longer
+  if(powerSaverMode)
+  {
+    return POWERSAVERTIME;
+  }
 
+  //Let's see if we need to warm up sensor not
+  if(airWarmingUp)
+  {
+    return AIRWARMUPTIME;
+  }
+
+  //Looks like it's a normal cycle time
+  return CYCLETIME;
+}
+
+//Deep sleep
+void sleep(int sleepSeconds) 
+{
+  epoch=epoch+sleepSeconds; //add on how much we plan on sleeping now
+  unsigned long sleepTime = sleepSeconds*TIMEFACTOR;  //calc milli-seconds to sleep
+
+  esp_sleep_enable_timer_wakeup(sleepTime); 
   esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
-
-  epoch=epoch+cycleTime; //add on how much we plan on sleeping now
   esp_deep_sleep_start(); 
 }
 

@@ -79,7 +79,7 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
   - SWITCHTOTOBAT - Below this value, boost circuit is disabled, leaving the battery to power things.  (this is because battery charging will drain the caps unecessarily)
   - SWITCHTOTOCAP - Above this, boost circuit is re-enabled - which will also charge the battery
   - POWERSAVERVOLTAGE - Below this value, long sleeps are enabled and no PMS reads are allowed.  
-- The PMS air sensor is very power hungry (>120ma) so we minimize how often readings are taken.  (AIRTIME)
+- The PMS air sensor is very power hungry (>120ma) so we minimize how often readings are taken.  (AIRREADTIME)
 
 ### ULP
 
@@ -140,8 +140,9 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
     doc["voltage"] voltage at the caps
     doc["wifi_strength"] RSSI value
     doc["firmware_version"] auto incremented every build
-    doc["health assesment"] = "n/a";
 	doc["heap_frag"] = heap fragmentation in percentage
+	doc["wifi_only_flag"] true if we're in Wifi Only mode
+	doc["batter_pwr_flag"] true if running off battery instead of capacitors via boost		
 	doc["pms_read_time"] last time pms sensor was read 
 	doc["cpu_reset_code"] code of why the ESP rebooted
 	doc["cpu_reset_reason"] 
@@ -149,6 +150,7 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
 
 ### Hardware interfaces
 - Power
+	- Solar Panel - 10W(Watts) 12V(Volts) Monocrystalline  (about 1A)
 	- Adafruit MiniBoost 5V @ 1A - TPS61023  (capacitors --> PMS5003 and board via USB)
 	- 1000mAh LiPO battery connected directly to Fire Beetle board
 - i2c
@@ -178,6 +180,7 @@ Wiring:
 	- Ground - from caps
 	- VDD 3.3V
 	- 1000mAh LiPO battery also connected via the built in battery port (this also charges battery)
+	- Solar Panel --> Capacitors 
 - 4 pair from attached
 	- BME280 (temperature, pressure, humidity)
 		- Orange - VCC from ESP board
