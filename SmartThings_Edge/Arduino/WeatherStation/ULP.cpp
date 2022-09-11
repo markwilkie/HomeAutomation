@@ -43,6 +43,12 @@ void ULP::setupAirPin()
   setAirPinHigh(false);
 }
 
+void ULP::setupBoostPin()
+{
+  setupPin(PIN_BOOST,false,true);  //output and pulled up  
+  setBoostPinHigh(true);
+}
+
 void ULP::setAirPinHigh(bool setPinHighFlag)
 {
   rtc_gpio_hold_dis(PIN_AIR);
@@ -53,6 +59,18 @@ void ULP::setAirPinHigh(bool setPinHighFlag)
     rtc_gpio_set_level(PIN_AIR,LOW);
 
   rtc_gpio_hold_en(PIN_AIR);    
+}
+
+void ULP::setBoostPinHigh(bool setPinHighFlag)
+{
+  rtc_gpio_hold_dis(PIN_BOOST);
+
+  if(setPinHighFlag)
+    rtc_gpio_set_level(PIN_BOOST,HIGH);
+  else
+    rtc_gpio_set_level(PIN_BOOST,LOW);
+
+  rtc_gpio_hold_en(PIN_BOOST);    
 }
 
 //if not input, the pin is output.  If not pullUP, then it's pulldown (no floating)

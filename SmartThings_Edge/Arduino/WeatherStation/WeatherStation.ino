@@ -24,6 +24,7 @@ int cycleTime = CYCLETIME;    //can be changed when in power saving mode
 //globals in ULP which survive deep sleep
 RTC_DATA_ATTR bool firstBoot = true;
 RTC_DATA_ATTR bool powerSaverMode = false;
+RTC_DATA_ATTR bool boostMode = true;  //uses boosted capacitor as power
 RTC_DATA_ATTR ULP ulp;
 
 //when true, ESP goes into a high battery drain state of waiting for a /handshake POST message
@@ -297,7 +298,7 @@ void initialSetup()
 
     //free heap
     float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
-    logger.log(INFO,"Free Heap: %d or %f% used",(int)ESP.getFreeHeap(),heap);
+    logger.log(INFO,"Free Heap: %d or %f%% used",(int)ESP.getFreeHeap(),heap);
 
     //Setting up flash 
     //preferences.begin("weather", false); 
@@ -307,6 +308,7 @@ void initialSetup()
     ulp.setupWindPin();
     ulp.setupRainPin();
     ulp.setupAirPin();
+    ulp.setupBoostPin();
 
     //Try and load address and ports from flash
     getHubInfoFromPreference();
@@ -324,8 +326,9 @@ void initialSetup()
     firstBoot=false;
     airWarmedUp=false;
 
-    //make sure air quality sensor is off
+    //make sure air quality sensor is off and boost is on by default
     ulp.setAirPinHigh(false);
+    ulp.setBoostPinHigh(true);
 }
 
 void loop(void) 
@@ -380,8 +383,21 @@ void loop(void)
 
 void checkPowerSavingMode()
 {
-  //Check if we should be in power saver mode  (voltage of zero means that wifi is on because it can't read the pin)
   float voltage=adcHandler.getVoltage();
+
+  //Check if we should turn booster off and switch to battery power
+  if(voltage<=SWITCHTOTOBAT && boostMode) {
+    ulp.setBoostPinHigh(false);
+    boostMode=false;
+    logger.log(WARNING,"Switching to battery power");
+  }
+  if(voltage>SWITCHTOTOCAP && !boostMode) {
+    ulp.setBoostPinHigh(true);
+    boostMode=true;
+    logger.log(WARNING,"Switching to capacitor power");
+  }
+
+  //Check if we should be in power saver mode  (voltage of zero means that wifi is on because it can't read the pin)
   if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode) {
     cycleTime=POWERSAVERTIME;
     logger.log(WARNING,"*** Still Power Saver Mode.  Deep sleeps will continue to be for %f minutes. (%fV) ***",cycleTime/60.0,voltage);
@@ -436,6 +452,8 @@ void readAirSensor()
   if(adcHandler.getVoltage()<PMSMINVOLTAGE || powerSaverMode)
   {
     ulp.setAirPinHigh(false);  //make sure pin is low
+    if(!boostMode)    
+      ulp.setBoostPinHigh(false);    
     airWarmedUp=false;
     timeToReadAir=(currentTime()+AIRTIME)-(AIRTIME*.1);
     logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVoltage());
@@ -446,6 +464,8 @@ void readAirSensor()
   {
     logger.log(INFO,"Warming up air sensor");    
     ulp.setAirPinHigh(true);
+    if(!boostMode)    
+      ulp.setBoostPinHigh(true);
     airWarmedUp=true;
     timeToReadAir=currentTime()+cycleTime-(cycleTime*.1);  //warm up for at least a deep sleep cycle w/ a little buffer
     return;
@@ -459,6 +479,8 @@ void readAirSensor()
     
     //shut things down even if we didn't get a sample
     ulp.setAirPinHigh(false);
+    if(!boostMode)
+      ulp.setBoostPinHigh(false);    
     airWarmedUp=false;
     timeToReadAir=(currentTime()+AIRTIME)-(AIRTIME*.1);
     logger.log(VERBOSE,"Setting next air sensor wakeup time to: %s (current: %s)",getTimeString(timeToReadAir),getTimeString(currentTime())); 

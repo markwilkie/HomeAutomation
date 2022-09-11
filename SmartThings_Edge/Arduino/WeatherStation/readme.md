@@ -4,6 +4,8 @@ This is a ESP based weather station commmunicating via WiFi with Samsung Smartht
 
 It's intended to be self-sufficient with a solar panel and large capacitors for power.  Using capacitors came as an inspiration from: https://moteino.blogspot.com/p/5v-solar-power-supply.html?m=1  
 
+Last updated Sept 11 (version 1.02.xx)
+
 ### Specifications
 - Board: [FireBeetle from dfrobot](https://wiki.dfrobot.com/FireBeetle_ESP32_IOT_Microcontroller(V3.0)__Supports_Wi-Fi_&_Bluetooth__SKU__DFR0478)
     - Draws .15ma (milliamps) while deep sleeping
@@ -52,7 +54,9 @@ First Boot
 Each Wakeup  (like a new boot)
 1. ESP checks to see if this is boot from deep sleep or first boot
 1. Assuming it's a wake, ESP contacts hub with a GET call to /settings to retrieve the latest epoch and if it should go into wifi only mode
-1. Sensors are read, and assuming its time, messages are posted to the hub
+1. Sensors are read
+1. Epoch (and wifi only flag) updated from hub using a GET message
+1. Assuming its time, messages are posted to the hub
 1. Note that the PMS sensor (air quality) only reads and post every hour because it's such a power hog
 
 When Hub Port Changes (this happens when driver is updated or hub is rebooted)
@@ -63,11 +67,25 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
 ### Logging
 - Papertrail  (see logger.h for setup)
 
+### Power Management
+- The ESP and sensors are powered by three sources:
+  - Solar panel connected via protection circuits to the capacitors to charge them
+  - 2 Capacitors routed through a boost circuit (Adafruit MiniBoost 5V @ 1A - TPS61023), then connected to board via USB
+  - A1000mAh LiPO battery connected via built in power/charging port on Fire Beetle board
+- This particlar board (Fire Beetle) will charge the LiPO if USB power is over ~3.4 volts.
+- All onboard voltage measurements are from the capacitors pre-boost circuit
+- If cap voltage drops below certain thresholds, the following occurs based on DEFINES:
+  - PMSMINVOLTAGE - Below this value, no further readings are taken from the PMS air sensor
+  - SWITCHTOTOBAT - Below this value, boost circuit is disabled, leaving the battery to power things.  (this is because battery charging will drain the caps unecessarily)
+  - SWITCHTOTOCAP - Above this, boost circuit is re-enabled - which will also charge the battery
+  - POWERSAVERVOLTAGE - Below this value, long sleeps are enabled and no PMS reads are allowed.  
+- The PMS air sensor is very power hungry (>120ma) so we minimize how often readings are taken.  (AIRTIME)
+
 ### ULP
 
-### API Reference (server)
+### API Reference (server on ESP client)
 
-- /handshake
+- /handshake   (syncWithHub())
 ["hubAddress"]
 ["epoch"]
 ["deviceName"]
@@ -75,7 +93,7 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
 
 ### Client side GET messages
 
-- /settings
+- /settings  (syncSettings())
   ["epoch"] - Gets current epoch from hub (ESP does this periodically when it wakes up)
   ["wifionly_flag"] - When set (true/false), it puts the ESP in a mode where the WiFi is always on so that over-the-air updates can happen
 
@@ -123,9 +141,16 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
     doc["wifi_strength"] RSSI value
     doc["firmware_version"] auto incremented every build
     doc["health assesment"] = "n/a";
+	doc["heap_frag"] = heap fragmentation in percentage
+	doc["pms_read_time"] last time pms sensor was read 
+	doc["cpu_reset_code"] code of why the ESP rebooted
+	doc["cpu_reset_reason"] 
     doc["current_time"] 
 
 ### Hardware interfaces
+- Power
+	- Adafruit MiniBoost 5V @ 1A - TPS61023  (capacitors --> PMS5003 and board via USB)
+	- 1000mAh LiPO battery connected directly to Fire Beetle board
 - i2c
 	- BME280 humidity/temp/pressure- 3.6 µA  (gpio 21 and 22)
 - ULP co-processer counting pulses
@@ -141,24 +166,26 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
 			- w/ 10K    3K=2.5V, 300=3.2v, and 1M=.03v
 	- Wind direction - BL=3.3v, GR=Gnd, YLW=voltage
 	- GY-8511 UV breakout - straight voltage
-- UART
-	-   for air quality   (link, link)
+- UART for air quality
+	- https://how2electronics.com/interfacing-pms5003-air-quality-sensor-arduino/
+	- https://github.com/markwilkie/HomeAutomation/blob/master/rf24_based_solution-deprecated/Sonoff/FactoryATMEGAFirmware/sonoff_sc/pms5003.ino 
 
 
 ### Wiring / Hookup
 Wiring:
 - ESP32 (power)
-	- VIN - 5v+ from caps
+	- VIN - 5v+ from caps via booster
 	- Ground - from caps
 	- VDD 3.3V
+	- 1000mAh LiPO battery also connected via the built in battery port (this also charges battery)
 - 4 pair from attached
 	- BME280 (temperature, pressure, humidity)
-		- Orange - 3v-5v
+		- Orange - VCC from ESP board
 		- Orange/White - Ground
 		- Blue - SDA (GPIO21)
 		- Blue/White - SCK (GPIO22)
 	- PMS5003 (air quality)
-		- Brown - 5v
+		- Brown - 5v from booster
 		- Brown/White - Ground
 		- Green - TX (GPIO16 - URT2)
 		- Green/White - SET (GPIO25)   - low=sleep, high=enabled
@@ -187,6 +214,8 @@ Wiring:
 	- Blue - NPNP pulse (GPIO14)  -interrupt on low
 - Voltage monitoring
 	- Caps-->yellow-->10K/10K divider-->yellow-->GPIO32  (now 9)
+- Boost circuit (Adafruit MiniBoost 5V @ 1A - TPS61023)
+	- Enable --> GPIO9  (high is enabled)
 
 ### Capacity for 2x250F caps in series
 - Approx 25mah capacity  (https://sparks.gogo.co.nz/capacitor-formulae.html)
