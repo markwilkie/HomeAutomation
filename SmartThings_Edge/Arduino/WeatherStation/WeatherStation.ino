@@ -49,7 +49,7 @@ RTC_DATA_ATTR PMS5003Handler pmsHandler;
 
 //------------------------------------------------------------
 
-//Get on the same page with the admin driver
+//Send a GET message to the admin driver to get epoch, wifi-only flag and so on.
 void syncSettings()
 {
   if(!hubAdminPort)
@@ -91,7 +91,8 @@ void postAdmin()
     doc["hubWindPort"] = hubWindPort;
   if(hubRainPort>0)
     doc["hubRainPort"] = hubRainPort; 
-  doc["voltage"] = adcHandler.getVoltage();
+  doc["cap_voltage"] = adcHandler.getCapVoltage();
+  doc["vcc_voltage"] = adcHandler.getVCCVoltage();
   doc["wifi_strength"] = weatherWifi.getRSSI();
   doc["firmware_version"] = SKETCH_VERSION;
   doc["heap_frag"] = (1.0-((float)ESP.getMinFreeHeap()/(float)ESP.getFreeHeap()))*100;
@@ -184,7 +185,8 @@ DynamicJsonDocument refreshBMEDoc(DynamicJsonDocument doc)
 //refresh adc data
 DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc) 
 {  
-   doc["voltage"] = adcHandler.getVoltage();
+   doc["cap_voltage"] = adcHandler.getCapVoltage();
+   doc["vcc_voltage"] = adcHandler.getVCCVoltage();
    doc["ldr"] = adcHandler.getIllumination();
    doc["moisture"] = adcHandler.getMoisture();
    doc["uv"] = adcHandler.getUV();
@@ -277,7 +279,7 @@ void setup(void)
     logger.log(INFO,"-------------------------- Waking up");
   }
 
-  //read wind and rain sensor  (it's hear because we must be sure to read (clear) the register during windy conditions so there's no overflow
+  //read wind and rain sensor  (it's here because we must be sure to read (clear) the register during windy conditions so there's no overflow
   //   it is known that on initial boot, there's no epoch which makes the canculations for wind be invalid.  a full  cycle must be waited for and it'll clear itself
   logger.log(INFO,"Reading wind and rain sensors");
   windRainHandler.storeSamples();
@@ -361,9 +363,9 @@ void loop(void)
   postSensorData();  
 
   //only shut down wifi and deep sleep out if handshake no longer needed and we're not in OTA mode
-  if(!handshakeRequired && !wifiOnly || powerSaverMode)
+  if((!handshakeRequired && !wifiOnly) || (powerSaverMode && !wifiOnly))
   {
-    int sleepSeconds=getSleepSeconds();
+    long sleepSeconds=getSleepSeconds();
     logger.log(INFO,"Going to ESP deep sleep for %d seconds, will wake up at %s.  (night night)",sleepSeconds,getTimeString(currentTime()+sleepSeconds));
     weatherWifi.disableWifi();
     sleep(sleepSeconds);   //deep sleep
@@ -372,8 +374,8 @@ void loop(void)
 
 void checkPowerSavingMode()
 {
-  float voltage=adcHandler.getVoltage();
-
+  //Get capcitor voltage
+  float voltage=adcHandler.getCapVoltage(); 
   //Check if we should turn booster off and switch to battery power
   if(voltage<=SWITCHTOTOBAT && boostMode) {
     ulp.setBoostPinHigh(false);
@@ -386,7 +388,8 @@ void checkPowerSavingMode()
     logger.log(WARNING,"Switching to capacitor power");
   }
 
-  //Check if we should be in power saver mode  (voltage of zero means that wifi is on because it can't read the pin)
+  //Check if we should be in power saver mode by checking voltage at vcc pin
+  voltage=adcHandler.getVCCVoltage(); 
   if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode) {
     logger.log(WARNING,"*** Still Power Saver Mode.. (%fV) ***",voltage);
   }
@@ -431,14 +434,14 @@ void readAirSensor()
     return;
 
   //Check if we've got enough voltage.  At night, there's usually less than 5v and readings are wonky
-  if(adcHandler.getVoltage()<PMSMINVOLTAGE || powerSaverMode)
+  if(adcHandler.getVCCVoltage()<PMSMINVOLTAGE || powerSaverMode)
   {
     ulp.setAirPinHigh(false);  //make sure pin is low
     if(!boostMode)    
       ulp.setBoostPinHigh(false);    
     airWarmingUp=false;
     timeToReadAir=(currentTime()+AIRREADTIME)-10;  //100 is just a buffer
-    logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVoltage());
+    logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVCCVoltage());
     return;
   }
 
@@ -471,7 +474,7 @@ void readAirSensor()
 }
 
 //Determine how long to sleep for
-int getSleepSeconds()
+long getSleepSeconds()
 {
   //see if we're in power saver mode, thus sleeping longer
   if(powerSaverMode)
@@ -490,10 +493,10 @@ int getSleepSeconds()
 }
 
 //Deep sleep
-void sleep(int sleepSeconds) 
+void sleep(long sleepSeconds) 
 {
   epoch=epoch+sleepSeconds; //add on how much we plan on sleeping now
-  unsigned long sleepTime = sleepSeconds*TIMEFACTOR;  //calc milli-seconds to sleep
+  uint64_t sleepTime = (uint64_t)sleepSeconds*(uint64_t)TIMEFACTOR;  //calc micro-seconds to sleep
 
   esp_sleep_enable_timer_wakeup(sleepTime); 
   esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);

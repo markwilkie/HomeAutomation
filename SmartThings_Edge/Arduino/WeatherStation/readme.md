@@ -201,7 +201,7 @@ Wiring:
 		- Red - 3.3v  (shared ground)
 		- White-->10K pull down-->red-->GPIO26 - pulse count on high
 	- Moisture
-		- Black-->1M divider-->white-->GPIO39
+		- Black-->1M pull down-->white-->GPIO10  (is a digital input)
 - 3 pair from UV
 	- Red - VIN
 	- Yellow - 3.3v
@@ -209,16 +209,17 @@ Wiring:
 	- Blue - out (GPIO34)
 	- Black - Enable (GPIO27)
 - LDR 
-	- White-->10K divider-->yellow-->GPIO35  (shares power w/ Red)
+	- White-->10K divider-->yellow-->GPIO15  (shares power w/ Red)
 - Anemometer
 	- Brown - 3.3v
 	- Black - Ground
 	- Green - PNP pulse -not used
 	- Blue - NPNP pulse (GPIO14)  -interrupt on low
 - Voltage monitoring
-	- Caps-->yellow-->10K/10K divider-->yellow-->GPIO32  (now 9)
+	- Caps-->yellow-->10K/10K divider-->yellow-->GPIO39
+	- VCC pin-->yellow-->2K4/3K3 divider-->yellow-->GPIO35
 - Boost circuit (Adafruit MiniBoost 5V @ 1A - TPS61023)
-	- Enable --> GPIO9  (high is enabled)
+	- Enable --> GPIO12  (high is enabled)
 
 ### Capacity for 2x250F caps in series
 - Approx 25mah capacity  (https://sparks.gogo.co.nz/capacitor-formulae.html)

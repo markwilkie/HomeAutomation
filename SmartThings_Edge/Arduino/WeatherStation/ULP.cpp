@@ -45,7 +45,7 @@ void ULP::setupAirPin()
 
 void ULP::setupBoostPin()
 {
-  setupPin(PIN_BOOST,false,true);  //output and pulled up  
+  setupPin(PIN_BOOST,false,false);  //output and pulled down  
   setBoostPinHigh(true);
 }
 

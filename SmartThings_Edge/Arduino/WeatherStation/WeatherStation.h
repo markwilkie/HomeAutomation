@@ -3,7 +3,7 @@
 
 //defines
 #define CYCLETIME             600                   // interval in seconds sensors will be read and wifi will attempt to POST data to the hub  (deep sleeps inbetween)
-#define POWERSAVERTIME        5400                  // interval in seconds that esp will deep sleep during power saver mode (5400 is 1.5 hours)
+#define POWERSAVERTIME        324000UL              // interval in seconds that esp will deep sleep during power saver mode (324000 is 1.5 hours)
 #define HTTPSERVERTIME        30                    // time blocking in server listen for handshaking while in loop
 #define AIRWARMUPTIME         30                    // interval in seconds that we'll power the sensor and let it warm up and settle down
 #define AIRREADTIME           (3600-AIRWARMUPTIME)  // interval in seconds we'll wake up the power hungry air sensor  (minus warmup)

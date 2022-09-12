@@ -8,7 +8,7 @@ extern Logger logger;
 #ifndef WINDRAIN_H
 #define WINDRAIN_H
 
-#define TIMEFACTOR        1000000     // factor between seconds and microseconds
+#define TIMEFACTOR        1000000UL   // factor between seconds and microseconds
 #define WINDFACTOR        3.4         // 3.4 km/h per revolution, or 20 pulses
 #define RAINFACTOR        0.0204      // bucket size
 

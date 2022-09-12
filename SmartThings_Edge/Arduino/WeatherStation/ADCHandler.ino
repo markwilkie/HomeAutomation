@@ -4,7 +4,8 @@ extern Logger logger;
 
 void ADCHandler::init()
 {
-  pinMode(VOLTAGE_PIN, INPUT);
+  pinMode(CAP_VOLTAGE_PIN, INPUT);
+  pinMode(VCC_VOLTAGE_PIN, INPUT);
   pinMode(LDR_PIN, INPUT);
   pinMode(MOISTURE_PIN, INPUT);
   pinMode(UV_PIN, INPUT);
@@ -19,21 +20,30 @@ void ADCHandler::storeSamples()
   delay(100);
 
   //raw
-  _voltage = readADC(VOLTAGE_PIN);
+  _capVoltage = readADC(CAP_VOLTAGE_PIN);
+  _vccVoltage = readADC(VCC_VOLTAGE_PIN);
   _ldr = readADC(LDR_PIN);
   _moisture = readADC(MOISTURE_PIN);
   _uv = readADC(UV_PIN);
 
-  logger.log(VERBOSE,"RAW ADC VALUES: voltage: %d, LDR: %d, Moisture: %d, UV: %d",_voltage,_ldr,_moisture,_uv);  
+  logger.log(VERBOSE,"RAW ADC VALUES: cap voltage: %d, bat voltage: %d, LDR: %d, Moisture: %d, UV: %d",_capVoltage,_vccVoltage,_ldr,_moisture,_uv);  
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
 }
 
-float ADCHandler::getVoltage()
+float ADCHandler::getCapVoltage()
 {
-  float voltage=getVolts(_voltage*2);  //doubled because it's gone through a 10x10K divider;
-  voltage=voltage*VOLTAGE_CALIB;
+  float voltage=getVolts(_capVoltage*2);  //doubled because it's gone through a 10x10K divider;
+  voltage=voltage*CAP_VOLTAGE_CALIB;
+  
+  return voltage;   
+}
+
+float ADCHandler::getVCCVoltage()
+{
+  float voltage=getVolts(_vccVoltage);
+  voltage=voltage*VCC_VOLTAGE_CALIB;
   
   return voltage;   
 }
