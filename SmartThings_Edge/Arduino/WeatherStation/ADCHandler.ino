@@ -26,7 +26,7 @@ void ADCHandler::storeSamples()
   _moisture = readADC(MOISTURE_PIN);
   _uv = readADC(UV_PIN);
 
-  logger.log(VERBOSE,"RAW ADC VALUES: cap voltage: %d, bat voltage: %d, LDR: %d, Moisture: %d, UV: %d",_capVoltage,_vccVoltage,_ldr,_moisture,_uv);  
+  logger.log(VERBOSE,"RAW ADC VALUES: cap voltage: %d, vcc voltage: %d, LDR: %d, Moisture: %d, UV: %d",_capVoltage,_vccVoltage,_ldr,_moisture,_uv);  
 
   //Disable stuff that needs it
   digitalWrite(UV_EN, LOW);
@@ -43,7 +43,7 @@ float ADCHandler::getCapVoltage()
 float ADCHandler::getVCCVoltage()
 {
   float voltage=getVolts(_vccVoltage);
-  voltage=voltage*VCC_VOLTAGE_CALIB;
+  voltage=voltage*VCC_VOLTAGE_CALIB;     //account for the voltage divider
   
   return voltage;   
 }

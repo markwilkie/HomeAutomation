@@ -434,7 +434,7 @@ void readAirSensor()
     return;
 
   //Check if we've got enough voltage.  At night, there's usually less than 5v and readings are wonky
-  if(adcHandler.getVCCVoltage()<PMSMINVOLTAGE || powerSaverMode)
+  if(adcHandler.getCapVoltage()<PMSMINVOLTAGE || powerSaverMode)
   {
     ulp.setAirPinHigh(false);  //make sure pin is low
     if(!boostMode)    
