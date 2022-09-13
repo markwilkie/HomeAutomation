@@ -1,0 +1,23 @@
+{
+    "id": "radioamber53161.firmware",
+    "version": 1,
+    "status": "proposed",
+    "name": "Firmware",
+    "ephemeral": false,
+    "attributes": {
+        "Version": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }      
+    },
+    "commands": {}
+}

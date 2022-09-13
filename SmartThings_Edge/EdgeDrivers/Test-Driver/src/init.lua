@@ -15,6 +15,11 @@ local globals = require "globals"
 -- Custom Capabiities
 local datetime = capabilities["radioamber53161.datetime"]
 local wifiswitch = capabilities["radioamber53161.wifiswitch"]
+local firmware = capabilities["radioamber53161.firmware"]
+local heapfragmentation = capabilities["radioamber53161.heapFragmentation"]
+local cpureset = capabilities["radioamber53161.cpuReset"]
+local lastairupdate = capabilities["radioamber53161.lastAirUpdate"]
+local airquality = capabilities["radioamber53161.airQuality"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
@@ -50,13 +55,27 @@ end
 local function emitTestData(driver, device)
   log.info("Emiting Test Data")
 
+ 
+  device:emit_event(airquality.AQI(102))
+  device:emit_event(airquality.Description("Moderate".." -"..os.date("%a %X", 1662559690)))
+
+  device:emit_event(cpureset.Code(5))
+  device:emit_event(cpureset.Reason("cpu restarted"))
+
+  device:emit_event(firmware.Version("2.4.4"))
+  device:emit_event(heapfragmentation.Fragmentation(9.2))
   local rssi=-67
   device:emit_event(capabilities.signalStrength.rssi(rssi))
   device:emit_event(capabilities.signalStrength.lqi(calcLQI(rssi)))
-  device:emit_event(capabilities.voltageMeasurement.voltage(5.3))
+
   device:emit_event(datetime.datetime(os.date("%a %X", 1662559690)))
+
+
+
 end
 
+
+-- free_heap":258356,"min_free_heap":254896,"pms_read_time":1662561498,"cpu_reset_code":5,"cpu_reset_reason"
 
 -------------
 -- Handlers
@@ -109,13 +128,20 @@ local function device_init(driver, device)
   log.warn("[" .. device.id .. "] ----------------------->  Initializing test device")
 
   --default values
+  device:emit_event(airquality.AQI(102))
+  device:emit_event(airquality.Description("Moderate".." -"..os.date("%a %X", 1662559690)))
+
   device:emit_event(wifiswitch.switch.off())
-  device:emit_event(capabilities.voltageMeasurement.voltage(0))
+  device:emit_event(firmware.Version("2.4.3"))
+
+  device:emit_event(heapfragmentation.Fragmentation(8.2))
   device:emit_event(capabilities.signalStrength.rssi(0))
   device:emit_event(capabilities.signalStrength.lqi(0))
 
-  device:emit_event(capabilities.dustHealthConcern.dustHealthConcern("moderate"))
-  device:emit_event(capabilities.fineDustHealthConcern.fineDustHealthConcern("good"))
+  device:emit_event(cpureset.Code(-1))
+  device:emit_event(cpureset.Reason("cpu restarted"))  
+
+  
 
   -- Refresh schedule
   device.thread:call_on_schedule(

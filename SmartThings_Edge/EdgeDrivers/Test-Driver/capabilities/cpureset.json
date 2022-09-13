@@ -1,0 +1,36 @@
+{
+    "id": "radioamber53161.cpuReset",
+    "version": 1,
+    "status": "proposed",
+    "name": "CPU Reset",
+    "ephemeral": false,
+    "attributes": {
+        "Code": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        },
+        "Reason": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }                     
+    },
+    "commands": {}
+}

@@ -1,0 +1,23 @@
+{
+    "id": "radioamber53161.heapFragmentation",
+    "version": 1,
+    "status": "proposed",
+    "name": "Heap Fragmentation",
+    "ephemeral": false,
+    "attributes": {
+        "Fragmentation": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }      
+    },
+    "commands": {}
+}

@@ -85,6 +85,7 @@ local function switch_on(driver, device, command)
   log.info("Setting Wifi Only Mode ON")
   commonglobals.wifiOnly = true
   device:emit_event(capabilities.switch.switch.on())
+  return true
 end
 
 -- callback to handle an `off` capability command
@@ -92,6 +93,7 @@ local function switch_off(driver, device, command)
   log.info("Setting Wifi Only Mode OFF")
   commonglobals.wifiOnly = false
   device:emit_event(capabilities.switch.switch.off())
+  return true
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
@@ -107,7 +109,7 @@ local function device_init(driver, device)
   device:emit_event(capabilities.switch.switch.off())
   device:emit_event(capabilities.voltageMeasurement.voltage(0))
   device:emit_event(capabilities.signalStrength.rssi(0))
-  device:emit_event(capabilities.signalStrength.lqi(0))  
+  device:emit_event(capabilities.signalStrength.lqi(0))
 
   -- Startup Server
   myserver.start_server(driver)  

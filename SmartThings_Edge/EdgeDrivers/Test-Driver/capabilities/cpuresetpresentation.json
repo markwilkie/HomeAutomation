@@ -1,0 +1,33 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "CPU Reset: {{Code.value}}, {{Reason.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Code",
+            "displayType": "state",
+            "state": {
+                "label": "{{Code.value}}"
+            }
+        },
+        {
+            "label": "Reason",
+            "displayType": "state",
+            "state": {
+                "label": "{{Reason.value}}"
+            }
+        }          
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": []
+    },
+    "id": "radioamber53161.cpuReset",
+    "version": 1
+}
