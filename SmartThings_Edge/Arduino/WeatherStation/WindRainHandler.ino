@@ -3,6 +3,8 @@
 #include "WindRainHandler.h"
 #include "WeatherStation.h"
 
+extern double round2(double);
+
 void WindRainHandler::storeSamples()
 {
   //Find out how long it's been since the last reading so we can calc speed correctly 
@@ -19,7 +21,7 @@ void WindRainHandler::storeSamples()
   totalSpeed=totalSpeed+windSpeed;
   speedSamples++;
 
-  logger.log(VERBOSE,"Samples - Wind Speed: (raw/avg) %f/%f, Gust Speed: (current/old max) %f/%f, Direction: %d",windSpeed,totalSpeed/(float)speedSamples,windGustSpeed,maxGust,rawDirectioninDegrees);
+  logger.log(VERBOSE,"Samples - Wind Speed: (raw/avg) %f/%f, Gust Speed: (current/old max) %f/%f, Direction: %d",windSpeed,totalSpeed/(double)speedSamples,windGustSpeed,maxGust,rawDirectioninDegrees);
 
   //max gust (but makes sure it's within bounds)
   if(windGustSpeed>(windSpeed*GUSTLIMIT))
@@ -67,29 +69,29 @@ int WindRainHandler::calcWindDirection()
   return direction;
 }
 
-float WindRainHandler::getWindSpeed()
+double WindRainHandler::getWindSpeed()
 {
-  float avgWindSpeed=totalSpeed;
+  double avgWindSpeed=totalSpeed;
   if(speedSamples > 1) 
-    totalSpeed/(float)speedSamples;
+    totalSpeed/(double)speedSamples;
 
   totalSpeed=0;
   speedSamples=0;
   
-  return avgWindSpeed;
+  return round2(avgWindSpeed);
 }
-float WindRainHandler::getWindGustSpeed()
+double WindRainHandler::getWindGustSpeed()
 { 
   windGustSpeed=maxGust;
   maxGust=0;  //reset since we're reading
  
-  return windGustSpeed;
+  return round2(windGustSpeed);
 }
-float WindRainHandler::getRainRate()
+double WindRainHandler::getRainRate()
 {
-  float currentRainRate=rainRate;
+  double currentRainRate=rainRate;
   rainRate=0;  //reset because we're reading
-  return currentRainRate;
+  return round2(currentRainRate);
 }
 int WindRainHandler::getDirectionInDeg()
 {

@@ -3,6 +3,7 @@
 
 extern Logger logger;
 extern unsigned long currentTime();
+extern double round2(double);
 
 void BME280Handler::init()
 {
@@ -24,19 +25,19 @@ void BME280Handler::storeSamples()
   logger.log(VERBOSE,"Temperature: %f, Humidity: %f, Pressure: %f",temperature,humidity,pressure);
 }
 
-float BME280Handler::getTemperature()
+double BME280Handler::getTemperature()
 {
-  return (temperature*9.0/5.0) + 32.0;  //F
+  return round2((temperature*9.0/5.0) + 32.0);  //F
 }
 
-float BME280Handler::getPressure()
+double BME280Handler::getPressure()
 {
-  return pressure/3386.3752577878;   //inHg 
+  return round2(pressure/3386.3752577878);   //inHg 
 }
 
-float BME280Handler::getHumidity()
+double BME280Handler::getHumidity()
 {
-  return humidity;
+  return round2(humidity);
 }
 
 unsigned long BME280Handler::getReadingTime()
@@ -44,12 +45,12 @@ unsigned long BME280Handler::getReadingTime()
   return readingTime;
 }
 
-float BME280Handler::getDewPoint()
+double BME280Handler::getDewPoint()
 {
-  return EnvironmentCalculations::DewPoint(temperature, humidity, EnvironmentCalculations::TempUnit_Celsius);
+  return round2(EnvironmentCalculations::DewPoint(temperature, humidity, EnvironmentCalculations::TempUnit_Celsius));
 }
 
-float BME280Handler::getHeatIndex()
+double BME280Handler::getHeatIndex()
 {
-  return EnvironmentCalculations::HeatIndex(temperature, humidity, EnvironmentCalculations::TempUnit_Celsius);
+  return round2(EnvironmentCalculations::HeatIndex(temperature, humidity, EnvironmentCalculations::TempUnit_Celsius));
 }

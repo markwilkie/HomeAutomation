@@ -73,9 +73,9 @@ void Logger::log(unsigned long num,bool cr)
   log(buf,cr);
 }
 
-void Logger::log(float flt,bool cr)
+void Logger::log(double flt,bool cr)
 {
-  /* 4 is mininum width, 2 is precision; float value is copied onto str_temp*/
+  /* 4 is mininum width, 2 is precision; double value is copied onto str_temp*/
   char buf[15];
   dtostrf(flt, 3, 2, buf);
 

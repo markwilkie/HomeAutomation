@@ -10,10 +10,10 @@
 struct breakPoint 
 {
   const char* label;
-  float conc_lo;
-  float conc_hi;
-  float AQI_lo;
-  float AQI_hi;
+  double conc_lo;
+  double conc_hi;
+  double AQI_lo;
+  double AQI_hi;
 };
 
 struct concenReading
@@ -44,10 +44,10 @@ class PMS5003Handler
     int getPM10_0um();
     
   private: 
-    void calcPMSMinMax(float &pm25min,float &pm25max,float &pm100min,float &pm100max,int &count);
-    float calcPMSWeight(float min,float max);
-    void sumWeights(int count,float weight,float &v1P25Sum,float &v2P25Sum,float &v1P100Sum,float &v2P100Sum);
-    const char* calcAQI(float nowCast,struct breakPoint*,int &AQI);
+    void calcPMSMinMax(double &pm25min,double &pm25max,double &pm100min,double &pm100max,int &count);
+    double calcPMSWeight(double min,double max);
+    void sumWeights(int count,double weight,double &v1P25Sum,double &v2P25Sum,double &v1P100Sum,double &v2P100Sum);
+    const char* calcAQI(double nowCast,struct breakPoint*,int &AQI);
     void calcPM25AQI();
     void calcPM100AQI();
 

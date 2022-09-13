@@ -36,7 +36,7 @@ class Logger
     void log(int number, bool cr);    
     void log(long number, bool cr);    
     void log(unsigned long number, bool cr);      
-    void log(float number, bool cr);
+    void log(double number, bool cr);
     bool log(int,const char *fmt, ...);
     
   private: 

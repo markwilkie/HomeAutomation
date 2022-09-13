@@ -44,11 +44,11 @@ class ADCHandler
   public:
     void init();
     void storeSamples();
-    float getCapVoltage();
-    float getVCCVoltage();
+    double getCapVoltage();
+    double getVCCVoltage();
     long getIllumination();
     String getMoisture();
-    float getUV();
+    double getUV();
     
   private: 
     int readADC(int);

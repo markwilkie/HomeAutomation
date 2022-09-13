@@ -19,28 +19,28 @@ class WindRainHandler
 
   public:
     void storeSamples();
-    float getWindSpeed();
-    float getWindGustSpeed();
-    float getRainRate();
+    double getWindSpeed();
+    double getWindGustSpeed();
+    double getRainRate();
     int getDirectionInDeg();
     String getDirectionLabel();
     
   private: 
     WindRain windRain;
     
-    float windSpeed;
-    float windGustSpeed;
-    float rainRate;
+    double windSpeed;
+    double windGustSpeed;
+    double rainRate;
     int rawDirectioninDegrees;    
 
     int calcWindDirection();
 
     //private vars
-    float maxGust=0;
+    double maxGust=0;
     unsigned long lastReadingTime;
 
     //used to calc avg speed
-    float totalSpeed;
+    double totalSpeed;
     int speedSamples;
 };
 

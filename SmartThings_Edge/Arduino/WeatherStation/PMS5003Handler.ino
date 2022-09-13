@@ -68,13 +68,13 @@ const char *PMS5003Handler::getPM100Label()
 void PMS5003Handler::calcPM25AQI()
 {
   int count;
-  float pm25min,pm25max,pm100min,pm100max;
-  float v1P25Sum,v2P25Sum,v1P100Sum,v2P100Sum;
+  double pm25min,pm25max,pm100min,pm100max;
+  double v1P25Sum,v2P25Sum,v1P100Sum,v2P100Sum;
 
   calcPMSMinMax(pm25min,pm25max,pm100min,pm100max,count);
-  float weight = calcPMSWeight(pm25min,pm25max);
+  double weight = calcPMSWeight(pm25min,pm25max);
   sumWeights(count,weight,v1P25Sum,v2P25Sum,v1P100Sum,v2P100Sum);
-  float nowCast = v1P25Sum/v2P25Sum;
+  double nowCast = v1P25Sum/v2P25Sum;
   pm25Label=calcAQI(nowCast,pm25BreakPoints,pm25AQI);
  
   logger.log(VERBOSE,"===============");
@@ -86,13 +86,13 @@ void PMS5003Handler::calcPM25AQI()
 void PMS5003Handler::calcPM100AQI()
 {
   int count;
-  float pm25min,pm25max,pm100min,pm100max;
-  float v1P25Sum,v2P25Sum,v1P100Sum,v2P100Sum;
+  double pm25min,pm25max,pm100min,pm100max;
+  double v1P25Sum,v2P25Sum,v1P100Sum,v2P100Sum;
 
   calcPMSMinMax(pm25min,pm25max,pm100min,pm100max,count);
-  float weight = calcPMSWeight(pm100min,pm100max);
+  double weight = calcPMSWeight(pm100min,pm100max);
   sumWeights(count,weight,v1P25Sum,v2P25Sum,v1P100Sum,v2P100Sum);
-  float nowCast = v1P100Sum/v2P100Sum;
+  double nowCast = v1P100Sum/v2P100Sum;
   pm100Label=calcAQI(nowCast,pm100BreakPoints,pm100AQI);
   
   logger.log(VERBOSE,"===============");
@@ -122,7 +122,7 @@ int PMS5003Handler::getLastReadTime()
 }
 
 //Get minmax for pms calculations
-void PMS5003Handler::calcPMSMinMax(float &pm25min,float &pm25max,float &pm100min,float &pm100max,int &count)
+void PMS5003Handler::calcPMSMinMax(double &pm25min,double &pm25max,double &pm100min,double &pm100max,int &count)
 {
   //init values
   count=0;
@@ -152,9 +152,9 @@ void PMS5003Handler::calcPMSMinMax(float &pm25min,float &pm25max,float &pm100min
 }
 
 //Calc weight factor
-float PMS5003Handler::calcPMSWeight(float min,float max)
+double PMS5003Handler::calcPMSWeight(double min,double max)
 {
-    float weight = 1.0;
+    double weight = 1.0;
     if(max>0){
       weight = 1-((max-min)/max); }
     if(weight < .5) {
@@ -166,7 +166,7 @@ float PMS5003Handler::calcPMSWeight(float min,float max)
 }
 
 //Weight the history.  We'll make the assumption that the last few rows are all current. 
-void PMS5003Handler::sumWeights(int count,float weight,float &v1P25Sum,float &v2P25Sum,float &v1P100Sum,float &v2P100Sum)
+void PMS5003Handler::sumWeights(int count,double weight,double &v1P25Sum,double &v2P25Sum,double &v1P100Sum,double &v2P100Sum)
 {
   v1P25Sum=0;
   v2P25Sum=0;
@@ -193,7 +193,7 @@ void PMS5003Handler::sumWeights(int count,float weight,float &v1P25Sum,float &v2
 }
 
 //Finally, let's find the AQI value
-const char* PMS5003Handler::calcAQI(float nowCast,struct breakPoint* breakPoints,int &AQI)
+const char* PMS5003Handler::calcAQI(double nowCast,struct breakPoint* breakPoints,int &AQI)
 {
   AQI=0;
   const char* label="n/a";
@@ -202,12 +202,12 @@ const char* PMS5003Handler::calcAQI(float nowCast,struct breakPoint* breakPoints
   {
     if(nowCast>=breakPoints[i].conc_lo && nowCast<=breakPoints[i].conc_hi)
     {     
-      float numerator=breakPoints[i].AQI_hi-breakPoints[i].AQI_lo;
-      float denom=breakPoints[i].conc_hi-breakPoints[i].conc_lo;
-      float first=numerator/denom;
-      float neg=nowCast-breakPoints[i].conc_lo;
-      float aqifloat=(first*neg)+breakPoints[i].AQI_lo;
-      AQI = round(aqifloat);   
+      double numerator=breakPoints[i].AQI_hi-breakPoints[i].AQI_lo;
+      double denom=breakPoints[i].conc_hi-breakPoints[i].conc_lo;
+      double first=numerator/denom;
+      double neg=nowCast-breakPoints[i].conc_lo;
+      double aqidouble=(first*neg)+breakPoints[i].AQI_lo;
+      AQI = round(aqidouble);   
       label=breakPoints[i].label;       
       break;
     }

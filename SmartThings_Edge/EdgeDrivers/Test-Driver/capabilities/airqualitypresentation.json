@@ -1,0 +1,33 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "AQI: {{AQI.value}} {{Description.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "AQI: ",
+            "displayType": "state",
+            "state": {
+                "label": "{{AQI.value}}"
+            }
+        },
+        {
+            "label": "Description",
+            "displayType": "state",
+            "state": {
+                "label": "{{Description.value}}"
+            }
+        }      
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": []
+    },
+    "id": "radioamber53161.airQuality",
+    "version": 1
+}

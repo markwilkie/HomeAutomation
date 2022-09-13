@@ -16,20 +16,20 @@ class BME280Handler
   public:
     void init();
     void storeSamples();
-    float getTemperature();
-    float getPressure();
-    float getHumidity();
-    float getDewPoint();
-    float getHeatIndex(); 
+    double getTemperature();
+    double getPressure();
+    double getHumidity();
+    double getDewPoint();
+    double getHeatIndex(); 
 
     unsigned long getReadingTime();
     
   private: 
     Adafruit_BME280 bme; // I2C
 
-    float temperature;
-    float pressure;
-    float humidity;
+    double temperature;
+    double pressure;
+    double humidity;
     unsigned long readingTime;    
 };
 

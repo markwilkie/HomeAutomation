@@ -95,7 +95,7 @@ void postAdmin()
   doc["vcc_voltage"] = adcHandler.getVCCVoltage();
   doc["wifi_strength"] = weatherWifi.getRSSI();
   doc["firmware_version"] = SKETCH_VERSION;
-  doc["heap_frag"] = (1.0-((float)ESP.getMinFreeHeap()/(float)ESP.getFreeHeap()))*100;
+  doc["heap_frag"] = (1.0-((double)ESP.getMinFreeHeap()/(double)ESP.getFreeHeap()))*100;
   doc["pms_read_time"] = pmsHandler.getLastReadTime();
   doc["power_saver_mode"] = powerSaverMode;   
   doc["wifi_only"] = wifiOnly;
@@ -292,7 +292,7 @@ void initialSetup()
     blinkLED(3,250,250);
 
     //free heap
-    float heap=(((float)376360-ESP.getFreeHeap())/(float)376360)*100;
+    double heap=(((double)376360-ESP.getFreeHeap())/(double)376360)*100;
     logger.log(INFO,"Free Heap: %d or %f%% used",(int)ESP.getFreeHeap(),heap);
 
     //Setting up flash 
@@ -375,7 +375,7 @@ void loop(void)
 void checkPowerSavingMode()
 {
   //Get capcitor voltage
-  float voltage=adcHandler.getCapVoltage(); 
+  double voltage=adcHandler.getCapVoltage(); 
   //Check if we should turn booster off and switch to battery power
   if(voltage<=SWITCHTOTOBAT && boostMode) {
     ulp.setBoostPinHigh(false);
@@ -539,6 +539,13 @@ void blinkLED(int times,int onDuration,int offDuration)
     delay(offDuration);
     
   }
+}
+
+// rounds a number to 2 decimal places
+// example: round(3.14159) -> 3.14
+double round2(double value) 
+{
+   return (int)(value * 100 + 0.5) / 100.0;
 }
 
 //Note ESP bug:  https://github.com/espressif/esp-idf/issues/494 

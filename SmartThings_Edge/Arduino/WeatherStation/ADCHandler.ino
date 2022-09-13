@@ -1,6 +1,7 @@
 #include "ADCHandler.h"
 
 extern Logger logger;
+extern double round2(double);
 
 void ADCHandler::init()
 {
@@ -32,20 +33,20 @@ void ADCHandler::storeSamples()
   digitalWrite(UV_EN, LOW);
 }
 
-float ADCHandler::getCapVoltage()
+double ADCHandler::getCapVoltage()
 {
-  float voltage=getVolts(_capVoltage*2);  //doubled because it's gone through a 10x10K divider;
+  double voltage=getVolts(_capVoltage*2);  //doubled because it's gone through a 10x10K divider;
   voltage=voltage*CAP_VOLTAGE_CALIB;
   
-  return voltage;   
+  return round2(voltage);   
 }
 
-float ADCHandler::getVCCVoltage()
+double ADCHandler::getVCCVoltage()
 {
-  float voltage=getVolts(_vccVoltage);
+  double voltage=getVolts(_vccVoltage);
   voltage=voltage*VCC_VOLTAGE_CALIB;     //account for the voltage divider
   
-  return voltage;   
+  return round2(voltage);   
 }
 
 long ADCHandler::getIllumination()
@@ -62,21 +63,21 @@ String ADCHandler::getMoisture()
   return moisture;
 }
 
-float ADCHandler::getUV()
+double ADCHandler::getUV()
 {
-  float uv=getUVIndex(_uv);
+  double uv=getUVIndex(_uv);
     
-  return uv;
+  return round2(uv);
 }
 
 int ADCHandler::readADC(int pin)
 {
   int tries=0; 
-  float sampleSum = 0;
-  float mean = 0.0;
-  float sqDevSum = 0.0;
-  float stdDev = 0.0;
-  float tolerance = 0.0;
+  double sampleSum = 0;
+  double mean = 0.0;
+  double sqDevSum = 0.0;
+  double stdDev = 0.0;
+  double tolerance = 0.0;
 
   //Try to get a clean read that is within tolerance
   while(tries<MAXTRIES)
@@ -98,14 +99,14 @@ int ADCHandler::readADC(int pin)
     }
 
     //calc mean
-    mean = sampleSum/float(SAMPLES);
+    mean = sampleSum/double(SAMPLES);
 
     //calc std deviation  (throw out bad reads)
     for(int i = 0; i < SAMPLES; i++) 
     {
-      sqDevSum += pow((mean - float(sampleValues[i])), 2);
+      sqDevSum += pow((mean - double(sampleValues[i])), 2);
     }
-    stdDev = sqrt(sqDevSum/float(SAMPLES));  
+    stdDev = sqrt(sqDevSum/double(SAMPLES));  
 
     //are we within tolerance?
     tolerance = (MAX_ADC_READING*(TOLERANCE/100.0));
@@ -128,10 +129,10 @@ int ADCHandler::readADC(int pin)
 
 long ADCHandler::getIllum(int ldr_raw_data)
 {
-  float ldr_voltage;
-  float ldr_resistor_voltage;
-  float ldr_resistance;
-  float ldr_lux;
+  double ldr_voltage;
+  double ldr_resistor_voltage;
+  double ldr_resistance;
+  double ldr_lux;
 
   //Convert adc reading to volts
   ldr_voltage = getVolts(ldr_raw_data);
@@ -155,7 +156,7 @@ long ADCHandler::getIllum(int ldr_raw_data)
 
 double ADCHandler::getVolts(int adcReading)
 {
-  return ((float)adcReading / MAX_ADC_READING) * ADC_REF_VOLTAGE;
+  return ((double)adcReading / MAX_ADC_READING) * ADC_REF_VOLTAGE;
 }
 
 double ADCHandler::getUVIndex(int adcReading)

@@ -1,0 +1,36 @@
+{
+    "id": "radioamber53161.airQuality",
+    "version": 1,
+    "status": "proposed",
+    "name": "Air Quality",
+    "ephemeral": false,
+    "attributes": {
+        "AQI": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        },
+        "Description": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }            
+    },
+    "commands": {}
+}
