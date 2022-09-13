@@ -89,11 +89,13 @@ bool PMS5003::readPMSData()
   // Read a byte at a time until we get to the special '0x42' start-byte
   if (s->peek() != 0x42) {
     s->read();
+    logger.log(ERROR,"Didn't get start byte");
     return false;
   }
  
   // Now read all 32 bytes
   if (s->available() < 32) {
+    logger.log(ERROR,"Unable to read all 32 bytes");
     return false;
   }
     

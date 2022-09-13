@@ -5,17 +5,26 @@ extern char* getTimeString(unsigned long);
 
 void PMS5003Handler::init()
 {
-  //Make sure these are initialized
-  pm25Label="n/a";
-  pm100Label="n/a";
-
   //Initialize the sensor itself (turns on serial)
   pmsSensor.init();
 }
 
 bool PMS5003Handler::storeSamples()
 {
-  bool success=pmsSensor.readPMSData();
+  int tryNumber=0;
+  bool success=true;
+  while(!pmsSensor.readPMSData())
+  {
+    tryNumber++;
+    if(tryNumber>PMSTOTALTRIES)
+    {
+      logger.log(ERROR,"Too many retries trying to get data from PMS5003 air quality sensor");
+      success=false;
+      break;
+    }
+    delay(1000);
+  }
+
   if(success)
   {
     logger.log(VERBOSE,"Logging concentration: time: %ld, pm25: %d, pm100 %d at index: %d",currentTime(),getPM25Standard(), getPM100Standard(),currentIdx);
@@ -25,6 +34,10 @@ bool PMS5003Handler::storeSamples()
     currentIdx++;
     if(currentIdx>=CONCEN_HIST_SIZE)
       currentIdx=0;
+
+    //Make sure these are initialized
+    pm25Label="n/a";
+    pm100Label="n/a";
 
     //Now calc AQI
     calcBothAQI();
