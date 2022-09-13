@@ -1,0 +1,23 @@
+{
+    "id": "radioamber53161.lastUpdated",
+    "version": 1,
+    "status": "proposed",
+    "name": "Last Updated",
+    "ephemeral": false,
+    "attributes": {
+        "Time": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }      
+    },
+    "commands": {}
+}

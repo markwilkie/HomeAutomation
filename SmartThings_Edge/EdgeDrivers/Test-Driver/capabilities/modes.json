@@ -1,0 +1,70 @@
+{
+    "id": "radioamber53161.modes",
+    "version": 1,
+    "status": "proposed",
+    "name": "Modes",
+    "ephemeral": false,
+    "attributes": {
+        "WifiOnly": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "title": "SwitchState",
+                        "type": "string",
+                        "enum": [
+                            "on",
+                            "off"
+                        ]
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "value"
+                ]
+            },
+            "enumCommands": []
+        },
+        "PowerSaver": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "title": "SwitchState",
+                        "type": "string",
+                        "enum": [
+                            "on",
+                            "off"
+                        ]
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "value"
+                ]
+            },
+            "enumCommands": []
+        },
+        "Boost": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "title": "SwitchState",
+                        "type": "string",
+                        "enum": [
+                            "on",
+                            "off"
+                        ]
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "value"
+                ]
+            },
+            "enumCommands": []
+        }
+    },
+    "commands": {}
+}

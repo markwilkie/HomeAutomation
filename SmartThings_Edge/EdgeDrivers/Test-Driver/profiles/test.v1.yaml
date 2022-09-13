@@ -7,16 +7,12 @@ components:
   - id: refresh
     version: 1
   - id: radioamber53161.airQuality
-    version: 1 
-  - id: radioamber53161.cpuReset
-    version: 1
-  - id: signalStrength
-    version: 1      
-  - id: radioamber53161.firmware
-    version: 1    
-  - id: radioamber53161.heapFragmentation
     version: 1  
+  - id: radioamber53161.voltage
+    version: 1     
   - id: radioamber53161.wifiswitch 
     version: 1      
-  - id: radioamber53161.datetime
+  - id: radioamber53161.modes 
+    version: 1 
+  - id: radioamber53161.lastUpdated
     version: 1 

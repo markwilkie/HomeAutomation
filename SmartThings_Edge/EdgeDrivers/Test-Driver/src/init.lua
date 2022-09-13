@@ -13,13 +13,16 @@ local myclient = require "_myclient"
 local globals = require "globals"
 
 -- Custom Capabiities
-local datetime = capabilities["radioamber53161.datetime"]
+local lastupdated = capabilities["radioamber53161.lastUpdated"]
 local wifiswitch = capabilities["radioamber53161.wifiswitch"]
 local firmware = capabilities["radioamber53161.firmware"]
 local heapfragmentation = capabilities["radioamber53161.heapFragmentation"]
 local cpureset = capabilities["radioamber53161.cpuReset"]
 local lastairupdate = capabilities["radioamber53161.lastAirUpdate"]
 local airquality = capabilities["radioamber53161.airQuality"]
+local voltage = capabilities["radioamber53161.voltage"]
+local modes = capabilities["radioamber53161.modes"]
+
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
@@ -57,18 +60,27 @@ local function emitTestData(driver, device)
 
  
   device:emit_event(airquality.AQI(102))
-  device:emit_event(airquality.Description("Moderate".." -"..os.date("%a %X", 1662559690)))
+  device:emit_event(airquality.Designation("Moderate"))
 
-  device:emit_event(cpureset.Code(5))
-  device:emit_event(cpureset.Reason("cpu restarted"))
+  device:emit_event(voltage.Capacitors(5.43))
+  device:emit_event(voltage.VCC(3.87))
 
-  device:emit_event(firmware.Version("2.4.4"))
-  device:emit_event(heapfragmentation.Fragmentation(9.2))
+  device:emit_event(modes.WifiOnly.off())
+  device:emit_event(modes.PowerSaver.on())
+  device:emit_event(modes.Boost.off())
+
+  --.." -"..os.date("%a %X", 1662559690)))
+
+  --device:emit_event(cpureset.Code(5))
+  --device:emit_event(cpureset.Reason("cpu restarted"))
+
+  --device:emit_event(firmware.Version("2.4.4"))
+  --device:emit_event(heapfragmentation.Fragmentation(9.2))
   local rssi=-67
   device:emit_event(capabilities.signalStrength.rssi(rssi))
   device:emit_event(capabilities.signalStrength.lqi(calcLQI(rssi)))
 
-  device:emit_event(datetime.datetime(os.date("%a %X", 1662559690)))
+  device:emit_event(lastupdated.Time(os.date("%H:%M", 1662559690)))
 
 
 
@@ -129,17 +141,24 @@ local function device_init(driver, device)
 
   --default values
   device:emit_event(airquality.AQI(102))
-  device:emit_event(airquality.Description("Moderate".." -"..os.date("%a %X", 1662559690)))
+  device:emit_event(airquality.Designation("Moderate"))
+  --.." -"..os.date("%a %X", 1662559690)))
 
   device:emit_event(wifiswitch.switch.off())
-  device:emit_event(firmware.Version("2.4.3"))
+  --device:emit_event(firmware.firmware("2.4.3"))
 
-  device:emit_event(heapfragmentation.Fragmentation(8.2))
+  --device:emit_event(heapfragmentation.Fragmentation(8.2))
   device:emit_event(capabilities.signalStrength.rssi(0))
   device:emit_event(capabilities.signalStrength.lqi(0))
 
-  device:emit_event(cpureset.Code(-1))
-  device:emit_event(cpureset.Reason("cpu restarted"))  
+  --device:emit_event(cpureset.Code(-1))
+  --device:emit_event(cpureset.Reason("cpu restarted"))
+
+  device:emit_event(modes.WifiOnly.off())
+  device:emit_event(modes.PowerSaver.on())
+  device:emit_event(modes.Boost.off())
+
+  device:emit_event(lastupdated.Time(os.date("%a %X", 1662559690)))
 
   
 

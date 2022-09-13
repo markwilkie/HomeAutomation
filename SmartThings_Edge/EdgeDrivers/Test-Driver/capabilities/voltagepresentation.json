@@ -2,7 +2,7 @@
     "dashboard": {
         "states": [
             {
-                "label": "AQI: {{AQI.value}} {{Designation.value}}"
+                "label": "VCC: {{VCC.value}}"
             }
         ],
         "actions": [],
@@ -10,17 +10,17 @@
     },
     "detailView": [
         {
-            "label": "AQI: ",
+            "label": "Capacitors",
             "displayType": "state",
             "state": {
-                "label": "{{AQI.value}}"
+                "label": "{{Capacitors.value}}"
             }
         },
         {
-            "label": "Designation",
+            "label": "VCC",
             "displayType": "state",
             "state": {
-                "label": "{{Designation.value}}"
+                "label": "{{VCC.value}}"
             }
         }      
     ],
@@ -28,6 +28,6 @@
         "conditions": [],
         "actions": []
     },
-    "id": "radioamber53161.airQuality",
+    "id": "radioamber53161.voltage",
     "version": 1
 }

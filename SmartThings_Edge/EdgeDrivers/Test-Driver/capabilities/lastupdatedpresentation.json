@@ -1,0 +1,26 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Time: {{Time.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Time",
+            "displayType": "state",
+            "state": {
+                "label": "{{Time.value}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": []
+    },
+    "id": "radioamber53161.lastUpdated",
+    "version": 1
+}

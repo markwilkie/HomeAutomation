@@ -1,0 +1,123 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Modes",
+                "alternatives": []
+            }
+        ],
+        "actions": []
+    },
+    "detailView": [
+        {
+            "label": "{{i18n.label}}",
+            "displayType": "toggleSwitch",
+            "toggleSwitch": {
+                "command": {
+                    "on": "on",
+                    "off": "off"
+                },
+                "state": {
+                    "value": "WifiOnly.value",
+                    "on": "on",
+                    "off": "off",
+                    "label": "{{WifiOnly.value}}",
+                    "alternatives": [
+                        {
+                            "key": "on",
+                            "value": "{{i18n.attributes.switch.i18n.value.on.label}}",
+                            "type": "active"
+                        },
+                        {
+                            "key": "off",
+                            "value": "{{i18n.attributes.switch.i18n.value.off.label}}",
+                            "type": "inactive"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "label": "{{i18n.label}}",
+            "displayType": "toggleSwitch",
+            "toggleSwitch": {
+                "command": {
+                    "on": "on",
+                    "off": "off"
+                },
+                "state": {
+                    "value": "PowerSaver.value",
+                    "on": "on",
+                    "off": "off",
+                    "label": "{{PowerSaver.value}}",
+                    "alternatives": [
+                        {
+                            "key": "on",
+                            "value": "{{i18n.attributes.switch.i18n.value.on.label}}",
+                            "type": "active"
+                        },
+                        {
+                            "key": "off",
+                            "value": "{{i18n.attributes.switch.i18n.value.off.label}}",
+                            "type": "inactive"
+                        }
+                    ]
+                }
+            }
+        },        {
+            "label": "{{i18n.label}}",
+            "displayType": "toggleSwitch",
+            "toggleSwitch": {
+                "command": {
+                    "on": "on",
+                    "off": "off"
+                },
+                "state": {
+                    "value": "Boost.value",
+                    "on": "on",
+                    "off": "off",
+                    "label": "{{Boost.value}}",
+                    "alternatives": [
+                        {
+                            "key": "on",
+                            "value": "{{i18n.attributes.switch.i18n.value.on.label}}",
+                            "type": "active"
+                        },
+                        {
+                            "key": "off",
+                            "value": "{{i18n.attributes.switch.i18n.value.off.label}}",
+                            "type": "inactive"
+                        }
+                    ]
+                }
+            }
+        }
+
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": [
+            {
+                "label": "{{i18n.label}}",
+                "displayType": "list",
+                "list": {
+                    "alternatives": [
+                        {
+                            "key": "on",
+                            "value": "{{i18n.commands.on.label}}",
+                            "type": "active"
+                        },
+                        {
+                            "key": "off",
+                            "value": "{{i18n.commands.off.label}}",
+                            "type": "inactive"
+                        }
+                    ]
+                },
+                "emphasis": true
+            }
+        ]
+    },
+    "id": "radioamber53161.modes",
+    "version": 1
+}

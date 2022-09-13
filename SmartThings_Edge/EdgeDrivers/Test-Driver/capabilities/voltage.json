@@ -1,11 +1,11 @@
 {
-    "id": "radioamber53161.airQuality",
+    "id": "radioamber53161.voltage",
     "version": 1,
     "status": "proposed",
-    "name": "Air Quality",
+    "name": "Voltage",
     "ephemeral": false,
     "attributes": {
-        "AQI": {
+        "Capacitors": {
             "schema": {
                 "type": "object",
                 "properties": {
@@ -18,12 +18,12 @@
             },
             "enumCommands": []
         },
-        "Designation": {
+        "VCC": {
             "schema": {
                 "type": "object",
                 "properties": {
                     "value": {
-                        "type": "string"
+                        "type": "number"
                     }
                 },
                 "additionalProperties": false,
