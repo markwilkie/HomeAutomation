@@ -15,7 +15,8 @@ local globals = require "globals"
 
 -- Custom Capabiities
 local atmospressure = capabilities["radioamber53161.atmospressure"]
-local datetime = capabilities["radioamber53161.datetime"]
+local airquality = capabilities["radioamber53161.airQuality"]
+local lastupdated = capabilities["radioamber53161.lastUpdated"]
 
 
 
@@ -38,7 +39,7 @@ function RefreshWeather(content)
   end
 
   --Ok, now fill the rest of the globals
-  globals.currentTime = os.date("%a %X", jsondata.current_time)
+  globals.currentTime = os.date("%H:%M", jsondata.current_time)
   globals.temperature = tonumber(string.format("%.1f", jsondata.temperature))
   globals.heatindex = tonumber(string.format("%.1f", jsondata.heat_index))
   globals.humidity = tonumber(string.format("%.1f", jsondata.humidity))
@@ -47,7 +48,9 @@ function RefreshWeather(content)
   globals.uvIndex = tonumber(string.format("%.1f", jsondata.uv))
   globals.ldr = jsondata.ldr
   globals.pm25 = jsondata.pm25AQI
-  globals.pm100 = jsondata.pm100AQI
+  globals.pm25AQI = jsondata.pm25AQI
+  globals.pm25Label = jsondata.pm25Label
+  globals.pmslastupdate = os.date("%H:%M", jsondata.pms_read_time)
 
   --adding to the data store so we can do historical calc
   weatherdatastore.insertData(jsondata.current_time,globals.temperature,globals.pressure)
@@ -66,11 +69,12 @@ local function emitWeatherData(driver, device)
   device:emit_event(atmospressure.pressure(globals.pressure))
   device:emit_event(capabilities.ultravioletIndex.ultravioletIndex(globals.uvIndex))
   device:emit_event(capabilities.illuminanceMeasurement.illuminance(globals.ldr))
-  device:emit_event(capabilities.dustSensor.dustLevel(globals.pm100))
-  device:emit_event(capabilities.dustSensor.fineDustLevel(globals.pm25))
   device:emit_event(capabilities.dewPoint.dewpoint(globals.dewPoint))
-  device:emit_event(datetime.datetime(globals.currentTime))
+  device:emit_event(lastupdated.Time(globals.currentTime))
 
+  device:emit_component_event(device.profile.components['airQuality'],airquality.AQI(globals.pm25AQI))
+  device:emit_component_event(device.profile.components['airQuality'],airquality.Designation(globals.pm25Label))
+  device:emit_component_event(device.profile.components['airQuality'],lastupdated.Time(globals.pmslastupdate))
   device:emit_component_event(device.profile.components['heatIndex'],capabilities.temperatureMeasurement.temperature(globals.heatindex))
   device:emit_component_event(device.profile.components['lastHour'],capabilities.temperatureMeasurement.temperature({value = globals.temperatureChangeLastHour, unit = 'F'}))
   device:emit_component_event(device.profile.components['lastHour'],atmospressure.pressure(globals.pressureChangeLastHour))
@@ -106,7 +110,7 @@ local function refresh(driver, device)
     end
   end
 
-  return true
+  return tre
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub

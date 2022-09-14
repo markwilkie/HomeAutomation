@@ -18,10 +18,17 @@ components:
     version: 1 
   - id: illuminanceMeasurement
     version: 1 
-  - id: dustSensor
-    version: 1 
-  - id: radioamber53161.datetime
+  - id: radioamber53161.lastUpdated
     version: 1  
+- id: airQuality
+  label: "Air Quality"
+  capabilities:
+  - id: refresh
+    version: 1    
+  - id: radioamber53161.airQuality
+    version: 1
+  - id: radioamber53161.lastUpdated
+    version: 1      
 - id: heatIndex
   label: "Heat Index"
   capabilities:

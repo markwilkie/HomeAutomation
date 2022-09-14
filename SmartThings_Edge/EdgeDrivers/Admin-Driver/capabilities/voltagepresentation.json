@@ -2,7 +2,7 @@
     "dashboard": {
         "states": [
             {
-                "label": "VCC: {{VCC.value}}"
+                "label": "Cap: {{Capacitors.value}} VCC: {{VCC.value}}"
             }
         ],
         "actions": [],

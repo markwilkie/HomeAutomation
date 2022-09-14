@@ -12,6 +12,12 @@ components:
     version: 1     
   - id: radioamber53161.wifiswitch 
     version: 1      
+  - id: radioamber53161.cupReset 
+    version: 1   
+  - id: radioamber53161.heapFragmentation 
+    version: 1  
+  - id: radioamber53161.firmware 
+    version: 1   
   - id: radioamber53161.modes 
     version: 1 
   - id: radioamber53161.lastUpdated

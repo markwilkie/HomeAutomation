@@ -10,7 +10,7 @@
                 "type": "object",
                 "properties": {
                     "value": {
-                        "title": "SwitchState",
+                        "title": "WifiOnlyMode",
                         "type": "string",
                         "enum": [
                             "on",
@@ -30,7 +30,7 @@
                 "type": "object",
                 "properties": {
                     "value": {
-                        "title": "SwitchState",
+                        "title": "PowerSaverMode",
                         "type": "string",
                         "enum": [
                             "on",
@@ -50,18 +50,12 @@
                 "type": "object",
                 "properties": {
                     "value": {
-                        "title": "SwitchState",
-                        "type": "string",
-                        "enum": [
-                            "on",
-                            "off"
-                        ]
+                        "title": "BoostMode",
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false,
-                "required": [
-                    "value"
-                ]
+                "required": []
             },
             "enumCommands": []
         }

@@ -21,7 +21,7 @@ local cpureset = capabilities["radioamber53161.cpuReset"]
 local lastairupdate = capabilities["radioamber53161.lastAirUpdate"]
 local airquality = capabilities["radioamber53161.airQuality"]
 local voltage = capabilities["radioamber53161.voltage"]
-local modes = capabilities["radioamber53161.modes"]
+local modes = capabilities["radioamber53161.modes"] 
 
 
 -- require custom handlers from driver package
@@ -67,15 +67,15 @@ local function emitTestData(driver, device)
 
   device:emit_event(modes.WifiOnly.off())
   device:emit_event(modes.PowerSaver.on())
-  device:emit_event(modes.Boost.off())
+  device:emit_event(modes.Boost("true"))
 
   --.." -"..os.date("%a %X", 1662559690)))
 
-  --device:emit_event(cpureset.Code(5))
-  --device:emit_event(cpureset.Reason("cpu restarted"))
+  device:emit_event(cpureset.Code(5))
+  device:emit_event(cpureset.Reason("cpu restarted"))
 
-  --device:emit_event(firmware.Version("2.4.4"))
-  --device:emit_event(heapfragmentation.Fragmentation(9.2))
+  device:emit_event(firmware.Version("2.4.4"))
+  device:emit_event(heapfragmentation.Fragmentation(9.2))
   local rssi=-67
   device:emit_event(capabilities.signalStrength.rssi(rssi))
   device:emit_event(capabilities.signalStrength.lqi(calcLQI(rssi)))
@@ -145,18 +145,18 @@ local function device_init(driver, device)
   --.." -"..os.date("%a %X", 1662559690)))
 
   device:emit_event(wifiswitch.switch.off())
-  --device:emit_event(firmware.firmware("2.4.3"))
+  device:emit_event(firmware.Version("2.4.3"))
 
-  --device:emit_event(heapfragmentation.Fragmentation(8.2))
+  device:emit_event(heapfragmentation.Fragmentation(8.2))
   device:emit_event(capabilities.signalStrength.rssi(0))
   device:emit_event(capabilities.signalStrength.lqi(0))
 
-  --device:emit_event(cpureset.Code(-1))
-  --device:emit_event(cpureset.Reason("cpu restarted"))
+  device:emit_event(cpureset.Code(-1))
+  device:emit_event(cpureset.Reason("cpu restarted"))
 
   device:emit_event(modes.WifiOnly.off())
   device:emit_event(modes.PowerSaver.on())
-  device:emit_event(modes.Boost.off())
+  device:emit_event(modes.Boost("foo"))
 
   device:emit_event(lastupdated.Time(os.date("%a %X", 1662559690)))
 
