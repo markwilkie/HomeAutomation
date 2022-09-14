@@ -15,10 +15,11 @@ local globals = require "globals"
 -- Custom Capabiities
 local lastupdated = capabilities["radioamber53161.lastUpdated"]
 local voltage = capabilities["radioamber53161.voltage"]
+local modestate = capabilities["radioamber53161.modeState"]
 local firmware = capabilities["radioamber53161.firmware"]
 local cpureset = capabilities["radioamber53161.cpuReset"]
 local heapfragmentation = capabilities["radioamber53161.heapFragmentation"]
---local wifiswitch = capabilities["radioamber53161.wifiswitch"]   (wish this worked)
+local wifiswitch = capabilities["radioamber53161.wifiOnly"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
@@ -44,6 +45,20 @@ function RefreshAdmin(content)
   globals.cpu_reset_reason = jsondata.cpu_reset_reason
   globals.heap_fragmentation = jsondata.heap_frag
   globals.currentTime = os.date("%a %X", jsondata.current_time)
+
+  globals.wifiOnlyState = "Off"
+  if jsondata.wifi_only then
+    globals.wifiOnlyState = "On"
+  end
+  globals.boostModeState = "Off"
+  if jsondata.boost_mode then
+    globals.boostModeState = "On"
+  end
+  globals.powerSaverModeState = "Off"
+  if jsondata.power_saver_mode then
+    globals.powerSaverModeState = "On"
+  end  
+
 end
 
 -- Get latest admin updates
@@ -51,6 +66,9 @@ local function emitAdminData(driver, device)
   log.info("Emiting Admin Data")
 
   device:emit_event(capabilities.signalStrength.rssi(globals.rssi))
+  device:emit_event(modestate.WifiOnly(globals.wifiOnlyState))
+  device:emit_event(modestate.PowerSaver(globals.powerSaverModeState))
+  device:emit_event(modestate.Boost(globals.boostModeState))  
   device:emit_event(voltage.VCC(globals.vcc_voltage))
   device:emit_event(voltage.Capacitors(globals.cap_voltage))
   device:emit_event(cpureset.Code(globals.cpu_reset_code))
@@ -95,19 +113,17 @@ local function refresh(driver, device)
 end
 
 -- callback to handle an `on` capability command
-local function switch_on(driver, device, command)
-  log.info("Setting Wifi Only Mode ON")
+local function wifiswitch_on(driver, device, command)
+  log.info("Setting wifi test switch ON")
   commonglobals.wifiOnly = true
-  device:emit_event(capabilities.switch.switch.on())
-  return true
+  device:emit_event(wifiswitch.Switch.on())
 end
 
 -- callback to handle an `off` capability command
-local function switch_off(driver, device, command)
-  log.info("Setting Wifi Only Mode OFF")
+local function wifiswitch_off(driver, device, command)
+  log.info("Setting wifi test switch OFF")
   commonglobals.wifiOnly = false
-  device:emit_event(capabilities.switch.switch.off())
-  return true
+  device:emit_event(wifiswitch.Switch.off())
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
@@ -120,7 +136,10 @@ local function device_init(driver, device)
   log.info("[" .. device.id .. "] Initializing admin device")
 
   -- set a default or queried state for each capability attribute
-  device:emit_event(capabilities.switch.switch.off())
+  device:emit_event(modestate.WifiOnly("-"))
+  device:emit_event(modestate.PowerSaver("-"))
+  device:emit_event(modestate.Boost("-"))  
+  device:emit_event(wifiswitch.Switch.off())
   device:emit_event(voltage.VCC(0))
   device:emit_event(voltage.Capacitors(0))
   device:emit_event(cpureset.Code(0))
@@ -129,6 +148,7 @@ local function device_init(driver, device)
   device:emit_event(firmware.Version("-"))  
   device:emit_event(capabilities.signalStrength.rssi(0))
   device:emit_event(capabilities.signalStrength.lqi(0))
+  
 
   -- Startup Server
   myserver.start_server(driver)  
@@ -161,9 +181,9 @@ local admin_driver = Driver("admin", {
     [capabilities.refresh.ID] = {
       [capabilities.refresh.commands.refresh.NAME] = refresh
     },
-    [capabilities.switch.ID] = {
-      [capabilities.switch.commands.on.NAME] = switch_on,
-      [capabilities.switch.commands.off.NAME] = switch_off,
+    [wifiswitch.ID] = {
+      [wifiswitch.commands.on.NAME] = wifiswitch_on,
+      [wifiswitch.commands.off.NAME] = wifiswitch_off,
     }
   }
 })

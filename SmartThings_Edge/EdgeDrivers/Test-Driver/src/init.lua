@@ -13,15 +13,8 @@ local myclient = require "_myclient"
 local globals = require "globals"
 
 -- Custom Capabiities
-local lastupdated = capabilities["radioamber53161.lastUpdated"]
-local wifiswitch = capabilities["radioamber53161.wifiswitch"]
-local firmware = capabilities["radioamber53161.firmware"]
-local heapfragmentation = capabilities["radioamber53161.heapFragmentation"]
-local cpureset = capabilities["radioamber53161.cpuReset"]
-local lastairupdate = capabilities["radioamber53161.lastAirUpdate"]
-local airquality = capabilities["radioamber53161.airQuality"]
-local voltage = capabilities["radioamber53161.voltage"]
-local modes = capabilities["radioamber53161.modes"] 
+local wifiswitch = capabilities["radioamber53161.wifiOnly"]
+local modestate = capabilities["radioamber53161.modeState"] 
 
 
 -- require custom handlers from driver package
@@ -58,32 +51,9 @@ end
 local function emitTestData(driver, device)
   log.info("Emiting Test Data")
 
- 
-  device:emit_event(airquality.AQI(102))
-  device:emit_event(airquality.Designation("Moderate"))
-
-  device:emit_event(voltage.Capacitors(5.43))
-  device:emit_event(voltage.VCC(3.87))
-
-  device:emit_event(modes.WifiOnly.off())
-  device:emit_event(modes.PowerSaver.on())
-  device:emit_event(modes.Boost("true"))
-
-  --.." -"..os.date("%a %X", 1662559690)))
-
-  device:emit_event(cpureset.Code(5))
-  device:emit_event(cpureset.Reason("cpu restarted"))
-
-  device:emit_event(firmware.Version("2.4.4"))
-  device:emit_event(heapfragmentation.Fragmentation(9.2))
-  local rssi=-67
-  device:emit_event(capabilities.signalStrength.rssi(rssi))
-  device:emit_event(capabilities.signalStrength.lqi(calcLQI(rssi)))
-
-  device:emit_event(lastupdated.Time(os.date("%H:%M", 1662559690)))
-
-
-
+  device:emit_event(modestate.WifiOnly("Enabled"))
+  device:emit_event(modestate.PowerSaver("no"))
+  device:emit_event(modestate.Boost("foo"))
 end
 
 
@@ -103,36 +73,22 @@ local function refresh(driver, device)
 end
 
 -- callback to handle an `on` capability command
-local function switch_on(driver, device, command)
-  log.info("Setting test switch ON")
-  commonglobals.wifiOnly = true
-  device:emit_event(capabilities.switch.on())
-end
-
--- callback to handle an `off` capability command
-local function switch_off(driver, device, command)
-  log.info("Setting Wifi Only Mode OFF")
-  commonglobals.wifiOnly = false
-  device:emit_event(capabilities.switch.switch.off())
-end
-
--- callback to handle an `on` capability command
 local function wifiswitch_on(driver, device, command)
   log.info("Setting wifi test switch ON")
   commonglobals.wifiOnly = true
-  device:emit_event(wifiswitch.switch.on())
+  device:emit_event(wifiswitch.Switch.on())
 end
 
 -- callback to handle an `off` capability command
 local function wifiswitch_off(driver, device, command)
   log.info("Setting wifi test switch OFF")
   commonglobals.wifiOnly = false
-  device:emit_event(wifiswitch.switch.off())
+  device:emit_event(wifiswitch.Switch.off())
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
 local function device_added(driver, device)
-  log.info("[" .. device.id .. "] Adding new test device")
+  log.info("[" .. device.id .. "] Adding new test device ")
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
@@ -140,35 +96,11 @@ local function device_init(driver, device)
   log.warn("[" .. device.id .. "] ----------------------->  Initializing test device")
 
   --default values
-  device:emit_event(airquality.AQI(102))
-  device:emit_event(airquality.Designation("Moderate"))
-  --.." -"..os.date("%a %X", 1662559690)))
+  device:emit_event(modestate.WifiOnly("Enabled"))
+  device:emit_event(modestate.PowerSaver("no"))
+  device:emit_event(modestate.Boost("foo"))
 
-  device:emit_event(wifiswitch.switch.off())
-  device:emit_event(firmware.Version("2.4.3"))
-
-  device:emit_event(heapfragmentation.Fragmentation(8.2))
-  device:emit_event(capabilities.signalStrength.rssi(0))
-  device:emit_event(capabilities.signalStrength.lqi(0))
-
-  device:emit_event(cpureset.Code(-1))
-  device:emit_event(cpureset.Reason("cpu restarted"))
-
-  device:emit_event(modes.WifiOnly.off())
-  device:emit_event(modes.PowerSaver.on())
-  device:emit_event(modes.Boost("foo"))
-
-  device:emit_event(lastupdated.Time(os.date("%a %X", 1662559690)))
-
-  
-
-  -- Refresh schedule
-  device.thread:call_on_schedule(
-    60,
-    function ()
-      return refresh(driver, device)
-    end,
-    'Scheduled Refresh')
+  device:emit_event(wifiswitch.Switch.off())
 
   refresh(driver, device)
 end
@@ -190,10 +122,6 @@ local test_driver = Driver("test", {
   {
     [capabilities.refresh.ID] = {
       [capabilities.refresh.commands.refresh.NAME] = refresh
-    },
-    [capabilities.switch.ID] = {
-      [capabilities.switch.commands.on.NAME] = switch_on,
-      [capabilities.switch.commands.off.NAME] = switch_off,
     },
     [wifiswitch.ID] = {
       [wifiswitch.commands.on.NAME] = wifiswitch_on,

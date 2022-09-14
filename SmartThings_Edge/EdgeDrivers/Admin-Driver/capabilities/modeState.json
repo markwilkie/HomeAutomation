@@ -1,8 +1,8 @@
 {
-    "id": "radioamber53161.modes",
+    "id": "radioamber53161.modeState",
     "version": 1,
     "status": "proposed",
-    "name": "Modes",
+    "name": "Mode State",
     "ephemeral": false,
     "attributes": {
         "WifiOnly": {
@@ -11,17 +11,11 @@
                 "properties": {
                     "value": {
                         "title": "WifiOnlyMode",
-                        "type": "string",
-                        "enum": [
-                            "on",
-                            "off"
-                        ]
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false,
-                "required": [
-                    "value"
-                ]
+                "required": []
             },
             "enumCommands": []
         },
@@ -31,17 +25,11 @@
                 "properties": {
                     "value": {
                         "title": "PowerSaverMode",
-                        "type": "string",
-                        "enum": [
-                            "on",
-                            "off"
-                        ]
+                        "type": "string"
                     }
                 },
                 "additionalProperties": false,
-                "required": [
-                    "value"
-                ]
+                "required": []
             },
             "enumCommands": []
         },

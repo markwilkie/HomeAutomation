@@ -1,0 +1,37 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Modes",
+                "alternatives": []
+            }
+        ],
+        "actions": []
+    },
+    "detailView": [
+        {
+            "label": "Wifi Only Mode",
+            "displayType": "state",
+            "state": {
+                "label": "{{WifiOnly.value}}"
+            }
+        },
+        {
+            "label": "Power Saver Mode",
+            "displayType": "state",
+            "state": {
+                "label": "{{PowerSaver.value}}"
+            }
+        }, 
+        {
+            "label": "Boost Mode",
+            "displayType": "state",
+            "state": {
+                "label": "{{Boost.value}}"
+            }
+        }
+    ],
+    "automation": {},
+    "id": "radioamber53161.modeState",
+    "version": 1
+}

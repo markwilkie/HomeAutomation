@@ -2,16 +2,16 @@
     "dashboard": {
         "states": [
             {
-                "label": "Wifi Only Mode: {{switch.value}}",
+                "label": "Wifi Only Mode: {{Switch.value}}",
                 "alternatives": [
                     {
                         "key": "on",
-                        "value": "{{i18n.attributes.switch.i18n.value.on.label}}",
+                        "value": "On",
                         "type": "active"
                     },
                     {
                         "key": "off",
-                        "value": "{{i18n.attributes.switch.i18n.value.off.label}}",
+                        "value": "Off",
                         "type": "inactive"
                     }
                 ]
@@ -26,7 +26,7 @@
                         "off": "off"
                     },
                     "state": {
-                        "value": "switch.value",
+                        "value": "Switch.value",
                         "on": "on",
                         "off": "off"
                     }
@@ -36,7 +36,7 @@
     },
     "detailView": [
         {
-            "label": "{{i18n.label}}",
+            "label": "Wifi Only",
             "displayType": "toggleSwitch",
             "toggleSwitch": {
                 "command": {
@@ -44,19 +44,19 @@
                     "off": "off"
                 },
                 "state": {
-                    "value": "switch.value",
+                    "value": "Switch.value",
                     "on": "on",
                     "off": "off",
-                    "label": "Wifi Only Mode: {{switch.value}}",
+                    "label": "Wifi Only Mode: {{Switch.value}}",
                     "alternatives": [
                         {
                             "key": "on",
-                            "value": "{{i18n.attributes.switch.i18n.value.on.label}}",
+                            "value": "On",
                             "type": "active"
                         },
                         {
                             "key": "off",
-                            "value": "{{i18n.attributes.switch.i18n.value.off.label}}",
+                            "value": "Off",
                             "type": "inactive"
                         }
                     ]
@@ -67,40 +67,40 @@
     "automation": {
         "conditions": [
             {
-                "label": "{{i18n.label}}",
+                "label": "Wifi Only",
                 "displayType": "list",
                 "list": {
                     "alternatives": [
                         {
                             "key": "on",
-                            "value": "{{i18n.attributes.switch.i18n.value.on.label}}",
+                            "value": "On",
                             "type": "active"
                         },
                         {
                             "key": "off",
-                            "value": "{{i18n.attributes.switch.i18n.value.off.label}}",
+                            "value": "Off",
                             "type": "inactive"
                         }
                     ],
-                    "value": "switch.value"
+                    "value": "Switch.value"
                 },
                 "emphasis": true
             }
         ],
         "actions": [
             {
-                "label": "{{i18n.label}}",
+                "label": "Wifi Only",
                 "displayType": "list",
                 "list": {
                     "alternatives": [
                         {
                             "key": "on",
-                            "value": "{{i18n.commands.on.label}}",
+                            "value": "On",
                             "type": "active"
                         },
                         {
                             "key": "off",
-                            "value": "{{i18n.commands.off.label}}",
+                            "value": "Off",
                             "type": "inactive"
                         }
                     ]
@@ -109,6 +109,6 @@
             }
         ]
     },
-    "id": "radioamber53161.wifiswitch",
+    "id": "radioamber53161.wifiOnly",
     "version": 1
 }

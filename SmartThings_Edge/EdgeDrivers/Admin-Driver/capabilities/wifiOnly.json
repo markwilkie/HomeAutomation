@@ -1,11 +1,11 @@
 {
-    "id": "radioamber53161.wifiswitch",
+    "id": "radioamber53161.wifiOnly",
     "version": 1,
     "status": "proposed",
-    "name": "wifiswitch",
+    "name": "Wifi Only",
     "ephemeral": false,
     "attributes": {
-        "switch": {
+        "Switch": {
             "schema": {
                 "type": "object",
                 "properties": {
