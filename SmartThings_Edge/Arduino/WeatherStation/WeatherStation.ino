@@ -95,7 +95,7 @@ void postAdmin()
   doc["vcc_voltage"] = adcHandler.getVCCVoltage();
   doc["wifi_strength"] = weatherWifi.getRSSI();
   doc["firmware_version"] = SKETCH_VERSION;
-  doc["heap_frag"] = (1.0-((double)ESP.getMinFreeHeap()/(double)ESP.getFreeHeap()))*100;
+  doc["heap_frag"] = round2((1.0-((double)ESP.getMinFreeHeap()/(double)ESP.getFreeHeap()))*100);
   doc["pms_read_time"] = pmsHandler.getLastReadTime();
   doc["power_saver_mode"] = powerSaverMode;   
   doc["wifi_only"] = wifiOnly;

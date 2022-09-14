@@ -140,7 +140,7 @@ long ADCHandler::getIllum(int ldr_raw_data)
   //Now get voltage of the LDR itself 
   ldr_resistor_voltage = ADC_REF_VOLTAGE - ldr_voltage;
   if(ldr_resistor_voltage<=0)
-    return 0;
+    return 100000;  //means the adc is at 4095, or as bright as it gets
 
   //Now we can find the actual resistance of the ldr
   ldr_resistance = (ldr_resistor_voltage/ldr_voltage)*LDR_REF_RESISTANCE;
