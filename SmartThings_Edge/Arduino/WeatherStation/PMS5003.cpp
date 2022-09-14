@@ -79,23 +79,35 @@ bool PMS5003::readPMSData()
     
     if(tryNumber>PMSTOTALTRIES)
     {
-      logger.log(ERROR,"Timed out waiting for data from PMS5003 air quality sensor");
+      //If there continues to be a problem timing out from time to time, the enable pin could be cycled to reset the sensor which might work
+      logger.log(ERROR,"PMS5003: Timed out waiting for data from air quality sensor");
       return false;
     }
     
     delay((PMSTIMEOUT/PMSTOTALTRIES));
   }
+
+  int skipped = 0;
+  while ((skipped < 32) && (s->peek() != 0x42)) {
+    s->read();
+    skipped++;
+    if (!s->available()) 
+    {
+      logger.log(ERROR,"PMS5003: Didn't get start byte");
+      return false;
+    }
+  }  
   
   // Read a byte at a time until we get to the special '0x42' start-byte
   if (s->peek() != 0x42) {
     s->read();
-    logger.log(ERROR,"Didn't get start byte");
+    logger.log(ERROR,"PMS5003: Expecting the start byte here, but it wasn't");
     return false;
   }
  
   // Now read all 32 bytes
   if (s->available() < 32) {
-    logger.log(ERROR,"Unable to read all 32 bytes");
+    logger.log(ERROR,"PMS5003: Unable to read all 32 bytes");
     return false;
   }
     
@@ -126,7 +138,7 @@ bool PMS5003::readPMSData()
   memcpy((void *)&data, (void *)buffer_u16, 30);
  
   if (sum != data.checksum) {
-    logger.log(ERROR,"Checksum failure on PMS5003");
+    logger.log(ERROR,"PMS5003: Checksum failure");
     return false;
   }
 
@@ -135,6 +147,7 @@ bool PMS5003::readPMSData()
   pm25_standard=data.pm25_standard;
   pm100_standard=data.pm100_standard;  
 
+  /*
   logger.log(VERBOSE,"---------------------------------------");
   logger.log(VERBOSE,"Concentration Standard Units PM 1.0: %d, PM 2.5: %d, PM 10: %d",data.pm10_standard,data.pm25_standard,data.pm100_standard);
   logger.log(VERBOSE,"---------------------------------------");
@@ -145,6 +158,7 @@ bool PMS5003::readPMSData()
   logger.log(VERBOSE,"Particles > 5.0um / 0.1L air: %d",data.particles_50um);
   logger.log(VERBOSE,"Particles > 10.0 um / 0.1L air: %d",data.particles_100um);
   logger.log(VERBOSE,"---------------------------------------"); 
+  */
   
   // success!
   return true;

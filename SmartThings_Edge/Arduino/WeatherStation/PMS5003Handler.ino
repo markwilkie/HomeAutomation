@@ -11,41 +11,41 @@ void PMS5003Handler::init()
 
 bool PMS5003Handler::storeSamples()
 {
-  int tryNumber=0;
-  bool success=true;
-  while(!pmsSensor.readPMSData())
-  {
-    tryNumber++;
-    if(tryNumber>PMSTOTALTRIES)
-    {
-      logger.log(ERROR,"Too many retries trying to get data from PMS5003 air quality sensor");
-      success=false;
-      break;
-    }
-    delay(1000);
-  }
+  //Read sensor
+  bool success=pmsSensor.readPMSData();
 
-  if(success)
-  {
-    logger.log(VERBOSE,"Logging concentration: time: %ld, pm25: %d, pm100 %d at index: %d",currentTime(),getPM25Standard(), getPM100Standard(),currentIdx);
-    concenHistory[currentIdx]={currentTime(), getPM25Standard(), getPM100Standard()};
-    
-    //take care of index
-    currentIdx++;
-    if(currentIdx>=CONCEN_HIST_SIZE)
-      currentIdx=0;
-
-    //Make sure these are initialized
-    pm25Label="n/a";
-    pm100Label="n/a";
-
-    //Now calc AQI
-    calcBothAQI();
-  }
-  else
+  //success??
+  if(!success)
   {
     logger.log(ERROR,"Unable to read PMS5003 Sensor");
+    return false;
   }
+
+  //Add to our last 12 list
+  concenHistory[currentIdx]={currentTime(), getPM25Standard(), getPM100Standard()};
+
+  //dump history to the logger
+  logger.log(VERBOSE,"Concentration History: ");    
+  for(int i=0;i<CONCEN_HIST_SIZE;i++)
+  {
+    //only deal with entries that have a timestamp
+    if(concenHistory[i].epoch>0)
+    {
+      logger.log(VERBOSE,"Epoc: %d, pm25: %d, pm100 %d",concenHistory[i].epoch,concenHistory[i].pm25,concenHistory[i].pm100);
+    }
+  }    
+  
+  //take care of index
+  currentIdx++;
+  if(currentIdx>=CONCEN_HIST_SIZE)
+    currentIdx=0;
+
+  //Make sure these are initialized
+  pm25Label="n/a";
+  pm100Label="n/a";
+
+  //Now calc AQI
+  calcBothAQI();
 
   return success;
 }
@@ -90,10 +90,7 @@ void PMS5003Handler::calcPM25AQI()
   double nowCast = v1P25Sum/v2P25Sum;
   pm25Label=calcAQI(nowCast,pm25BreakPoints,pm25AQI);
  
-  logger.log(VERBOSE,"===============");
-  logger.log(VERBOSE,"PM25 Max: %f Min: %f Weight: %f",pm25max,pm25min,weight);
-  logger.log(VERBOSE,"count: %d v1P25Sum: %f v2P25Sum: %f",count,v1P25Sum,v2P25Sum);
-  logger.log(VERBOSE,"Nowcast: %f AQI: %d Label: %s",nowCast,pm25AQI,pm25Label);
+  logger.log(VERBOSE,"PM25: Count: %d Nowcast: %f AQI: %d Label: %s",count,nowCast,pm25AQI,pm25Label);
 }
 
 void PMS5003Handler::calcPM100AQI()
@@ -108,10 +105,7 @@ void PMS5003Handler::calcPM100AQI()
   double nowCast = v1P100Sum/v2P100Sum;
   pm100Label=calcAQI(nowCast,pm100BreakPoints,pm100AQI);
   
-  logger.log(VERBOSE,"===============");
-  logger.log(VERBOSE,"PM100 Max: %f Min: %f Weight: %f",pm100max,pm100min,weight);
-  logger.log(VERBOSE,"count: %d v1P100Sum: %f v2P100Sum: %f",count,v1P100Sum,v2P100Sum);
-  logger.log(VERBOSE,"Nowcast: %f AQI: %d Label: %s",nowCast,pm100AQI,pm100Label);
+  logger.log(VERBOSE,"PM100: Count: %d Nowcast: %f AQI: %d Label: %s",count,nowCast,pm100AQI,pm100Label);
 }
 
 int PMS5003Handler::getLastReadTime()
@@ -186,8 +180,6 @@ void PMS5003Handler::sumWeights(int count,double weight,double &v1P25Sum,double 
   v1P100Sum=0;
   v2P100Sum=0;
 
-  logger.log(VERBOSE,"Listing concen History: ");
-
   //Loop through the history backwards summing as we go
   for(int i=CONCEN_HIST_SIZE-1;i>=0;i--)
   {
@@ -198,9 +190,6 @@ void PMS5003Handler::sumWeights(int count,double weight,double &v1P25Sum,double 
 
       v1P100Sum = v1P100Sum + concenHistory[i].pm100*pow(weight,i);
       v2P100Sum = v2P100Sum + pow(weight,i);
-
-      //Since we're here, let's list the concen history
-      logger.log(VERBOSE,"Epoc: %d, pm25: %d, pm100 %d",concenHistory[i].epoch,concenHistory[i].pm25,concenHistory[i].pm100);
     }
   }
 }

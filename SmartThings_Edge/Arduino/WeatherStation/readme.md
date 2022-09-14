@@ -2,22 +2,21 @@
 ### Overview
 This is a ESP based weather station commmunicating via WiFi with Samsung Smarththings Edge drivers which run on the hub itself.
 
-It's intended to be self-sufficient with a solar panel and large capacitors for power.  Using capacitors came as an inspiration from: https://moteino.blogspot.com/p/5v-solar-power-supply.html?m=1  
+It's intended to be self-sufficient with a solar panel and large capacitors + LiPO battery for power.  Using capacitors came as an inspiration from: https://moteino.blogspot.com/p/5v-solar-power-supply.html?m=1  
 
-Last updated Sept 11 (version 1.02.xx)
+Last updated Sept 14 (version 1.3.xx)
 
 ### Specifications
 - Board: [FireBeetle from dfrobot](https://wiki.dfrobot.com/FireBeetle_ESP32_IOT_Microcontroller(V3.0)__Supports_Wi-Fi_&_Bluetooth__SKU__DFR0478)
     - Draws .15ma (milliamps) while deep sleeping
-- 2X 250F Capacitors in series for power
-    - Note: Using the FireBeetle board, it's possible to simply attach a LIPO battery to the board for even longer lasting performance
+- 2X 250F Capacitors in series for power + 1000mah LiPO battery which is attached directly to the Fire Beetle board which charges it
 - Temp, pressure, humidity: BME280 from Adafruit
 - Air quality sensor: PMS5003
 - UV sensor: GY-8511
 - Wind speed: https://www.makerfabs.com/wiki/index.php?title=Anemometer 
 - Wind direction: Weather vane from an old (old) weather station 
 - Rain gauge: Tipper from an old (old) weather station 
-- Brightness: A LDR
+- Brightness: A LDR  (Light Dependent Resistor)
 
 ### Prerequisites
 - https://arduinojson.org/?utm_source=meta&utm_medium=library.properties
@@ -39,24 +38,23 @@ Last updated Sept 11 (version 1.02.xx)
 - VS Code and OTA:  http://arduinoetcetera.blogspot.com/2019/12/visual-studio-code-for-arduino-ota.html
 
 ### Principles (of sort)
-- All calculation and conversions done on the ESP.  Min/Max/Avg are done on the hub because there's more memory, and some capabilities already do this so it's more consistent.
+- All calculations and conversions done on the ESP.  Min/Max/Avg are done on the hub because there's more memory, and some capabilities already do this so it's more consistent.
 
 ### Basic Handshaking/Sync Flow
 
 First Boot
-1. ESP boots and has no way to contact the hub because the driver ports are unknown
-1. ESP then puts itself into "handshaking mode" where it waits for a /handshake GET from the each hub driver.
+1. A bunch of initialization/setup is done (ULP, sensors, etc)
+1. Flash memory is queried to see if we already know the hub address and port numbers
+1. If unkown, ESP then puts itself into "handshaking mode" where it waits for a /handshake GET from the each hub driver.
 1. The hub will notice that it hasn't hear from the ESP in the alotted time, and call /handshake
-1. Handshake will set the epoch, ip and port for each driver
-1. Handshake mode will continue until each driver (weather, wind, rain, and admin) have checked in via /handshake
-1. Handshake mode is then exited and the ESP goes to deep sleep for the set amount of time (600 seconds?)
+1. Handshake will set the epoch, ip and port for each hub driver  (wind, rain, weather, admin)
+1. Handshake mode will continue until each driver have checked in via /handshake
+1. Handshake mode is then exited and the ESP goes to deep sleep for the set amount of time (currently 600 seconds?)
 
 Each Wakeup  (like a new boot)
-1. ESP checks to see if this is boot from deep sleep or first boot
-1. Assuming it's a wake, ESP contacts hub with a GET call to /settings to retrieve the latest epoch and if it should go into wifi only mode
 1. Sensors are read
-1. Epoch (and wifi only flag) updated from hub using a GET message
-1. Assuming its time, messages are posted to the hub
+1. Epoch (and wifi only flag) updated from hub using a GET call to /settings to retrieve the latest epoch and if it should go into wifi only mode
+1. Sensor data is posted to the hub
 1. Note that the PMS sensor (air quality) only reads and post every hour because it's such a power hog
 
 When Hub Port Changes (this happens when driver is updated or hub is rebooted)
@@ -65,23 +63,24 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
 1. The hub will notice that it hasn't hear from the ESP in the alotted time, and call /handshake
 
 ### Logging
-- Papertrail  (see logger.h for setup)
+- Papertrail for remote logging  (see logger.h for setup)
 
 ### Power Management
 - The ESP and sensors are powered by three sources:
   - Solar panel connected via protection circuits to the capacitors to charge them
   - 2 Capacitors routed through a boost circuit (Adafruit MiniBoost 5V @ 1A - TPS61023), then connected to board via USB
   - A1000mAh LiPO battery connected via built in power/charging port on Fire Beetle board
-- This particlar board (Fire Beetle) will charge the LiPO if USB power is over ~3.4 volts.
-- All onboard voltage measurements are from the capacitors pre-boost circuit
+- The idea is to run off the capacitors during the day when we have power from the sun.  This will provide plenty of juice to get PMS readings as well as charge the LiPO.  Then, when night falls (voltage dips just a bit), switch to the LiPO for the ESP - but continue to use the boosted capacitor power for PMS which needs 5v until it reaches a low level.  Since the caps charge quickly, they come up fast once the sun comes up again.
+- This particlar board (Fire Beetle) will charge the LiPO if USB power is over ~3.4 volts.  Since we're boosting the capacitor power, if the booster is on (e.g. caps are not isolated) they'll be charging the LiPO as needed.
 - If cap voltage drops below certain thresholds, the following occurs based on DEFINES:
   - PMSMINVOLTAGE - Below this value, no further readings are taken from the PMS air sensor
-  - SWITCHTOTOBAT - Below this value, boost circuit is disabled, leaving the battery to power things.  (this is because battery charging will drain the caps unecessarily)
-  - SWITCHTOTOCAP - Above this, boost circuit is re-enabled - which will also charge the battery
-  - POWERSAVERVOLTAGE - Below this value, long sleeps are enabled and no PMS reads are allowed.  
+  - SWITCHTOTOBAT - Below this value, boost circuit is disabled, leaving the battery to power things and the capacitors isolated.  (this is because battery charging will drain the caps unecessarily)
+  - SWITCHTOTOCAP - Above this, boost circuit is re-enabled - which will also charge the battery 
+  - POWERSAVERVOLTAGE - This is always off the VCC pin.  Below this value, long sleeps are enabled and no PMS reads are allowed.  (note that LiPO voltage drops are very minimal)
 - The PMS air sensor is very power hungry (>120ma) so we minimize how often readings are taken.  (AIRREADTIME)
 
 ### ULP
+TODO
 
 ### API Reference (server on ESP client)
 
@@ -106,9 +105,10 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
     doc["dew_point"] Calculated
     doc["heat_index"] Calculated
 
-    doc["voltage"] = Read at the capacitors through a 50/50 voltage divider
-    doc["ldr"] = Calculated to approx lux
-    doc["moisture"] = "wet" or "dry"
+    doc["cap_voltage"] voltage at the caps
+	doc["vcc_voltage"] voltage on the vcc pin (usually battery)
+    doc["ldr"] = Calculated to approx lux  (note that this will be zero if in OTA/Handshake mode because the ADC is disabled when Wifi is on)
+    doc["moisture"] = "wet" or "dry"  (read via a digital pin because we ran out of adc)
     doc["uv"] = Calculated to uv index    
 
     doc["pm25"] standard PM 2.5
@@ -117,7 +117,7 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
     doc["pm25Label"] "Good", "Moderate", etc.... 
     doc["pm100AQI"] 
     doc["pm100Label"] 
-    doc["pms_read_time"]
+    doc["pms_read_time"]  last time sensor was successfuly read
 
     doc["current_time"] Always epoch
 
@@ -137,12 +137,14 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
     doc["hubWeatherPort"] port for the driver on the hub (it changes every boot/refresh)
     doc["hubWindPort"] 
     doc["hubRainPort"] 
-    doc["voltage"] voltage at the caps
+    doc["cap_voltage"] voltage at the caps
+	doc["vcc_voltage"] voltage on the vcc pin (usually battery)
     doc["wifi_strength"] RSSI value
     doc["firmware_version"] auto incremented every build
 	doc["heap_frag"] = heap fragmentation in percentage
-	doc["wifi_only_flag"] true if we're in Wifi Only mode
-	doc["batter_pwr_flag"] true if running off battery instead of capacitors via boost		
+	doc["power_saver_mode"] = powerSaverMode;   
+	doc["wifi_only"] = wifiOnly;
+	doc["boost_mode"] = boostMode;	
 	doc["pms_read_time"] last time pms sensor was read 
 	doc["cpu_reset_code"] code of why the ESP rebooted
 	doc["cpu_reset_reason"] 
@@ -164,7 +166,7 @@ When Hub Port Changes (this happens when driver is updated or hub is rebooted)
 	- Voltage divider
 		- Cap voltage  (2x10K Resistors should do the trick)  ran out of ADC
 		- Moisture sensor - sensor up top, then 1M resistor below resulting in 2.5V and up when 300K (lightly damp) and lower (wetter).
-		- Light level (3K for normal light, 200 for direct sunlight, 1+ Mega Ohms for dark)
+		- Light level - which is 0 when wifi is enabled (3K for normal light, 200 for direct sunlight, 1+ Mega Ohms for dark)
 			- w/ 10K    3K=2.5V, 300=3.2v, and 1M=.03v
 	- Wind direction - BL=3.3v, GR=Gnd, YLW=voltage
 	- GY-8511 UV breakout - straight voltage
@@ -178,12 +180,12 @@ Wiring:
 - ESP32 (power)
 	- VIN - 5v+ from caps via booster
 	- Ground - from caps
-	- VDD 3.3V
+	- VDD 3.3V which powers all sensors except for the PMS5003
 	- 1000mAh LiPO battery also connected via the built in battery port (this also charges battery)
-	- Solar Panel --> Capacitors 
+	- Solar Panel --> charges capacitors 
 - 4 pair from attached
 	- BME280 (temperature, pressure, humidity)
-		- Orange - VCC from ESP board
+		- Orange - 3.3v from ESP board
 		- Orange/White - Ground
 		- Blue - SDA (GPIO21)
 		- Blue/White - SCK (GPIO22)
@@ -223,6 +225,5 @@ Wiring:
 
 ### Capacity for 2x250F caps in series
 - Approx 25mah capacity  (https://sparks.gogo.co.nz/capacitor-formulae.html)
-	- Could perhaps extend this to 70mah by using a boost circuit  (this would support up to a 3.5ma draw for 18 hours)
 - Target 1.5ma draw to work in the winter (6 hours of daylight)
-	- We're drawing .15ma during sleep!!
+- ESP is drawing .15ma during sleep!!
