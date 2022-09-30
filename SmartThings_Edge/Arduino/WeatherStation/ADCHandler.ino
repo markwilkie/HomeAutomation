@@ -24,7 +24,7 @@ void ADCHandler::storeSamples()
   _capVoltage = readADC(CAP_VOLTAGE_PIN);
   _vccVoltage = readADC(VCC_VOLTAGE_PIN);
   _ldr = readADC(LDR_PIN);
-  _moisture = readADC(MOISTURE_PIN);
+  _moisture = readDigital(MOISTURE_PIN);
   _uv = readADC(UV_PIN);
 
   logger.log(VERBOSE,"RAW ADC VALUES: cap voltage: %d, vcc voltage: %d, LDR: %d, Moisture: %d, UV: %d",_capVoltage,_vccVoltage,_ldr,_moisture,_uv);  
@@ -68,6 +68,11 @@ double ADCHandler::getUV()
   double uv=getUVIndex(_uv);
     
   return round2(uv);
+}
+
+int ADCHandler::readDigital(int pin)
+{
+  return digitalRead(pin); 
 }
 
 int ADCHandler::readADC(int pin)
@@ -177,9 +182,9 @@ double ADCHandler::getUVIndex(int adcReading)
   return index;
 }
 
-String ADCHandler::isWet(int adcReading)
+String ADCHandler::isWet(int reading)
 {
-  if(adcReading > WET_THRESHOLD)
+  if(reading)
     return "wet";
   else
     return "dry";

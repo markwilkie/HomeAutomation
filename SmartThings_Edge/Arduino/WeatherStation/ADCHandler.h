@@ -17,7 +17,7 @@
 #define CAP_VOLTAGE_PIN     39    
 #define VCC_VOLTAGE_PIN     35    
 #define LDR_PIN             15
-#define MOISTURE_PIN        10
+#define MOISTURE_PIN        13   // GPIO 6-11 can't be used for digital inputs
 #define UV_PIN              34
 
 //enable pins
@@ -35,9 +35,6 @@
 #define CAP_VOLTAGE_CALIB           1.05          //calibration for calc'ing voltage
 #define VCC_VOLTAGE_CALIB       1.69
 
-//moisture
-#define WET_THRESHOLD           350
-
 class ADCHandler 
 {
 
@@ -52,6 +49,7 @@ class ADCHandler
     
   private: 
     int readADC(int);
+    int readDigital(int);
     long getIllum(int);
     double getVolts(int);
     double getUVIndex(int);

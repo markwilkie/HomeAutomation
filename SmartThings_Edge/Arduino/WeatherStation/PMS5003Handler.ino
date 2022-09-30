@@ -202,7 +202,7 @@ const char* PMS5003Handler::calcAQI(double nowCast,struct breakPoint* breakPoint
 
   for(int i=0;i<6;i++)  //size of the breakpoint list
   {
-    if(nowCast>=breakPoints[i].conc_lo && nowCast<=breakPoints[i].conc_hi)
+    if(nowCast>=breakPoints[i].conc_lo && nowCast<breakPoints[i].conc_hi)
     {     
       double numerator=breakPoints[i].AQI_hi-breakPoints[i].AQI_lo;
       double denom=breakPoints[i].conc_hi-breakPoints[i].conc_lo;

@@ -390,14 +390,14 @@ void checkPowerSavingMode()
 
   //Check if we should be in power saver mode by checking voltage at vcc pin
   voltage=adcHandler.getVCCVoltage(); 
-  if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode) {
+  if(voltage<=POWERSAVERVOLTAGE && voltage>0 && powerSaverMode && !boostMode) {
     logger.log(WARNING,"*** Still Power Saver Mode.. (%fV) ***",voltage);
   }
   if(voltage>POWERSAVERVOLTAGE && powerSaverMode) {
     powerSaverMode=false;
     logger.log(WARNING,"*** Exiting Power Saver Mode. (%fV) ***",voltage);
   }
-  if(voltage<=POWERSAVERVOLTAGE && voltage>0 && !powerSaverMode) {
+  if(voltage<=POWERSAVERVOLTAGE && voltage>0 && !powerSaverMode && !boostMode) {
     powerSaverMode=true;
     logger.log(WARNING,"*** Entering Power Saver Mode. (%fV) ***",voltage);
   }

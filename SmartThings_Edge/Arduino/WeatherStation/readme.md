@@ -203,7 +203,7 @@ Wiring:
 		- Red - 3.3v  (shared ground)
 		- White-->10K pull down-->red-->GPIO26 - pulse count on high
 	- Moisture
-		- Black-->1M pull down-->white-->GPIO10  (is a digital input)
+		- Black-->1M pull down-->white-->GPIO13  (is a digital input)
 - 3 pair from UV
 	- Red - VIN
 	- Yellow - 3.3v

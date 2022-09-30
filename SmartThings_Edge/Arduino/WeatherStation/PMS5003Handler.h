@@ -63,21 +63,21 @@ class PMS5003Handler
 
     //Breakpoint data for calculations
     struct breakPoint pm25BreakPoints[6] = {
-                            {"Good", 0, 12, 0, 50},
-                            {"Moderate", 12.1, 35.4, 51, 100},
-                            {"Sensitive", 35.5, 55.4, 101, 150},
-                            {"Unhealthy", 55.5, 150.4, 151, 200},
-                            {"Very Unhealthy", 150.5, 250.4, 201, 300},
-                            {"Hazardous", 250.5, 500.5, 301, 500}
+                            {"Good", 0, 12.1, 0, 50},
+                            {"Moderate", 12.1, 35.5, 51, 100},
+                            {"Sensitive", 35.5, 55.5, 101, 150},
+                            {"Unhealthy", 55.5, 150.5, 151, 200},
+                            {"Very Unhealthy", 150.5, 250.5, 201, 300},
+                            {"Hazardous", 250.5, 500.6, 301, 500}
                         };
 
     struct breakPoint pm100BreakPoints[6] = {
-                            {"Good", 0, 54, 0, 50},
-                            {"Moderate", 55, 154, 51, 100},
-                            {"Sensitive", 155, 254, 101, 150},
-                            {"Unhealthy", 255, 354, 151, 200},
-                            {"Very Unhealthy", 355, 424, 201, 300},
-                            {"Hazardous", 425, 604, 301, 500}
+                            {"Good", 0, 55, 0, 50},
+                            {"Moderate", 55, 155, 51, 100},
+                            {"Sensitive", 155, 255, 101, 150},
+                            {"Unhealthy", 255, 355, 151, 200},
+                            {"Very Unhealthy", 355, 425, 201, 300},
+                            {"Hazardous", 425, 605, 301, 500}
                         };
 
 };
