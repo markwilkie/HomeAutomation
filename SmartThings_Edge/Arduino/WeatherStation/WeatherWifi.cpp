@@ -17,7 +17,7 @@ void WeatherWifi::startWifi()
  
   // Wait for connection
   int connectCount = 0;
-  logger.log(INFO,"Connecting to WIFI...");  
+  logger.log(VERBOSE,"Connecting to WIFI...");  
   while (WiFi.status() != WL_CONNECTED) 
   {
     connectCount++;
@@ -87,7 +87,7 @@ bool WeatherWifi::isServerOn()
 
 void WeatherWifi::disableWifi()
 { 
-  logger.log(INFO,"Disabling Wifi...");  
+  logger.log(VERBOSE,"Disabling Wifi...");  
 
   //Let's be sure and flush the log cache before shutting down
   logger.sendLogs(isConnected());
@@ -173,7 +173,7 @@ bool WeatherWifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hub
     
   // Your Domain name with URL path or IP address with path
   sprintf(address,"http://%s:%d%s",hubAddress,hubPort,url);  
-  logger.log(INFO,"Hub Address: %s",address);
+  logger.log(VERBOSE,"Hub Address: %s",address);
   http.begin(client,address);
   http.addHeader("Content-Type", "application/json");
 
@@ -210,7 +210,7 @@ DynamicJsonDocument WeatherWifi::sendGetMessage(const char*url,int hubPort)
     
   // Your Domain name with URL path or IP address with path
   sprintf(address,"http://%s:%d%s",hubAddress,hubPort,url);  
-  logger.log(INFO,"get Hub Address: %s",address);
+  logger.log(VERBOSE,"get Hub Address: %s",address);
   http.begin(client,address);
 
   // Send HTTP GET request

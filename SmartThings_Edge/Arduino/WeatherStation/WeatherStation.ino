@@ -65,12 +65,12 @@ void syncSettings()
   if(wifiOnly) {
     logger.log(WARNING,"Wifi is on and ESP will not sleep - ready for OTA updates"); }
   else {
-    logger.log(INFO,"ESP is able to sleep now - ready for normal operation"); }
+    logger.log(VERBOSE,"ESP is able to sleep now - ready for normal operation"); }
 
   if(handshakeRequired)
     logger.log(WARNING,"Handshake mode active");
   else
-    logger.log(INFO,"Handshake mode NOT active");
+    logger.log(VERBOSE,"Handshake mode NOT active");
 
   //Send settings back
   postAdmin();
@@ -108,7 +108,7 @@ void postAdmin()
   if(!weatherWifi.sendPostMessage("/admin",doc,hubAdminPort))
     hubAdminPort=0;
 
-  logger.log(INFO,"Posted admin data...");
+  logger.log(VERBOSE,"Posted admin data...");
 }
 
 //refresh wind data
@@ -129,7 +129,7 @@ void postWind()
   if(!weatherWifi.sendPostMessage("/wind",doc,hubWindPort))
     hubWeatherPort=0;
 
-  logger.log(INFO,"Posted wind data...");
+  logger.log(VERBOSE,"Posted wind data...");
 }
 
 void postRain() 
@@ -147,7 +147,7 @@ void postRain()
   if(!weatherWifi.sendPostMessage("/rain",doc,hubRainPort))
     hubRainPort=0;
 
-  logger.log(INFO,"Posted rain data...");
+  logger.log(VERBOSE,"Posted rain data...");
 }
 
 //refresh weather data
@@ -166,7 +166,7 @@ void postWeather()
   if(!weatherWifi.sendPostMessage("/weather",doc,hubWeatherPort))
     hubRainPort=0;
   
-  logger.log(INFO,"Posted general weather data...");
+  logger.log(VERBOSE,"Posted general weather data...");
 }
 
 //refresh bme data
@@ -277,11 +277,15 @@ void setup(void)
   else
   {
     logger.log(INFO,"-------------------------- Waking up");
+
+    //free heap
+    double heap=(((double)376360-ESP.getFreeHeap())/(double)376360)*100;
+    logger.log(INFO,"Free Heap: %d or %f%% used",(int)ESP.getFreeHeap(),heap);    
   }
 
   //read wind and rain sensor  (it's here because we must be sure to read (clear) the register during windy conditions so there's no overflow
   //   it is known that on initial boot, there's no epoch which makes the canculations for wind be invalid.  a full  cycle must be waited for and it'll clear itself
-  logger.log(INFO,"Reading wind and rain sensors");
+  logger.log(VERBOSE,"Reading wind and rain sensors");
   windRainHandler.storeSamples();
 }
 
@@ -290,14 +294,7 @@ void initialSetup()
     //blink led (1x2000,3x250)
     blinkLED(1,2000,500);
     blinkLED(3,250,250);
-
-    //free heap
-    double heap=(((double)376360-ESP.getFreeHeap())/(double)376360)*100;
-    logger.log(INFO,"Free Heap: %d or %f%% used",(int)ESP.getFreeHeap(),heap);
-
-    //Setting up flash 
-    //preferences.begin("weather", false); 
-      
+     
     logger.log(WARNING,"First Boot.  Now setting up ULP so we can count pulses and hold pins while in deep sleep...");
     ulp.setupULP();
     ulp.setupWindPin();
@@ -349,7 +346,7 @@ void loop(void)
     weatherWifi.listen(HTTPSERVERTIME*1000);
 
     //Since we're not deep sleeping (e.g. booting), be sure and read the wind/rain sensor when we read the others.  Otherwise, we'll do this on each boot.
-    logger.log(INFO,"Reading wind and rain sensors (in loop)");
+    logger.log(VERBOSE,"Reading wind and rain sensors (in loop)");
     windRainHandler.storeSamples();    
   }
 
@@ -380,12 +377,12 @@ void checkPowerSavingMode()
   if(voltage<=SWITCHTOTOBAT && boostMode) {
     ulp.setBoostPinHigh(false);
     boostMode=false;
-    logger.log(WARNING,"Switching to battery power");
+    logger.log(INFO,"Switching to battery power");
   }
   if(voltage>SWITCHTOTOCAP && !boostMode) {
     ulp.setBoostPinHigh(true);
     boostMode=true;
-    logger.log(WARNING,"Switching to capacitor power");
+    logger.log(INFO,"Switching to capacitor power");
   }
 
   //Check if we should be in power saver mode by checking voltage at vcc pin
@@ -411,14 +408,24 @@ void postSensorData()
 
   //if we've got a port number from handshaking, go ahead and post
   syncSettings();
+  logger.sendLogs(weatherWifi.isConnected());
+
   postWeather();
+  logger.sendLogs(weatherWifi.isConnected());
+
   postWind();
+  logger.sendLogs(weatherWifi.isConnected());
+    
   postRain();  
+  logger.sendLogs(weatherWifi.isConnected());  
+
+  //take this chance to send logs
+  logger.sendLogs(weatherWifi.isConnected());    
 }
 
 void readSensors()
 { 
-  logger.log(INFO,"Reading BME and ADC sensors");  
+  logger.log(VERBOSE,"Reading BME and ADC sensors");  
   bmeHandler.init();
   adcHandler.init();
   delay(200);
@@ -440,7 +447,7 @@ void readAirSensor()
     if(!boostMode)    
       ulp.setBoostPinHigh(false);    
     airWarmingUp=false;
-    timeToReadAir=(currentTime()+AIRREADTIME)-10;  //100 is just a buffer
+    timeToReadAir=(currentTime()+AIRREADTIMELOW)-10;  //100 is just a buffer
     logger.log(WARNING,"Voltage too low to take a PMS5003 reading - or in power saver mode (%f volts)",adcHandler.getVCCVoltage());
     return;
   }
@@ -467,7 +474,13 @@ void readAirSensor()
     if(!boostMode)
       ulp.setBoostPinHigh(false);    
     airWarmingUp=false;
-    timeToReadAir=(currentTime()+AIRREADTIME)-10;  //100 is just a buffer
+
+    //Set next time based on if battery power or not
+    if(boostMode)
+      timeToReadAir=(currentTime()+AIRREADTIME)-10;  //10 is just a buffer so we don't miss it
+    else
+      timeToReadAir=(currentTime()+AIRREADTIMELOW)-10; 
+    
     logger.log(VERBOSE,"Setting next air sensor wakeup time to: %s",getTimeString(timeToReadAir)); 
     return;
   }

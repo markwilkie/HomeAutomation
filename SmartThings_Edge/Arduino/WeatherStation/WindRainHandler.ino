@@ -23,7 +23,12 @@ void WindRainHandler::storeSamples()
 
   logger.log(VERBOSE,"Samples - Wind Speed: (raw/avg) %f/%f, Gust Speed: (current/old max) %f/%f, Direction: %d",windSpeed,totalSpeed/(double)speedSamples,windGustSpeed,maxGust,rawDirectioninDegrees);
 
-  //max gust (but makes sure it's within bounds)
+  //max gust (but makes sure it's within bounds and we can trust the reading)
+  if(windSpeed<LOWWIND && windGustSpeed>(windSpeed*GUSTLIMIT))
+  {
+    logger.log(INFO,"Gust is unreliable because there's no wind: %f/%f",windGustSpeed,windSpeed*GUSTLIMIT);
+    windGustSpeed=windSpeed;
+  }
   if(windGustSpeed>(windSpeed*GUSTLIMIT))
   {
     logger.log(WARNING,"Gust is over limit, setting to last wind speed.  (gust/limit): %f/%f",windGustSpeed,windSpeed*GUSTLIMIT);
@@ -101,7 +106,7 @@ int WindRainHandler::getDirectionInDeg()
   if(dir<0)
     dir=dir+359;
 
-  logger.log(VERBOSE,"Wind Direction adjusted: %d",dir);      
+  //logger.log(VERBOSE,"Wind Direction adjusted: %d",dir);      
 
   return dir;
 }
@@ -128,7 +133,7 @@ String WindRainHandler::getDirectionLabel()
   if(dir>292 && dir<338) 
     dirLabel="NW";  
 
-  logger.log(VERBOSE,"Wind Direction Label: %s",dirLabel.c_str());    
+  //logger.log(VERBOSE,"Wind Direction Label: %s",dirLabel.c_str());    
 
   return dirLabel;
 }

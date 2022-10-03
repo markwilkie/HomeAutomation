@@ -7,6 +7,7 @@
 #define HTTPSERVERTIME        30                    // time blocking in server listen for handshaking while in loop
 #define AIRWARMUPTIME         30                    // interval in seconds that we'll power the sensor and let it warm up and settle down
 #define AIRREADTIME           (3600-AIRWARMUPTIME)  // interval in seconds we'll wake up the power hungry air sensor  (minus warmup)
+#define AIRREADTIMELOW        (2*AIRREADTIME)       // interval to use when on battery power so we can get through the night
 #define SWITCHTOTOBAT         4.9                   // Capacitor voltage that ESP will switch to battery power (e.g. turn off boost)
 #define SWITCHTOTOCAP         5.2                   // Capacitor voltage that ESP will switch to capacitor power (turn on boost)
 #define PMSMINVOLTAGE         2.1                   // Won't try and get a reading if capacitors (pre boost circuit) are below this voltage

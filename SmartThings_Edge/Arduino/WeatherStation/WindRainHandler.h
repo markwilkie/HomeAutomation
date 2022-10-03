@@ -7,8 +7,9 @@
 
 //
 //  Setup
-#define WIND_VANE_PIN     36          // wind vane pin */
-#define GUSTLIMIT         7           // x times wind speed.  supposed to catch glithes by making sure gust is not cazy higher than the wind speed generally
+#define WIND_VANE_PIN      36         // wind vane pin */
+#define LOWWIND             2         // Below this, we'll consider the gust limit to be kinda pointless
+#define GUSTLIMIT           7         // x times wind speed.  supposed to catch glithes by making sure gust is not cazy higher than the wind speed generally
 #define WIND_DIR_OFFSET   -70         // calibrate the wind vane
 
 //Time keeping
