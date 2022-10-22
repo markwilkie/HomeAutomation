@@ -21,8 +21,8 @@ void WeatherWifi::startWifi()
   while (WiFi.status() != WL_CONNECTED) 
   {
     connectCount++;
-    delay(500);
-    if(connectCount>40)
+    delay(1000);
+    if(connectCount>10)
     {
       //Blink because we couldn't connect to wifi  (5x250)
       blinkLED(5,250,250);
@@ -166,6 +166,12 @@ void WeatherWifi::setupServerRouting() {
 
 bool WeatherWifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
 {
+  if(!isConnected())
+  {
+    WARNPRINTLN("Wifi Discconnected, reconnecting now");
+    startWifi();
+  }
+
   bool success=true;
   WiFiClient client;
   HTTPClient http;

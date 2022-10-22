@@ -180,16 +180,22 @@ void PMS5003Handler::sumWeights(int count,double weight,double &v1P25Sum,double 
   v1P100Sum=0;
   v2P100Sum=0;
 
-  //Loop through the history backwards summing as we go
-  for(int i=CONCEN_HIST_SIZE-1;i>=0;i--)
+  //Loop through the history, summing as we go
+  for(int i=0;i<CONCEN_HIST_SIZE;i++)
   {
     if(concenHistory[i].epoch>0)
     {
-      v1P25Sum = v1P25Sum + concenHistory[i].pm25*pow(weight,i);
-      v2P25Sum = v2P25Sum + pow(weight,i);
+      //Calculate "location" in list, with 0 being the newest and 11 being the oldest
+      int location=i-(currentIdx-1);  // -1 is because index points to the current open slot (not the last one filled in)
+      if(location<0) {
+        location=location+CONCEN_HIST_SIZE;
+      }
 
-      v1P100Sum = v1P100Sum + concenHistory[i].pm100*pow(weight,i);
-      v2P100Sum = v2P100Sum + pow(weight,i);
+      v1P25Sum = v1P25Sum + concenHistory[i].pm25*pow(weight,location);
+      v2P25Sum = v2P25Sum + pow(weight,location);
+
+      v1P100Sum = v1P100Sum + concenHistory[i].pm100*pow(weight,location);
+      v2P100Sum = v2P100Sum + pow(weight,location);
     }
   }
 }

@@ -4,6 +4,7 @@
 #include "WeatherStation.h"
 
 extern Logger logger;
+extern unsigned long currentTime();
 
 #ifndef WINDRAIN_H
 #define WINDRAIN_H
@@ -18,9 +19,15 @@ class WindRain
   public:
     double getWindSpeed(long);
     double getWindGustSpeed();
-    double getRainRate();
+    void getRainRate(double &current, double &lastHour, double &last12);
     
   private: 
+    unsigned long newCycleTime=0;
+    unsigned long newHourTime=0;
+    int lastHourRainPulseCount[3600/CYCLETIME];
+    int last12RainPulseCount[12];
+    int currentIdx=0; 
+    int last12Idx=0; 
 };
 
 #endif

@@ -1,9 +1,6 @@
 #include <Arduino.h>
 
 #include "WindRainHandler.h"
-#include "WeatherStation.h"
-
-extern double round2(double);
 
 void WindRainHandler::storeSamples()
 {
@@ -11,11 +8,13 @@ void WindRainHandler::storeSamples()
   long timeSinceLastReading = currentTime()-lastReadingTime;
   lastReadingTime=currentTime();
   
-  //Store immediate values
+  //Store wind values
   windSpeed=windRain.getWindSpeed(timeSinceLastReading);
   rawDirectioninDegrees=calcWindDirection();
   windGustSpeed=windRain.getWindGustSpeed();
-  rainRate=rainRate+windRain.getRainRate();
+
+  //Store rain values
+  windRain.getRainRate(currentRainRate,lastHourRainRate,last12RainRate);
 
   //calc average
   totalSpeed=totalSpeed+windSpeed;
@@ -85,6 +84,7 @@ double WindRainHandler::getWindSpeed()
   
   return round2(avgWindSpeed);
 }
+
 double WindRainHandler::getWindGustSpeed()
 { 
   windGustSpeed=maxGust;
@@ -92,12 +92,22 @@ double WindRainHandler::getWindGustSpeed()
  
   return round2(windGustSpeed);
 }
-double WindRainHandler::getRainRate()
+
+double WindRainHandler::getCurrentRainRate()
 {
-  double currentRainRate=rainRate;
-  rainRate=0;  //reset because we're reading
   return round2(currentRainRate);
 }
+
+double WindRainHandler::getLastHourRainRate()
+{
+  return round2(lastHourRainRate);
+}
+
+double WindRainHandler::getLast12RainRate()
+{
+  return round2(last12RainRate);
+}
+
 int WindRainHandler::getDirectionInDeg()
 {
   int dir=rawDirectioninDegrees+WIND_DIR_OFFSET;

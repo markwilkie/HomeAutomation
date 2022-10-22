@@ -139,7 +139,9 @@ void postRain()
 
   //rain
   DynamicJsonDocument doc(512);
-  doc["rain_rate"] = windRainHandler.getRainRate();
+  doc["rain_rate"] = windRainHandler.getCurrentRainRate();
+  doc["last_hour_rain_rate"] = windRainHandler.getLastHourRainRate();
+  doc["last_12_rain_rate"] = windRainHandler.getLast12RainRate();
   doc["moisture"] = adcHandler.getMoisture();
   doc["current_time"] = currentTime();
 
@@ -438,6 +440,10 @@ void readAirSensor()
 {
   //Check time and if we're in power saver mode
   if(currentTime()<timeToReadAir)
+    return;
+
+  //Raining?  just return....
+  if(windRainHandler.getCurrentRainRate()>0)
     return;
 
   //Check if we've got enough voltage.  At night, there's usually less than 5v and readings are wonky

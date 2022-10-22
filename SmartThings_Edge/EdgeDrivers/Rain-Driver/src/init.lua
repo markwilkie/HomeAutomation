@@ -10,7 +10,6 @@ local json = require('dkjson')
 local commonglobals = require "_commonglobals"
 local myserver = require "_myserver"
 local myclient = require "_myclient"
-local raindatastore = require "raindatastore"
 local globals = require "globals"
 
 -- Custom Capabiities
@@ -35,15 +34,10 @@ function RefreshRain(content)
 
   local jsondata = json.decode(content);
   globals.rainrate = tonumber(string.format("%.2f", jsondata.rain_rate))
+  globals.raintotallasthour = tonumber(string.format("%.2f", jsondata.last_hour_rain_rate))   
+  globals.raintotallast12hours = tonumber(string.format("%.2f", jsondata.last_12_rain_rate))
   globals.moisture = jsondata.moisture
   globals.currentTime = os.date("%a %X", jsondata.current_time)
-
-  --adding to the data store so we can get max
-  raindatastore.insertData(jsondata.current_time,globals.rainrate)
-
-  --get historical info
-  globals.raintotallasthour = tonumber(string.format("%.2f", raindatastore.findLastHourTotal(1)))   
-  globals.raintotallast12hours = tonumber(string.format("%.2f", raindatastore.findLast12HoursTotal()))   
 end
 
 -- Get latest rain updates
