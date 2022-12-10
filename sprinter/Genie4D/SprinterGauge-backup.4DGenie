@@ -247,6 +247,53 @@ iAngularMeter
     Width                        96
     OnChanged                    IAngularMeter2Set
 end
+AngularMeter
+    Name                         Angularmeter0
+    Alias                        Angularmeter0
+    Angle                        150
+    AngleOffset                  240
+    Caption                      ''
+    CaptionXOffset               -10
+    CaptionYOffset               0
+    CenterDotColor               clWhite
+    CenterDotWidth               2
+    Color                        BLACK
+    ColorZone1                   clGreen
+    ColorZone2                   clBlue
+    ColorZone3                   clRed
+    Decimals                     0
+    Font.Color                   clWhite
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    8
+    Font.Style                   []
+    Height                       87
+    Labels                       4
+    LabelsFont.Color             clWhite
+    LabelsFont.Effects           []
+    LabelsFont.Name              Tahoma
+    LabelsFont.Size              8
+    LabelsFont.Style             []
+    LabelsOffset                 0
+    Left                         12
+    Maxvalue                     250
+    Minvalue                     130
+    NeedleBasewidth              4
+    NeedleColor                  clRed
+    NeedleLength                 -1
+    Percent1                     60
+    Percent2                     25
+    Radius                       -1
+    Spacing                      10
+    Ticks                        20
+    TicksColor                   clWhite
+    TicksEnlarge                 10
+    TicksMax                     10
+    TicksMin                     5
+    Top                          16
+    Width                        80
+    OnChanged                    ''
+end
 CustomDigits
     Name                         Customdigits1
     Alias                        WaterTempDigits
