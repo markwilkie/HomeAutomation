@@ -103,63 +103,6 @@ iAngularMeter
     OnChanged                    IAngularMeter2Set
 end
 iAngularMeter
-    Name                         IAngularMeter2
-    Alias                        IAngularMeter2
-    BGcolor                      BLACK
-    BGtransparent                Yes
-    Caption                      IAngularMeter0
-    CaptionColor                 WHITESMOKE
-    CaptionFont                  FONT1
-    CaptionXOffset               -60
-    CaptionYOffset               25
-    GaugeEndAngle                225
-    GaugeStartAngle              60
-    Height                       82
-    LabelColor                   WHITE
-    LabelColorFromScale          No
-    LabelCount                   4
-    LabelDiscrete                No
-    LabelFont                    FONT1
-    LabelOffset                  2
-    Labels                       \n
-    Left                         368
-    Maxvalue                     100
-    MinorTicks                   5
-    Minvalue                     0
-    NeedleCentered               Yes
-    NeedleColor                  WHITESMOKE
-    NeedleLength                 10
-    NeedleOffset                 3
-    NeedlePinColor               SLATEGRAY
-    NeedlePinDotColor            RED
-    NeedlePinDotRadius           0
-    NeedlePinRadius              0
-    NeedleStyle                  RoundedRectangle
-    NeedleTail                   0
-    NeedleThickess               3
-    NeedleXpos                   20
-    NeedleYpos                   20
-    Sect1Color                   GREEN
-    Sect2Color                   YELLOW
-    Sect2StartingAngle           90
-    Sect3Color                   RED
-    Sect3StartingAngle           180
-    SectionStepSize              0
-    ScaleInnerRadius             8
-    ScaleOuterRadius             16
-    TickColor                    GRAY
-    TickColorFromScaleColor      No
-    TickInnerMajorLength         0
-    TickInnerMinorLength         0
-    TickOuterMajorLength         0
-    TickOuterMinorLength         0
-    TickWidth                    2
-    Top                          12
-    TotalTicks                   30
-    Width                        99
-    OnChanged                    ''
-end
-iAngularMeter
     Name                         IAngularMeter1
     Alias                        Boost
     BGcolor                      BLACK
@@ -179,7 +122,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         116
+    Left                         108
     Maxvalue                     22
     MinorTicks                   15
     Minvalue                     0
@@ -211,7 +154,7 @@ iAngularMeter
     TickOuterMajorLength         0
     TickOuterMinorLength         0
     TickWidth                    2
-    Top                          30
+    Top                          32
     TotalTicks                   5
     Width                        96
     OnChanged                    IAngularMeter2Set
@@ -237,13 +180,117 @@ end
 CustomDigits
     Name                         Customdigits0
     Alias                        Customdigits0
-    Bitmap                       (None)
+    Bitmap                       OCR28NEON10_size2.bmp
     Digits                       2
     LeadingZero                  Yes
-    Left                         152
-    Top                          64
+    Left                         144
+    Top                          68
     OnChanged                    ''
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''
+end
+iAngularMeter
+    Name                         IAngularMeter3
+    Alias                        WaterTemperature
+    BGcolor                      BLACK
+    BGtransparent                Yes
+    Caption                      ''
+    CaptionColor                 WHITESMOKE
+    CaptionFont                  FONT2
+    CaptionXOffset               -15
+    CaptionYOffset               0
+    GaugeEndAngle                360
+    GaugeStartAngle              230
+    Height                       89
+    LabelColor                   WHITE
+    LabelColorFromScale          No
+    LabelCount                   3
+    LabelDiscrete                No
+    LabelFont                    FONT2
+    LabelOffset                  -15
+    Labels                       \n
+    Left                         0
+    Maxvalue                     250
+    MinorTicks                   5
+    Minvalue                     130
+    NeedleCentered               Yes
+    NeedleColor                  WHITESMOKE
+    NeedleLength                 32
+    NeedleOffset                 17
+    NeedlePinColor               SLATEGRAY
+    NeedlePinDotColor            RED
+    NeedlePinDotRadius           0
+    NeedlePinRadius              0
+    NeedleStyle                  RoundedRectangle
+    NeedleTail                   0
+    NeedleThickess               4
+    NeedleXpos                   20
+    NeedleYpos                   20
+    Sect1Color                   0x464646
+    Sect2Color                   0x00C6C2
+    Sect2StartingAngle           300
+    Sect3Color                   RED
+    Sect3StartingAngle           380
+    SectionStepSize              1
+    ScaleInnerRadius             35
+    ScaleOuterRadius             40
+    TickColor                    GRAY
+    TickColorFromScaleColor      No
+    TickInnerMajorLength         10
+    TickInnerMinorLength         -5
+    TickOuterMajorLength         0
+    TickOuterMinorLength         0
+    TickWidth                    2
+    Top                          39
+    TotalTicks                   4
+    Width                        96
+    OnChanged                    IAngularMeter2Set
+end
+AngularMeter
+    Name                         Angularmeter0
+    Alias                        Angularmeter0
+    Angle                        150
+    AngleOffset                  240
+    Caption                      ''
+    CaptionXOffset               -10
+    CaptionYOffset               0
+    CenterDotColor               clWhite
+    CenterDotWidth               2
+    Color                        BLACK
+    ColorZone1                   clGreen
+    ColorZone2                   clBlue
+    ColorZone3                   clRed
+    Decimals                     0
+    Font.Color                   clWhite
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    8
+    Font.Style                   []
+    Height                       87
+    Labels                       4
+    LabelsFont.Color             clWhite
+    LabelsFont.Effects           []
+    LabelsFont.Name              Tahoma
+    LabelsFont.Size              8
+    LabelsFont.Style             []
+    LabelsOffset                 0
+    Left                         276
+    Maxvalue                     250
+    Minvalue                     130
+    NeedleBasewidth              4
+    NeedleColor                  clRed
+    NeedleLength                 -1
+    Percent1                     60
+    Percent2                     25
+    Radius                       -1
+    Spacing                      10
+    Ticks                        20
+    TicksColor                   clWhite
+    TicksEnlarge                 10
+    TicksMax                     10
+    TicksMin                     5
+    Top                          32
+    Width                        80
+    OnChanged                    ''
 end
