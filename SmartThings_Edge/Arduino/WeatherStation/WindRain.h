@@ -5,13 +5,15 @@
 
 extern Logger logger;
 extern unsigned long currentTime();
+extern String getTimeString();
 
 #ifndef WINDRAIN_H
 #define WINDRAIN_H
 
 #define TIMEFACTOR        1000000UL   // factor between seconds and microseconds
-#define WINDFACTOR        3.4         // 3.4 km/h per revolution, or 20 pulses
-#define RAINFACTOR        0.0204      // bucket size
+#define WINDFACTOR        3.914639    // 1.75 m/s per revolution, 3.9mph, or 20 pulses
+#define GUSTFACTOR        .225        // We're measuring a single pulse, so this is the "fudge factor" to get to revolutions per second
+#define RAINFACTOR        0.0102      // 0.0204      // bucket size
 
 class WindRain 
 {
@@ -22,12 +24,12 @@ class WindRain
     void getRainRate(double &current, double &lastHour, double &last12);
     
   private: 
-    unsigned long newCycleTime=0;
-    unsigned long newHourTime=0;
+    unsigned long newCycleTime;
+    unsigned long newHourTime;
     int lastHourRainPulseCount[3600/CYCLETIME];
     int last12RainPulseCount[12];
-    int currentIdx=0; 
-    int last12Idx=0; 
+    int currentIdx; 
+    int last12Idx; 
 };
 
 #endif

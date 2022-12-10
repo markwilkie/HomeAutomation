@@ -245,8 +245,8 @@ wind_edge_detected:
   ld r2, r3, 0
   add r2, r2, 1
   st r2, r3, 0
-  /* If trailing edge of the pulse, see if low tick count needs setting */
-  jumpr trailing_detected, 1, eq  //r0 is the state of the pin, 1 is trailing edge
+  /* If leading edge of the pulse, see if low tick count needs setting (we're timing between pulses - or trailing-->leading) */
+  jumpr leading_detected, 1, eq  //r0 is the state of the pin, 1 is trailing edge
   //end
   halt
 
@@ -277,7 +277,7 @@ wake_up:
   wake
   halt  
 
-trailing_detected:
+leading_detected:
   // Jump to pulse_lower if we find lowest value
   move r3, wind_low_tick_cnt
   move r2, wind_tick_cnt
