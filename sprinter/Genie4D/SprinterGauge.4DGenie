@@ -164,7 +164,7 @@ iAngularMeter
     Alias                        Boost
     BGcolor                      BLACK
     BGtransparent                Yes
-    Caption                      BST
+    Caption                      ''
     CaptionColor                 WHITESMOKE
     CaptionFont                  FONT2
     CaptionXOffset               -15
@@ -215,4 +215,35 @@ iAngularMeter
     TotalTicks                   5
     Width                        96
     OnChanged                    IAngularMeter2Set
+end
+iLedDigits
+    Name                         ILedDigits0
+    Alias                        LoadDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       4
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         212
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          100
+    OnChanged                    ''
+end
+CustomDigits
+    Name                         Customdigits0
+    Alias                        Customdigits0
+    Bitmap                       (None)
+    Digits                       2
+    LeadingZero                  Yes
+    Left                         152
+    Top                          64
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
 end

@@ -4,11 +4,10 @@
 
 
 
-    #STACK 370         // only needed to support form changing via gtx when the iMediaGauges are used, +10 for possible magic stack usage
 
 
-// generated 12/9/2022 8:49:05 AM
-// uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 1   InternalObjects:- 6   GciFlashFiles:- 1
+// generated 12/10/2022 8:12:23 AM
+// uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 4   GciFlashFiles:- 1
 
 #MODE RUNFLASH
 
@@ -169,71 +168,56 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        0
-    nInputs         3
+    nObjects        2
+    nInputs         0
     nAniTimers      0
 #END
 
 #DATA
-    word gfxInternals gfx_AngularMeter, gfx_Gauge, -1, -1, igfx_MediaGauge, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, gfx_Slider5, -1, -1, -1, -1, -1, -1, -1
-    word gfxIntParms -1, -1, -1, -1, 31, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-    word gfxIntStrings -1, -1, -1, -1, 0xE, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+    word gfxInternals gfx_AngularMeter, -1, -1, -1, -1, -1, -1, -1, gfx_LedDigits, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+    word gfxIntParms -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+    word gfxIntStrings -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word oiviAngularMeter vIAngularMeter0, vIAngularMeter1, vIAngularMeter2
-    word oiviGauge vIGauge0
-    word oiviMediaGauge vIMediaGauge0
-    word oiviSliderE vISliderE0
-    word xobj2iiobj 0x3C00
-    word xobj2iobj 0x2700, 0x2701, 0x2702, 0x3C00, 0x2B00, 0x2800
-    word IIAngularMeter0 40, 25, 30, 5, 0, 0, 15, 0, 2, GRAY, 270, 338, GREEN,
-        YELLOW, RED, 0, 4, 0, WHITE, 5, 0, 0x2, 0, WHITESMOKE, -60, 52,
-        CIAngularMeter0, 344, 8, 124, 99, 406, 57, BLACK, 135, 405, 0, 100, 32,
-        0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
-    byte CIAngularMeter0 "IAngularMeter0",0 
-    word IIAngularMeter1 16, 8, 30, 5, 0, 0, 0, 0, 2, GRAY, 270, 338, GREEN,
-        YELLOW, RED, 0, 4, 0, WHITE, 2, 0, 0x2, 0, WHITESMOKE, -60, 25,
-        CIAngularMeter1, 8, 3, 99, 125, 57, 65, BLACK, 135, 405, 0, 100, 10,
-        0x5, 3, 3, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
-    byte CIAngularMeter1 "IAngularMeter0",0 
+    word oiviLedDigits vILedDigits0
+    word xobj2iobj 0x2700, 0x2702, 0x2701, 0x2F00
+    word IIAngularMeter0 60, 55, 30, 15, 0, 0, 10, -5, 2, GRAY, 320, 350,
+        0x4228, 0xC620, RED, 1, 4, 1, WHITE, -15, 0, 0x2, 1, WHITESMOKE, -15,
+        5, CIAngularMeter0, 170, 4, 140, 122, 240, 65, BLACK, 135, 405, 0, 100,
+        32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+    byte CIAngularMeter0 "LOD",0 
     word IIAngularMeter2 16, 8, 30, 5, 0, 0, 0, 0, 2, GRAY, 90, 180, GREEN,
         YELLOW, RED, 0, 4, 0, WHITE, 2, 0, 0x2, 0, WHITESMOKE, -60, 25,
-        CIAngularMeter2, 244, 24, 99, 82, 293, 65, BLACK, 60, 225, 0, 100, 10,
+        CIAngularMeter2, 368, 12, 99, 82, 417, 53, BLACK, 60, 225, 0, 100, 10,
         0x5, 3, 3, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte CIAngularMeter2 "IAngularMeter0",0 
-    word IISliderE0 169, 5, 123, 50, 0x7, 0, 100, 0x1082, GRAY, LIME, 30, 30,
-        2, 2, 10, LIME, 5, LIME, 2, LIME, 0x1082, 0x9CD3, 0x20, 0x1082, 0x9CD3,
-        0x40
-    word IIMediaGauge0 117, 28, 53, 41, BLACK, BLACK, BLACK, WHITE, BLUE, 0, 0,
-        0, RED, BLACK, BLACK, RED, 8, 4, 0, 100, 0, 270, 360, 50, 25, 0, 1,
-        0x35A7, 4, 20, 0
-    word IIGauge0 308, 12, 28, 47, 24, 0, 50, 0, 0, 0x18E3, 0x0280, LIME,
-        0x5280, YELLOW, 0x5000, RED, 15, 10, 0x0
+    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 250, 250,
+        0x4228, 0xC620, 0xC620, 1, 3, 1, WHITE, -15, LIAngularMeter1, 0x3, 1,
+        WHITESMOKE, -15, 0, 0, 116, 30, 96, 89, 164, 74, BLACK, 60, 290, 0, 22,
+        32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+    byte LIAngularMeter1 "",0, "",0, "",0, "",0
+    word IILedDigits0 212, 100, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
     word FormStartIndex 0
-    word FormEndIndex 0
+    word FormEndIndex 2
     word iFormStartIndex 0
-    word iFormEndIndex 6
+    word iFormEndIndex 4
     word InputControls 0
-    word InternalInputControls -1, -1, -1, 0, -1, -1
-    word InputData tiSliderE, 0, 36, 113, 0, 100, -1, -1, 0, 22, 2,
-                OT_SETANOTHER, 39, 0, 0, 18, 0, 0, 0, 0, 44, 0,
-                OT_SETANOTHER, 39, 2, 0, 18, 0, 0, 0, 0, 0, 2
+    word InternalInputControls -1, -1, -1, -1
+    word InputData 0
     word oDipSwitchs 0
+    word oCustomdigitss 1, iCustomdigits0
     word oForms 1, -1
     word oiAngularMeters 3, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2
-    word oiGauges 1, IIGauge0
-    word oiMediaGauges 1, IIMediaGauge0
-    word oiSliderEs 1, IISliderE0
+    word oiLedDigitss 1, IILedDigits0
     word FormBGcolors 0x0000
     word kKeyboardKeystrokes -1
     word rKeyboardRoutines -1
+    word oCustomDigitsn 152, 2, 1, 9, 0
 #END
 
     var vIAngularMeter0[WIDGET_RAM_SPACE] ;
-    var vIAngularMeter1[WIDGET_RAM_SPACE] ;
     var vIAngularMeter2[WIDGET_RAM_SPACE] ;
-    var vISliderE0[WIDGET_RAM_SPACE] ;
-    var vIMediaGauge0[WIDGET_RAM_SPACE] ;
-    var vIGauge0[WIDGET_RAM_SPACE] ;
-    var gradientRAM[29+54*2] := [-1,-1,-9999,0,0,54] ;  // with init and showing capacity for 53 degrees
+    var vIAngularMeter1[WIDGET_RAM_SPACE] ;
+    var vILedDigits0[WIDGET_RAM_SPACE+2] ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -250,11 +234,7 @@ var InputCS, OutputCS ;
 func addressInternalWidget(var idx var iponly)
     var i, j ;
 //to(COM0) ; print("Address Int ", idx, " ") ; pause(2) ;
-    if (iponly) 
-        GObjectIdx := xobj2iiobj[idx] ;
-    else
-        GObjectIdx := xobj2iobj[idx] ;
-    endif
+    GObjectIdx := xobj2iobj[idx] ;
     GObjectType := (GObjectIdx>>8) ;                          // extract object type
     i := oObjects[GObjectType] ;                              // i is address of list of all objects of this type
     GObjectIdx &= 0xff ;
@@ -295,15 +275,6 @@ func SendReport(var id, var objt, var objn, var val)
     seroutOcs() ;
 endfunc
 
-#IF EXISTS OLDCOMPILE
-func TMul(var p1, var p2, var p3)
-    var var32[2], var322[2] ;
-    umul_1616(var32, p1, *(CurInputData+p2)) ;
-    umul_1616(var322, var32[1], *(CurInputData+p3)) ;
-    umul_1616(var32, var32[0], *(CurInputData+p3)) ;
-    return(var32[1] + var322[0]) ;
-endfunc
-#ENDIF
 
 func ReadObject(var ObjectType, var ObjectIdx)
     var j, k, Objects ;
@@ -323,6 +294,8 @@ func ReadObject(var ObjectType, var ObjectIdx)
     j := 2 + ObjectIdx * 2 + Objects ;
      if (ObjectType == tForm)
         k := CurrentForm ;
+    else if ((ObjectType == tCustomdigits) || (ObjectType == tLeddigits))
+        k := img_GetWord(hndl, *j, IMAGE_TAG2);
         else
         k := img_GetWord(hndl, *j, IMAGE_INDEX);
     endif
@@ -350,15 +323,16 @@ func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
         k := k[j] ;                             // a is address of this objects' ram
             j := ObjectType-tiAngularMeter ;
             Objects := gfxInternals[j] ;           // locate function address   
-            if (gfxIntParms[j] == -1)             // (Objects < 0)
-                Objects(NewVal, k, i) ; 
-            else
-                img_FunctionCall(hndl, Objects, NewVal, k, i, gfxIntParms[j], gfxIntStrings[j]) ; 
-            endif
+            Objects(NewVal, k, i) ; 
         return ;
     endif
 
 
+        if (ObjectType == tCustomdigits)
+            img_SetWord(hndl, i , IMAGE_TAG2, NewVal); // where state is 0 to 2
+            ledDigitsDisplay(i, oCustomdigitss, oCustomDigitsn) ;
+            return ;
+        endif
     img_SetWord(hndl, i , IMAGE_INDEX, NewVal); // where state is 0 to 2
     img_Show(hndl, i) ; // will only display if form is current
     return ; // compiler bug circumvention!
@@ -366,6 +340,39 @@ endfunc
 
 
 
+// WARNING, this code will crash if newval exceeds maximum displayable number
+func ledDigitsDisplay(var imgidx, var typeptr, var setptr)
+    var i, j, k, l, lb, newval, num[4] ;
+    if (!((img_GetWord(hndl, imgidx, IMAGE_FLAGS) & I_ENABLED))) return ;  // ;img_GetWord(hndl, imgidx, IMAGE_TAG2) ;if diabled then exit
+    newval := img_GetWord(hndl, imgidx, IMAGE_TAG2) ;
+    i := -1 ;
+    j := *(typeptr) ;
+    repeat
+        typeptr += 2 ;
+        i++ ;
+        until (*(typeptr) == imgidx);
+    j := setptr + i*10 ;
+
+    l := 0x500a | (*(j+Ofs_Digits_Digits) << 8) ;       // UDECxZ
+    to(num) ;
+    putnum(l, newval) ;
+    imgidx++ ;
+    lb := *(j+Ofs_Digits_LeadingBlanks) ;
+    l := str_Ptr(num) ;
+    for (i := 0; i < *(j+Ofs_Digits_Digits); i++)
+        k := str_GetByte(l++) & 0x0f ;
+        if ( lb && (i < *(j+Ofs_Digits_Digits) - *(j+Ofs_Digits_MinDigits)) )
+            if (k == 0)
+                k := 10 ;
+            else
+                lb := 0 ;
+            endif
+        endif
+        img_SetWord(hndl, imgidx, IMAGE_INDEX, k);
+        img_SetWord(hndl, imgidx, IMAGE_XPOS, *(j+Ofs_Digits_Left)+i* *(j+Ofs_Digits_Widthdigit)) ;
+        img_Show(hndl, imgidx);
+    next
+endfunc
 
 
 func ActivateForm(var newform)
@@ -400,6 +407,8 @@ func ActivateForm(var newform)
             img_Show(hndl,i) ; // show initialy, if required
             if (j == tForm)
                 DoGFXObjects() ;                                    // display GFX 'widgets' for image backgruobds
+            else if (j == tCustomdigits)
+                ledDigitsDisplay(i, oCustomdigitss, oCustomDigitsn) ;
             endif
         endif
     next
@@ -422,11 +431,7 @@ print([HEX4] gfxInternals, " ", [HEX4] gfx_AngularMeter, " ", [HEX4] gfx_Gauge, 
         widget_Enable(wp,i) ;
         if (GObjectType != tiLabelB) widget_ClearAttributes(wp,i,WIDGET_F_INITIALISED) ; // don't clear initialised for tiLabelB
                 j := GObjectRAM[WIDGET_VAL1] ;
-            if (GObjectParms == -1)                                 // GObjectFunc < 0)
                 GObjectFunc(j, GObjectRAM, GObjectDATA) ; 
-            else
-                img_FunctionCall(hndl, GObjectFunc, j, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings) ; 
-            endif
     next
     for (i := iFormStartIndex[CurrentForm]; i < iFormEndIndex[CurrentForm]; i++)
         if (InternalInputControls[i] != -1)
@@ -522,7 +527,7 @@ func main()
     oObjects[tWinButton] := oDipSwitchs ; // dummy as no object there
     oObjects[tAngularmeter] := oDipSwitchs ; // dummy as no object there
     oObjects[tCoolgauge] := oDipSwitchs ; // dummy as no object there
-    oObjects[tCustomdigits] := oDipSwitchs ; // dummy as no object there
+    oObjects[tCustomdigits] := oCustomdigitss ;
     oObjects[tForm] := oForms ;
     oObjects[tGauge] := oDipSwitchs ; // dummy as no object there
     oObjects[tImage] := oDipSwitchs ; // dummy as no object there
@@ -552,14 +557,14 @@ func main()
     oObjects[tSmartKnob] := oDipSwitchs ; // dummy as no object there
     oObjects[tiLedDigitsH] := oDipSwitchs ; // dummy as no object there
     oObjects[tiAngularMeter] := oiAngularMeters ;
-    oObjects[tiGauge] := oiGauges ;
+    oObjects[tiGauge] := oDipSwitchs ; // dummy as no object there
     oObjects[tiLabelB] := oDipSwitchs ; // dummy as no object there
     oObjects[tiUserGauge] := oDipSwitchs ; // dummy as no object there
-    oObjects[tiMediaGauge] := oiMediaGauges ;
+    oObjects[tiMediaGauge] := oDipSwitchs ; // dummy as no object there
     oObjects[tiMediaThermometer] := oDipSwitchs ; // dummy as no object there
     oObjects[tiLed] := oDipSwitchs ; // dummy as no object there
     oObjects[tiMediaLed] := oDipSwitchs ; // dummy as no object there
-    oObjects[tiLedDigits] := oDipSwitchs ; // dummy as no object there
+    oObjects[tiLedDigits] := oiLedDigitss ;
     oObjects[tiNeedle] := oDipSwitchs ; // dummy as no object there
     oObjects[tiRuler] := oDipSwitchs ; // dummy as no object there
     oObjects[tiLedDigit] := oDipSwitchs ; // dummy as no object there
@@ -572,7 +577,7 @@ func main()
     oObjects[tiRotaryInput] := oDipSwitchs ; // dummy as no object there
     oObjects[tiSwitch] := oDipSwitchs ; // dummy as no object there
     oObjects[tiSwitchB] := oDipSwitchs ; // dummy as no object there
-    oObjects[tiSliderE] := oiSliderEs ;
+    oObjects[tiSliderE] := oDipSwitchs ; // dummy as no object there
     oObjects[tiMediaSlider] := oDipSwitchs ; // dummy as no object there
     oObjects[tiSliderH] := oDipSwitchs ; // dummy as no object there
     oObjects[tiSliderG] := oDipSwitchs ; // dummy as no object there
@@ -581,13 +586,10 @@ func main()
     oObjects[tiSliderC] := oDipSwitchs ; // dummy as no object there
     oObjects[tiLinearInput] := oDipSwitchs ; // dummy as no object there
     vObjects[0] := oiviAngularMeter ;
-    vObjects[1] := oiviGauge ;
-    vObjects[4] := oiviMediaGauge ;
-    vObjects[21] := oiviSliderE ;
-    vIMediaGauge0[WIDGET_TAG] := gradientRAM ;
+    vObjects[8] := oiviLedDigits ;
 // Start P4.inc
-    wp := widget_Create(6) ;
-    for (i := 0; i < 6; i++)
+    wp := widget_Create(4) ;
+    for (i := 0; i < 4; i++)
 	addressInternalWidget(i, 0) ;
         if (GObjectType != tiLedDigit) widget_Add(wp, i, GObjectRAM) ;    // don't add tiLedDigit objects as they are only 1 word long
     next
@@ -758,35 +760,6 @@ cRotaryswitch:
 cSlider:
 cTrackbar:
 ciSlider:
-#IF EXISTS OLDCOMPILE
-    if (*(CurInputData+Ofs_IPD_P1))
-        i := TouchXpos - *(CurInputData+Ofs_IPD_P2) ;
-        if (i < 0)
-            i := 0 ;
-        else if (i > *(CurInputData+Ofs_IPD_P3))        // height/width - 17)
-            i := *(CurInputData+Ofs_IPD_P4) ;           // maxvalue-minvalue
-        else
-//            i := *(input+IPD_P4) * i / *(input+IPD_P3) ;    // max-min - (max-min) * posn / (height-17)
-            i := TMul(i, Ofs_IPD_P4, Ofs_IPD_P5) ;    // max-min - (max-min) * posn / (height-17)
-        endif
-    else
-        i := TouchYpos - *(CurInputData+Ofs_IPD_P2) ;
-        if (i < 0)
-            i := *(CurInputData+Ofs_IPD_P4) ;           // maxvalue-minvalue
-        else if (i > *(CurInputData+Ofs_IPD_P3))        // height/width - 17)
-            i := 0 ;
-        else
-//            i := *(input+IPD_P4) - *(input+IPD_P4) * i / *(input+IPD_P3) ;    // max-min - (max-min) * posn / (height-17)
-            i := *(CurInputData+Ofs_IPD_P4) - TMul(i, Ofs_IPD_P4, Ofs_IPD_P5) ;    // max-min - (max-min) * posn / (height-17)
-        endif
-    endif
-#ELSE
-    i := gfx_XYlinToVal(TouchXpos, TouchYpos, *(CurInputData+Ofs_IPD_P1),
-                                                     *(CurInputData+Ofs_IPD_P2), *(CurInputData+Ofs_IPD_P3), *(CurInputData+Ofs_IPD_P4), *(CurInputData+Ofs_IPD_P5)) ;
-#ENDIF
-    pInputIndex := oObjects[GObjectType]  + *(CurInputData+Ofs_IPD_OBJVIDX) ;
-    UpdateObjects(i) ;
-endsub ;
 
 ciButton:
 
