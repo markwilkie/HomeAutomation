@@ -122,7 +122,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         120
+    Left                         110
     Maxvalue                     250
     MinorTicks                   15
     Minvalue                     130
@@ -197,7 +197,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         260
+    Left                         270
     Maxvalue                     22
     MinorTicks                   5
     Minvalue                     0
@@ -236,10 +236,10 @@ iAngularMeter
 end
 Image
     Name                         Image0
-    Alias                        Image0
+    Alias                        WaterTemp
     Height                       20
     Image                        watertemp.png
-    Left                         156
+    Left                         146
     Source.Height                319
     Source.Left                  111
     Source.Top                   39
@@ -260,7 +260,7 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         152
+    Left                         140
     ShowDP                       No
     Signed                       No
     Size                         1
@@ -278,7 +278,7 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         300
+    Left                         296
     ShowDP                       No
     Signed                       No
     Size                         1
@@ -399,10 +399,10 @@ iLedDigits
 end
 Image
     Name                         Image1
-    Alias                        Image1
+    Alias                        Boost
     Height                       20
     Image                        turbo-icon-1.jpg
-    Left                         304
+    Left                         314
     Source.Height                425
     Source.Left                  174
     Source.Top                   191
@@ -415,7 +415,7 @@ Image
 end
 Image
     Name                         Image2
-    Alias                        Image2
+    Alias                        Wind
     Height                       20
     Image                        wind-blowing-icon-9.jpg
     Left                         43
@@ -449,7 +449,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         72
+    Left                         46
     Maxvalue                     250
     MinorTicks                   15
     Minvalue                     130
@@ -496,7 +496,7 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         100
+    Left                         80
     ShowDP                       No
     Signed                       No
     Size                         1
@@ -506,10 +506,10 @@ iLedDigits
 end
 Image
     Name                         Image3
-    Alias                        Image3
+    Alias                        TransTemp
     Height                       20
     Image                        transmission-temperature-warning-light-icon-1024x654.jpg
-    Left                         108
+    Left                         85
     Source.Height                427
     Source.Left                  306
     Source.Top                   96
@@ -522,7 +522,7 @@ Image
 end
 Image
     Name                         Image4
-    Alias                        Image4
+    Alias                        LoadImage
     Height                       25
     Image                        load.jpg
     Left                         228
@@ -532,6 +532,176 @@ Image
     Source.Width                 148
     Top                          53
     Width                        25
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image6
+    Alias                        AvgMPG
+    Height                       25
+    Image                        avg_mpg.jpg
+    Left                         372
+    Source.Height                381
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 543
+    Top                          1
+    Width                        29
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iLedDigits
+    Name                         ILedDigits6
+    Alias                        ILedDigits6
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 1
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         416
+    ShowDP                       Yes
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          4
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits7
+    Alias                        MilesInTankDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         416
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          36
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits8
+    Alias                        ElevationDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       4
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         404
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          64
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits5
+    Alias                        TimeDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 1
+    Digits                       2
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         432
+    ShowDP                       Yes
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          96
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits9
+    Alias                        MilesDrivenDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         368
+    ShowDP                       Yes
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          96
+    OnChanged                    ''
+end
+Image
+    Name                         Image5
+    Alias                        Image5
+    Height                       23
+    Image                        odometer.jpg
+    Left                         333
+    Source.Height                67
+    Source.Left                  0
+    Source.Top                   18
+    Source.Width                 100
+    Top                          96
+    Width                        30
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image7
+    Alias                        Image7
+    Height                       25
+    Image                        hourglass.jpg
+    Left                         412
+    Source.Height                778
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 573
+    Top                          95
+    Width                        15
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image8
+    Alias                        MilesLeft
+    Height                       28
+    Image                        milesleft.jpg
+    Left                         372
+    Source.Height                512
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 512
+    Top                          30
+    Width                        27
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image9
+    Alias                        Image9
+    Height                       27
+    Image                        Elevation.jpg
+    Left                         368
+    Source.Height                172
+    Source.Left                  12
+    Source.Top                   10
+    Source.Width                 235
+    Top                          60
+    Width                        30
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''

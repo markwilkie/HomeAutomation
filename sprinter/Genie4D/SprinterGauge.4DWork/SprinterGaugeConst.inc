@@ -1,4 +1,4 @@
-// File generated 12/10/2022 5:48:28 PM
+// File generated 12/10/2022 7:02:11 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -14,6 +14,11 @@
     iILedDigits3
     iIAngularMeter2
     iILedDigits4
+    iILedDigits6
+    iILedDigits7
+    iILedDigits8
+    iILedDigits5
+    iILedDigits9
 #END
 
 // object indexes into ImageControl
@@ -25,14 +30,19 @@
     iImage2         // offset 0x46000
     iImage3         // offset 0x46400
     iImage4         // offset 0x46800
-    iWinbutton1     // offset 0x46E00
+    iImage6         // offset 0x46E00
+    iImage5         // offset 0x47400
+    iImage7         // offset 0x47A00
+    iImage8         // offset 0x47E00
+    iImage9         // offset 0x48400
+    iWinbutton1     // offset 0x48C00
 #END
 
 
 
-#constant  ffsEndUnits4k    0x0049  // First unused 4k Sector on Flash
+#constant  ffsEndUnits4k    0x004A  // First unused 4k Sector on Flash
 #constant  ffsEnd4kH        0x0004  // Address of first unused 4k Sector on Flash, High
-#constant  ffsEnd4kL        0x9000  // Address of first unused 4k Sector on Flash, Low
+#constant  ffsEnd4kL        0xA000  // Address of first unused 4k Sector on Flash, Low
 #constant  ffsEndUnits32k   0x000A  // First unused 32k Block on Flash
 #constant  ffsEnd32kH       0x0005  // Address of first unused 32k Block on Flash, High
 #constant  ffsEnd32kL       0x0000  // Address of first unused 32k Block on Flash, Low
