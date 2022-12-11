@@ -50,8 +50,8 @@ iAngularMeter
     Alias                        Load
     BGcolor                      BLACK
     BGtransparent                Yes
-    Caption                      LOAD
-    CaptionColor                 WHITESMOKE
+    Caption                      ''
+    CaptionColor                 0xAFF5B9
     CaptionFont                  FONT3
     CaptionXOffset               -15
     CaptionYOffset               -7
@@ -104,7 +104,7 @@ iAngularMeter
 end
 iAngularMeter
     Name                         IAngularMeter1
-    Alias                        Boost
+    Alias                        WaterTemperature
     BGcolor                      BLACK
     BGtransparent                Yes
     Caption                      ''
@@ -123,9 +123,9 @@ iAngularMeter
     LabelOffset                  -15
     Labels                       \n
     Left                         120
-    Maxvalue                     22
+    Maxvalue                     250
     MinorTicks                   15
-    Minvalue                     0
+    Minvalue                     130
     NeedleCentered               Yes
     NeedleColor                  WHITESMOKE
     NeedleLength                 32
@@ -141,9 +141,9 @@ iAngularMeter
     NeedleYpos                   20
     Sect1Color                   0x464646
     Sect2Color                   0x00C6C2
-    Sect2StartingAngle           245
-    Sect3Color                   0x00C6C2
-    Sect3StartingAngle           245
+    Sect2StartingAngle           200
+    Sect3Color                   RED
+    Sect3StartingAngle           227
     SectionStepSize              1
     ScaleInnerRadius             35
     ScaleOuterRadius             40
@@ -179,11 +179,11 @@ iLedDigits
 end
 iAngularMeter
     Name                         IAngularMeter3
-    Alias                        WaterTemperature
+    Alias                        BoostPressure
     BGcolor                      BLACK
     BGtransparent                Yes
     Caption                      ''
-    CaptionColor                 WHITESMOKE
+    CaptionColor                 0xAFF5B9
     CaptionFont                  FONT2
     CaptionXOffset               -15
     CaptionYOffset               0
@@ -198,9 +198,9 @@ iAngularMeter
     LabelOffset                  -15
     Labels                       \n
     Left                         260
-    Maxvalue                     270
+    Maxvalue                     22
     MinorTicks                   5
-    Minvalue                     150
+    Minvalue                     0
     NeedleCentered               Yes
     NeedleColor                  WHITESMOKE
     NeedleLength                 32
@@ -215,9 +215,9 @@ iAngularMeter
     NeedleXpos                   20
     NeedleYpos                   20
     Sect1Color                   0x464646
-    Sect2Color                   0x00C6C2
-    Sect2StartingAngle           325
-    Sect3Color                   RED
+    Sect2Color                   0x464646
+    Sect2StartingAngle           360
+    Sect3Color                   0x464646
     Sect3StartingAngle           360
     SectionStepSize              1
     ScaleInnerRadius             35
@@ -239,12 +239,12 @@ Image
     Alias                        Image0
     Height                       20
     Image                        watertemp.png
-    Left                         340
+    Left                         156
     Source.Height                319
     Source.Left                  111
     Source.Top                   39
     Source.Width                 339
-    Top                          96
+    Top                          65
     Width                        20
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -252,29 +252,29 @@ Image
 end
 iLedDigits
     Name                         ILedDigits1
-    Alias                        LEDBoostDigits
-    ColorActive                  WHEAT
-    ColorInactive                0x181818
-    DecimalPlace                 0
-    Digits                       2
-    DPisComma                    No
-    Format                       Int16
-    LeadingZero                  No
-    Left                         140
-    ShowDP                       No
-    Signed                       No
-    Size                         1
-    Spacing                      0
-    Top                          8
-    OnChanged                    IAngularMeter0Set
-end
-iLedDigits
-    Name                         ILedDigits2
     Alias                        LEDWaterTempDigits
     ColorActive                  WHEAT
     ColorInactive                0x181818
     DecimalPlace                 0
     Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         152
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          4
+    OnChanged                    IAngularMeter0Set
+end
+iLedDigits
+    Name                         ILedDigits2
+    Alias                        LEDBoostDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       2
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
@@ -402,12 +402,12 @@ Image
     Alias                        Image1
     Height                       20
     Image                        turbo-icon-1.jpg
-    Left                         166
+    Left                         304
     Source.Height                425
     Source.Left                  174
     Source.Top                   191
     Source.Width                 458
-    Top                          8
+    Top                          36
     Width                        20
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -425,6 +425,113 @@ Image
     Source.Width                 430
     Top                          100
     Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iAngularMeter
+    Name                         IAngularMeter2
+    Alias                        TransmissionTemp
+    BGcolor                      BLACK
+    BGtransparent                Yes
+    Caption                      ''
+    CaptionColor                 WHITESMOKE
+    CaptionFont                  FONT2
+    CaptionXOffset               -15
+    CaptionYOffset               0
+    GaugeEndAngle                280
+    GaugeStartAngle              65
+    Height                       90
+    LabelColor                   WHITE
+    LabelColorFromScale          No
+    LabelCount                   3
+    LabelDiscrete                Yes
+    LabelFont                    FONT2
+    LabelOffset                  -15
+    Labels                       \n
+    Left                         72
+    Maxvalue                     250
+    MinorTicks                   15
+    Minvalue                     130
+    NeedleCentered               Yes
+    NeedleColor                  WHITESMOKE
+    NeedleLength                 32
+    NeedleOffset                 17
+    NeedlePinColor               SLATEGRAY
+    NeedlePinDotColor            RED
+    NeedlePinDotRadius           0
+    NeedlePinRadius              0
+    NeedleStyle                  RoundedRectangle
+    NeedleTail                   0
+    NeedleThickess               2
+    NeedleXpos                   20
+    NeedleYpos                   20
+    Sect1Color                   0x464646
+    Sect2Color                   0x00C6C2
+    Sect2StartingAngle           200
+    Sect3Color                   RED
+    Sect3StartingAngle           227
+    SectionStepSize              1
+    ScaleInnerRadius             35
+    ScaleOuterRadius             40
+    TickColor                    GRAY
+    TickColorFromScaleColor      No
+    TickInnerMajorLength         10
+    TickInnerMinorLength         -5
+    TickOuterMajorLength         0
+    TickOuterMinorLength         0
+    TickWidth                    2
+    Top                          32
+    TotalTicks                   5
+    Width                        100
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits4
+    Alias                        LEDTransTempDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         100
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          4
+    OnChanged                    IAngularMeter0Set
+end
+Image
+    Name                         Image3
+    Alias                        Image3
+    Height                       20
+    Image                        transmission-temperature-warning-light-icon-1024x654.jpg
+    Left                         108
+    Source.Height                427
+    Source.Left                  306
+    Source.Top                   96
+    Source.Width                 413
+    Top                          65
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image4
+    Alias                        Image4
+    Height                       25
+    Image                        load.jpg
+    Left                         228
+    Source.Height                130
+    Source.Left                  26
+    Source.Top                   31
+    Source.Width                 148
+    Top                          53
+    Width                        25
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''

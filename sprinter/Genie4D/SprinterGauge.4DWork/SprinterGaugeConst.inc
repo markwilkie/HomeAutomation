@@ -1,4 +1,4 @@
-// File generated 12/10/2022 5:01:20 PM
+// File generated 12/10/2022 5:48:28 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -12,6 +12,8 @@
     iILedDigits1
     iILedDigits2
     iILedDigits3
+    iIAngularMeter2
+    iILedDigits4
 #END
 
 // object indexes into ImageControl
@@ -21,17 +23,19 @@
     iGauge0         // offset 0x1A00
     iImage1         // offset 0x45C00
     iImage2         // offset 0x46000
-    iWinbutton1     // offset 0x46400
+    iImage3         // offset 0x46400
+    iImage4         // offset 0x46800
+    iWinbutton1     // offset 0x46E00
 #END
 
 
 
-#constant  ffsEndUnits4k    0x0048  // First unused 4k Sector on Flash
+#constant  ffsEndUnits4k    0x0049  // First unused 4k Sector on Flash
 #constant  ffsEnd4kH        0x0004  // Address of first unused 4k Sector on Flash, High
-#constant  ffsEnd4kL        0x8000  // Address of first unused 4k Sector on Flash, Low
-#constant  ffsEndUnits32k   0x0009  // First unused 32k Block on Flash
-#constant  ffsEnd32kH       0x0004  // Address of first unused 32k Block on Flash, High
-#constant  ffsEnd32kL       0x8000  // Address of first unused 32k Block on Flash, Low
+#constant  ffsEnd4kL        0x9000  // Address of first unused 4k Sector on Flash, Low
+#constant  ffsEndUnits32k   0x000A  // First unused 32k Block on Flash
+#constant  ffsEnd32kH       0x0005  // Address of first unused 32k Block on Flash, High
+#constant  ffsEnd32kL       0x0000  // Address of first unused 32k Block on Flash, Low
 #constant  ffsEndUnits64k   0x0005  // First unused 64k Block on Flash
 #constant  ffsEnd64kH       0x0005  // Address of first unused 64k Block on Flash, High
 #constant  ffsEnd64kL       0x0000  // Address of first unused 64k Block on Flash, Low
