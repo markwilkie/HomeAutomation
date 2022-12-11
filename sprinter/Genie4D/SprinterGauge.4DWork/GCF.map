@@ -1,3 +1,5 @@
-Contents        Start(hex)    Size(dec)
-Customdigits0     00000018          474
-iCustomdigits0    000001F2        2,348
+Contents    Start(hex)    Size(dec)
+Image0        00000028          456
+Winbutton0    000001F0        5,528
+Gauge0        00001788      278,648
+Winbutton1    00045800        7,368

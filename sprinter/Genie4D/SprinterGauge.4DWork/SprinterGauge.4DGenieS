@@ -6,8 +6,8 @@
 
 
 
-// generated 12/10/2022 8:12:23 AM
-// uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 4   GciFlashFiles:- 1
+// generated 12/10/2022 4:43:51 PM
+// uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 7   GciFlashFiles:- 1
 
 #MODE RUNFLASH
 
@@ -168,8 +168,8 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        2
-    nInputs         0
+    nObjects        4
+    nInputs         4
     nAniTimers      0
 #END
 
@@ -177,47 +177,57 @@
     word gfxInternals gfx_AngularMeter, -1, -1, -1, -1, -1, -1, -1, gfx_LedDigits, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word gfxIntParms -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word gfxIntStrings -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-    word oiviAngularMeter vIAngularMeter0, vIAngularMeter1, vIAngularMeter2
-    word oiviLedDigits vILedDigits0
-    word xobj2iobj 0x2700, 0x2702, 0x2701, 0x2F00
+    word oiviAngularMeter vIAngularMeter0, vIAngularMeter1, -1, vIAngularMeter3
+    word oiviLedDigits vILedDigits0, vILedDigits1, vILedDigits2, vILedDigits3
+    word xobj2iobj 0x2700, 0x2701, 0x2F00, 0x2703, 0x2F01, 0x2F02, 0x2F03
     word IIAngularMeter0 60, 55, 30, 15, 0, 0, 10, -5, 2, GRAY, 320, 350,
         0x4228, 0xC620, RED, 1, 4, 1, WHITE, -15, 0, 0x2, 1, WHITESMOKE, -15,
-        5, CIAngularMeter0, 170, 4, 140, 122, 240, 65, BLACK, 135, 405, 0, 100,
-        32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+        -10, CIAngularMeter0, 170, 4, 140, 122, 240, 65, BLACK, 135, 405, 0,
+        100, 32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte CIAngularMeter0 "LOD",0 
-    word IIAngularMeter2 16, 8, 30, 5, 0, 0, 0, 0, 2, GRAY, 90, 180, GREEN,
-        YELLOW, RED, 0, 4, 0, WHITE, 2, 0, 0x2, 0, WHITESMOKE, -60, 25,
-        CIAngularMeter2, 368, 12, 99, 82, 417, 53, BLACK, 60, 225, 0, 100, 10,
-        0x5, 3, 3, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
-    byte CIAngularMeter2 "IAngularMeter0",0 
-    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 250, 250,
+    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 245, 245,
         0x4228, 0xC620, 0xC620, 1, 3, 1, WHITE, -15, LIAngularMeter1, 0x3, 1,
-        WHITESMOKE, -15, 0, 0, 116, 30, 96, 89, 164, 74, BLACK, 60, 290, 0, 22,
-        32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+        WHITESMOKE, -15, 0, 0, 120, 32, 100, 90, 170, 77, BLACK, 65, 280, 0,
+        22, 32, 0x5, 17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter1 "",0, "",0, "",0, "",0
-    word IILedDigits0 212, 100, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0
-    word FormEndIndex 2
-    word iFormStartIndex 0
-    word iFormEndIndex 4
-    word InputControls 0
-    word InternalInputControls -1, -1, -1, -1
-    word InputData 0
+    word IILedDigits0 220, 104, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IIAngularMeter3 40, 35, 4, 5, 0, 0, 10, -5, 2, GRAY, 325, 360, 0x4228,
+        0xC620, RED, 1, 2, 1, WHITE, -15, LIAngularMeter3, 0x3, 1, WHITESMOKE,
+        -15, 0, 0, 260, 0, 96, 89, 308, 44, BLACK, 235, 450, 150, 270, 32, 0x5,
+        17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+    byte LIAngularMeter3 "",0, "",0, "",0
+    word IILedDigits1 140, 8, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits2 300, 96, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits3 4, 100, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x10
+    word FormStartIndex 0, 3
+    word FormEndIndex 3, 4
+    word iFormStartIndex 0, 7
+    word iFormEndIndex 7, 7
+    word InputControls -1, 0, -1, 44
+    word InternalInputControls -1, -1, -1, -1, -1, -1, -1
+    word InputData tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 2,
+                OT_ACTIVATE, 10, 1, 0, 18, 0, 0, 0, 0, 0, 0,
+                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 66, 4,
+                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 0, 0
     word oDipSwitchs 0
-    word oCustomdigitss 1, iCustomdigits0
-    word oForms 1, -1
-    word oiAngularMeters 3, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2
-    word oiLedDigitss 1, IILedDigits0
-    word FormBGcolors 0x0000
+    word oWinButtons 2, iWinbutton0, iWinbutton1
+    word oForms 2, -1, -1
+    word oGauges 1, iGauge0
+    word oImages 1, iImage0
+    word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, -1, IIAngularMeter3
+    word oiLedDigitss 4, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3
+    word FormBGcolors 0x0000, 0x0000
     word kKeyboardKeystrokes -1
     word rKeyboardRoutines -1
-    word oCustomDigitsn 152, 2, 1, 9, 0
 #END
 
     var vIAngularMeter0[WIDGET_RAM_SPACE] ;
-    var vIAngularMeter2[WIDGET_RAM_SPACE] ;
     var vIAngularMeter1[WIDGET_RAM_SPACE] ;
     var vILedDigits0[WIDGET_RAM_SPACE+2] ;
+    var vIAngularMeter3[WIDGET_RAM_SPACE] ;
+    var vILedDigits1[WIDGET_RAM_SPACE+2] ;
+    var vILedDigits2[WIDGET_RAM_SPACE+2] ;
+    var vILedDigits3[WIDGET_RAM_SPACE+2] ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -294,10 +304,10 @@ func ReadObject(var ObjectType, var ObjectIdx)
     j := 2 + ObjectIdx * 2 + Objects ;
      if (ObjectType == tForm)
         k := CurrentForm ;
-    else if ((ObjectType == tCustomdigits) || (ObjectType == tLeddigits))
-        k := img_GetWord(hndl, *j, IMAGE_TAG2);
         else
         k := img_GetWord(hndl, *j, IMAGE_INDEX);
+        if (((ObjectType == tWinButton) || (ObjectType == tAniButton) || (ObjectType == tUserButton) || (ObjectType == t4Dbutton)) && (k)) k := 1 ; // this is not correct for blocked buttons and cannot be fixed as we cannot
+                                                                                                                                                    // determine if button is momentary or not which is needed for correct answer.
     endif
     endif
     SendReport(REPORT_OBJ, ObjectType, ObjectIdx, k) ;
@@ -326,53 +336,56 @@ func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
             Objects(NewVal, k, i) ; 
         return ;
     endif
+    switch (ObjectType)
+        case tWinButton :
+            j := InputControls[oWinButtons[ObjectIdx+1]] ;
+            break ;
+        default : j := -1 ;
+    endswitch
 
-
-        if (ObjectType == tCustomdigits)
-            img_SetWord(hndl, i , IMAGE_TAG2, NewVal); // where state is 0 to 2
-            ledDigitsDisplay(i, oCustomdigitss, oCustomDigitsn) ;
-            return ;
+    if (j != -1)
+        k := img_GetWord(hndl, i , IMAGE_INDEX) ;
+            NewVal := NewVal << 1 ;
+            if (OVF())      // button group index change
+                if (*(j+InputData+Ofs_IPD_P1))
+                    k &= 1 ;    // mask off old group index for momentary
+                else
+                    k &= 3 ;    // mask off old group index for toggle
+                endif
+            else            // normal set
+                if (*(j+InputData+Ofs_IPD_P2) != -1) TurnOffButtons(*(j+InputData+Ofs_IPD_P2)) ;
+                k &= 0xfffc ;    // retain only group index for state set
+            endif
+            NewVal |= k ;
+//        endif
         endif
+
     img_SetWord(hndl, i , IMAGE_INDEX, NewVal); // where state is 0 to 2
     img_Show(hndl, i) ; // will only display if form is current
     return ; // compiler bug circumvention!
 endfunc
 
+func TurnOffButtons(var group)
+    var j, k, l, m, n, o, p;
+    m := GObjectIdx ;     // save as will be clobbered
+    n := GObjectType ;     // save as will be clobbered
+    for (j := 0; j < nInputs; j++)
+        k := j*IPDatasize ;
+        if (*(InputData+k+Ofs_IPD_P2) == group)
+            l := -1 ;
+             if (*(InputData+k) == tWinButton)
+                l := oWinButtons[*(InputData+k+Ofs_IPD_OBJVIDX)/2] ;
+                img_SetWord(hndl, l, IMAGE_INDEX, 0);
+                img_Show(hndl, l);      // only shows on current form
 
-
-// WARNING, this code will crash if newval exceeds maximum displayable number
-func ledDigitsDisplay(var imgidx, var typeptr, var setptr)
-    var i, j, k, l, lb, newval, num[4] ;
-    if (!((img_GetWord(hndl, imgidx, IMAGE_FLAGS) & I_ENABLED))) return ;  // ;img_GetWord(hndl, imgidx, IMAGE_TAG2) ;if diabled then exit
-    newval := img_GetWord(hndl, imgidx, IMAGE_TAG2) ;
-    i := -1 ;
-    j := *(typeptr) ;
-    repeat
-        typeptr += 2 ;
-        i++ ;
-        until (*(typeptr) == imgidx);
-    j := setptr + i*10 ;
-
-    l := 0x500a | (*(j+Ofs_Digits_Digits) << 8) ;       // UDECxZ
-    to(num) ;
-    putnum(l, newval) ;
-    imgidx++ ;
-    lb := *(j+Ofs_Digits_LeadingBlanks) ;
-    l := str_Ptr(num) ;
-    for (i := 0; i < *(j+Ofs_Digits_Digits); i++)
-        k := str_GetByte(l++) & 0x0f ;
-        if ( lb && (i < *(j+Ofs_Digits_Digits) - *(j+Ofs_Digits_MinDigits)) )
-            if (k == 0)
-                k := 10 ;
-            else
-                lb := 0 ;
             endif
         endif
-        img_SetWord(hndl, imgidx, IMAGE_INDEX, k);
-        img_SetWord(hndl, imgidx, IMAGE_XPOS, *(j+Ofs_Digits_Left)+i* *(j+Ofs_Digits_Widthdigit)) ;
-        img_Show(hndl, imgidx);
     next
+    GObjectIdx := m ;     // Restore
+    GObjectType := n ;    // Restore
 endfunc
+
+
 
 
 func ActivateForm(var newform)
@@ -407,8 +420,6 @@ func ActivateForm(var newform)
             img_Show(hndl,i) ; // show initialy, if required
             if (j == tForm)
                 DoGFXObjects() ;                                    // display GFX 'widgets' for image backgruobds
-            else if (j == tCustomdigits)
-                ledDigitsDisplay(i, oCustomdigitss, oCustomDigitsn) ;
             endif
         endif
     next
@@ -457,6 +468,14 @@ func UpdateObjects(var newval)
     else
         WriteObject(GObjectType, GObjectIdx, newval) ;
     endif
+        if ((GObjectType == t4Dbutton) || (GObjectType == tUserButton) || (GObjectType == tWinButton))
+            if (*(CurInputData+Ofs_IPD_P1))
+                newval &= 1;
+            else
+                newval &= 3;
+            endif
+            if (newval > 1) newval := 1;
+        endif
         IPidx := *(CurInputData+TouchState) ;
         while(IPidx != 0)
             otherOBJ := IPidx + InputData;
@@ -524,13 +543,13 @@ func main()
     oObjects[tRotarySwitch] := oDipSwitchs ; // dummy as no object there
     oObjects[tGSlider] := oDipSwitchs ; // dummy as no object there
     oObjects[tTrackbar] := oDipSwitchs ; // dummy as no object there
-    oObjects[tWinButton] := oDipSwitchs ; // dummy as no object there
+    oObjects[tWinButton] := oWinButtons ;
     oObjects[tAngularmeter] := oDipSwitchs ; // dummy as no object there
     oObjects[tCoolgauge] := oDipSwitchs ; // dummy as no object there
-    oObjects[tCustomdigits] := oCustomdigitss ;
+    oObjects[tCustomdigits] := oDipSwitchs ; // dummy as no object there
     oObjects[tForm] := oForms ;
-    oObjects[tGauge] := oDipSwitchs ; // dummy as no object there
-    oObjects[tImage] := oDipSwitchs ; // dummy as no object there
+    oObjects[tGauge] := oGauges ;
+    oObjects[tImage] := oImages ;
     oObjects[tKeyboard] := oDipSwitchs ; // dummy as no object there
     oObjects[tLed] := oDipSwitchs ; // dummy as no object there
     oObjects[tLeddigits] := oDipSwitchs ; // dummy as no object there
@@ -588,8 +607,8 @@ func main()
     vObjects[0] := oiviAngularMeter ;
     vObjects[8] := oiviLedDigits ;
 // Start P4.inc
-    wp := widget_Create(4) ;
-    for (i := 0; i < 4; i++)
+    wp := widget_Create(7) ;
+    for (i := 0; i < 7; i++)
 	addressInternalWidget(i, 0) ;
         if (GObjectType != tiLedDigit) widget_Add(wp, i, GObjectRAM) ;    // don't add tiLedDigit objects as they are only 1 word long
     next
@@ -766,6 +785,40 @@ ciButton:
 c4DButton:
 cUserButton:
 cWinbutton:
+    pInputIndex := oObjects[GObjectType]  + *(CurInputData+Ofs_IPD_OBJVIDX) ;
+    i := img_GetWord(hndl, *(pInputIndex), IMAGE_INDEX) ; // current state
+CommonButtons:
+    if (*(CurInputData+Ofs_IPD_P1))                                 // momentary, reports 0, but should report 1
+        if (TouchStatus == TOUCH_RELEASED)
+            i &= 0xfffe ;
+            TouchState == Ofs_IPD_DOWN ;
+        else
+            i |= 1 ;
+            TouchState == Ofs_IPD_RELEASE ;
+        endif
+    else if (*(CurInputData+Ofs_IPD_P2) == -1)                      // Toggle, reports 0+2, but should report 0+1
+        if (TouchStatus == TOUCH_RELEASED)                     // only truly change on release
+            if ((i & 3) == 3)
+                i &= 0xfffc ;
+            else
+                i++ ;
+            endif
+        else
+            i |= 1 ;                                      // make down regardless of current state
+        endif
+    else                        // group action, up all other buttons on touch press, reports 0 for button down
+        if (TouchStatus == TOUCH_PRESSED)                     // only truly change on release
+            TurnOffButtons(*(CurInputData+Ofs_IPD_P2)) ;
+        endif
+        if (GObjectType < tiLedDigits)
+            i := (i & 0xfffc) | 2 ;         // uSD button, four, grouping and blocking states
+        else
+            i := 1 ;                        // Internal button two states
+        endif
+    endif
+
+    UpdateObjects(i) ;
+endsub ;
 
 cAniButton:
 
