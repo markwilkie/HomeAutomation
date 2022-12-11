@@ -1,4 +1,4 @@
-// File generated 12/10/2022 4:43:48 PM
+// File generated 12/10/2022 5:01:20 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -17,9 +17,11 @@
 // object indexes into ImageControl
 #CONST
     iImage0         // offset 0x0
-    iWinbutton0     // offset 0x200
-    iGauge0         // offset 0x1800
-    iWinbutton1     // offset 0x45A00
+    iWinbutton0     // offset 0x400
+    iGauge0         // offset 0x1A00
+    iImage1         // offset 0x45C00
+    iImage2         // offset 0x46000
+    iWinbutton1     // offset 0x46400
 #END
 
 

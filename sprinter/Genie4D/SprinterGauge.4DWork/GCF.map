@@ -1,5 +1,7 @@
 Contents    Start(hex)    Size(dec)
-Image0        00000028          456
-Winbutton0    000001F0        5,528
-Gauge0        00001788      278,648
-Winbutton1    00045800        7,368
+Image0        00000038          806
+Winbutton0    0000035E        5,528
+Gauge0        000018F6      278,648
+Image1        0004596E          806
+Image2        00045C94          806
+Winbutton1    00045FBA        7,368

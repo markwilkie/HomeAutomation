@@ -50,11 +50,11 @@ iAngularMeter
     Alias                        Load
     BGcolor                      BLACK
     BGtransparent                Yes
-    Caption                      LOD
+    Caption                      LOAD
     CaptionColor                 WHITESMOKE
-    CaptionFont                  FONT2
+    CaptionFont                  FONT3
     CaptionXOffset               -15
-    CaptionYOffset               -10
+    CaptionYOffset               -7
     GaugeEndAngle                405
     GaugeStartAngle              135
     Height                       122
@@ -237,15 +237,15 @@ end
 Image
     Name                         Image0
     Alias                        Image0
-    Height                       15
+    Height                       20
     Image                        watertemp.png
     Left                         340
     Source.Height                319
     Source.Left                  111
     Source.Top                   39
     Source.Width                 339
-    Top                          100
-    Width                        15
+    Top                          96
+    Width                        20
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''
@@ -396,6 +396,38 @@ iLedDigits
     Spacing                      0
     Top                          100
     OnChanged                    ''
+end
+Image
+    Name                         Image1
+    Alias                        Image1
+    Height                       20
+    Image                        turbo-icon-1.jpg
+    Left                         166
+    Source.Height                425
+    Source.Left                  174
+    Source.Top                   191
+    Source.Width                 458
+    Top                          8
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image2
+    Alias                        Image2
+    Height                       20
+    Image                        wind-blowing-icon-9.jpg
+    Left                         43
+    Source.Height                398
+    Source.Left                  82
+    Source.Top                   57
+    Source.Width                 430
+    Top                          100
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
 end
 Form
     Name                         Form1
