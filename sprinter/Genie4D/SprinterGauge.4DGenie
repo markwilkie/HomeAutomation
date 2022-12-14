@@ -283,7 +283,7 @@ iLedDigits
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          96
+    Top                          95
     OnChanged                    IAngularMeter0Set
 end
 WinButton
@@ -385,11 +385,11 @@ iLedDigits
     ColorActive                  WHEAT
     ColorInactive                0x181818
     DecimalPlace                 0
-    Digits                       3
+    Digits                       2
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         4
+    Left                         8
     ShowDP                       No
     Signed                       Yes
     Size                         1
@@ -418,7 +418,7 @@ Image
     Alias                        Wind
     Height                       20
     Image                        wind-blowing-icon-9.jpg
-    Left                         43
+    Left                         36
     Source.Height                398
     Source.Left                  82
     Source.Top                   57
@@ -541,12 +541,12 @@ Image
     Alias                        AvgMPG
     Height                       25
     Image                        avg_mpg.jpg
-    Left                         372
+    Left                         428
     Source.Height                381
     Source.Left                  0
     Source.Top                   0
     Source.Width                 543
-    Top                          1
+    Top                          5
     Width                        29
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -562,12 +562,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         416
+    Left                         380
     ShowDP                       Yes
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          4
+    Top                          5
     OnChanged                    ''
 end
 iLedDigits
@@ -580,12 +580,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         416
+    Left                         380
     ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          36
+    Top                          35
     OnChanged                    ''
 end
 iLedDigits
@@ -598,12 +598,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         404
+    Left                         368
     ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          64
+    Top                          65
     OnChanged                    ''
 end
 iLedDigits
@@ -616,7 +616,7 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         432
+    Left                         346
     ShowDP                       Yes
     Signed                       No
     Size                         1
@@ -630,12 +630,12 @@ iLedDigits
     ColorActive                  WHEAT
     ColorInactive                0x181818
     DecimalPlace                 0
-    Digits                       3
+    Digits                       2
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         368
-    ShowDP                       Yes
+    Left                         394
+    ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
@@ -647,12 +647,12 @@ Image
     Alias                        Image5
     Height                       23
     Image                        odometer.jpg
-    Left                         333
+    Left                         428
     Source.Height                67
     Source.Left                  0
     Source.Top                   18
     Source.Width                 100
-    Top                          96
+    Top                          95
     Width                        30
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -663,12 +663,12 @@ Image
     Alias                        Image7
     Height                       25
     Image                        hourglass.jpg
-    Left                         412
+    Left                         374
     Source.Height                778
     Source.Left                  0
     Source.Top                   0
     Source.Width                 573
-    Top                          95
+    Top                          96
     Width                        15
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -679,12 +679,12 @@ Image
     Alias                        MilesLeft
     Height                       28
     Image                        milesleft.jpg
-    Left                         372
+    Left                         428
     Source.Height                512
     Source.Left                  0
     Source.Top                   0
     Source.Width                 512
-    Top                          30
+    Top                          35
     Width                        27
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -695,12 +695,12 @@ Image
     Alias                        Image9
     Height                       27
     Image                        Elevation.jpg
-    Left                         368
+    Left                         428
     Source.Height                172
     Source.Left                  12
     Source.Top                   10
     Source.Width                 235
-    Top                          60
+    Top                          65
     Width                        30
     OnTouchMoving                ''
     OnTouchPressed               ''
