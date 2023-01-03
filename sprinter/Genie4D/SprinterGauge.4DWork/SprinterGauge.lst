@@ -3927,7 +3927,7 @@ file C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\PIXXI44functions.f
 003921  000006        
 003922  000007        
 003923  000008        
-003924  000009  // generated 12/10/2022 7:15:52 PM
+003924  000009  // generated 12/17/2022 11:52:11 AM
 003925  000010  // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 003926  000011        
 003927  000012  #MODE RUNFLASH
@@ -3967,7 +3967,7 @@ file C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\Sprinter
 
 003956  000019  #inherit "SprinterGaugeConst.inc"
 003957  000019  #inherit "SprinterGaugeConst.inc"
-003958  000001  // File generated 12/10/2022 7:15:47 PM
+003958  000001  // File generated 12/17/2022 11:52:07 AM
 003959  000002  // Warning! This is a generated file, any manual changes will be
 003960  000003  // lost during the next generation.
 003961  000004        
@@ -4018,1712 +4018,1717 @@ file C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\Sprinter
 004006  000032  #CONST
 004007  000174  #END
 004008  000175        
-004009  000232  #END
-4010  0441
-4011  0442
-4012  0443
-4013  0444
-4014  0445
-4015  0446
-4016  0447
-4017  0448
-4018  0449
-4019  044A
-4020  044B
-4021  044C
-4022  044D
-4023  044E
-4024  044F
-4025  0450
-4026  0451
-4027  0452
-4028  0453
-4029  0454
-4030  0455
-4031  0456
-4032  0457
-4033  0458
-4034  0459
-4035  045A
-4036  045B
-4037  045C
-4038  045D
-4039  045E
-4040  045F
-4041  0460
-4042  0461
-4043  0462
-4044  0463
-4045  0464
-4046  0465
-4047  0466
-4048  0467
-4049  0468
-4050  0469
-4051  046A
-4052  046B
-4053  046C
-4054  046D
-4055  046E
-4056  046F
-4057  0470
-4058  0471
-4059  0472
-4060  0473
-4061  0474
-4062  0475
-4063  0476
-4064  0477
-4065  0478
-4066  0479
-4067  047A
-4068  047B
-4069  047C
-4070  047D
-4071  047E
-4072  047F
-4073  0480
-4074  0481
-4075  0482
-4076  0483
-4077  0484
-4078  0485
-4079  0486
-4080  0487
-4081  0488
-4082  0489
-4083  048A
-4084  048B
-4085  048C
-4086  048D
-4087  048E
-4088  048F
-4089  0490
-4090  0491
-4091  0492
-4092  0493
-4093  0494
-4094  0495
-4095  0496
-4096  0497
-4097  0498
-4098  0499
-4099  049A
-4100  049B
-4101  049C
-4102  049D
-4103  049E
-4104  049F
-4105  04A0
-4106  04A1
-4107  04A2
-4108  04A3
-4109  04A4
-4110  04A5
-4111  04A6
-4112  04A7
-4113  04A8
-4114  04A9
-4115  04AA
-4116  04AB
-4117  04AC
-4118  04AD
-4119  04AE
-4120  04AF
-4121  04B0
-4122  04B1
-4123  04B2
-4124  04B3
-4125  04B4
-4126  04B5
-4127  04B6
-4128  04B7
-4129  04B8
-4130  04B9
-4131  04BA
-4132  04BB
-4133  04BC
-4134  04BD
-4135  04BE
-4136  04BF
-4137  04C0
-4138  04C1
-4139  04C2
-4140  04C3
-4141  04C4
-4142  04C5
-4143  04C6
-4144  04C7
-4145  04C8
-4146  04C9
-4147  04CA
-4148  04CB
-4149  04CC
-4150  04CD
-4151  04CE
-4152  04CF
-4153  04D0
-4154  04D1
-4155  04D2
-4156  04D3
-4157  04D4
-4158  04D5
-4159  04D6
-4160  04D7
-4161  04D8
-4162  04D9
-4163  04DA
-4164  04DB
-4165  04DC
-4166  04DD
-4167  04DE
-4168  04DF
-4169  04E0
-4170  04E1
-4171  04E2
-4172  04E3
-4173  04E4
-4174  04E5
-4175  04E6
-4176  04E7
-4177  04E8
-4178  04E9
-4179  04EA
-4180  04EB
-4181  04EC
-4182  04ED
-4183  04EE
-4184  04EF
-4185  04F0
-4186  04F1
-4187  04F2
-4188  04F3
-4189  04F4
-4190  04F5
-4191  04F6
-4192  04F7
-4193  04F8
-4194  04F9
-4195  04FA
-4196  04FB
-4197  04FC
-4198  04FD
-4199  04FE
-4200  04FF
-4201  0500
-4202  0501
-4203  0502
-4204  0503
-4205  0504
-4206  0505
-4207  0506
-4208  0507
-4209  0508
-4210  0509
-4211  050A
-4212  050B
-4213  050C
-4214  050D
-4215  050E
-4216  050F
-4217  0510
-4218  0511
-4219  0512
-4220  0513
-4221  0514
-4222  0515
-4223  0516
-4224  0517
-4225  0518
-4226  0519
-4227  051A
-4228  051B
-4229  051C
-4230  051D
-4231  051E
-4232  051F
-4233  0520
-4234  0521
-4235  0522
-4236  0523
-4237  0524
-4238  0525
-4239  0526
-4240  0527
-4241  0528
-4242  0529
-4243  052A
-4244  052B
-4245  052C
-4246  052D
-4247  052E
-4248  052F
-4249  0530
-4250  0531
-4251  0532
-4252  0533
-4253  0534
-4254  0535
-4255  0536
-4256  0537
-4257  0538
-4258  0539
-4259  053A
-4260  053B
-4261  053C
-4262  053D
-4263  053E
-4264  053F
-4265  0540
-4266  0541
-4267  0542
-4268  0543
-4269  0544
-4270  0545
-4271  0546
-4272  0547
-4273  0548
-4274  0549
-4275  054A
-4276  054B
-4277  054C
-4278  054D
-4279  054E
-4280  054F
-4281  0550
-4282  0551
-4283  0552
-4284  0553
-4285  0554
-4286  0555
-4287  0556
-4288  0557
-4289  0558
-4290  0559
-4291  055A
-4292  055B
-4293  055C
-4294  055D
-4295  055E
-4296  055F
-4297  0560
-4298  0561
-4299  0562
-4300  0563
-4301  0564
-4302  0565
-4303  0566
-4304  0567
-4305  0568
-4306  0569
-4307  056A
-4308  056B
-4309  056C
-4310  056D
-4311  056E
-4312  056F
-4313  0570
-4314  0571
-4315  0572
-4316  0573
-4317  0574
-4318  0575
-4319  0576
-4320  0577
-4321  0578
-4322  0579
-4323  057A
-4324  057B
-4325  057C
-4326  057D
-4327  057E
-4328  057F
-4329  0580
-4330  0581
-4331  0582
-4332  0583
-4333  0584
-4334  0585
-4335  0586
-4336  0587
-4337  0588
-4338  0589
-4339  058A
-4340  058B
-4341  058C
-4342  058D
-4343  058E
-4344  058F
-4345  0590
-4346  0591
-4347  0592
-4348  0593
-4349  0594
-4350  0595
-4351  0596
-4352  0597
-4353  0598
-4354  0599
-4355  059A
-4356  059B
-4357  059C
-4358  059D
-4359  059E
-4360  059F
-4361  05A0
-4362  05A1
-4363  05A2
-4364  05A3
-4365  05A4
-4366  05A5
-4367  05A6
-4368  05A7
-4369  05A8
-4370  05A9
-4371  05AA
-4372  05AB
-4373  05AC
-4374  05AD
-4375  05AE
-4376  05AF
-4377  05B0
-4378  05B1
-4379  05B2
-4380  05B3
-4381  05B4
-4382  05B5
-4383  05B6
-4384  05B7
-4385  05B8
-4386  05B9
-4387  05BA
-4388  05BB
-4389  05BC
-4390  05BD
-4391  05BE
-4392  05BF
-4393  05C0
-4394  05C1
-4395  05C2
-4396  05C3
-4397  05C4
-4398  05C5
-4399  05C6
-4400  05C7
-4401  05C8
-4402  05C9
-4403  05CA
-4404  05CB
-4405  05CC
-4406  05CD
-4407  05CE
-4408  05CF
-4409  05D0
-4410  05D1
-4411  05D2
-4412  05D3
-4413  05D4
-4414  05D5
-4415  05D6
-4416  05D7
-4417  05D8
-4418  05D9
-4419  05DA
-4420  05DB
-4421  05DC
-4422  05DD
-4423  05DE
-4424  05DF
-4425  05E0
-4426  05E1
-4427  05E2
-4428  05E3
-4429  05E4
-4430  05E5
-4431  05E6
-4432  05E7
-4433  05E8
-4434  05E9
-4435  05EA
-4436  05EB
-4437  05EC
-4438  05ED
-4439  05EE
-4440  05EF
-4441  05F0
-4442  05F1
-4443  05F2
-4444  05F3
-4445  05F4
-4446  05F5
-4447  05F6
-4448  05F7
-4449  05F8
-4450  05F9
-4451  05FA
-4452  05FB
-4453  05FC
-4454  05FD
-4455  05FE
-4456  05FF
-4457  0600
-4458  0601
-4459  0602
-4460  0603
-4461  0604
-4462  0605
-4463  0606
-4464  0607
-4465  0608
-4466  0609
-4467  060A
-4468  060B
-4469  060C
-4470  060D
-4471  060E
-4472  060F
-4473  0610
-4474  0611
-4475  0612
-4476  0613
-4477  0614
-4478  0615
-4479  0616
-4480  0617
-4481  0618
-4482  0619
-4483  061A
-4484  061B
-4485  061C
-4486  061D
-4487  061E
-4488  061F
-4489  0620
-4490  0621
-4491  0622
-4492  0623
-4493  0624
-4494  0625
-4495  0626
-4496  0627
-4497  0628
-4498  0629
-4499  062A
-4500  062B
-4501  062C
-4502  062D
-4503  062E
-4504  062F
-4505  0630
-4506  0631
-4507  0632
-4508  0633
-4509  0634
-4510  0635
-4511  0636
-4512  0637
-4513  0638
-4514  0639
-4515  063A
-4516  063B
-4517  063C
-4518  063D
-4519  063E
-4520  063F
-4521  0640
-4522  0641
-4523  0642
-4524  0643
-4525  0644
-4526  0645
-4527  0646
-4528  0647
-4529  0648
-4530  0649
-4531  064A
-4532  064B
-4533  064C
-4534  064D
-4535  064E
-4536  064F
-4537  0650
-4538  0651
-4539  0652
-4540  0653
-4541  0654
-4542  0655
-4543  0656
-4544  0657
-4545  0658
-4546  0659
-4547  065A
-4548  065B
-4549  065C
-4550  065D
-4551  065E
-4552  065F
-4553  0660
-4554  0661
-4555  0662
-4556  0663
-4557  0664
-4558  0665
-4559  0666
-4560  0667
-4561  0668
-4562  0669
-4563  066A
-4564  066B
-4565  066C
-4566  066D
-4567  066E
-4568  066F
-4569  0670
-4570  0671
-4571  0672
-4572  0673
-4573  0674
-4574  0675
-4575  0676
-4576  0677
-4577  0678
-4578  0679
-4579  067A
-4580  067B
-4581  067C
-4582  067D
-4583  067E
-4584  067F
-4585  0680
-4586  0681
-4587  0682
-4588  0683
-4589  0684
-4590  0685
-4591  0686
-4592  0687
-4593  0688
-4594  0689
-4595  068A
-4596  068B
-4597  068C
-4598  068D
-4599  068E
-4600  068F
-4601  0690
-4602  0691
-4603  0692
-4604  0693
-4605  0694
-4606  0695
-4607  0696
-4608  0697
-4609  0698
-4610  0699
-4611  069A
-4612  069B
-4613  069C
-4614  069D
-4615  069E
-4616  069F
-4617  06A0
-4618  06A1
-4619  06A2
-4620  06A3
-4621  06A4
-4622  06A5
-4623  06A6
-4624  06A7
-4625  06A8
-4626  06A9
-4627  06AA
-4628  06AB
-4629  06AC
-4630  06AD
-4631  06AE
-4632  06AF
-4633  06B0
-4634  06B1
-4635  06B2
-4636  06B3
-4637  06B4
-4638  06B5
-4639  06B6
-4640  06B7
-4641  06B8
-4642  06B9
-4643  06BA
-4644  06BB
-4645  06BC
-4646  06BD
-4647  06BE
-4648  06BF
-4649  06C0
-4650  06C1
-4651  06C2
-4652  06C3
-4653  06C4
-4654  06C5
-4655  06C6
-4656  06C7
-4657  06C8
-4658  06C9
-4659  06CA
-4660  06CB
-4661  06CC
-4662  06CD
-4663  06CE
-4664  06CF
-4665  06D0
-4666  06D1
-4667  06D2
-4668  06D3
-4669  06D4
-4670  06D5
-4671  06D6
-4672  06D7
-4673  06D8
-4674  06D9
-4675  06DA
-4676  06DB
-4677  06DC
-4678  06DD
-4679  06DE
-4680  06DF
-4681  06E0
-4682  06E1
-4683  06E2
-4684  06E3
-4685  06E4
-4686  06E5
-4687  06E6
-4688  06E7
-4689  06E8
-4690  06E9
-4691  06EA
-4692  06EB
-4693  06EC
-4694  06ED
-4695  06EE
-4696  06EF
-4697  06F0
-4698  06F1
-4699  06F2
-4700  06F3
-4701  06F4
-4702  06F5
-4703  06F6
-4704  06F7
-4705  06F8
-4706  06F9
-4707  06FA
-4708  06FB
-4709  06FC
-4710  06FD
-4711  06FE
-4712  06FF
-4713  0700
-4714  0701
-4715  0702
-4716  0703
-4717  0704
-4718  0705
-4719  0706
-4720  0707
-4721  0708
-4722  0709
-4723  070A
-4724  070B
-4725  070C
-4726  070D
-4727  070E
-4728  070F
-4729  0710
-4730  0711
-4731  0712
-4732  0713
-4733  0714
-4734  0715
-4735  0716
-4736  0717
-4737  0718
-4738  0719
-4739  071A
-4740  071B
-4741  071C
-4742  071D
-4743  071E
-4744  071F
-4745  0720
-4746  0721
-4747  0722
-4748  0723
-4749  0724
-4750  0725
-4751  0726
-4752  0727
-4753  0728
-4754  0729
-4755  072A
-4756  072B
-4757  072C
-4758  072D
-4759  072E
-4760  072F
-4761  0730
-4762  0731
-4763  0732
-4764  0733
-4765  0734
-4766  0735
-4767  0736
-4768  0737
-4769  0738
-4770  0739
-4771  073A
-4772  073B
-4773  073C
-4774  073D
-4775  073E
-4776  073F
-4777  0740
-4778  0741
-4779  0742
-4780  0743
-4781  0744
-4782  0745
-4783  0746
-4784  0747
-4785  0748
-4786  0749
-4787  074A
-4788  074B
-4789  074C
-4790  074D
-4791  074E
-4792  074F
-4793  0750
-4794  0751
-4795  0752
-4796  0753
-4797  0754
-4798  0755
-4799  0756
-4800  0757
-4801  0758
-4802  0759
-4803  075A
-4804  075B
-4805  075C
-4806  075D
-4807  075E
-4808  075F
-4809  0760
-4810  0761
-4811  0762
-4812  0763
-4813  0764
-4814  0765
-4815  0766
-4816  0767
-4817  0768
-4818  0769
-4819  076A
-4820  076B
-4821  076C
-4822  076D
-4823  076E
-4824  076F
-4825  0770
-4826  0771
-4827  0772
-4828  0773
-4829  0774
-4830  0775
-4831  0776
-4832  0777
-4833  0778
-4834  0779
-4835  077A
-4836  077B
-4837  077C
-4838  077D
-4839  077E
-4840  077F
-4841  0780
-4842  0781
-4843  0782
-4844  0783
-4845  0784
-4846  0785
-4847  0786
-4848  0787
-4849  0788
-4850  0789
-4851  078A
-4852  078B
-4853  078C
-4854  078D
-4855  078E
-4856  078F
-4857  0790
-4858  0791
-4859  0792
-4860  0793
-4861  0794
-4862  0795
-4863  0796
-4864  0797
-4865  0798
-4866  0799
-4867  079A
-4868  079B
-4869  079C
-4870  079D
-4871  079E
-4872  079F
-4873  07A0
-4874  07A1
-4875  07A2
-4876  07A3
-4877  07A4
-4878  07A5
-4879  07A6
-4880  07A7
-4881  07A8
-4882  07A9
-4883  07AA
-4884  07AB
-4885  07AC
-4886  07AD
-4887  07AE
-4888  07AF
-4889  07B0
-4890  07B1
-4891  07B2
-4892  07B3
-4893  07B4
-4894  07B5
-4895  07B6
-4896  07B7
-4897  07B8
-4898  07B9
-4899  07BA
-4900  07BB
-4901  07BC
-4902  07BD
-4903  07BE
-4904  07BF
-4905  07C0
-4906  07C1
-4907  07C2
-4908  07C3
-4909  07C4
-4910  07C5
-4911  07C6
-4912  07C7
-4913  07C8
-4914  07C9
-4915  07CA
-4916  07CB
-4917  07CC
-4918  07CD
-4919  07CE
-4920  07CF
-4921  07D0
-4922  07D1
-4923  07D2
-4924  07D3
-4925  07D4
-4926  07D5
-4927  07D6
-4928  07D7
-4929  07D8
-4930  07D9
-4931  07DA
-4932  07DB
-4933  07DC
-4934  07DD
-4935  07DE
-4936  07DF
-4937  07E0
-4938  07E1
-4939  07E2
-4940  07E3
-4941  07E4
-4942  07E5
-4943  07E6
-4944  07E7
-4945  07E8
-4946  07E9
-4947  07EA
-4948  07EB
-4949  07EC
-4950  07ED
-4951  07EE
-4952  07EF
-4953  07F0
-4954  07F1
-4955  07F2
-4956  07F3
-4957  07F4
-4958  07F5
-4959  07F6
-4960  07F7
-4961  07F8
-4962  07F9
-4963  07FA
-4964  07FB
-4965  07FC
-4966  07FD
-4967  07FE
-4968  07FF
-4969  0800
-4970  0801
-4971  0802
-4972  0803
-4973  0804
-4974  0805
-4975  0806
-4976  0807
-4977  0808
-4978  0809
-4979  080A
-4980  080B
-4981  080C
-4982  080D
-4983  080E
-4984  080F
-4985  0810
-4986  0811
-4987  0812
-4988  0813
-4989  0814
-4990  0815
-4991  0816
-4992  0817
-4993  0818
-4994  0819
-4995  081A
-4996  081B
-4997  081C
-4998  081D
-4999  081E
-5000  081F
-5001  0820
-5002  0821
-5003  0822
-5004  0823
-5005  0824
-5006  0825
-5007  0826
-5008  0827
-5009  0828
-5010  0829
-5011  082A
-5012  082B
-5013  082C
-5014  082D
-5015  082E
-5016  082F
-5017  0830
-5018  0831
-5019  0832
-5020  0833
-5021  0834
-5022  0835
-5023  0836
-5024  0837
-5025  0838
-5026  0839
-5027  083A
-5028  083B
-5029  083C
-5030  083D
-5031  083E
-5032  083F
-5033  0840
-5034  0841
-5035  0842
-5036  0843
-5037  0844
-5038  0845
-5039  0846
-5040  0847
-5041  0848
-5042  0849
-5043  084A
-5044  084B
-5045  084C
-5046  084D
-5047  084E
-5048  084F
-5049  0850
-5050  0851
-5051  0852
-5052  0853
-5053  0854
-5054  0855
-5055  0856
-5056  0857
-5057  0858
-5058  0859
-5059  085A
-5060  085B
-5061  085C
-5062  085D
-5063  085E
-5064  085F
-5065  0860
-5066  0861
-5067  0862
-5068  0863
-5069  0864
-5070  0865
-5071  0866
-5072  0867
-5073  0868
-5074  0869
-5075  086A
-5076  086B
-5077  086C
-5078  086D
-5079  086E
-5080  086F
-5081  0870
-5082  0871
-5083  0872
-5084  0873
-5085  0874
-5086  0875
-5087  0876
-5088  0877
-5089  0878
-5090  0879
-5091  087A
-5092  087B
-005093  000233        
-005094  000234      var vIAngularMeter0[WIDGET_RAM_SPACE] ;
-005095  000235      var vIAngularMeter1[WIDGET_RAM_SPACE] ;
-005096  000236      var vILedDigits0[WIDGET_RAM_SPACE+2] ;
-005097  000237      var vIAngularMeter3[WIDGET_RAM_SPACE] ;
-005098  000238      var vILedDigits1[WIDGET_RAM_SPACE+2] ;
-005099  000239      var vILedDigits2[WIDGET_RAM_SPACE+2] ;
-005100  000240      var vILedDigits3[WIDGET_RAM_SPACE+2] ;
-005101  000241      var vIAngularMeter2[WIDGET_RAM_SPACE] ;
-005102  000242      var vILedDigits4[WIDGET_RAM_SPACE+2] ;
-005103  000243      var vILedDigits6[WIDGET_RAM_SPACE+2] ;
-005104  000244      var vILedDigits7[WIDGET_RAM_SPACE+2] ;
-005105  000245      var vILedDigits8[WIDGET_RAM_SPACE+2] ;
-005106  000246      var vILedDigits5[WIDGET_RAM_SPACE+2] ;
-005107  000247      var vILedDigits9[WIDGET_RAM_SPACE+2] ;
-005108  000248  // Start P2.inc
-005109  000249  var vObjects[MaxIntObjects+1] ;              // address of RAM objects
-005110  000250  var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
-005111  000251  var oObjects[MaxTotObjects+1] ;                 // address of objects
-005112  000252  var CurrentForm, oldn, ImageTouched ;
-005113  000253  var TouchXpos, TouchYpos ;
-005114  000254  var GObjectType, TouchState, CurInputData, pInputIndex ;
-005115  000255  var comRX[40], cmd[CMDLenMAX] ;
-005116  000256        
-005117  000257  var InputCS, OutputCS ;
-005118  000258        
-005119  000259  // > ? Constant/Global/Data ? <
-005120  000260        
-005121  000261  func addressInternalWidget(var idx var iponly)
-005122  000262      var i, j ;
-005123  000263  //to(COM0) ; print("Address Int ", idx, " ") ; pause(2) ;
-005124  000264      GObjectIdx := xobj2iobj[idx] ;
-005125  000265      GObjectType := (GObjectIdx>>8) ;                          // extract object type
-005126  000266      i := oObjects[GObjectType] ;                              // i is address of list of all objects of this type
-005127  000267      GObjectIdx &= 0xff ;
-005128  000268      //GObjectIdx *= 2 ;
-005129  000269      j := GObjectIdx * 2 ;
-005130  000270      GObjectDATA := i[j + 2] ;                                 // address of this object
-005131  000271      i := vObjects[GObjectType-tiAngularMeter] ;               // i is address of list of all ram objects of his type
-005132  000272      GObjectRAM := i[j] ;                                      // address of this objects' ram
-005133  000273      i := GObjectType-tiAngularMeter ;
-005134  000274      GObjectFunc := gfxInternals[i] ; // address function
-005135  000275      GObjectParms := gfxIntParms[i] ;
-005136  000276      GObjectStrings := gfxIntStrings[i] ;
-005137  000277  //to(COM0) ; print([HEX4] GObjectFunc, " ", [HEX4] GObjectRAM, " ", [HEX4] GObjectDATA, " ", GObjectType, " ", GObjectIdx, "\r\n") ;
-005138  000278  //    GObjectFunc(0, GObjectRAM, GObjectDATA) ;
-005139  000279  endfunc
-005140  000280        
-005141  000281  func seroutCS(var op)
-005142  000282      serout(op) ;
-005143  000283      OutputCS ^= op ;
-005144  000284  endfunc
-005145  000285        
-005146  000286  func nak0()
-005147  000287      serout(NAK) ;
-005148  000288      InputCS := 0 ;
-005149  000289  endfunc
-005150  000290        
-005151  000291  func seroutOcs()
-005152  000292      serout(OutputCS) ;
-005153  000293      OutputCS := 0 ;
-005154  000294  endfunc
-005155  000295        
-005156  000296  func SendReport(var id, var objt, var objn, var val)
-005157  000297      seroutCS(id) ;
-005158  000298      seroutCS(objt) ;
-005159  000299      seroutCS(objn) ;
-005160  000300      seroutCS(val >> 8) ; // first 8 bits
-005161  000301      seroutCS(val) ;
-005162  000302      seroutOcs() ;
-005163  000303  endfunc
-005164  000304        
-005165  000305        
-005166  000306  func ReadObject(var ObjectType, var ObjectIdx)
-005167  000307      var j, k, Objects ;
-005168  000308      if ((ObjectType >= tiLedDigitsH) && (ObjectType <= tiLinearInput))
-005169  000309          j := ObjectIdx *2 ;
-005170  000310          k := vObjects[ObjectType-tiAngularMeter] ;               // k is address of list of all ram objects of his type
-005171  000311          k := k[j] ;                                              // k is address of this objects' ram
-005172  000312          if (ObjectType == tiLedDigit)
-005173  000313              k := k[0] ;
-005174  000314          else 
-005175  000315              k := k[WIDGET_VAL1] ;
-005176  000316          endif
-005177  000317  //gfx_MoveTo(0,0); txt_Opacity(OPAQUE) ; print(ObjectType, " ", ObjectIdx, " ", k," ") ;
-005178  000318      else
-005179  000319      Objects := *(oObjects+ObjectType) ;
-005180  000320        
-005181  000321      j := 2 + ObjectIdx * 2 + Objects ;
-005182  000322       if (ObjectType == tForm)
-005183  000323          k := CurrentForm ;
-005184  000324          else
-005185  000325          k := img_GetWord(hndl, *j, IMAGE_INDEX);
-005186  000326          if (((ObjectType == tWinButton) || (ObjectType == tAniButton) || (ObjectType == tUserButton) || (ObjectType == t4Dbutton)) && (k)) k := 1 ; // this is not correct for blocked buttons and cannot be fixed as we cannot
-005187  000327                                                                                                                                                      // determine if button is momentary or not which is needed for correct answer.
-005188  000328      endif
-005189  000329      endif
-005190  000330      SendReport(REPORT_OBJ, ObjectType, ObjectIdx, k) ;
-005191  000331  endfunc
-005192  000332        
-005193  000333  var wp ;
-005194  000334        
-005195  000335        
-005196  000336  func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
-005197  000337      var i, j, k, Objects ;
-005198  000338  //    ObjectType &= 0x3f ; Why was his there? Anibuttons? Complex cascades?
-005199  000339      if (ObjectType == tForm)
-005200  000340          ActivateForm(ObjectIdx) ;
-005201  000341          return ;
-005202  000342      endif
-005203  000343      Objects := *(oObjects+ObjectType)+ObjectIdx*2+2 ;
-005204  000344      i := *(Objects) ;
-005205  000345      if ((ObjectType >= tiAngularMeter) && (ObjectType <= tiLinearInput))
-005206  000346          i := oObjects[ObjectType] ;                              // f is address of list of all objects of this type
-005207  000347          j := ObjectIdx *2 ;
-005208  000348          i := i[j + 2] ;                         // f is address of this object
-005209  000349          k := vObjects[ObjectType-tiAngularMeter] ;               // a is address of list of all ram objects of his type
-005210  000350          k := k[j] ;                             // a is address of this objects' ram
-005211  000351              j := ObjectType-tiAngularMeter ;
-005212  000352              Objects := gfxInternals[j] ;           // locate function address   
-005213  000353              Objects(NewVal, k, i) ; 
-005214  000354          return ;
-005215  000355      endif
-005216  000356      switch (ObjectType)
-005217  000357          case tWinButton :
-005218  000358              j := InputControls[oWinButtons[ObjectIdx+1]] ;
-005219  000359              break ;
-005220  000360          default : j := -1 ;
-005221  000361      endswitch
-005222  000362        
-005223  000363      if (j != -1)
-005224  000364          k := img_GetWord(hndl, i , IMAGE_INDEX) ;
-005225  000365              NewVal := NewVal << 1 ;
-005226  000366              if (OVF())      // button group index change
-005227  000367                  if (*(j+InputData+Ofs_IPD_P1))
-005228  000368                      k &= 1 ;    // mask off old group index for momentary
-005229  000369                  else
-005230  000370                      k &= 3 ;    // mask off old group index for toggle
-005231  000371                  endif
-005232  000372              else            // normal set
-005233  000373                  if (*(j+InputData+Ofs_IPD_P2) != -1) TurnOffButtons(*(j+InputData+Ofs_IPD_P2)) ;
-005234  000374                  k &= 0xfffc ;    // retain only group index for state set
-005235  000375              endif
-005236  000376              NewVal |= k ;
-005237  000377  //        endif
-005238  000378          endif
-005239  000379        
-005240  000380      img_SetWord(hndl, i , IMAGE_INDEX, NewVal); // where state is 0 to 2
-005241  000381      img_Show(hndl, i) ; // will only display if form is current
-005242  000382      return ; // compiler bug circumvention!
-005243  000383  endfunc
-005244  000384        
-005245  000385  func TurnOffButtons(var group)
-005246  000386      var j, k, l, m, n, o, p;
-005247  000387      m := GObjectIdx ;     // save as will be clobbered
-005248  000388      n := GObjectType ;     // save as will be clobbered
-005249  000389      for (j := 0; j < nInputs; j++)
-005250  000390          k := j*IPDatasize ;
-005251  000391          if (*(InputData+k+Ofs_IPD_P2) == group)
-005252  000392              l := -1 ;
-005253  000393               if (*(InputData+k) == tWinButton)
-005254  000394                  l := oWinButtons[*(InputData+k+Ofs_IPD_OBJVIDX)/2] ;
-005255  000395                  img_SetWord(hndl, l, IMAGE_INDEX, 0);
-005256  000396                  img_Show(hndl, l);      // only shows on current form
-005257  000397        
-005258  000398              endif
-005259  000399          endif
-005260  000400      next
-005261  000401      GObjectIdx := m ;     // Restore
-005262  000402      GObjectType := n ;    // Restore
-005263  000403  endfunc
-005264  000404        
-005265  000405        
-005266  000406        
-005267  000407        
-005268  000408  func ActivateForm(var newform)
-005269  000409      var i, j, *p ;
-005270  000410        
-005271  000411          widget_Disable(wp, ALL) ;
-005272  000412      if (CurrentForm != -1) // deactivate old form, by disabling all inputs
-005273  000413          for (i := FormStartIndex[CurrentForm]; i <= FormEndIndex[CurrentForm]; i++)
-005274  000414              if (img_GetWord(hndl, i, IMAGE_TAG))
-005275  000415                  img_Disable(hndl,i) ;
-005276  000416              endif
-005277  000417          next
-005278  000418      endif
-005279  000419      CurrentForm := newform ;
-005280  000420      // display newform image or clear to image color
-005281  000421      if (FormBGcolors[CurrentForm] != ColorBGimage)
-005282  000422          gfx_Set(BACKGROUND_COLOUR,FormBGcolors[CurrentForm]);
-005283  000423          gfx_Cls() ;
-005284  000424          DoGFXObjects() ;                                    // display GFX 'widgets'
-005285  000425      endif
-005286  000426        
-005287  000427      // enable inputs
-005288  000428      for (i := FormStartIndex[CurrentForm]; i < FormEndIndex[CurrentForm]; i++)
-005289  000429          j := img_GetWord(hndl, i, IMAGE_TAG) ;
-005290  000430          if (j)
-005291  000431              j-- ;
-005292  000432              img_SetAttributes(hndl, i, I_STAYONTOP+I_ENABLED);        // make sure this is on top of form, if applicable
-005293  000433              //if (j != tKeyboard)
-005294  000434              if (((j <= tWinButton) || (j >= t4Dbutton)) && (j != tSmartGauge) )               // enable inputs
-005295  000435                  img_ClearAttributes(hndl, i, I_TOUCH_DISABLE);        // ensure touch is enabled
-005296  000436              endif
-005297  000437              img_Show(hndl,i) ; // show initialy, if required
-005298  000438              if (j == tForm)
-005299  000439                  DoGFXObjects() ;                                    // display GFX 'widgets' for image backgruobds
-005300  000440              endif
-005301  000441          endif
-005302  000442      next
-005303  000443        
-005304  000444      // enable inputs
-005305  000445         var a, f ; 
-005306  000456  */
-005307  000457      for (i := iFormStartIndex[CurrentForm]; i < iFormEndIndex[CurrentForm]; i++)
-005308  000458          addressInternalWidget(i, 0) ;
-005309  000459          widget_Enable(wp,i) ;
-005310  000460          if (GObjectType != tiLabelB) widget_ClearAttributes(wp,i,WIDGET_F_INITIALISED) ; // don't clear initialised for tiLabelB
-005311  000461                  j := GObjectRAM[WIDGET_VAL1] ;
-005312  000462                  GObjectFunc(j, GObjectRAM, GObjectDATA) ; 
-005313  000463      next
-005314  000464      for (i := iFormStartIndex[CurrentForm]; i < iFormEndIndex[CurrentForm]; i++)
-005315  000465          if (InternalInputControls[i] != -1)
-005316  000466              widget_SetAttributes(wp,i,WIDGET_F_TOUCH_ENABLE) ;
-005317  000467          endif
-005318  000468      next
-005319  000469        
-005320  000470        
-005321  000471  endfunc
-005322  000472        
-005323  000473  func UpdateObjects(var newval)
-005324  000474      var IPidx, otherOBJ, oldvalue ;
-005325  000475      if (GObjectType < tiLedDigitsH)
-005326  000476          oldvalue := img_GetWord(hndl, *(pInputIndex), IMAGE_INDEX) ;
-005327  000477      else
-005328  000478          oldvalue := GObjectRAM[WIDGET_VAL1] ;
-005329  000479      endif
-005330  000480      if ( ( oldvalue != newval) || (TouchState == Ofs_IPD_RELEASE) ) // only bother if values changed, or release
-005331  000481        
-005332  000482      if (GObjectType < tiLedDigitsH)
-005333  000483          img_SetWord(hndl, *(pInputIndex), IMAGE_INDEX, newval);
-005334  000484              img_Show(hndl, *(pInputIndex));      // only shows on current form
-005335  000485      else
-005336  000486          WriteObject(GObjectType, GObjectIdx, newval) ;
-005337  000487      endif
-005338  000488          if ((GObjectType == t4Dbutton) || (GObjectType == tUserButton) || (GObjectType == tWinButton))
-005339  000489              if (*(CurInputData+Ofs_IPD_P1))
-005340  000490                  newval &= 1;
-005341  000491              else
-005342  000492                  newval &= 3;
-005343  000493              endif
-005344  000494              if (newval > 1) newval := 1;
-005345  000495          endif
-005346  000496          IPidx := *(CurInputData+TouchState) ;
-005347  000497          while(IPidx != 0)
-005348  000498              otherOBJ := IPidx + InputData;
-005349  000499              if (*(otherOBJ) == OT_REPORT)
-005350  000500                  SendReport(REPORT_EVENT, GObjectType, *(otherOBJ+Ofs_IPD_OBJVIDX), newval) ;
-005351  000501              else if (*(otherOBJ) == OT_MAGIC)
-005352  000502                  IPidx := *(otherOBJ+Ofs_IPD_P5) ;
-005353  000503                  IPidx(newval) ;
-005354  000504  //            else if (TouchState == *(otherOBJ+Ofs_IPD_P4))  // test prior to Workshop 6.5.0.0
-005355  000505              else if ((TouchState == *(otherOBJ+Ofs_IPD_P4)) || (*(CurInputData+Ofs_IPD_P1) && ((GObjectType == t4Dbutton) || (GObjectType == tUserButton) || (GObjectType == tWinButton))))
-005356  000506                  if (*(otherOBJ) == OT_ACTIVATE)
-005357  000507                      ActivateForm(*(otherOBJ+Ofs_IPD_P2) ) ;
-005358  000508                      GObjectType := tForm ;
-005359  000509                  else if (*(otherOBJ) == OT_SETCONST)
-005360  000510                      newval := *(otherOBJ+Ofs_IPD_P3) ;
-005361  000511                      WriteObject(*(otherOBJ+Ofs_IPD_P1), *(otherOBJ+Ofs_IPD_P2), newval) ;
-005362  000512                  else if (*(otherOBJ) == OT_SETANOTHER)
-005363  000513                      WriteObject(*(otherOBJ+Ofs_IPD_P1), *(otherOBJ+Ofs_IPD_P2), newval) ;
-005364  000514                  else if (*(otherOBJ) == OT_PREVFRAME)
-005365  000515                      if (img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX))
-005366  000516                          WriteObject(*(otherOBJ+Ofs_IPD_P5),*(otherOBJ+Ofs_IPD_P2),img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX)-1) ;
-005367  000517                      endif
-005368  000518                      newval := img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) ;
-005369  000519                  else if (*(otherOBJ) == OT_NEXTFRAME)
-005370  000520                      if (img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) < *(otherOBJ+Ofs_IPD_P3))
-005371  000521                          WriteObject(*(otherOBJ+Ofs_IPD_P5),*(otherOBJ+Ofs_IPD_P2),img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX)+1) ;
-005372  000522                      endif
-005373  000523                      newval := img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) ;
-005374  000524                  endif
-005375  000525              endif
-005376  000526              IPidx := *(otherOBJ+TouchState) ;
-005377  000527          wend
-005378  000528      endif
-005379  000529  endfunc
-005380  000530        
-005381  000531  // End P2.inc
-005382  000532  func DoGFXObjects()
-005383  000533  endfunc
-005384  000534        
-005385  000535  // Start P3.inc
-005386  000536  func main()
-005387  000537      var comTX[50], cmdi, i, j, TouchStatus ;
-005388  000538        
-005389  000539        
-005390  000540      gfx_ScreenMode(LANDSCAPE) ;
-005391  000541        
-005392  000542      media_InitFlash(FLASH_ADDR_DEF_COMMAND) ;
-005393  000543        
-005394  000544        
-005395  000545  //    gfx_MoveTo(0, 0);
-005396  000546  //    print(mem_Heap()," ") ;
-005397  000547  //    gfx_TransparentColour(0x0020);
-005398  000548  //    gfx_Transparency(ON);
-005399  000549        
-005400  000550        
-005401  000551      // open image control
-005402  000552      hndl := file_LoadImageControl(0, 0, 3);
-005403  000553        
-005404  000554      // init 'constants'
-005405  000555  // End P3.inc
-005406  000556        
-005407  000557      oObjects[tDipSwitch] := oDipSwitchs ; // dummy as no object there
-005408  000558      oObjects[tKnob] := oDipSwitchs ; // dummy as no object there
-005409  000559      oObjects[tRockerSwitch] := oDipSwitchs ; // dummy as no object there
-005410  000560      oObjects[tRotarySwitch] := oDipSwitchs ; // dummy as no object there
-005411  000561      oObjects[tGSlider] := oDipSwitchs ; // dummy as no object there
-005412  000562      oObjects[tTrackbar] := oDipSwitchs ; // dummy as no object there
-005413  000563      oObjects[tWinButton] := oWinButtons ;
-005414  000564      oObjects[tAngularmeter] := oDipSwitchs ; // dummy as no object there
-005415  000565      oObjects[tCoolgauge] := oDipSwitchs ; // dummy as no object there
-005416  000566      oObjects[tCustomdigits] := oDipSwitchs ; // dummy as no object there
-005417  000567      oObjects[tForm] := oForms ;
-005418  000568      oObjects[tGauge] := oGauges ;
-005419  000569      oObjects[tImage] := oImages ;
-005420  000570      oObjects[tKeyboard] := oDipSwitchs ; // dummy as no object there
-005421  000571      oObjects[tLed] := oDipSwitchs ; // dummy as no object there
-005422  000572      oObjects[tLeddigits] := oDipSwitchs ; // dummy as no object there
-005423  000573      oObjects[tMeter] := oDipSwitchs ; // dummy as no object there
-005424  000574      oObjects[tStrings] := oDipSwitchs ; // dummy as no object there
-005425  000575      oObjects[tThermometer] := oDipSwitchs ; // dummy as no object there
-005426  000576      oObjects[tUserled] := oDipSwitchs ; // dummy as no object there
-005427  000577      oObjects[tVideo] := oDipSwitchs ; // dummy as no object there
-005428  000578      oObjects[tStaticText] := oDipSwitchs ; // dummy as no object there
-005429  000579      oObjects[tSounds] := oDipSwitchs ; // dummy as no object there
-005430  000580      oObjects[tTimer] := oDipSwitchs ; // dummy as no object there
-005431  000581      oObjects[tSpectrum] := oDipSwitchs ; // dummy as no object there
-005432  000582      oObjects[tTank] := oDipSwitchs ; // dummy as no object there
-005433  000583      oObjects[tUserImages] := oDipSwitchs ; // dummy as no object there
-005434  000584      oObjects[tPinOutput] := oDipSwitchs ; // dummy as no object there
-005435  000585      oObjects[tPinInput] := oDipSwitchs ; // dummy as no object there
-005436  000586      oObjects[t4Dbutton] := oDipSwitchs ; // dummy as no object there
-005437  000587      oObjects[tAniButton] := oDipSwitchs ; // dummy as no object there
-005438  000588      oObjects[tColorPicker] := oDipSwitchs ; // dummy as no object there
-005439  000589      oObjects[tUserButton] := oDipSwitchs ; // dummy as no object there
-005440  000590      oObjects[tMagicObject] := oDipSwitchs ; // dummy as no object there
-005441  000591      oObjects[tSmartGauge] := oDipSwitchs ; // dummy as no object there
-005442  000592      oObjects[tSmartSlider] := oDipSwitchs ; // dummy as no object there
-005443  000593      oObjects[tSmartKnob] := oDipSwitchs ; // dummy as no object there
-005444  000594      oObjects[tiLedDigitsH] := oDipSwitchs ; // dummy as no object there
-005445  000595      oObjects[tiAngularMeter] := oiAngularMeters ;
-005446  000596      oObjects[tiGauge] := oDipSwitchs ; // dummy as no object there
-005447  000597      oObjects[tiLabelB] := oDipSwitchs ; // dummy as no object there
-005448  000598      oObjects[tiUserGauge] := oDipSwitchs ; // dummy as no object there
-005449  000599      oObjects[tiMediaGauge] := oDipSwitchs ; // dummy as no object there
-005450  000600      oObjects[tiMediaThermometer] := oDipSwitchs ; // dummy as no object there
-005451  000601      oObjects[tiLed] := oDipSwitchs ; // dummy as no object there
-005452  000602      oObjects[tiMediaLed] := oDipSwitchs ; // dummy as no object there
-005453  000603      oObjects[tiLedDigits] := oiLedDigitss ;
-005454  000604      oObjects[tiNeedle] := oDipSwitchs ; // dummy as no object there
-005455  000605      oObjects[tiRuler] := oDipSwitchs ; // dummy as no object there
-005456  000606      oObjects[tiLedDigit] := oDipSwitchs ; // dummy as no object there
-005457  000607      oObjects[tiButtonD] := oDipSwitchs ; // dummy as no object there
-005458  000608      oObjects[tiButtonE] := oDipSwitchs ; // dummy as no object there
-005459  000609      oObjects[tiMediaButton] := oDipSwitchs ; // dummy as no object there
-005460  000610      oObjects[tiToggleInput] := oDipSwitchs ; // dummy as no object there
-005461  000611      oObjects[tiDial] := oDipSwitchs ; // dummy as no object there
-005462  000612      oObjects[tiMediaRotary] := oDipSwitchs ; // dummy as no object there
-005463  000613      oObjects[tiRotaryInput] := oDipSwitchs ; // dummy as no object there
-005464  000614      oObjects[tiSwitch] := oDipSwitchs ; // dummy as no object there
-005465  000615      oObjects[tiSwitchB] := oDipSwitchs ; // dummy as no object there
-005466  000616      oObjects[tiSliderE] := oDipSwitchs ; // dummy as no object there
-005467  000617      oObjects[tiMediaSlider] := oDipSwitchs ; // dummy as no object there
-005468  000618      oObjects[tiSliderH] := oDipSwitchs ; // dummy as no object there
-005469  000619      oObjects[tiSliderG] := oDipSwitchs ; // dummy as no object there
-005470  000620      oObjects[tiSliderF] := oDipSwitchs ; // dummy as no object there
-005471  000621      oObjects[tiSliderD] := oDipSwitchs ; // dummy as no object there
-005472  000622      oObjects[tiSliderC] := oDipSwitchs ; // dummy as no object there
-005473  000623      oObjects[tiLinearInput] := oDipSwitchs ; // dummy as no object there
-005474  000624      vObjects[0] := oiviAngularMeter ;
-005475  000625      vObjects[8] := oiviLedDigits ;
-005476  000626  // Start P4.inc
-005477  000627      wp := widget_Create(14) ;
-005478  000628      for (i := 0; i < 14; i++)
-005479  000629  	addressInternalWidget(i, 0) ;
-005480  000630          if (GObjectType != tiLedDigit) widget_Add(wp, i, GObjectRAM) ;    // don't add tiLedDigit objects as they are only 1 word long
-005481  000631      next
-005482  000632        
-005483  000633      // init comms
-005484  000634      com_Init(comRX,CMDLenMAX,0);
-005485  000635      com_SetBaud(COM0,960);
-005486  000636      com_TXbuffer(comTX, 100, 0);
-005487  000637      // tag 'real' objects
-005488  000638      for (i := 0; i <= MaxTotObjects; i++)
-005489  000639          if (   (i != tSounds)
-005490  000640              && (i != tTimer)
-005491  000641              && (i != tPinOutput)
-005492  000642              && (i != tMagicObject)
-005493  000643              && (i != tPinInput) )
-005494  000644              TouchXpos := oObjects[i] ;
-005495  000645              TouchYpos := *(TouchXpos) ;
-005496  000646              for (ImageTouched := 1; ImageTouched <= TouchYpos; ImageTouched++)
-005497  000647                  oldn := *(TouchXpos+ImageTouched*2) ;
-005498  000648                  img_SetAttributes(hndl, oldn, I_TOUCH_DISABLE);  // ensure touch is enabled
-005499  000649                  if (oldn != -1)
-005500  000650                      img_SetWord(hndl, oldn, IMAGE_TAG, i+1);
-005501  000651                      img_Disable(hndl, oldn) ;
-005502  000652                  endif
-005503  000653              next
-005504  000654          endif
-005505  000655      next
-005506  000656        
-005507  000657      // display initial form
-005508  000658      CurrentForm := -1 ;
-005509  000659  // End P4.inc
-005510  000660  // Start P5.inc
-005511  000661      ActivateForm(0) ; // need to change this according to first actual form
-005512  000662        
-005513  000663  // End P5.inc
-005514  000664  // Start P6.inc px44
-005515  000665      touch_Set(TOUCH_ENABLE);                            // enable the touch screen
-005516  000666      oldn := -1 ;
-005517  000667      repeat
-005518  000668        
-005519  000669          // check comms for command, how to NAK invalid command
-005520  000670          if (com_Count() != 0)
-005521  000671              i := serin() ;
-005522  000672              InputCS ^= i ;               // update checksum
-005523  000673                  cmd[cmdi++] := i ;
-005524  000674                   if (   (cmd[0] == READ_OBJ)
-005525  000675                           && (cmdi == 4)         )
-005526  000676                      if (InputCS)
-005527  000677                          nak0() ;
-005528  000678                      else
-005529  000679                          ReadObject(cmd[1], cmd[2]) ;
-005530  000680                      endif
-005531  000681                      cmdi := 0 ;
-005532  000682                  else if (   (cmd[0] == WRITE_OBJ)    // 6 byte write command (gen option)
-005533  000683                           && (cmdi == 6)          )
-005534  000684                      if (InputCS)
-005535  000685                          nak0() ;
-005536  000686                      else
-005537  000687                          WriteObject(cmd[1], cmd[2], cmd[3] << 8 + cmd[4]) ;
-005538  000688                          serout(ACK) ;
-005539  000689                      endif
-005540  000690                      cmdi := 0 ;
-005541  000691                  else if (   (cmd[0] == WRITE_CONTRAST)
-005542  000692                           && (cmdi == 3)         )
-005543  000693                      if (InputCS)
-005544  000694                          nak0() ;
-005545  000695                      else
-005546  000696                          gfx_Contrast(cmd[1]) ;
-005547  000697                          serout(ACK) ;
-005548  000698                      endif
-005549  000699                      cmdi := 0 ;
-005550  000700                  else if (cmdi == 6)    // we have 6 bytes and we've gotten here -> something wrong
-005551  000701                      nak0() ;
-005552  000702                      cmdi := 0 ;
-005553  000703                  endif
-005554  000704          endif   // a character is available
-005555  000705        
-005556  000706        
-005557  000707      // touch code processing
-005558  000708        
-005559  000709          TouchStatus := touch_Get(TOUCH_STATUS);               // get touchscreen status
-005560  000710          if ((TouchStatus == TOUCH_PRESSED) || (TouchStatus == TOUCH_RELEASED) || (TouchStatus == TOUCH_MOVING))
-005561  000711              ImageTouched := img_Touched(hndl,-1) ;
-005562  000712              if (ImageTouched == -1)
-005563  000713                  ImageTouched := widget_Touched(wp, ALL) ;
-005564  000714                  if (ImageTouched != -1) ImageTouched := -2 - ImageTouched ;
-005565  000715              endif
-005566  000716              if ((TouchStatus != TOUCH_RELEASED) && (ImageTouched != oldn) && (oldn != -1))
-005567  000717                  TouchStatus := TOUCH_RELEASED ;       // simulate release if we move off object
-005568  000718              endif
-005569  000719              if (TouchStatus != TOUCH_RELEASED)        // if not released
-005570  000720                  if (oldn != -1)
-005571  000721                      ImageTouched := oldn ;
-005572  000722                  else
-005573  000723                      if (oldn != ImageTouched)
-005574  000724                  oldn := ImageTouched ;
-005575  000725                          TouchStatus := TOUCH_PRESSED ;
-005576  000726                      endif
-005577  000727                  endif
-005578  000728                  TouchXpos  := touch_Get(TOUCH_GETX);
-005579  000729                  TouchYpos  := touch_Get(TOUCH_GETY);
-005580  000730                  TouchState := Ofs_IPD_DOWN ;
-005581  000731              else
-005582  000732                  ImageTouched := oldn ;                     // simulate release of what we touched
-005583  000733                  oldn := -1 ;                    // prevent double release
-005584  000734                  TouchState := Ofs_IPD_RELEASE ;
-005585  000735              endif
-005586  000736              if (ImageTouched >= 0)
-005587  000737                          CurInputData := InputControls[ImageTouched] + InputData;
-005588  000738                          GObjectType := *(CurInputData) ;
-005589  000739                          if (GObjectType == tSmartSlider)
-005590  000740                              i := tTrackbar ; // GSlider ;
-005591  000741                          else if (GObjectType == tSmartKnob)
-005592  000742                              i := tKnob ;
-005593  000743                          else if (GObjectType >= t4Dbutton) 
-005594  000744                              i := GObjectType - 23 ; // adjust to ensure next in gosub
-005595  000745                          else 
-005596  000746                              i := GObjectType ;
-005597  000747                          endif
-005598  000748                          gosub (i), (cDipswitch, cKnob, cRockerswitch, cRotaryswitch, cSlider, cTrackbar, cWinbutton, c4DButton, cAniButton, cColorPicker, cUserButton) ;
-005599  000749                          ImageTouched := -1 ; // show processed here
-005600  000750              endif
-005601  000751              if (ImageTouched != -1) ImageTouched := -2 - ImageTouched ;
-005602  000752              if (ImageTouched >= 0)
-005603  000753  //print(ImageTouched," ") ;
-005604  000754  //                        CurInputData := InternalInputControls[ImageTouched] + InternalInputData;
-005605  000755                          CurInputData := InternalInputControls[ImageTouched] + InputData;
-005606  000756  //                        GObjectType := *(CurInputData) ;
-005607  000757  //                        i := GObjectType ;
-005608  000758  //                        if (GObjectType >= t4Dbutton) i -= 23 ; // adjust to ensure next in gosub
-005609  000759  //                        gosub (i), (cDipswitch, cKnob, cRockerswitch, cRotaryswitch, cSlider, cTrackbar, cWinbutton, c4DButton, cAniButton, cColorPicker, cUserButton) ;
-005610  000760                          addressInternalWidget(ImageTouched, 0) ;
-005611  000761  //                        i := xobj2iiobj[ImageTouched] ;                            // address object type and hash from ram index
-005612  000762  //                        GObjectIdx := i & 0xff ;
-005613  000763  //                        GObjectType := (i>>8) ;                                   // extract object type
-005614  000764                          if (GObjectType <= tiToggleInput) 
-005615  000765                              i := 0 ;
-005616  000766                          else if (GObjectType <= tiRotaryInput) 
-005617  000767                              i := 1 ;
-005618  000768                          else if (GObjectType <= tiSwitchB) 
-005619  000769                              i := 2 ;
-005620  000770                          else 
-005621  000771                              i := 3 ;
-005622  000772                          endif
-005623  000773  //to(COM0) ; print(i, "\r\n") ;  
-005624  000774        
-005625  000775                          gosub (i), (ciButton, ciDial, ciSwitch, ciSlider) ;
-005626  000776        
-005627  000777        
-005628  000778  //            ImageTouched := widget_Touched(wp, ALL) ;
-005629  000779              endif
-005630  000780          endif
-005631  000781   //       if ((n != -1) && (oldn == -1)) oldn := n ;    // save what we touched in case we move off it
-005632  000782        
-005633  000783          sys_EventsResume() ;
-005634  000784      forever
-005635  000785        
-005636  000786  ciSwitch:
-005637  000787  cDipswitch:
-005638  000788        
-005639  000789  cKnob:
-005640  000790  ciDial:
-005641  000791        
-005642  000792  cRockerswitch:
-005643  000793        
-005644  000794  cRotaryswitch:
-005645  000795        
-005646  000796  cSlider:
-005647  000797  cTrackbar:
-005648  000798  ciSlider:
-005649  000799        
-005650  000800  ciButton:
-005651  000801        
-005652  000802  c4DButton:
-005653  000803  cUserButton:
-005654  000804  cWinbutton:
-005655  000805      pInputIndex := oObjects[GObjectType]  + *(CurInputData+Ofs_IPD_OBJVIDX) ;
-005656  000806      i := img_GetWord(hndl, *(pInputIndex), IMAGE_INDEX) ; // current state
-005657  000807  CommonButtons:
-005658  000808      if (*(CurInputData+Ofs_IPD_P1))                                 // momentary, reports 0, but should report 1
-005659  000809          if (TouchStatus == TOUCH_RELEASED)
-005660  000810              i &= 0xfffe ;
-005661  000811              TouchState == Ofs_IPD_DOWN ;
-005662  000812          else
-005663  000813              i |= 1 ;
-005664  000814              TouchState == Ofs_IPD_RELEASE ;
-005665  000815          endif
-005666  000816      else if (*(CurInputData+Ofs_IPD_P2) == -1)                      // Toggle, reports 0+2, but should report 0+1
-005667  000817          if (TouchStatus == TOUCH_RELEASED)                     // only truly change on release
-005668  000818              if ((i & 3) == 3)
-005669  000819                  i &= 0xfffc ;
-005670  000820              else
-005671  000821                  i++ ;
-005672  000822              endif
-005673  000823          else
-005674  000824              i |= 1 ;                                      // make down regardless of current state
-005675  000825          endif
-005676  000826      else                        // group action, up all other buttons on touch press, reports 0 for button down
-005677  000827          if (TouchStatus == TOUCH_PRESSED)                     // only truly change on release
-005678  000828              TurnOffButtons(*(CurInputData+Ofs_IPD_P2)) ;
-005679  000829          endif
-005680  000830          if (GObjectType < tiLedDigits)
-005681  000831              i := (i & 0xfffc) | 2 ;         // uSD button, four, grouping and blocking states
-005682  000832          else
-005683  000833              i := 1 ;                        // Internal button two states
-005684  000834          endif
-005685  000835      endif
-005686  000836        
-005687  000837      UpdateObjects(i) ;
-005688  000838  endsub ;
-005689  000839        
-005690  000840  cAniButton:
-005691  000841        
-005692  000842  cColorPicker:
-005693  000843        
-005694  000844  endfunc
-005695  000845  // End P6.inc
-Notice: local var 'j' in func 'main' is never used (line 537 file:SprinterGauge.4DGenieS)
-Notice: variable 'GObjectRAM' is being indexed (line 478 file:SprinterGauge.4DGenieS)
-Notice: Check that the function called via pointer  'IPidx' requires 1 argument (line 503 file:SprinterGauge.4DGenieS)
-Notice: variable 'GObjectRAM' is being indexed (line 461 file:SprinterGauge.4DGenieS)
-Notice: Check that the function called via pointer  'GObjectFunc' requires 3 arguments (line 462 file:SprinterGauge.4DGenieS)
-Notice: local var 'p' in func 'ActivateForm' is never used (line 409 file:SprinterGauge.4DGenieS)
-Notice: local var 'a' in func 'ActivateForm' is never used (line 445 file:SprinterGauge.4DGenieS)
-Notice: local var 'f' in func 'ActivateForm' is never used (line 445 file:SprinterGauge.4DGenieS)
-Notice: local var 'o' in func 'TurnOffButtons' is never used (line 386 file:SprinterGauge.4DGenieS)
-Notice: local var 'p' in func 'TurnOffButtons' is never used (line 386 file:SprinterGauge.4DGenieS)
-Notice: variable 'i' is being indexed (line 348 file:SprinterGauge.4DGenieS)
-Notice: variable 'k' is being indexed (line 350 file:SprinterGauge.4DGenieS)
-Notice: Check that the function called via pointer  'Objects' requires 3 arguments (line 353 file:SprinterGauge.4DGenieS)
-Notice: variable 'k' is being indexed (line 311 file:SprinterGauge.4DGenieS)
-Notice: variable 'k' is being indexed (line 313 file:SprinterGauge.4DGenieS)
-Notice: variable 'k' is being indexed (line 315 file:SprinterGauge.4DGenieS)
-Notice: variable 'i' is being indexed (line 270 file:SprinterGauge.4DGenieS)
-Notice: variable 'i' is being indexed (line 272 file:SprinterGauge.4DGenieS)
-Notice: function argument 'iponly' in func 'addressInternalWidget' is never used (line 261 file:SprinterGauge.4DGenieS)
+004009  000233  #END
+4010  0446
+4011  0447
+4012  0448
+4013  0449
+4014  044A
+4015  044B
+4016  044C
+4017  044D
+4018  044E
+4019  044F
+4020  0450
+4021  0451
+4022  0452
+4023  0453
+4024  0454
+4025  0455
+4026  0456
+4027  0457
+4028  0458
+4029  0459
+4030  045A
+4031  045B
+4032  045C
+4033  045D
+4034  045E
+4035  045F
+4036  0460
+4037  0461
+4038  0462
+4039  0463
+4040  0464
+4041  0465
+4042  0466
+4043  0467
+4044  0468
+4045  0469
+4046  046A
+4047  046B
+4048  046C
+4049  046D
+4050  046E
+4051  046F
+4052  0470
+4053  0471
+4054  0472
+4055  0473
+4056  0474
+4057  0475
+4058  0476
+4059  0477
+4060  0478
+4061  0479
+4062  047A
+4063  047B
+4064  047C
+4065  047D
+4066  047E
+4067  047F
+4068  0480
+4069  0481
+4070  0482
+4071  0483
+4072  0484
+4073  0485
+4074  0486
+4075  0487
+4076  0488
+4077  0489
+4078  048A
+4079  048B
+4080  048C
+4081  048D
+4082  048E
+4083  048F
+4084  0490
+4085  0491
+4086  0492
+4087  0493
+4088  0494
+4089  0495
+4090  0496
+4091  0497
+4092  0498
+4093  0499
+4094  049A
+4095  049B
+4096  049C
+4097  049D
+4098  049E
+4099  049F
+4100  04A0
+4101  04A1
+4102  04A2
+4103  04A3
+4104  04A4
+4105  04A5
+4106  04A6
+4107  04A7
+4108  04A8
+4109  04A9
+4110  04AA
+4111  04AB
+4112  04AC
+4113  04AD
+4114  04AE
+4115  04AF
+4116  04B0
+4117  04B1
+4118  04B2
+4119  04B3
+4120  04B4
+4121  04B5
+4122  04B6
+4123  04B7
+4124  04B8
+4125  04B9
+4126  04BA
+4127  04BB
+4128  04BC
+4129  04BD
+4130  04BE
+4131  04BF
+4132  04C0
+4133  04C1
+4134  04C2
+4135  04C3
+4136  04C4
+4137  04C5
+4138  04C6
+4139  04C7
+4140  04C8
+4141  04C9
+4142  04CA
+4143  04CB
+4144  04CC
+4145  04CD
+4146  04CE
+4147  04CF
+4148  04D0
+4149  04D1
+4150  04D2
+4151  04D3
+4152  04D4
+4153  04D5
+4154  04D6
+4155  04D7
+4156  04D8
+4157  04D9
+4158  04DA
+4159  04DB
+4160  04DC
+4161  04DD
+4162  04DE
+4163  04DF
+4164  04E0
+4165  04E1
+4166  04E2
+4167  04E3
+4168  04E4
+4169  04E5
+4170  04E6
+4171  04E7
+4172  04E8
+4173  04E9
+4174  04EA
+4175  04EB
+4176  04EC
+4177  04ED
+4178  04EE
+4179  04EF
+4180  04F0
+4181  04F1
+4182  04F2
+4183  04F3
+4184  04F4
+4185  04F5
+4186  04F6
+4187  04F7
+4188  04F8
+4189  04F9
+4190  04FA
+4191  04FB
+4192  04FC
+4193  04FD
+4194  04FE
+4195  04FF
+4196  0500
+4197  0501
+4198  0502
+4199  0503
+4200  0504
+4201  0505
+4202  0506
+4203  0507
+4204  0508
+4205  0509
+4206  050A
+4207  050B
+4208  050C
+4209  050D
+4210  050E
+4211  050F
+4212  0510
+4213  0511
+4214  0512
+4215  0513
+4216  0514
+4217  0515
+4218  0516
+4219  0517
+4220  0518
+4221  0519
+4222  051A
+4223  051B
+4224  051C
+4225  051D
+4226  051E
+4227  051F
+4228  0520
+4229  0521
+4230  0522
+4231  0523
+4232  0524
+4233  0525
+4234  0526
+4235  0527
+4236  0528
+4237  0529
+4238  052A
+4239  052B
+4240  052C
+4241  052D
+4242  052E
+4243  052F
+4244  0530
+4245  0531
+4246  0532
+4247  0533
+4248  0534
+4249  0535
+4250  0536
+4251  0537
+4252  0538
+4253  0539
+4254  053A
+4255  053B
+4256  053C
+4257  053D
+4258  053E
+4259  053F
+4260  0540
+4261  0541
+4262  0542
+4263  0543
+4264  0544
+4265  0545
+4266  0546
+4267  0547
+4268  0548
+4269  0549
+4270  054A
+4271  054B
+4272  054C
+4273  054D
+4274  054E
+4275  054F
+4276  0550
+4277  0551
+4278  0552
+4279  0553
+4280  0554
+4281  0555
+4282  0556
+4283  0557
+4284  0558
+4285  0559
+4286  055A
+4287  055B
+4288  055C
+4289  055D
+4290  055E
+4291  055F
+4292  0560
+4293  0561
+4294  0562
+4295  0563
+4296  0564
+4297  0565
+4298  0566
+4299  0567
+4300  0568
+4301  0569
+4302  056A
+4303  056B
+4304  056C
+4305  056D
+4306  056E
+4307  056F
+4308  0570
+4309  0571
+4310  0572
+4311  0573
+4312  0574
+4313  0575
+4314  0576
+4315  0577
+4316  0578
+4317  0579
+4318  057A
+4319  057B
+4320  057C
+4321  057D
+4322  057E
+4323  057F
+4324  0580
+4325  0581
+4326  0582
+4327  0583
+4328  0584
+4329  0585
+4330  0586
+4331  0587
+4332  0588
+4333  0589
+4334  058A
+4335  058B
+4336  058C
+4337  058D
+4338  058E
+4339  058F
+4340  0590
+4341  0591
+4342  0592
+4343  0593
+4344  0594
+4345  0595
+4346  0596
+4347  0597
+4348  0598
+4349  0599
+4350  059A
+4351  059B
+4352  059C
+4353  059D
+4354  059E
+4355  059F
+4356  05A0
+4357  05A1
+4358  05A2
+4359  05A3
+4360  05A4
+4361  05A5
+4362  05A6
+4363  05A7
+4364  05A8
+4365  05A9
+4366  05AA
+4367  05AB
+4368  05AC
+4369  05AD
+4370  05AE
+4371  05AF
+4372  05B0
+4373  05B1
+4374  05B2
+4375  05B3
+4376  05B4
+4377  05B5
+4378  05B6
+4379  05B7
+4380  05B8
+4381  05B9
+4382  05BA
+4383  05BB
+4384  05BC
+4385  05BD
+4386  05BE
+4387  05BF
+4388  05C0
+4389  05C1
+4390  05C2
+4391  05C3
+4392  05C4
+4393  05C5
+4394  05C6
+4395  05C7
+4396  05C8
+4397  05C9
+4398  05CA
+4399  05CB
+4400  05CC
+4401  05CD
+4402  05CE
+4403  05CF
+4404  05D0
+4405  05D1
+4406  05D2
+4407  05D3
+4408  05D4
+4409  05D5
+4410  05D6
+4411  05D7
+4412  05D8
+4413  05D9
+4414  05DA
+4415  05DB
+4416  05DC
+4417  05DD
+4418  05DE
+4419  05DF
+4420  05E0
+4421  05E1
+4422  05E2
+4423  05E3
+4424  05E4
+4425  05E5
+4426  05E6
+4427  05E7
+4428  05E8
+4429  05E9
+4430  05EA
+4431  05EB
+4432  05EC
+4433  05ED
+4434  05EE
+4435  05EF
+4436  05F0
+4437  05F1
+4438  05F2
+4439  05F3
+4440  05F4
+4441  05F5
+4442  05F6
+4443  05F7
+4444  05F8
+4445  05F9
+4446  05FA
+4447  05FB
+4448  05FC
+4449  05FD
+4450  05FE
+4451  05FF
+4452  0600
+4453  0601
+4454  0602
+4455  0603
+4456  0604
+4457  0605
+4458  0606
+4459  0607
+4460  0608
+4461  0609
+4462  060A
+4463  060B
+4464  060C
+4465  060D
+4466  060E
+4467  060F
+4468  0610
+4469  0611
+4470  0612
+4471  0613
+4472  0614
+4473  0615
+4474  0616
+4475  0617
+4476  0618
+4477  0619
+4478  061A
+4479  061B
+4480  061C
+4481  061D
+4482  061E
+4483  061F
+4484  0620
+4485  0621
+4486  0622
+4487  0623
+4488  0624
+4489  0625
+4490  0626
+4491  0627
+4492  0628
+4493  0629
+4494  062A
+4495  062B
+4496  062C
+4497  062D
+4498  062E
+4499  062F
+4500  0630
+4501  0631
+4502  0632
+4503  0633
+4504  0634
+4505  0635
+4506  0636
+4507  0637
+4508  0638
+4509  0639
+4510  063A
+4511  063B
+4512  063C
+4513  063D
+4514  063E
+4515  063F
+4516  0640
+4517  0641
+4518  0642
+4519  0643
+4520  0644
+4521  0645
+4522  0646
+4523  0647
+4524  0648
+4525  0649
+4526  064A
+4527  064B
+4528  064C
+4529  064D
+4530  064E
+4531  064F
+4532  0650
+4533  0651
+4534  0652
+4535  0653
+4536  0654
+4537  0655
+4538  0656
+4539  0657
+4540  0658
+4541  0659
+4542  065A
+4543  065B
+4544  065C
+4545  065D
+4546  065E
+4547  065F
+4548  0660
+4549  0661
+4550  0662
+4551  0663
+4552  0664
+4553  0665
+4554  0666
+4555  0667
+4556  0668
+4557  0669
+4558  066A
+4559  066B
+4560  066C
+4561  066D
+4562  066E
+4563  066F
+4564  0670
+4565  0671
+4566  0672
+4567  0673
+4568  0674
+4569  0675
+4570  0676
+4571  0677
+4572  0678
+4573  0679
+4574  067A
+4575  067B
+4576  067C
+4577  067D
+4578  067E
+4579  067F
+4580  0680
+4581  0681
+4582  0682
+4583  0683
+4584  0684
+4585  0685
+4586  0686
+4587  0687
+4588  0688
+4589  0689
+4590  068A
+4591  068B
+4592  068C
+4593  068D
+4594  068E
+4595  068F
+4596  0690
+4597  0691
+4598  0692
+4599  0693
+4600  0694
+4601  0695
+4602  0696
+4603  0697
+4604  0698
+4605  0699
+4606  069A
+4607  069B
+4608  069C
+4609  069D
+4610  069E
+4611  069F
+4612  06A0
+4613  06A1
+4614  06A2
+4615  06A3
+4616  06A4
+4617  06A5
+4618  06A6
+4619  06A7
+4620  06A8
+4621  06A9
+4622  06AA
+4623  06AB
+4624  06AC
+4625  06AD
+4626  06AE
+4627  06AF
+4628  06B0
+4629  06B1
+4630  06B2
+4631  06B3
+4632  06B4
+4633  06B5
+4634  06B6
+4635  06B7
+4636  06B8
+4637  06B9
+4638  06BA
+4639  06BB
+4640  06BC
+4641  06BD
+4642  06BE
+4643  06BF
+4644  06C0
+4645  06C1
+4646  06C2
+4647  06C3
+4648  06C4
+4649  06C5
+4650  06C6
+4651  06C7
+4652  06C8
+4653  06C9
+4654  06CA
+4655  06CB
+4656  06CC
+4657  06CD
+4658  06CE
+4659  06CF
+4660  06D0
+4661  06D1
+4662  06D2
+4663  06D3
+4664  06D4
+4665  06D5
+4666  06D6
+4667  06D7
+4668  06D8
+4669  06D9
+4670  06DA
+4671  06DB
+4672  06DC
+4673  06DD
+4674  06DE
+4675  06DF
+4676  06E0
+4677  06E1
+4678  06E2
+4679  06E3
+4680  06E4
+4681  06E5
+4682  06E6
+4683  06E7
+4684  06E8
+4685  06E9
+4686  06EA
+4687  06EB
+4688  06EC
+4689  06ED
+4690  06EE
+4691  06EF
+4692  06F0
+4693  06F1
+4694  06F2
+4695  06F3
+4696  06F4
+4697  06F5
+4698  06F6
+4699  06F7
+4700  06F8
+4701  06F9
+4702  06FA
+4703  06FB
+4704  06FC
+4705  06FD
+4706  06FE
+4707  06FF
+4708  0700
+4709  0701
+4710  0702
+4711  0703
+4712  0704
+4713  0705
+4714  0706
+4715  0707
+4716  0708
+4717  0709
+4718  070A
+4719  070B
+4720  070C
+4721  070D
+4722  070E
+4723  070F
+4724  0710
+4725  0711
+4726  0712
+4727  0713
+4728  0714
+4729  0715
+4730  0716
+4731  0717
+4732  0718
+4733  0719
+4734  071A
+4735  071B
+4736  071C
+4737  071D
+4738  071E
+4739  071F
+4740  0720
+4741  0721
+4742  0722
+4743  0723
+4744  0724
+4745  0725
+4746  0726
+4747  0727
+4748  0728
+4749  0729
+4750  072A
+4751  072B
+4752  072C
+4753  072D
+4754  072E
+4755  072F
+4756  0730
+4757  0731
+4758  0732
+4759  0733
+4760  0734
+4761  0735
+4762  0736
+4763  0737
+4764  0738
+4765  0739
+4766  073A
+4767  073B
+4768  073C
+4769  073D
+4770  073E
+4771  073F
+4772  0740
+4773  0741
+4774  0742
+4775  0743
+4776  0744
+4777  0745
+4778  0746
+4779  0747
+4780  0748
+4781  0749
+4782  074A
+4783  074B
+4784  074C
+4785  074D
+4786  074E
+4787  074F
+4788  0750
+4789  0751
+4790  0752
+4791  0753
+4792  0754
+4793  0755
+4794  0756
+4795  0757
+4796  0758
+4797  0759
+4798  075A
+4799  075B
+4800  075C
+4801  075D
+4802  075E
+4803  075F
+4804  0760
+4805  0761
+4806  0762
+4807  0763
+4808  0764
+4809  0765
+4810  0766
+4811  0767
+4812  0768
+4813  0769
+4814  076A
+4815  076B
+4816  076C
+4817  076D
+4818  076E
+4819  076F
+4820  0770
+4821  0771
+4822  0772
+4823  0773
+4824  0774
+4825  0775
+4826  0776
+4827  0777
+4828  0778
+4829  0779
+4830  077A
+4831  077B
+4832  077C
+4833  077D
+4834  077E
+4835  077F
+4836  0780
+4837  0781
+4838  0782
+4839  0783
+4840  0784
+4841  0785
+4842  0786
+4843  0787
+4844  0788
+4845  0789
+4846  078A
+4847  078B
+4848  078C
+4849  078D
+4850  078E
+4851  078F
+4852  0790
+4853  0791
+4854  0792
+4855  0793
+4856  0794
+4857  0795
+4858  0796
+4859  0797
+4860  0798
+4861  0799
+4862  079A
+4863  079B
+4864  079C
+4865  079D
+4866  079E
+4867  079F
+4868  07A0
+4869  07A1
+4870  07A2
+4871  07A3
+4872  07A4
+4873  07A5
+4874  07A6
+4875  07A7
+4876  07A8
+4877  07A9
+4878  07AA
+4879  07AB
+4880  07AC
+4881  07AD
+4882  07AE
+4883  07AF
+4884  07B0
+4885  07B1
+4886  07B2
+4887  07B3
+4888  07B4
+4889  07B5
+4890  07B6
+4891  07B7
+4892  07B8
+4893  07B9
+4894  07BA
+4895  07BB
+4896  07BC
+4897  07BD
+4898  07BE
+4899  07BF
+4900  07C0
+4901  07C1
+4902  07C2
+4903  07C3
+4904  07C4
+4905  07C5
+4906  07C6
+4907  07C7
+4908  07C8
+4909  07C9
+4910  07CA
+4911  07CB
+4912  07CC
+4913  07CD
+4914  07CE
+4915  07CF
+4916  07D0
+4917  07D1
+4918  07D2
+4919  07D3
+4920  07D4
+4921  07D5
+4922  07D6
+4923  07D7
+4924  07D8
+4925  07D9
+4926  07DA
+4927  07DB
+4928  07DC
+4929  07DD
+4930  07DE
+4931  07DF
+4932  07E0
+4933  07E1
+4934  07E2
+4935  07E3
+4936  07E4
+4937  07E5
+4938  07E6
+4939  07E7
+4940  07E8
+4941  07E9
+4942  07EA
+4943  07EB
+4944  07EC
+4945  07ED
+4946  07EE
+4947  07EF
+4948  07F0
+4949  07F1
+4950  07F2
+4951  07F3
+4952  07F4
+4953  07F5
+4954  07F6
+4955  07F7
+4956  07F8
+4957  07F9
+4958  07FA
+4959  07FB
+4960  07FC
+4961  07FD
+4962  07FE
+4963  07FF
+4964  0800
+4965  0801
+4966  0802
+4967  0803
+4968  0804
+4969  0805
+4970  0806
+4971  0807
+4972  0808
+4973  0809
+4974  080A
+4975  080B
+4976  080C
+4977  080D
+4978  080E
+4979  080F
+4980  0810
+4981  0811
+4982  0812
+4983  0813
+4984  0814
+4985  0815
+4986  0816
+4987  0817
+4988  0818
+4989  0819
+4990  081A
+4991  081B
+4992  081C
+4993  081D
+4994  081E
+4995  081F
+4996  0820
+4997  0821
+4998  0822
+4999  0823
+5000  0824
+5001  0825
+5002  0826
+5003  0827
+5004  0828
+5005  0829
+5006  082A
+5007  082B
+5008  082C
+5009  082D
+5010  082E
+5011  082F
+5012  0830
+5013  0831
+5014  0832
+5015  0833
+5016  0834
+5017  0835
+5018  0836
+5019  0837
+5020  0838
+5021  0839
+5022  083A
+5023  083B
+5024  083C
+5025  083D
+5026  083E
+5027  083F
+5028  0840
+5029  0841
+5030  0842
+5031  0843
+5032  0844
+5033  0845
+5034  0846
+5035  0847
+5036  0848
+5037  0849
+5038  084A
+5039  084B
+5040  084C
+5041  084D
+5042  084E
+5043  084F
+5044  0850
+5045  0851
+5046  0852
+5047  0853
+5048  0854
+5049  0855
+5050  0856
+5051  0857
+5052  0858
+5053  0859
+5054  085A
+5055  085B
+5056  085C
+5057  085D
+5058  085E
+5059  085F
+5060  0860
+5061  0861
+5062  0862
+5063  0863
+5064  0864
+5065  0865
+5066  0866
+5067  0867
+5068  0868
+5069  0869
+5070  086A
+5071  086B
+5072  086C
+5073  086D
+5074  086E
+5075  086F
+5076  0870
+5077  0871
+5078  0872
+5079  0873
+5080  0874
+5081  0875
+5082  0876
+5083  0877
+5084  0878
+5085  0879
+5086  087A
+5087  087B
+5088  087C
+5089  087D
+5090  087E
+5091  087F
+5092  0880
+5093  0881
+5094  0882
+5095  0883
+5096  0884
+5097  0885
+005098  000234        
+005099  000235      var vIAngularMeter0[WIDGET_RAM_SPACE] ;
+005100  000236      var vIAngularMeter1[WIDGET_RAM_SPACE] ;
+005101  000237      var vILedDigits0[WIDGET_RAM_SPACE+2] ;
+005102  000238      var vIAngularMeter3[WIDGET_RAM_SPACE] ;
+005103  000239      var vILedDigits1[WIDGET_RAM_SPACE+2] ;
+005104  000240      var vILedDigits2[WIDGET_RAM_SPACE+2] ;
+005105  000241      var vILedDigits3[WIDGET_RAM_SPACE+2] ;
+005106  000242      var vIAngularMeter2[WIDGET_RAM_SPACE] ;
+005107  000243      var vILedDigits4[WIDGET_RAM_SPACE+2] ;
+005108  000244      var vILedDigits6[WIDGET_RAM_SPACE+2] ;
+005109  000245      var vILedDigits7[WIDGET_RAM_SPACE+2] ;
+005110  000246      var vILedDigits8[WIDGET_RAM_SPACE+2] ;
+005111  000247      var vILedDigits5[WIDGET_RAM_SPACE+2] ;
+005112  000248      var vILedDigits9[WIDGET_RAM_SPACE+2] ;
+005113  000249  // Start P2.inc
+005114  000250  var vObjects[MaxIntObjects+1] ;              // address of RAM objects
+005115  000251  var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
+005116  000252  var oObjects[MaxTotObjects+1] ;                 // address of objects
+005117  000253  var CurrentForm, oldn, ImageTouched ;
+005118  000254  var TouchXpos, TouchYpos ;
+005119  000255  var GObjectType, TouchState, CurInputData, pInputIndex ;
+005120  000256  var comRX[40], cmd[CMDLenMAX] ;
+005121  000257        
+005122  000258  var InputCS, OutputCS ;
+005123  000259        
+005124  000260  // > ? Constant/Global/Data ? <
+005125  000261        
+005126  000262  func addressInternalWidget(var idx var iponly)
+005127  000263      var i, j ;
+005128  000264  //to(COM0) ; print("Address Int ", idx, " ") ; pause(2) ;
+005129  000265      GObjectIdx := xobj2iobj[idx] ;
+005130  000266      GObjectType := (GObjectIdx>>8) ;                          // extract object type
+005131  000267      i := oObjects[GObjectType] ;                              // i is address of list of all objects of this type
+005132  000268      GObjectIdx &= 0xff ;
+005133  000269      //GObjectIdx *= 2 ;
+005134  000270      j := GObjectIdx * 2 ;
+005135  000271      GObjectDATA := i[j + 2] ;                                 // address of this object
+005136  000272      i := vObjects[GObjectType-tiAngularMeter] ;               // i is address of list of all ram objects of his type
+005137  000273      GObjectRAM := i[j] ;                                      // address of this objects' ram
+005138  000274      i := GObjectType-tiAngularMeter ;
+005139  000275      GObjectFunc := gfxInternals[i] ; // address function
+005140  000276      GObjectParms := gfxIntParms[i] ;
+005141  000277      GObjectStrings := gfxIntStrings[i] ;
+005142  000278  //to(COM0) ; print([HEX4] GObjectFunc, " ", [HEX4] GObjectRAM, " ", [HEX4] GObjectDATA, " ", GObjectType, " ", GObjectIdx, "\r\n") ;
+005143  000279  //    GObjectFunc(0, GObjectRAM, GObjectDATA) ;
+005144  000280  endfunc
+005145  000281        
+005146  000282  func seroutCS(var op)
+005147  000283      serout(op) ;
+005148  000284      OutputCS ^= op ;
+005149  000285  endfunc
+005150  000286        
+005151  000287  func nak0()
+005152  000288      serout(NAK) ;
+005153  000289      InputCS := 0 ;
+005154  000290  endfunc
+005155  000291        
+005156  000292  func seroutOcs()
+005157  000293      serout(OutputCS) ;
+005158  000294      OutputCS := 0 ;
+005159  000295  endfunc
+005160  000296        
+005161  000297  func SendReport(var id, var objt, var objn, var val)
+005162  000298      seroutCS(id) ;
+005163  000299      seroutCS(objt) ;
+005164  000300      seroutCS(objn) ;
+005165  000301      seroutCS(val >> 8) ; // first 8 bits
+005166  000302      seroutCS(val) ;
+005167  000303      seroutOcs() ;
+005168  000304  endfunc
+005169  000305        
+005170  000306        
+005171  000307  func ReadObject(var ObjectType, var ObjectIdx)
+005172  000308      var j, k, Objects ;
+005173  000309      if ((ObjectType >= tiLedDigitsH) && (ObjectType <= tiLinearInput))
+005174  000310          j := ObjectIdx *2 ;
+005175  000311          k := vObjects[ObjectType-tiAngularMeter] ;               // k is address of list of all ram objects of his type
+005176  000312          k := k[j] ;                                              // k is address of this objects' ram
+005177  000313          if (ObjectType == tiLedDigit)
+005178  000314              k := k[0] ;
+005179  000315          else 
+005180  000316              k := k[WIDGET_VAL1] ;
+005181  000317          endif
+005182  000318  //gfx_MoveTo(0,0); txt_Opacity(OPAQUE) ; print(ObjectType, " ", ObjectIdx, " ", k," ") ;
+005183  000319      else
+005184  000320      Objects := *(oObjects+ObjectType) ;
+005185  000321        
+005186  000322      j := 2 + ObjectIdx * 2 + Objects ;
+005187  000323       if (ObjectType == tForm)
+005188  000324          k := CurrentForm ;
+005189  000325          else
+005190  000326          k := img_GetWord(hndl, *j, IMAGE_INDEX);
+005191  000327          if (((ObjectType == tWinButton) || (ObjectType == tAniButton) || (ObjectType == tUserButton) || (ObjectType == t4Dbutton)) && (k)) k := 1 ; // this is not correct for blocked buttons and cannot be fixed as we cannot
+005192  000328                                                                                                                                                      // determine if button is momentary or not which is needed for correct answer.
+005193  000329      endif
+005194  000330      endif
+005195  000331      SendReport(REPORT_OBJ, ObjectType, ObjectIdx, k) ;
+005196  000332  endfunc
+005197  000333        
+005198  000334  var wp ;
+005199  000335        
+005200  000336        
+005201  000337  func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
+005202  000338      var i, j, k, Objects ;
+005203  000339  //    ObjectType &= 0x3f ; Why was his there? Anibuttons? Complex cascades?
+005204  000340      if (ObjectType == tForm)
+005205  000341          ActivateForm(ObjectIdx) ;
+005206  000342          return ;
+005207  000343      endif
+005208  000344      Objects := *(oObjects+ObjectType)+ObjectIdx*2+2 ;
+005209  000345      i := *(Objects) ;
+005210  000346      if ((ObjectType >= tiAngularMeter) && (ObjectType <= tiLinearInput))
+005211  000347          i := oObjects[ObjectType] ;                              // f is address of list of all objects of this type
+005212  000348          j := ObjectIdx *2 ;
+005213  000349          i := i[j + 2] ;                         // f is address of this object
+005214  000350          k := vObjects[ObjectType-tiAngularMeter] ;               // a is address of list of all ram objects of his type
+005215  000351          k := k[j] ;                             // a is address of this objects' ram
+005216  000352              j := ObjectType-tiAngularMeter ;
+005217  000353              Objects := gfxInternals[j] ;           // locate function address   
+005218  000354              Objects(NewVal, k, i) ; 
+005219  000355          return ;
+005220  000356      endif
+005221  000357      switch (ObjectType)
+005222  000358          case tWinButton :
+005223  000359              j := InputControls[oWinButtons[ObjectIdx+1]] ;
+005224  000360              break ;
+005225  000361          default : j := -1 ;
+005226  000362      endswitch
+005227  000363        
+005228  000364      if (j != -1)
+005229  000365          k := img_GetWord(hndl, i , IMAGE_INDEX) ;
+005230  000366              NewVal := NewVal << 1 ;
+005231  000367              if (OVF())      // button group index change
+005232  000368                  if (*(j+InputData+Ofs_IPD_P1))
+005233  000369                      k &= 1 ;    // mask off old group index for momentary
+005234  000370                  else
+005235  000371                      k &= 3 ;    // mask off old group index for toggle
+005236  000372                  endif
+005237  000373              else            // normal set
+005238  000374                  if (*(j+InputData+Ofs_IPD_P2) != -1) TurnOffButtons(*(j+InputData+Ofs_IPD_P2)) ;
+005239  000375                  k &= 0xfffc ;    // retain only group index for state set
+005240  000376              endif
+005241  000377              NewVal |= k ;
+005242  000378  //        endif
+005243  000379          endif
+005244  000380        
+005245  000381      img_SetWord(hndl, i , IMAGE_INDEX, NewVal); // where state is 0 to 2
+005246  000382      img_Show(hndl, i) ; // will only display if form is current
+005247  000383      return ; // compiler bug circumvention!
+005248  000384  endfunc
+005249  000385        
+005250  000386  func TurnOffButtons(var group)
+005251  000387      var j, k, l, m, n, o, p;
+005252  000388      m := GObjectIdx ;     // save as will be clobbered
+005253  000389      n := GObjectType ;     // save as will be clobbered
+005254  000390      for (j := 0; j < nInputs; j++)
+005255  000391          k := j*IPDatasize ;
+005256  000392          if (*(InputData+k+Ofs_IPD_P2) == group)
+005257  000393              l := -1 ;
+005258  000394               if (*(InputData+k) == tWinButton)
+005259  000395                  l := oWinButtons[*(InputData+k+Ofs_IPD_OBJVIDX)/2] ;
+005260  000396                  img_SetWord(hndl, l, IMAGE_INDEX, 0);
+005261  000397                  img_Show(hndl, l);      // only shows on current form
+005262  000398        
+005263  000399              endif
+005264  000400          endif
+005265  000401      next
+005266  000402      GObjectIdx := m ;     // Restore
+005267  000403      GObjectType := n ;    // Restore
+005268  000404  endfunc
+005269  000405        
+005270  000406        
+005271  000407        
+005272  000408        
+005273  000409  func ActivateForm(var newform)
+005274  000410      var i, j, *p ;
+005275  000411        
+005276  000412          widget_Disable(wp, ALL) ;
+005277  000413      if (CurrentForm != -1) // deactivate old form, by disabling all inputs
+005278  000414          for (i := FormStartIndex[CurrentForm]; i <= FormEndIndex[CurrentForm]; i++)
+005279  000415              if (img_GetWord(hndl, i, IMAGE_TAG))
+005280  000416                  img_Disable(hndl,i) ;
+005281  000417              endif
+005282  000418          next
+005283  000419      endif
+005284  000420      CurrentForm := newform ;
+005285  000421      // display newform image or clear to image color
+005286  000422      if (FormBGcolors[CurrentForm] != ColorBGimage)
+005287  000423          gfx_Set(BACKGROUND_COLOUR,FormBGcolors[CurrentForm]);
+005288  000424          gfx_Cls() ;
+005289  000425          DoGFXObjects() ;                                    // display GFX 'widgets'
+005290  000426      endif
+005291  000427        
+005292  000428      // enable inputs
+005293  000429      for (i := FormStartIndex[CurrentForm]; i < FormEndIndex[CurrentForm]; i++)
+005294  000430          j := img_GetWord(hndl, i, IMAGE_TAG) ;
+005295  000431          if (j)
+005296  000432              j-- ;
+005297  000433              img_SetAttributes(hndl, i, I_STAYONTOP+I_ENABLED);        // make sure this is on top of form, if applicable
+005298  000434              //if (j != tKeyboard)
+005299  000435              if (((j <= tWinButton) || (j >= t4Dbutton)) && (j != tSmartGauge) )               // enable inputs
+005300  000436                  img_ClearAttributes(hndl, i, I_TOUCH_DISABLE);        // ensure touch is enabled
+005301  000437              endif
+005302  000438              img_Show(hndl,i) ; // show initialy, if required
+005303  000439              if (j == tForm)
+005304  000440                  DoGFXObjects() ;                                    // display GFX 'widgets' for image backgruobds
+005305  000441              endif
+005306  000442          endif
+005307  000443      next
+005308  000444        
+005309  000445      // enable inputs
+005310  000446         var a, f ; 
+005311  000457  */
+005312  000458      for (i := iFormStartIndex[CurrentForm]; i < iFormEndIndex[CurrentForm]; i++)
+005313  000459          addressInternalWidget(i, 0) ;
+005314  000460          widget_Enable(wp,i) ;
+005315  000461          if (GObjectType != tiLabelB) widget_ClearAttributes(wp,i,WIDGET_F_INITIALISED) ; // don't clear initialised for tiLabelB
+005316  000462                  j := GObjectRAM[WIDGET_VAL1] ;
+005317  000463                  GObjectFunc(j, GObjectRAM, GObjectDATA) ; 
+005318  000464      next
+005319  000465      for (i := iFormStartIndex[CurrentForm]; i < iFormEndIndex[CurrentForm]; i++)
+005320  000466          if (InternalInputControls[i] != -1)
+005321  000467              widget_SetAttributes(wp,i,WIDGET_F_TOUCH_ENABLE) ;
+005322  000468          endif
+005323  000469      next
+005324  000470        
+005325  000471        
+005326  000472  endfunc
+005327  000473        
+005328  000474  func UpdateObjects(var newval)
+005329  000475      var IPidx, otherOBJ, oldvalue ;
+005330  000476      if (GObjectType < tiLedDigitsH)
+005331  000477          oldvalue := img_GetWord(hndl, *(pInputIndex), IMAGE_INDEX) ;
+005332  000478      else
+005333  000479          oldvalue := GObjectRAM[WIDGET_VAL1] ;
+005334  000480      endif
+005335  000481      if ( ( oldvalue != newval) || (TouchState == Ofs_IPD_RELEASE) ) // only bother if values changed, or release
+005336  000482        
+005337  000483      if (GObjectType < tiLedDigitsH)
+005338  000484          img_SetWord(hndl, *(pInputIndex), IMAGE_INDEX, newval);
+005339  000485              img_Show(hndl, *(pInputIndex));      // only shows on current form
+005340  000486      else
+005341  000487          WriteObject(GObjectType, GObjectIdx, newval) ;
+005342  000488      endif
+005343  000489          if ((GObjectType == t4Dbutton) || (GObjectType == tUserButton) || (GObjectType == tWinButton))
+005344  000490              if (*(CurInputData+Ofs_IPD_P1))
+005345  000491                  newval &= 1;
+005346  000492              else
+005347  000493                  newval &= 3;
+005348  000494              endif
+005349  000495              if (newval > 1) newval := 1;
+005350  000496          endif
+005351  000497          IPidx := *(CurInputData+TouchState) ;
+005352  000498          while(IPidx != 0)
+005353  000499              otherOBJ := IPidx + InputData;
+005354  000500              if (*(otherOBJ) == OT_REPORT)
+005355  000501                  SendReport(REPORT_EVENT, GObjectType, *(otherOBJ+Ofs_IPD_OBJVIDX), newval) ;
+005356  000502              else if (*(otherOBJ) == OT_MAGIC)
+005357  000503                  IPidx := *(otherOBJ+Ofs_IPD_P5) ;
+005358  000504                  IPidx(newval) ;
+005359  000505  //            else if (TouchState == *(otherOBJ+Ofs_IPD_P4))  // test prior to Workshop 6.5.0.0
+005360  000506              else if ((TouchState == *(otherOBJ+Ofs_IPD_P4)) || (*(CurInputData+Ofs_IPD_P1) && ((GObjectType == t4Dbutton) || (GObjectType == tUserButton) || (GObjectType == tWinButton))))
+005361  000507                  if (*(otherOBJ) == OT_ACTIVATE)
+005362  000508                      ActivateForm(*(otherOBJ+Ofs_IPD_P2) ) ;
+005363  000509                      GObjectType := tForm ;
+005364  000510                  else if (*(otherOBJ) == OT_SETCONST)
+005365  000511                      newval := *(otherOBJ+Ofs_IPD_P3) ;
+005366  000512                      WriteObject(*(otherOBJ+Ofs_IPD_P1), *(otherOBJ+Ofs_IPD_P2), newval) ;
+005367  000513                  else if (*(otherOBJ) == OT_SETANOTHER)
+005368  000514                      WriteObject(*(otherOBJ+Ofs_IPD_P1), *(otherOBJ+Ofs_IPD_P2), newval) ;
+005369  000515                  else if (*(otherOBJ) == OT_PREVFRAME)
+005370  000516                      if (img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX))
+005371  000517                          WriteObject(*(otherOBJ+Ofs_IPD_P5),*(otherOBJ+Ofs_IPD_P2),img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX)-1) ;
+005372  000518                      endif
+005373  000519                      newval := img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) ;
+005374  000520                  else if (*(otherOBJ) == OT_NEXTFRAME)
+005375  000521                      if (img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) < *(otherOBJ+Ofs_IPD_P3))
+005376  000522                          WriteObject(*(otherOBJ+Ofs_IPD_P5),*(otherOBJ+Ofs_IPD_P2),img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX)+1) ;
+005377  000523                      endif
+005378  000524                      newval := img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) ;
+005379  000525                  endif
+005380  000526              endif
+005381  000527              IPidx := *(otherOBJ+TouchState) ;
+005382  000528          wend
+005383  000529      endif
+005384  000530  endfunc
+005385  000531        
+005386  000532  // End P2.inc
+005387  000533  func DoGFXObjects()
+005388  000534  endfunc
+005389  000535        
+005390  000536  // Start P3.inc
+005391  000537  func main()
+005392  000538      var comTX[50], cmdi, i, j, TouchStatus ;
+005393  000539        
+005394  000540        
+005395  000541      gfx_ScreenMode(LANDSCAPE) ;
+005396  000542        
+005397  000543      media_InitFlash(FLASH_ADDR_DEF_COMMAND) ;
+005398  000544        
+005399  000545        
+005400  000546  //    gfx_MoveTo(0, 0);
+005401  000547  //    print(mem_Heap()," ") ;
+005402  000548  //    gfx_TransparentColour(0x0020);
+005403  000549  //    gfx_Transparency(ON);
+005404  000550        
+005405  000551        
+005406  000552      // open image control
+005407  000553      hndl := file_LoadImageControl(0, 0, 3);
+005408  000554        
+005409  000555      // init 'constants'
+005410  000556  // End P3.inc
+005411  000557        
+005412  000558      oObjects[tDipSwitch] := oDipSwitchs ; // dummy as no object there
+005413  000559      oObjects[tKnob] := oDipSwitchs ; // dummy as no object there
+005414  000560      oObjects[tRockerSwitch] := oDipSwitchs ; // dummy as no object there
+005415  000561      oObjects[tRotarySwitch] := oDipSwitchs ; // dummy as no object there
+005416  000562      oObjects[tGSlider] := oDipSwitchs ; // dummy as no object there
+005417  000563      oObjects[tTrackbar] := oDipSwitchs ; // dummy as no object there
+005418  000564      oObjects[tWinButton] := oWinButtons ;
+005419  000565      oObjects[tAngularmeter] := oDipSwitchs ; // dummy as no object there
+005420  000566      oObjects[tCoolgauge] := oDipSwitchs ; // dummy as no object there
+005421  000567      oObjects[tCustomdigits] := oDipSwitchs ; // dummy as no object there
+005422  000568      oObjects[tForm] := oForms ;
+005423  000569      oObjects[tGauge] := oGauges ;
+005424  000570      oObjects[tImage] := oImages ;
+005425  000571      oObjects[tKeyboard] := oDipSwitchs ; // dummy as no object there
+005426  000572      oObjects[tLed] := oDipSwitchs ; // dummy as no object there
+005427  000573      oObjects[tLeddigits] := oDipSwitchs ; // dummy as no object there
+005428  000574      oObjects[tMeter] := oDipSwitchs ; // dummy as no object there
+005429  000575      oObjects[tStrings] := oDipSwitchs ; // dummy as no object there
+005430  000576      oObjects[tThermometer] := oDipSwitchs ; // dummy as no object there
+005431  000577      oObjects[tUserled] := oDipSwitchs ; // dummy as no object there
+005432  000578      oObjects[tVideo] := oDipSwitchs ; // dummy as no object there
+005433  000579      oObjects[tStaticText] := oDipSwitchs ; // dummy as no object there
+005434  000580      oObjects[tSounds] := oDipSwitchs ; // dummy as no object there
+005435  000581      oObjects[tTimer] := oDipSwitchs ; // dummy as no object there
+005436  000582      oObjects[tSpectrum] := oDipSwitchs ; // dummy as no object there
+005437  000583      oObjects[tTank] := oDipSwitchs ; // dummy as no object there
+005438  000584      oObjects[tUserImages] := oDipSwitchs ; // dummy as no object there
+005439  000585      oObjects[tPinOutput] := oDipSwitchs ; // dummy as no object there
+005440  000586      oObjects[tPinInput] := oDipSwitchs ; // dummy as no object there
+005441  000587      oObjects[t4Dbutton] := oDipSwitchs ; // dummy as no object there
+005442  000588      oObjects[tAniButton] := oDipSwitchs ; // dummy as no object there
+005443  000589      oObjects[tColorPicker] := oDipSwitchs ; // dummy as no object there
+005444  000590      oObjects[tUserButton] := oDipSwitchs ; // dummy as no object there
+005445  000591      oObjects[tMagicObject] := oDipSwitchs ; // dummy as no object there
+005446  000592      oObjects[tSmartGauge] := oDipSwitchs ; // dummy as no object there
+005447  000593      oObjects[tSmartSlider] := oDipSwitchs ; // dummy as no object there
+005448  000594      oObjects[tSmartKnob] := oDipSwitchs ; // dummy as no object there
+005449  000595      oObjects[tiLedDigitsH] := oDipSwitchs ; // dummy as no object there
+005450  000596      oObjects[tiAngularMeter] := oiAngularMeters ;
+005451  000597      oObjects[tiGauge] := oDipSwitchs ; // dummy as no object there
+005452  000598      oObjects[tiLabelB] := oDipSwitchs ; // dummy as no object there
+005453  000599      oObjects[tiUserGauge] := oDipSwitchs ; // dummy as no object there
+005454  000600      oObjects[tiMediaGauge] := oDipSwitchs ; // dummy as no object there
+005455  000601      oObjects[tiMediaThermometer] := oDipSwitchs ; // dummy as no object there
+005456  000602      oObjects[tiLed] := oDipSwitchs ; // dummy as no object there
+005457  000603      oObjects[tiMediaLed] := oDipSwitchs ; // dummy as no object there
+005458  000604      oObjects[tiLedDigits] := oiLedDigitss ;
+005459  000605      oObjects[tiNeedle] := oDipSwitchs ; // dummy as no object there
+005460  000606      oObjects[tiRuler] := oDipSwitchs ; // dummy as no object there
+005461  000607      oObjects[tiLedDigit] := oDipSwitchs ; // dummy as no object there
+005462  000608      oObjects[tiButtonD] := oDipSwitchs ; // dummy as no object there
+005463  000609      oObjects[tiButtonE] := oDipSwitchs ; // dummy as no object there
+005464  000610      oObjects[tiMediaButton] := oDipSwitchs ; // dummy as no object there
+005465  000611      oObjects[tiToggleInput] := oDipSwitchs ; // dummy as no object there
+005466  000612      oObjects[tiDial] := oDipSwitchs ; // dummy as no object there
+005467  000613      oObjects[tiMediaRotary] := oDipSwitchs ; // dummy as no object there
+005468  000614      oObjects[tiRotaryInput] := oDipSwitchs ; // dummy as no object there
+005469  000615      oObjects[tiSwitch] := oDipSwitchs ; // dummy as no object there
+005470  000616      oObjects[tiSwitchB] := oDipSwitchs ; // dummy as no object there
+005471  000617      oObjects[tiSliderE] := oDipSwitchs ; // dummy as no object there
+005472  000618      oObjects[tiMediaSlider] := oDipSwitchs ; // dummy as no object there
+005473  000619      oObjects[tiSliderH] := oDipSwitchs ; // dummy as no object there
+005474  000620      oObjects[tiSliderG] := oDipSwitchs ; // dummy as no object there
+005475  000621      oObjects[tiSliderF] := oDipSwitchs ; // dummy as no object there
+005476  000622      oObjects[tiSliderD] := oDipSwitchs ; // dummy as no object there
+005477  000623      oObjects[tiSliderC] := oDipSwitchs ; // dummy as no object there
+005478  000624      oObjects[tiLinearInput] := oDipSwitchs ; // dummy as no object there
+005479  000625      vObjects[0] := oiviAngularMeter ;
+005480  000626      vObjects[8] := oiviLedDigits ;
+005481  000627  // Start P4.inc
+005482  000628      wp := widget_Create(14) ;
+005483  000629      for (i := 0; i < 14; i++)
+005484  000630  	addressInternalWidget(i, 0) ;
+005485  000631          if (GObjectType != tiLedDigit) widget_Add(wp, i, GObjectRAM) ;    // don't add tiLedDigit objects as they are only 1 word long
+005486  000632      next
+005487  000633        
+005488  000634      // init comms
+005489  000635      com_Init(comRX,CMDLenMAX,0);
+005490  000636      com_SetBaud(COM0,960);
+005491  000637      com_TXbuffer(comTX, 100, 0);
+005492  000638      // tag 'real' objects
+005493  000639      for (i := 0; i <= MaxTotObjects; i++)
+005494  000640          if (   (i != tSounds)
+005495  000641              && (i != tTimer)
+005496  000642              && (i != tPinOutput)
+005497  000643              && (i != tMagicObject)
+005498  000644              && (i != tPinInput) )
+005499  000645              TouchXpos := oObjects[i] ;
+005500  000646              TouchYpos := *(TouchXpos) ;
+005501  000647              for (ImageTouched := 1; ImageTouched <= TouchYpos; ImageTouched++)
+005502  000648                  oldn := *(TouchXpos+ImageTouched*2) ;
+005503  000649                  img_SetAttributes(hndl, oldn, I_TOUCH_DISABLE);  // ensure touch is enabled
+005504  000650                  if (oldn != -1)
+005505  000651                      img_SetWord(hndl, oldn, IMAGE_TAG, i+1);
+005506  000652                      img_Disable(hndl, oldn) ;
+005507  000653                  endif
+005508  000654              next
+005509  000655          endif
+005510  000656      next
+005511  000657        
+005512  000658      // display initial form
+005513  000659      CurrentForm := -1 ;
+005514  000660  // End P4.inc
+005515  000661  // Start P5.inc
+005516  000662      ActivateForm(0) ; // need to change this according to first actual form
+005517  000663        
+005518  000664  // End P5.inc
+005519  000665  // Start P6.inc px44
+005520  000666      touch_Set(TOUCH_ENABLE);                            // enable the touch screen
+005521  000667      oldn := -1 ;
+005522  000668      repeat
+005523  000669        
+005524  000670          // check comms for command, how to NAK invalid command
+005525  000671          if (com_Count() != 0)
+005526  000672              i := serin() ;
+005527  000673              InputCS ^= i ;               // update checksum
+005528  000674                  cmd[cmdi++] := i ;
+005529  000675                   if (   (cmd[0] == READ_OBJ)
+005530  000676                           && (cmdi == 4)         )
+005531  000677                      if (InputCS)
+005532  000678                          nak0() ;
+005533  000679                      else
+005534  000680                          ReadObject(cmd[1], cmd[2]) ;
+005535  000681                      endif
+005536  000682                      cmdi := 0 ;
+005537  000683                  else if (   (cmd[0] == WRITE_OBJ)    // 6 byte write command (gen option)
+005538  000684                           && (cmdi == 6)          )
+005539  000685                      if (InputCS)
+005540  000686                          nak0() ;
+005541  000687                      else
+005542  000688                          WriteObject(cmd[1], cmd[2], cmd[3] << 8 + cmd[4]) ;
+005543  000689                          serout(ACK) ;
+005544  000690                      endif
+005545  000691                      cmdi := 0 ;
+005546  000692                  else if (   (cmd[0] == WRITE_CONTRAST)
+005547  000693                           && (cmdi == 3)         )
+005548  000694                      if (InputCS)
+005549  000695                          nak0() ;
+005550  000696                      else
+005551  000697                          gfx_Contrast(cmd[1]) ;
+005552  000698                          serout(ACK) ;
+005553  000699                      endif
+005554  000700                      cmdi := 0 ;
+005555  000701                  else if (cmdi == 6)    // we have 6 bytes and we've gotten here -> something wrong
+005556  000702                      nak0() ;
+005557  000703                      cmdi := 0 ;
+005558  000704                  endif
+005559  000705          endif   // a character is available
+005560  000706        
+005561  000707        
+005562  000708      // touch code processing
+005563  000709        
+005564  000710          TouchStatus := touch_Get(TOUCH_STATUS);               // get touchscreen status
+005565  000711          if ((TouchStatus == TOUCH_PRESSED) || (TouchStatus == TOUCH_RELEASED) || (TouchStatus == TOUCH_MOVING))
+005566  000712              ImageTouched := img_Touched(hndl,-1) ;
+005567  000713              if (ImageTouched == -1)
+005568  000714                  ImageTouched := widget_Touched(wp, ALL) ;
+005569  000715                  if (ImageTouched != -1) ImageTouched := -2 - ImageTouched ;
+005570  000716              endif
+005571  000717              if ((TouchStatus != TOUCH_RELEASED) && (ImageTouched != oldn) && (oldn != -1))
+005572  000718                  TouchStatus := TOUCH_RELEASED ;       // simulate release if we move off object
+005573  000719              endif
+005574  000720              if (TouchStatus != TOUCH_RELEASED)        // if not released
+005575  000721                  if (oldn != -1)
+005576  000722                      ImageTouched := oldn ;
+005577  000723                  else
+005578  000724                      if (oldn != ImageTouched)
+005579  000725                  oldn := ImageTouched ;
+005580  000726                          TouchStatus := TOUCH_PRESSED ;
+005581  000727                      endif
+005582  000728                  endif
+005583  000729                  TouchXpos  := touch_Get(TOUCH_GETX);
+005584  000730                  TouchYpos  := touch_Get(TOUCH_GETY);
+005585  000731                  TouchState := Ofs_IPD_DOWN ;
+005586  000732              else
+005587  000733                  ImageTouched := oldn ;                     // simulate release of what we touched
+005588  000734                  oldn := -1 ;                    // prevent double release
+005589  000735                  TouchState := Ofs_IPD_RELEASE ;
+005590  000736              endif
+005591  000737              if (ImageTouched >= 0)
+005592  000738                          CurInputData := InputControls[ImageTouched] + InputData;
+005593  000739                          GObjectType := *(CurInputData) ;
+005594  000740                          if (GObjectType == tSmartSlider)
+005595  000741                              i := tTrackbar ; // GSlider ;
+005596  000742                          else if (GObjectType == tSmartKnob)
+005597  000743                              i := tKnob ;
+005598  000744                          else if (GObjectType >= t4Dbutton) 
+005599  000745                              i := GObjectType - 23 ; // adjust to ensure next in gosub
+005600  000746                          else 
+005601  000747                              i := GObjectType ;
+005602  000748                          endif
+005603  000749                          gosub (i), (cDipswitch, cKnob, cRockerswitch, cRotaryswitch, cSlider, cTrackbar, cWinbutton, c4DButton, cAniButton, cColorPicker, cUserButton) ;
+005604  000750                          ImageTouched := -1 ; // show processed here
+005605  000751              endif
+005606  000752              if (ImageTouched != -1) ImageTouched := -2 - ImageTouched ;
+005607  000753              if (ImageTouched >= 0)
+005608  000754  //print(ImageTouched," ") ;
+005609  000755  //                        CurInputData := InternalInputControls[ImageTouched] + InternalInputData;
+005610  000756                          CurInputData := InternalInputControls[ImageTouched] + InputData;
+005611  000757  //                        GObjectType := *(CurInputData) ;
+005612  000758  //                        i := GObjectType ;
+005613  000759  //                        if (GObjectType >= t4Dbutton) i -= 23 ; // adjust to ensure next in gosub
+005614  000760  //                        gosub (i), (cDipswitch, cKnob, cRockerswitch, cRotaryswitch, cSlider, cTrackbar, cWinbutton, c4DButton, cAniButton, cColorPicker, cUserButton) ;
+005615  000761                          addressInternalWidget(ImageTouched, 0) ;
+005616  000762  //                        i := xobj2iiobj[ImageTouched] ;                            // address object type and hash from ram index
+005617  000763  //                        GObjectIdx := i & 0xff ;
+005618  000764  //                        GObjectType := (i>>8) ;                                   // extract object type
+005619  000765                          if (GObjectType <= tiToggleInput) 
+005620  000766                              i := 0 ;
+005621  000767                          else if (GObjectType <= tiRotaryInput) 
+005622  000768                              i := 1 ;
+005623  000769                          else if (GObjectType <= tiSwitchB) 
+005624  000770                              i := 2 ;
+005625  000771                          else 
+005626  000772                              i := 3 ;
+005627  000773                          endif
+005628  000774  //to(COM0) ; print(i, "\r\n") ;  
+005629  000775        
+005630  000776                          gosub (i), (ciButton, ciDial, ciSwitch, ciSlider) ;
+005631  000777        
+005632  000778        
+005633  000779  //            ImageTouched := widget_Touched(wp, ALL) ;
+005634  000780              endif
+005635  000781          endif
+005636  000782   //       if ((n != -1) && (oldn == -1)) oldn := n ;    // save what we touched in case we move off it
+005637  000783        
+005638  000784          sys_EventsResume() ;
+005639  000785      forever
+005640  000786        
+005641  000787  ciSwitch:
+005642  000788  cDipswitch:
+005643  000789        
+005644  000790  cKnob:
+005645  000791  ciDial:
+005646  000792        
+005647  000793  cRockerswitch:
+005648  000794        
+005649  000795  cRotaryswitch:
+005650  000796        
+005651  000797  cSlider:
+005652  000798  cTrackbar:
+005653  000799  ciSlider:
+005654  000800        
+005655  000801  ciButton:
+005656  000802        
+005657  000803  c4DButton:
+005658  000804  cUserButton:
+005659  000805  cWinbutton:
+005660  000806      pInputIndex := oObjects[GObjectType]  + *(CurInputData+Ofs_IPD_OBJVIDX) ;
+005661  000807      i := img_GetWord(hndl, *(pInputIndex), IMAGE_INDEX) ; // current state
+005662  000808  CommonButtons:
+005663  000809      if (*(CurInputData+Ofs_IPD_P1))                                 // momentary, reports 0, but should report 1
+005664  000810          if (TouchStatus == TOUCH_RELEASED)
+005665  000811              i &= 0xfffe ;
+005666  000812              TouchState == Ofs_IPD_DOWN ;
+005667  000813          else
+005668  000814              i |= 1 ;
+005669  000815              TouchState == Ofs_IPD_RELEASE ;
+005670  000816          endif
+005671  000817      else if (*(CurInputData+Ofs_IPD_P2) == -1)                      // Toggle, reports 0+2, but should report 0+1
+005672  000818          if (TouchStatus == TOUCH_RELEASED)                     // only truly change on release
+005673  000819              if ((i & 3) == 3)
+005674  000820                  i &= 0xfffc ;
+005675  000821              else
+005676  000822                  i++ ;
+005677  000823              endif
+005678  000824          else
+005679  000825              i |= 1 ;                                      // make down regardless of current state
+005680  000826          endif
+005681  000827      else                        // group action, up all other buttons on touch press, reports 0 for button down
+005682  000828          if (TouchStatus == TOUCH_PRESSED)                     // only truly change on release
+005683  000829              TurnOffButtons(*(CurInputData+Ofs_IPD_P2)) ;
+005684  000830          endif
+005685  000831          if (GObjectType < tiLedDigits)
+005686  000832              i := (i & 0xfffc) | 2 ;         // uSD button, four, grouping and blocking states
+005687  000833          else
+005688  000834              i := 1 ;                        // Internal button two states
+005689  000835          endif
+005690  000836      endif
+005691  000837        
+005692  000838      UpdateObjects(i) ;
+005693  000839  endsub ;
+005694  000840        
+005695  000841  cAniButton:
+005696  000842        
+005697  000843  cColorPicker:
+005698  000844        
+005699  000845  endfunc
+005700  000846  // End P6.inc
+Notice: local var 'j' in func 'main' is never used (line 538 file:SprinterGauge.4DGenieS)
+Notice: variable 'GObjectRAM' is being indexed (line 479 file:SprinterGauge.4DGenieS)
+Notice: Check that the function called via pointer  'IPidx' requires 1 argument (line 504 file:SprinterGauge.4DGenieS)
+Notice: variable 'GObjectRAM' is being indexed (line 462 file:SprinterGauge.4DGenieS)
+Notice: Check that the function called via pointer  'GObjectFunc' requires 3 arguments (line 463 file:SprinterGauge.4DGenieS)
+Notice: local var 'p' in func 'ActivateForm' is never used (line 410 file:SprinterGauge.4DGenieS)
+Notice: local var 'a' in func 'ActivateForm' is never used (line 446 file:SprinterGauge.4DGenieS)
+Notice: local var 'f' in func 'ActivateForm' is never used (line 446 file:SprinterGauge.4DGenieS)
+Notice: local var 'o' in func 'TurnOffButtons' is never used (line 387 file:SprinterGauge.4DGenieS)
+Notice: local var 'p' in func 'TurnOffButtons' is never used (line 387 file:SprinterGauge.4DGenieS)
+Notice: variable 'i' is being indexed (line 349 file:SprinterGauge.4DGenieS)
+Notice: variable 'k' is being indexed (line 351 file:SprinterGauge.4DGenieS)
+Notice: Check that the function called via pointer  'Objects' requires 3 arguments (line 354 file:SprinterGauge.4DGenieS)
+Notice: variable 'k' is being indexed (line 312 file:SprinterGauge.4DGenieS)
+Notice: variable 'k' is being indexed (line 314 file:SprinterGauge.4DGenieS)
+Notice: variable 'k' is being indexed (line 316 file:SprinterGauge.4DGenieS)
+Notice: variable 'i' is being indexed (line 271 file:SprinterGauge.4DGenieS)
+Notice: variable 'i' is being indexed (line 273 file:SprinterGauge.4DGenieS)
+Notice: function argument 'iponly' in func 'addressInternalWidget' is never used (line 262 file:SprinterGauge.4DGenieS)
 
 
 Symbol Table:
@@ -5735,8 +5740,8 @@ __MAXPROG                          32750  0x00007fee (const dword)  (usage 1)
 __PLATFORM                             4  0x00000004 (const dword)  (not used)
 ABS                                  -13  0xfffffff3 (PmmC func) args[1] r=1  (not used)
 ACK                                    6  0x00000006 (const dword)  (usage 6)
-ActivateForm                        3642  0x00000e3a (User func) args[1] r=0  (usage 9)
-addressInternalWidget               4948  0x00001354 (User func) args[2] r=0  (usage 9)
+ActivateForm                        3647  0x00000e3f (User func) args[1] r=0  (usage 9)
+addressInternalWidget               4953  0x00001359 (User func) args[2] r=0  (usage 9)
 ALICEBLUE                          63455  0x0000f7df (const dword)  (not used)
 ALL                                65535  0x0000ffff (const dword)  (usage 6)
 ANALOGUE                               2  0x00000002 (const dword)  (not used)
@@ -6103,7 +6108,7 @@ disp_WrGRAM                         -146  0xffffff6e (PmmC func) args[1] r=0  (n
 disp_WriteControl                   -147  0xffffff6d (PmmC func) args[1] r=0  (not used)
 disp_WriteWord                      -148  0xffffff6c (PmmC func) args[1] r=0  (not used)
 DODGERBLUE                          7327  0x00001c9f (const dword)  (not used)
-DoGFXObjects                        3006  0x00000bbe (User func) args[0] r=0  (usage 6)
+DoGFXObjects                        3011  0x00000bc3 (User func) args[0] r=0  (usage 6)
 DOWN                                   0  0x00000000 (const dword)  (not used)
 DSK                                63490  0x0000f802 (const dword)  (not used)
 EAST                                   3  0x00000003 (const dword)  (not used)
@@ -6213,9 +6218,9 @@ FONT3                                  2  0x00000002 (const dword)  (not used)
 FONT_ID                                2  0x00000002 (const dword)  (not used)
 FONT_SIZE                              2  0x00000002 (const dword)  (not used)
 FORESTGREEN                         9284  0x00002444 (const dword)  (not used)
-FormBGcolors                        1082  0x0000043aFormBGcolors                        1082  0x0000043a (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
-FormEndIndex                         856  0x00000358FormEndIndex                         856  0x00000358 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
-FormStartIndex                       852  0x00000354FormStartIndex                       852  0x00000354 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+FormBGcolors                        1087  0x0000043fFormBGcolors                        1087  0x0000043f (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+FormEndIndex                         861  0x0000035dFormEndIndex                         861  0x0000035d (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+FormStartIndex                       857  0x00000359FormStartIndex                       857  0x00000359 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
 FRAME_DELAY                           22  0x00000016 (const dword)  (not used)
 FUCHSIA                            63519  0x0000f81f (const dword)  (not used)
 GAINSBORO                          57083  0x0000defb (const dword)  (not used)
@@ -6493,37 +6498,37 @@ I_TOUCHED                           4096  0x00001000 (const dword)  (not used)
 I_X_LOCK                            1024  0x00000400 (const dword)  (not used)
 I_Y_LOCK                            2048  0x00000800 (const dword)  (not used)
 IFONT_OFFSET                           0  0x00000000 (const dword)  (not used)
-iFormEndIndex                        864  0x00000360iFormEndIndex                        864  0x00000360 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
-iFormStartIndex                      860  0x0000035ciFormStartIndex                      860  0x0000035c (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+iFormEndIndex                        869  0x00000365iFormEndIndex                        869  0x00000365 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+iFormStartIndex                      865  0x00000361iFormStartIndex                      865  0x00000361 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
 iGauge0                                2  0x00000002 (const ??? 0)  (usage 3)
 iIAngularMeter0                        0  0x00000000 (const ??? 0)  (not used)
 IIAngularMeter0                      237  0x000000edIIAngularMeter0                      237  0x000000ed (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iIAngularMeter1                        1  0x00000001 (const ??? 0)  (not used)
-IIAngularMeter1                      333  0x0000014dIIAngularMeter1                      333  0x0000014d (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IIAngularMeter1                      338  0x00000152IIAngularMeter1                      338  0x00000152 (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iIAngularMeter2                        7  0x00000007 (const ??? 0)  (not used)
-IIAngularMeter2                      620  0x0000026cIIAngularMeter2                      620  0x0000026c (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IIAngularMeter2                      625  0x00000271IIAngularMeter2                      625  0x00000271 (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iIAngularMeter3                        3  0x00000003 (const ??? 0)  (not used)
-IIAngularMeter3                      455  0x000001c7IIAngularMeter3                      455  0x000001c7 (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IIAngularMeter3                      460  0x000001ccIIAngularMeter3                      460  0x000001cc (mem) word[48] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits0                           2  0x00000002 (const ??? 0)  (not used)
-IILedDigits0                         433  0x000001b1IILedDigits0                         433  0x000001b1 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits0                         438  0x000001b6IILedDigits0                         438  0x000001b6 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits1                           4  0x00000004 (const ??? 0)  (not used)
-IILedDigits1                         554  0x0000022aIILedDigits1                         554  0x0000022a (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits1                         559  0x0000022fIILedDigits1                         559  0x0000022f (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits2                           5  0x00000005 (const ??? 0)  (not used)
-IILedDigits2                         576  0x00000240IILedDigits2                         576  0x00000240 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits2                         581  0x00000245IILedDigits2                         581  0x00000245 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits3                           6  0x00000006 (const ??? 0)  (not used)
-IILedDigits3                         598  0x00000256IILedDigits3                         598  0x00000256 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits3                         603  0x0000025bIILedDigits3                         603  0x0000025b (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits4                           8  0x00000008 (const ??? 0)  (not used)
-IILedDigits4                         720  0x000002d0IILedDigits4                         720  0x000002d0 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits4                         725  0x000002d5IILedDigits4                         725  0x000002d5 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits5                          12  0x0000000c (const ??? 0)  (not used)
-IILedDigits5                         808  0x00000328IILedDigits5                         808  0x00000328 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits5                         813  0x0000032dIILedDigits5                         813  0x0000032d (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits6                           9  0x00000009 (const ??? 0)  (not used)
-IILedDigits6                         742  0x000002e6IILedDigits6                         742  0x000002e6 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits6                         747  0x000002ebIILedDigits6                         747  0x000002eb (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits7                          10  0x0000000a (const ??? 0)  (not used)
-IILedDigits7                         764  0x000002fcIILedDigits7                         764  0x000002fc (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits7                         769  0x00000301IILedDigits7                         769  0x00000301 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits8                          11  0x0000000b (const ??? 0)  (not used)
-IILedDigits8                         786  0x00000312IILedDigits8                         786  0x00000312 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits8                         791  0x00000317IILedDigits8                         791  0x00000317 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iILedDigits9                          13  0x0000000d (const ??? 0)  (not used)
-IILedDigits9                         830  0x0000033eIILedDigits9                         830  0x0000033e (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+IILedDigits9                         835  0x00000343IILedDigits9                         835  0x00000343 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 iImage0                                0  0x00000000 (const ??? 0)  (usage 3)
 iImage1                                3  0x00000003 (const ??? 0)  (usage 3)
 iImage2                                4  0x00000004 (const ??? 0)  (usage 3)
@@ -6619,10 +6624,10 @@ IMG_WIDTH                             82  0x00000052 (const dword)  (not used)
 INDIANRED                          51947  0x0000caeb (const dword)  (not used)
 INDIGO                             18448  0x00004810 (const dword)  (not used)
 INPUT                                  1  0x00000001 (const dword)  (not used)
-InputControls                        868  0x00000364InputControls                        868  0x00000364 (mem) word[13] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+InputControls                        873  0x00000369InputControls                        873  0x00000369 (mem) word[13] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
 InputCS                              784  0x00000310 (mem) word (global)  (usage 15)
-InputData                            922  0x0000039aInputData                            922  0x0000039a (mem) word[44] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 27)
-InternalInputControls                894  0x0000037eInternalInputControls                894  0x0000037e (mem) word[14] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
+InputData                            927  0x0000039fInputData                            927  0x0000039f (mem) word[44] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 27)
+InternalInputControls                899  0x00000383InternalInputControls                899  0x00000383 (mem) word[14] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 6)
 intflash_Copy                       -422  0xfffffe5a (PmmC func) args[3] r=1  (not used)
 intflash_FunctionCall               -424  0xfffffe58 (PmmC func) args[7] r=1  (not used)
 intflash_FunctionFreeCache          -425  0xfffffe57 (PmmC func) args[1] r=0  (not used)
@@ -6740,7 +6745,7 @@ JOY_RIGHT                              4  0x00000004 (const dword)  (not used)
 JOY_UP                                 1  0x00000001 (const dword)  (not used)
 joystick                            -310  0xfffffeca (PmmC func) args[1] r=1  (not used)
 KHAKI                              63281  0x0000f731 (const dword)  (not used)
-kKeyboardKeystrokes                 1086  0x0000043ekKeyboardKeystrokes                 1086  0x0000043e (mem) word[1] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (not used)
+kKeyboardKeystrokes                 1091  0x00000443kKeyboardKeystrokes                 1091  0x00000443 (mem) word[1] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (not used)
 LANDSCAPE                              0  0x00000000 (const dword)  (usage 3)
 LANDSCAPE_R                            1  0x00000001 (const dword)  (not used)
 LAVENDER                           59199  0x0000e73f (const dword)  (not used)
@@ -6791,11 +6796,13 @@ LEDDIGITS_x                            0  0x00000000 (const dword)  (not used)
 LEDDIGITS_y                            2  0x00000002 (const dword)  (not used)
 LEFT_POS                               2  0x00000002 (const dword)  (not used)
 LEMONCHIFFON                       65497  0x0000ffd9 (const dword)  (not used)
-LIAngularMeter1                      429  0x000001adLIAngularMeter1                      429  0x000001ad (mem) byte[4] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
+LIAngularMeter0                      333  0x0000014dLIAngularMeter0                      333  0x0000014d (mem) byte[5] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
+LIAngularMeter0                   UNRESOLVED  (usage 2)
+LIAngularMeter1                      434  0x000001b2LIAngularMeter1                      434  0x000001b2 (mem) byte[4] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
 LIAngularMeter1                   UNRESOLVED  (usage 2)
-LIAngularMeter2                      716  0x000002ccLIAngularMeter2                      716  0x000002cc (mem) byte[4] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
+LIAngularMeter2                      721  0x000002d1LIAngularMeter2                      721  0x000002d1 (mem) byte[4] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
 LIAngularMeter2                   UNRESOLVED  (usage 2)
-LIAngularMeter3                      551  0x00000227LIAngularMeter3                      551  0x00000227 (mem) byte[3] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
+LIAngularMeter3                      556  0x0000022cLIAngularMeter3                      556  0x0000022c (mem) byte[3] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 1)
 LIAngularMeter3                   UNRESOLVED  (usage 2)
 LIGHTBLUE                          44764  0x0000aedc (const dword)  (not used)
 LIGHTCORAL                         62480  0x0000f410 (const dword)  (not used)
@@ -6823,7 +6830,7 @@ LPFINE                             43690  0x0000aaaa (const dword)  (not used)
 LPMEDIUM                           13107  0x00003333 (const dword)  (not used)
 LPSOLID                                0  0x00000000 (const dword)  (not used)
 MAGENTA                            63519  0x0000f81f (const dword)  (not used)
-main                                1124  0x00000464 (User func) args[0] r=0  (not used)
+main                                1129  0x00000469 (User func) args[0] r=0  (not used)
 MAROON                             32768  0x00008000 (const dword)  (not used)
 MAX                                  -15  0xfffffff1 (PmmC func) args[2] r=1  (not used)
 MaxIntObjects                         27  0x0000001b (const dword)  (usage 3)
@@ -6877,7 +6884,7 @@ MINTCREAM                          63487  0x0000f7ff (const dword)  (not used)
 MISTYROSE                          65340  0x0000ff3c (const dword)  (not used)
 MOCCASIN                           65334  0x0000ff36 (const dword)  (not used)
 NAK                                   21  0x00000015 (const dword)  (usage 3)
-nak0                                4913  0x00001331 (User func) args[0] r=0  (usage 12)
+nak0                                4918  0x00001336 (User func) args[0] r=0  (usage 12)
 nAniTimers                             0  0x00000000 (const dword)  (not used)
 NAVAJOWHITE                        65269  0x0000fef5 (const dword)  (not used)
 NAVY                                  16  0x00000010 (const dword)  (not used)
@@ -6914,9 +6921,9 @@ NORTH                                  0  0x00000000 (const dword)  (not used)
 NORTH_MIRRORED                         4  0x00000004 (const dword)  (not used)
 NOTOUCH                                0  0x00000000 (const dword)  (not used)
 OBJECT_COLOUR                         18  0x00000012 (const dword)  (not used)
-oDipSwitchs                         1010  0x000003f2oDipSwitchs                         1010  0x000003f2 (mem) word[1] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 183)
+oDipSwitchs                         1015  0x000003f7oDipSwitchs                         1015  0x000003f7 (mem) word[1] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 183)
 OFF                                    0  0x00000000 (const dword)  (not used)
-oForms                              1018  0x000003faoForms                              1018  0x000003fa (mem) word[3] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+oForms                              1023  0x000003ffoForms                              1023  0x000003ff (mem) word[3] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 Ofs_Digits_Digits                      2  0x00000002 (const dword)  (not used)
 Ofs_Digits_LeadingBlanks               8  0x00000008 (const dword)  (not used)
 Ofs_Digits_Left                        0  0x00000000 (const dword)  (not used)
@@ -6946,10 +6953,10 @@ Ofs_String_x1                          6  0x00000006 (const dword)  (not used)
 Ofs_String_x2                         10  0x0000000a (const dword)  (not used)
 Ofs_String_y1                          8  0x00000008 (const dword)  (not used)
 Ofs_String_y2                         12  0x0000000c (const dword)  (not used)
-oGauges                             1024  0x00000400oGauges                             1024  0x00000400 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
-oiAngularMeters                     1050  0x0000041aoiAngularMeters                     1050  0x0000041a (mem) word[5] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
-oiLedDigitss                        1060  0x00000424oiLedDigitss                        1060  0x00000424 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
-oImages                             1028  0x00000404oImages                             1028  0x00000404 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+oGauges                             1029  0x00000405oGauges                             1029  0x00000405 (mem) word[2] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+oiAngularMeters                     1055  0x0000041foiAngularMeters                     1055  0x0000041f (mem) word[5] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+oiLedDigitss                        1065  0x00000429oiLedDigitss                        1065  0x00000429 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
+oImages                             1033  0x00000409oImages                             1033  0x00000409 (mem) word[11] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 oiviAngularMeter                     181  0x000000b5oiviAngularMeter                     181  0x000000b5 (mem) word[4] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 oiviLedDigits                        189  0x000000bdoiviLedDigits                        189  0x000000bd (mem) word[10] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 3)
 OLDLACE                            65468  0x0000ffbc (const dword)  (not used)
@@ -6980,7 +6987,7 @@ OW_Read                             -299  0xfffffed5 (PmmC func) args[1] r=1  (n
 OW_Read9                            -300  0xfffffed4 (PmmC func) args[1] r=1  (not used)
 OW_Reset                            -298  0xfffffed6 (PmmC func) args[1] r=1  (not used)
 OW_Write                            -301  0xfffffed3 (PmmC func) args[2] r=0  (not used)
-oWinButtons                         1012  0x000003f4oWinButtons                         1012  0x000003f4 (mem) word[3] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 9)
+oWinButtons                         1017  0x000003f9oWinButtons                         1017  0x000003f9 (mem) word[3] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (usage 9)
 PALEGOLDENROD                      61269  0x0000ef55 (const dword)  (not used)
 PALEGREEN                          40915  0x00009fd3 (const dword)  (not used)
 PALETURQUOISE                      44925  0x0000af7d (const dword)  (not used)
@@ -7023,7 +7030,7 @@ RANDOM_HI                             33  0x00000021 (const dword)  (not used)
 RANDOM_LO                             32  0x00000020 (const dword)  (not used)
 READ_OBJ                               0  0x00000000 (const dword)  (usage 3)
 ReadCmd                              128  0x00000080 (const dword)  (not used)
-ReadObject                          4634  0x0000121a (User func) args[2] r=0  (usage 3)
+ReadObject                          4639  0x0000121f (User func) args[2] r=0  (usage 3)
 RECT_HEIGHT                            3  0x00000003 (const dword)  (not used)
 rect_Intersect                      -307  0xfffffecd (PmmC func) args[2] r=1  (not used)
 RECT_LEFT                              0  0x00000000 (const dword)  (not used)
@@ -7037,7 +7044,7 @@ REPORT_MAGIC_EVENT_DBYTES             11  0x0000000b (const dword)  (not used)
 REPORT_OBJ                             5  0x00000005 (const dword)  (usage 3)
 reserved                            -294  0xfffffeda (PmmC func) args[0] r=0  (not used)
 RIGHT_POS                              4  0x00000004 (const dword)  (not used)
-rKeyboardRoutines                   1088  0x00000440rKeyboardRoutines                   1088  0x00000440 (mem) word[1] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (not used)
+rKeyboardRoutines                   1093  0x00000445rKeyboardRoutines                   1093  0x00000445 (mem) word[1] (member of C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS)  (not used)
 ROSYBROWN                          48241  0x0000bc71 (const dword)  (not used)
 ROYALBLUE                          17244  0x0000435c (const dword)  (not used)
 RULERGAUGE_F_ORIENT_VERT               2  0x00000002 (const dword)  (not used)
@@ -7101,14 +7108,14 @@ SEASHELL                           65469  0x0000ffbd (const dword)  (not used)
 SEED                                 -20  0xffffffec (PmmC func) args[1] r=0  (not used)
 SELECT                                 3  0x00000003 (const dword)  (not used)
 SELECT_MULTIPLE                        4  0x00000004 (const dword)  (not used)
-SendReport                          4846  0x000012ee (User func) args[4] r=0  (usage 6)
+SendReport                          4851  0x000012f3 (User func) args[4] r=0  (usage 6)
 serin                                 -1  0xffffffff (PmmC func) args[0] r=1  (usage 3)
 serin1                              -140  0xffffff74 (PmmC func) args[0] r=1  (not used)
 serinX                               N/A         N/A (macro) serin   (not used)
 serout                                -3  0xfffffffd (PmmC func) args[1] r=0  (usage 15)
 serout1                             -141  0xffffff73 (PmmC func) args[1] r=0  (not used)
-seroutCS                            4929  0x00001341 (User func) args[1] r=0  (usage 15)
-seroutOcs                           4896  0x00001320 (User func) args[0] r=0  (usage 3)
+seroutCS                            4934  0x00001346 (User func) args[1] r=0  (usage 15)
+seroutOcs                           4901  0x00001325 (User func) args[0] r=0  (usage 3)
 seroutX                              N/A         N/A (macro) serout   (not used)
 setbaud                               -4  0xfffffffc (PmmC func) args[1] r=0  (not used)
 SIENNA                             41605  0x0000a285 (const dword)  (not used)
@@ -7380,7 +7387,7 @@ tTank                                 26  0x0000001a (const dword)  (usage 3)
 tThermometer                          18  0x00000012 (const dword)  (usage 3)
 tTimer                                23  0x00000017 (const dword)  (usage 6)
 tTrackbar                              5  0x00000005 (const dword)  (usage 6)
-TurnOffButtons                      4118  0x00001016 (User func) args[1] r=0  (usage 6)
+TurnOffButtons                      4123  0x0000101b (User func) args[1] r=0  (usage 6)
 TURQUOISE                          18202  0x0000471a (const dword)  (not used)
 tUserButton                           33  0x00000021 (const dword)  (usage 12)
 tUserImages                           27  0x0000001b (const dword)  (usage 3)
@@ -7434,7 +7441,7 @@ umul_1616                           -289  0xfffffedf (PmmC func) args[3] r=1  (n
 UNDERLINED                           128  0x00000080 (const dword)  (not used)
 unicode_page                        -281  0xfffffee7 (PmmC func) args[3] r=1  (not used)
 UP                                     1  0x00000001 (const dword)  (not used)
-UpdateObjects                       3007  0x00000bbf (User func) args[1] r=0  (usage 3)
+UpdateObjects                       3012  0x00000bc4 (User func) args[1] r=0  (usage 3)
 USD_ENABLE                            25  0x00000019 (const dword)  (not used)
 USER_INITIALIZED_DISPLAY              32  0x00000020 (const dword)  (not used)
 usub_3232                           -291  0xfffffedd (PmmC func) args[3] r=1  (not used)
@@ -7507,7 +7514,7 @@ WRITE_OBJ                              1  0x00000001 (const dword)  (usage 3)
 WRITE_STR                              2  0x00000002 (const dword)  (not used)
 WRITE_STRU                             3  0x00000003 (const dword)  (not used)
 WriteCmd                               0  0x00000000 (const dword)  (not used)
-WriteObject                         4269  0x000010ad (User func) args[3] r=0  (usage 18)
+WriteObject                         4274  0x000010b2 (User func) args[3] r=0  (usage 18)
 X_MAX                                  0  0x00000000 (const dword)  (not used)
 X_ORG                                  6  0x00000006 (const dword)  (not used)
 X_ORIGIN                              30  0x0000001e (const dword)  (not used)

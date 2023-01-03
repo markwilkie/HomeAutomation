@@ -61,7 +61,7 @@ iAngularMeter
     LabelColor                   WHITE
     LabelColorFromScale          No
     LabelCount                   4
-    LabelDiscrete                No
+    LabelDiscrete                Yes
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
@@ -71,7 +71,7 @@ iAngularMeter
     Minvalue                     0
     NeedleCentered               Yes
     NeedleColor                  WHITESMOKE
-    NeedleLength                 32
+    NeedleLength                 40
     NeedleOffset                 17
     NeedlePinColor               SLATEGRAY
     NeedlePinDotColor            RED

@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:leonardo",
+    "port": "COM7",
+    "sketch": "4dTest.ino"
+}

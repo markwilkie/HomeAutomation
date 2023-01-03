@@ -1,4 +1,6 @@
 #include <genieArduino.h>
+#include <Wire.h>
+#include <SoftwareSerial.h>
 
 // This Demo communicates with a 4D Systems Display, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display has a slider, a cool gauge, an LED Digits, a string box and a User LED. Workshop4 Demo Project is located in the /extras folder
@@ -59,7 +61,6 @@ d = duration = 500 * (c / range)   e.g. 500*(40/100) (500ms for the biggest swin
 #define LOAD_TICKS 2                                 //Frequency of updates
 #define LOAD_NOR_FACTOR 100.0                        //Range for load so it's used to normalize
 
-
 //Global objects
 Genie genie;  
 unsigned long currentTickCount;
@@ -78,9 +79,15 @@ float loadChange;
 long loadDuration;
 long loadStartTime;  //recorded when we enter value update  (not when a new value comes across the wire)
 
+SoftwareSerial mySerial(10, 11); // RX, TX
+
 void setup()
 {
+  //USB port serial
   Serial.begin(115200);
+  
+  // set the data rate for the SoftwareSerial port that's used to communicate with can bus
+  mySerial.begin(115200);
   
   // Serial1 for the TX/RX pins, as Serial0 is for USB.  
   Serial1.begin(9600);  
@@ -120,6 +127,17 @@ void setup()
   //Init
   loadCurrentReading=0;
   nextNewLoadTickTime=0;
+
+  Serial.println("starting....");
+}
+
+void processIncoming()
+{
+  while(mySerial.available())
+  {
+    char data=mySerial.read();
+    Serial.print(data);    
+  }
 }
 
 void loop()
@@ -195,6 +213,9 @@ void loop()
 
   //Get any updates from display
   //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display
+
+  //read serial from canbus board
+  processIncoming();
 
   //small delay to be nice
   delay(DELAY_MS);
