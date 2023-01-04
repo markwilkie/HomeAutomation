@@ -44,6 +44,11 @@ bool PID::isMatch(unsigned long incomingId, unsigned int incomingService)
     return false;
 }
 
+const unsigned long PID::getId()
+{
+    return id;
+}
+
 //Get results when there's a match
 double PID::getResult(unsigned int _a,unsigned int _b,unsigned int _c,unsigned int _d,unsigned int _e)
 {

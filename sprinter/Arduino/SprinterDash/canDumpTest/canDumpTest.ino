@@ -8,9 +8,11 @@
 #include "TestData.h"
 #include "canbed_dual.h"
 
+//Can bus interfaces
 CANBedDual CAN0(0);
 CANBedDual CAN1(1);
 
+//Used for testing and simulation (actual dump)
 TestData testData;
 
 //Setup PIDs
@@ -19,17 +21,20 @@ PID coolantTemp(0x7DF,0x01,0x05,"Coolant Temp","C","A-40");
 PID manPressure(0x7DF,0x01,0x0B,"Manifold","kPa","A");
 PID engineRPM(0x7DF,0x01,0x0C,"RPM","RPM","(256*A+B)/4");
 PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A");
+PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40");
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","(256*A+B)/100");
+PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","A");
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A");
-PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A");
 PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","A-50");
-
-
+PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","A");
+PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A");
+PID ambientTemp(0x7DF,0x01,0x70,"Ambient Temp","C","A-40");
+PID* pidArray[]={&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&baraPressure,&transTemp,&ambientTemp};
 
 void setup()
 {
     Serial.begin(115200);  //logging
-    Serial1.begin(115200); //main arduino board
+    Serial1.begin(57600); //main arduino board
 
     //Setup pins
     pinMode(18, OUTPUT);   //LED
@@ -58,12 +63,18 @@ char readFromMaster()
   return retVal;
 }
 
-void writeToMaster(char data)
+uint16_t checksumCalculator(uint8_t * data, uint16_t length)
 {
-  //if(Serial1.availableForWrite(sizeof(data)))
-  //{
-    Serial1.write(data);
-  //}
+   uint16_t curr_crc = 0x0000;
+   uint8_t sum1 = (uint8_t) curr_crc;
+   uint8_t sum2 = (uint8_t) (curr_crc >> 8);
+   int index;
+   for(index = 0; index < length; index = index+1)
+   {
+      sum1 = (sum1 + data[index]) % 255;
+      sum2 = (sum2 + sum1) % 255;
+   }
+   return (sum2 << 8) | sum1;
 }
 
 void loop()
@@ -76,10 +87,9 @@ void loop()
     }
     else
     {
-        //Turn light on
-        delay(10);
+        //Blink light
         digitalWrite(18,HIGH);
-        delay(5);
+        delay(2);
         digitalWrite(18,LOW);
 
         //testdata
@@ -92,53 +102,34 @@ void loop()
         unsigned int d=testData.GetData(6);
         unsigned int e=testData.GetData(7);
 
+        //buffer used for communication
+        byte sendBuffer[15];
+
         //Serial.printf("ID: 0x%04x - 0x%02x 0x%02x    0x%02x \n",testId,service,pid,data1);
 
-        //check pids
-        if(engineRPM.isMatch(testId,service,pid))
+        //Dump pids we read
+        const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
+        for(int i=0;i<arrLen;i++)
         {
-          double result=engineRPM.getResult(a,b,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,engineRPM.getLabel(),result,engineRPM.getUnit());
-        }
-        if(engineLoad.isMatch(testId,service,pid))
-        {
-          double result=engineLoad.getResult(a,0,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,engineLoad.getLabel(),result,engineLoad.getUnit());
-        }
-        if(coolantTemp.isMatch(testId,service,pid))
-        {
-          double result=coolantTemp.getResult(a,0,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,coolantTemp.getLabel(),result,coolantTemp.getUnit());
-        }
-        if(fuelLevel.isMatch(testId,service,pid))
-        {
-          double result=fuelLevel.getResult(a,0,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,fuelLevel.getLabel(),result,fuelLevel.getUnit());
-        }
-        if(manPressure.isMatch(testId,service,pid))
-        {
-          double result=manPressure.getResult(a,0,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,manPressure.getLabel(),result,manPressure.getUnit());
-        }
-        if(mafFlow.isMatch(testId,service,pid))
-        {
-          double result=mafFlow.getResult(a,b,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,mafFlow.getLabel(),result,mafFlow.getUnit());
-        }
-        if(speed.isMatch(testId,service,pid))
-        {
-          double result=speed.getResult(a,0,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,speed.getLabel(),result,speed.getUnit());
-        }
-        if(baraPressure.isMatch(testId,service,pid))
-        {
-          double result=baraPressure.getResult(a,0,0,0,0);
-          Serial.printf("Val: %d  %s: %f%s\n",a,baraPressure.getLabel(),result,baraPressure.getUnit());
-        }
-        if(transTemp.isMatch(testId,testData.GetData(0))) 
-        {
-          double result=transTemp.getResult(testData.GetData(1),0,0,0,0);
-          Serial.printf("====================>  Val: %d  %s: %f%s\n",a,transTemp.getLabel(),result,transTemp.getUnit());
+          if(pidArray[i]->isMatch(testId,service,pid))
+          {
+            int result=(int)pidArray[i]->getResult(a,b,c,d,e);
+            
+            memcpy(sendBuffer,&service,2);
+            memcpy(sendBuffer+2,&pid,2);
+            memcpy(sendBuffer+4,&result,2);
+            int crc=checksumCalculator(sendBuffer,6);
+            memcpy(sendBuffer+6,&crc,2);
+
+            Serial1.write('[');
+            Serial1.write(sendBuffer,10);
+            Serial1.write(']');
+
+            //sprintf(sendBuffer,"[0x%04x,0x%02x,%f,%s]\0",pidArray[i]->getId(),pid,result,pidArray[i]->getUnit());
+            //Serial.print(sendBuffer);
+            //writeToMaster(sendBuffer);
+            Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",service,pid,pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
+          }          
         }
 
         //Go to next row from test data
@@ -151,11 +142,6 @@ void loop()
           Serial.print("Read: ");
           Serial.println(data);
         }
-
-        //Send data
-        writeToMaster('2');
-        //Serial.print("Sent: ");
-        //Serial.println('2');
     }
 }
 

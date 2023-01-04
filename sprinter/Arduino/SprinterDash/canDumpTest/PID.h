@@ -13,6 +13,7 @@ class PID
 
     //Get results when there's a match
     double getResult(unsigned int a,unsigned int b,unsigned int c,unsigned int d,unsigned int e);
+    const unsigned long getId();
     const char *getLabel();
     const char *getUnit();
     

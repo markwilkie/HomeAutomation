@@ -2,6 +2,8 @@
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
+#include "Gauge.h"
+
 // This Demo communicates with a 4D Systems Display, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display has a slider, a cool gauge, an LED Digits, a string box and a User LED. Workshop4 Demo Project is located in the /extras folder
 // The program receives messages from the Slider0 object using the Reported Events. This is triggered each time the Slider changes on the display, and an event
@@ -25,59 +27,27 @@
 // ViSi-Genie Displaying Temperature values from an Arduino Host - https://docs.4dsystems.com.au/app-note/4D-AN-00015/
 // ViSi-Genie Arduino Danger Shield - https://docs.4dsystems.com.au/app-note/4D-AN-00025
 
-/*
-We're solving for a position at a given time, e.g. p(t)
-
-t = time = where in time (x axis) I'm at
-b = beginning = beginning position
-c = change = how much it'll be changed at the end, or end pos - beg pos (velocity is c/d)
-d = duration = how long we want to take to change
-
-So for linear, (e.g. car travelling at a specific speed) it'd be:
-t = 2 hours
-position = 2 X velocity
-p = 2 X (change / duration)    e.g. 120 miles traveled / 2 hours == 60
-
-Of the 4 variables, only 1 changes....time.  So, we'll solve for position given time.
-
-So for a gauge, the variables will corrospond to:
-
-t = time = current millis()
-b = beginning = gauge # (e.g. 0 for the load gauge)
-c = change = e.g. end pos - beg pos.  This case let's say it's 40-0 (velocity is c/d)
-d = duration = 500 * (c / range)   e.g. 500*(40/100) (500ms for the biggest swing possible?  Should be a configurable value)
- */
-
 //defines
 #define RESETLINE 4  //Bringing D4 low resets the display
 
 #define TICK_MS 250   //Number of milli-seconds between "ticks" in the loop
 #define DELAY_MS 10   //Milli-seconds we "delay" in loop
 
-#define CHANGE_THRESHOLD 0  //10 percent = .1...e.g., we'll just adjust end position and not reset curve if within 10%
-#define REFRESH_TICKS 4       //how many ticks the screen refreshes
-
-#define LOAD_TICK_NEW_VALUE_MAX ((1*1000)/TICK_MS)   //1-max is the range of how long to wait before giving a new value
-#define LOAD_TICKS 2                                 //Frequency of updates
-#define LOAD_NOR_FACTOR 100.0                        //Range for load so it's used to normalize
-
 //Global objects
 Genie genie;  
 unsigned long currentTickCount;
 unsigned long lastTickTime;
 unsigned long nextRefreshTickTime;
-unsigned long nextNewLoadTickTime;
-unsigned long nextLoadTickTime;
 
-//Load globals
-float loadReading;  //current reading from CAN bus
-float lastLoadReading;  //last reading from CAN bus to use for comparison
-float loadEndPos;
-float loadCurrentReading;
-float loadBeg;
-float loadChange;
-long loadDuration;
-long loadStartTime;  //recorded when we enter value update  (not when a new value comes across the wire)
+//Supported gauges
+Gauge loadGauge(&genie,0x41,0x04,100,0,0);  //genie*,service,pid,gauge range,ang meter obj #,digits obj #
+Gauge boostGauge(&genie,0x41,0x0B,25,3,2); 
+Gauge coolantTempGauge(&genie,0x41,0x05,250,1,1,0,20,250);   //+ delta threshold, ticks to update, and smoothing
+
+//Serial coms
+byte serialBuffer[20];
+int currentComIdx=0;
+bool msgStarted=false;
 
 SoftwareSerial mySerial(10, 11); // RX, TX
 
@@ -87,7 +57,7 @@ void setup()
   Serial.begin(115200);
   
   // set the data rate for the SoftwareSerial port that's used to communicate with can bus
-  mySerial.begin(115200);
+  mySerial.begin(57600);
   
   // Serial1 for the TX/RX pins, as Serial0 is for USB.  
   Serial1.begin(9600);  
@@ -121,90 +91,118 @@ void setup()
   //Setup ticks
   currentTickCount=0;
 
-  //general
-  randomSeed(analogRead(0));  //seed psuedo ran number generator
-
-  //Init
-  loadCurrentReading=0;
-  nextNewLoadTickTime=0;
-
   Serial.println("starting....");
 }
 
-void processIncoming()
+uint16_t checksumCalculator(uint8_t * data, uint16_t length)
 {
-  while(mySerial.available())
+   uint16_t curr_crc = 0x0000;
+   uint8_t sum1 = (uint8_t) curr_crc;
+   uint8_t sum2 = (uint8_t) (curr_crc >> 8);
+   int index;
+   for(index = 0; index < length; index = index+1)
+   {
+      sum1 = (sum1 + data[index]) % 255;
+      sum2 = (sum2 + sum1) % 255;
+   }
+   return (sum2 << 8) | sum1;
+}
+
+bool processIncoming(int *service,int *pid,int *value)
+{
+  char data='\0';
+
+  //Get to start of message
+  while(mySerial.available() && !msgStarted)
   {
-    char data=mySerial.read();
-    Serial.print(data);    
+    data=mySerial.read();
+    if(data=='[')
+    {
+      msgStarted=true;
+      break;
+    }
   }
+
+  //Read message
+  while(mySerial.available() && msgStarted)
+  {
+    data=mySerial.read();
+
+    //start again?
+    if(data=='[')
+    {
+      currentComIdx=0;
+      data=mySerial.read();
+    }
+
+    //done?
+    if(data==']')
+    {
+      serialBuffer[currentComIdx]='\0';
+      break;
+    }
+
+    serialBuffer[currentComIdx]=data;
+    currentComIdx++;
+  }
+
+  //tokenize if complete message
+  if(data==']')
+  {
+    //reset flags
+    msgStarted=false;
+    currentComIdx=0;
+
+    //check crc
+    int crc=0;
+    memcpy(&crc,serialBuffer+6,2);
+    int calcdCRC=checksumCalculator(serialBuffer,6);
+    if(crc!=calcdCRC)
+    {
+      //Just drop it and move on
+      Serial.println("CRC ERROR!!!!");
+      return false;
+    }
+
+    //copy values
+    memcpy(service,serialBuffer,2);
+    memcpy(pid,serialBuffer+2,2);
+    memcpy(value,serialBuffer+4,2);
+    return true;    
+  }
+
+  return false;  //nothing new
 }
 
 void loop()
-{   
-  //Determine how often a new value comes in (simulates values from the CAN bus)
-  if((currentTickCount>=nextNewLoadTickTime) || currentTickCount==0)
-  {
-    lastLoadReading=loadReading;
-    loadReading=random(100);  //number between 0 and 100....e.g. load
-    nextNewLoadTickTime=currentTickCount+random(LOAD_TICK_NEW_VALUE_MAX-1)+1;  //generate next "random" time to generate a new value
-  }
-  //else if(currentTickCount>=(nextNewLoadTickTime/10))    //Simulates the smaller random fluxuations fromt he CAN bus
-  //{
-  //  lastLoadReading=loadReading;
-  //  loadReading=loadReading+(5-random(10));  //small number that's both negative and positive
-  //}  
+{
+  //read serial from canbus board
+  int service; int pid; int value;
+  bool retVal=processIncoming(&service,&pid,&value);
 
-  //Determine if it's time to update load value (e.g. generate a new smoothing curve)
-  int loadDelta=abs(lastLoadReading-loadReading);  
-  if((currentTickCount>=nextLoadTickTime || currentTickCount==0) && loadDelta>0)
+  //new values to process?
+  if(retVal)
   {
-    if(loadDelta>(float)loadReading*CHANGE_THRESHOLD)
-    {   
-      loadStartTime=millis();
-      loadDuration=(LOAD_TICKS*TICK_MS);
-      loadBeg=loadCurrentReading;
-      loadEndPos=loadReading/LOAD_NOR_FACTOR;   //normalize load to between 0-1    
-      loadChange=loadEndPos-loadBeg;
-    }
-    else
+    //set gauges
+    if(loadGauge.isMatch(service,pid))
     {
-      loadEndPos=loadReading/LOAD_NOR_FACTOR;   //normalize load to between 0-1    
-      loadChange=loadEndPos-loadBeg;    
+      loadGauge.setValue(value);
+      loadGauge.update(currentTickCount);
+    }  
+    if(coolantTempGauge.isMatch(service,pid))
+    {
+      coolantTempGauge.setValue(value*(9/5)+32);
+      coolantTempGauge.update(currentTickCount);
     }
-    nextLoadTickTime=currentTickCount+LOAD_TICKS;
-    lastLoadReading=loadReading;
+    if(boostGauge.isMatch(service,pid))
+    {
+      Serial.println(value*.145-14.7);
+      boostGauge.setValue(value*.145);
+      boostGauge.update(currentTickCount);
+    }
   }
 
-  //Update load smoothing using time, not ticks of course
-  long tms=millis()-loadStartTime;
-  if(tms<=loadDuration)
-  {
-    float t=(float)tms/loadDuration;  //needs to be normalized between 0 and 1
-    if (t < .5) {
-      loadCurrentReading = (loadChange) * (t*t*t*4) + loadBeg;
-    }
-    else {
-      float tt=(t*2)-2;
-      loadCurrentReading = (loadChange) * ((tt*tt*tt*.5)+1) + loadBeg;
-    }
-
-    //Update gauge  (gotta have this here because of the smoothing)
-    genie.WriteObject(GENIE_OBJ_IANGULAR_METER, 0, loadCurrentReading*LOAD_NOR_FACTOR);
-    genie.WriteObject(GENIE_OBJ_ILED_DIGITS, 0, loadReading);       
-  }
-  /*
-  else if(currentTickCount>=nextRefreshTickTime)    //Refresh screen if time too
-  {
-    //Update gauge
-    genie.WriteObject(GENIE_OBJ_IANGULAR_METER, 0, loadReading);
-    genie.WriteObject(GENIE_OBJ_ILED_DIGITS, 0, loadReading);    
-
-    nextRefreshTickTime=currentTickCount+REFRESH_TICKS;
-  }
-  */
-
-  //Increment ticks
+  //Increment ticks to we keep timing sorted
   if((millis()-lastTickTime)>=TICK_MS)
   {
     lastTickTime=millis();
@@ -214,11 +212,8 @@ void loop()
   //Get any updates from display
   //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display
 
-  //read serial from canbus board
-  processIncoming();
-
   //small delay to be nice
-  delay(DELAY_MS);
+  //delay(DELAY_MS);
 }
 
 /////////////////////////////////////////////////////////////////////

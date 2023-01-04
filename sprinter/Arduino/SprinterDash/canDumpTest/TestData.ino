@@ -2,8 +2,10 @@
 
 void TestData::NextRow()
 {
+    const int arrLen = sizeof(simData) / sizeof(simData[0]);
+
     rowPtr=rowPtr+9;
-    if(rowPtr>=sizeof(simData))
+    if(rowPtr>=arrLen)
         rowPtr=0;
 }
 
