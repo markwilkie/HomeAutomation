@@ -1,27 +1,28 @@
 #ifndef PID_h
 #define PID_h
 
+#include "TestData.h"
+
 class PID 
 {
 
   public:
-    PID(unsigned long _id,unsigned char _service,unsigned char _PID,const char *_label,const char *_unit,const char *_formula);  
-    PID(unsigned long _id,unsigned char _service,const char *_label,const char *_unit,const char *_formula);
+    PID(unsigned int _id,unsigned int _service,unsigned int _PID,const char *_label,const char *_unit,const char *_formula,bool _extDataMode=false);  
 
     //Pass each response in to see if there's a match
-    bool isMatch(unsigned long id, unsigned int service, unsigned int pid,unsigned int data0);
+    bool isMatch(unsigned int id,unsigned int *canFrame);
     bool isExtData();
 
     //Get results when there's a match
-    double getResult(unsigned int a,unsigned int b,unsigned int c,unsigned int d,unsigned int e);
-    const unsigned long getId();
+    double getResult(unsigned int *canFrame);
+    const unsigned int getId();
     const char *getLabel();
     const char *getUnit();
     
   private: 
     bool extDataMode;
-    unsigned long id;
-    unsigned long responseId;
+    unsigned int id;
+    unsigned int responseId;
     unsigned int service;
     unsigned int PIDCode;
     const char *label;

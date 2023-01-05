@@ -2,16 +2,17 @@
 #include "tinyexpr.h"
 
 //translation will have to conv 0x01 to 0x04 and 0x7E8 from 0x7DF
-PID::PID(unsigned long _id,unsigned char _service,unsigned char _PIDCode,const char *_label,const char *_unit,const char *_formula)
+//extDataMode (defaults to false) means that we're searching for a frame that is part of a multi-frame reponse....e.g., the pid and service are long gone - part of an earlier frame.
+//
+PID::PID(unsigned int _id,unsigned int _service,unsigned int _PIDCode,const char *_label,const char *_unit,const char *_formula,bool _extDataMode)
 {
-    extDataMode=false;
-
     id=_id;
     service=_service;
     PIDCode=_PIDCode;
     label=_label;
     unit=_unit;
     formula=_formula;
+    extDataMode=_extDataMode;
 
     //determine response IDs
     if(id==0x7DF)
@@ -20,44 +21,27 @@ PID::PID(unsigned long _id,unsigned char _service,unsigned char _PIDCode,const c
         responseId=0x7E9;     
 }
 
-//If extended, then pid's sometimes don't mean anything
-PID::PID(unsigned long _id,unsigned char _service,const char *_label,const char *_unit,const char *_formula)
-{
-    extDataMode=true;
-
-    id=_id;
-    service=_service;
-    label=_label;
-    unit=_unit;
-    formula=_formula;  
-
-
-    //determine response IDs
-    if(id==0x7DF)
-        responseId=0x7E8;
-    if(id==0x7E1)
-        responseId=0x7E9;         
-}
-
 bool PID::isExtData()
 {
     return extDataMode;
 }
 
 //Pass each response in to see if there's a match
-bool PID::isMatch(unsigned long incomingId, unsigned int incomingService, unsigned int incomingPid,unsigned int data0)
+bool PID::isMatch(unsigned int incomingId,unsigned int *canFrame)
 {
     //If ext data mode, don't match on pid
-    if(extDataMode && incomingId==responseId && data0==service)
+    if(extDataMode && incomingId==responseId && service==canFrame[0])
     {       
         //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,data0,service); 
         return true;
     }
 
+    //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,testData->GetData(1),(service + 0x40),testData->GetData(2),PIDCode); 
+
     //Do full matching
     if(incomingId==responseId)
     {       
-        if(incomingService==(service + 0x40) && incomingPid==PIDCode)
+        if((service+0x40)==canFrame[1] && PIDCode==canFrame[2])
         {
             //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,incomingService,(service + 0x40),incomingPid,PIDCode); 
             return true;
@@ -67,13 +51,13 @@ bool PID::isMatch(unsigned long incomingId, unsigned int incomingService, unsign
     return false;
 }
 
-const unsigned long PID::getId()
+const unsigned int PID::getId()
 {
     return id;
 }
 
 //Get results when there's a match
-double PID::getResult(unsigned int _a,unsigned int _b,unsigned int _c,unsigned int _d,unsigned int _e)
+double PID::getResult(unsigned int *canFrame)
 {
     /* Store variable names and pointers. */
     double a,b,c,d,e;
@@ -86,7 +70,13 @@ double PID::getResult(unsigned int _a,unsigned int _b,unsigned int _c,unsigned i
     te_expr *expr = te_compile(formula, vars, 5, &err);
     if (expr) 
     {
-        a=_a; b=_b; c=_c; d=_d; e=_e;
+        if(extDataMode) {
+            a=canFrame[0]; b=canFrame[1]; c=canFrame[2]; d=canFrame[3]; e=canFrame[4];
+        }
+        else {
+            a=canFrame[3]; b=canFrame[4]; c=canFrame[5]; d=canFrame[6]; e=canFrame[7];
+        }
+        
         result = te_eval(expr);
         //Serial.printf("Formula Result:%f using %s with %d\n", result,formula,a);
         te_free(expr);

@@ -7,6 +7,7 @@ class TestData
   public:
     void NextRow();
     unsigned long GetId();
+    void FillCanFrame(unsigned int *);
     unsigned int GetData(int idx);
     unsigned int* GetDataPtr();
         
@@ -14,7 +15,7 @@ class TestData
     unsigned int rowPtr;
 };
 
-    unsigned long simData[]= {
+    unsigned int simData[]= {
                 0x07DF	,	0x02	,	0x01	,	0x00	,	0x00	,	0x00	,	0x00	,	0x00	,	0x00	,
                 0x07DF	,	0x02	,	0x01	,	0x0D	,	0x00	,	0x00	,	0x00	,	0x00	,	0x00	,
                 0x07DF	,	0x02	,	0x01	,	0x0C	,	0x00	,	0x00	,	0x00	,	0x00	,	0x00	,

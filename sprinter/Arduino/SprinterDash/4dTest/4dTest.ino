@@ -173,6 +173,7 @@ bool processIncoming(int *service,int *pid,int *value)
     memcpy(service,serialBuffer,2);
     memcpy(pid,serialBuffer+2,2);
     memcpy(value,serialBuffer+4,2);
+
     return true;    
   }
 
