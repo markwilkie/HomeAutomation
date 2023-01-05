@@ -25,7 +25,7 @@ PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40");
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","(256*A+B)/100");
 PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","A");
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A");
-PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","A-50");
+PID transTemp(0x7E1,0x22,"Trans Temp","C","A-50");
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","A");
 PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A");
 PID ambientTemp(0x7DF,0x01,0x70,"Ambient Temp","C","A-40");
@@ -111,13 +111,30 @@ void loop()
         const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
         for(int i=0;i<arrLen;i++)
         {
-          if(pidArray[i]->isMatch(testId,service,pid))
+          if(pidArray[i]->isMatch(testId,service,pid,testData.GetData(0)))
           {
-            int result=(int)pidArray[i]->getResult(a,b,c,d,e);
+            int result=0;
             
-            memcpy(sendBuffer,&service,2);
-            memcpy(sendBuffer+2,&pid,2);
-            memcpy(sendBuffer+4,&result,2);
+            //If extended data mode, then we don't have a pid, and we grab the data from the 2nd field and on
+            //  This implimentation is not robust, but should work if this continues to be the only gauge
+            if(pidArray[i]->isExtData())
+            {
+              result=(int)pidArray[i]->getResult(testData.GetData(1),testData.GetData(2),testData.GetData(3),testData.GetData(4),testData.GetData(5));
+
+              int svc=testData.GetData(0);
+              memcpy(sendBuffer,&svc,2);
+              memcpy(sendBuffer+2,&svc,2);
+              memcpy(sendBuffer+4,&result,2);
+            }
+            else
+            {
+              result=(int)pidArray[i]->getResult(a,b,c,d,e);
+              memcpy(sendBuffer,&service,2);
+              memcpy(sendBuffer+2,&pid,2);
+              memcpy(sendBuffer+4,&result,2);
+            }
+
+            //crc
             int crc=checksumCalculator(sendBuffer,6);
             memcpy(sendBuffer+6,&crc,2);
 

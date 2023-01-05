@@ -4,6 +4,8 @@
 //translation will have to conv 0x01 to 0x04 and 0x7E8 from 0x7DF
 PID::PID(unsigned long _id,unsigned char _service,unsigned char _PIDCode,const char *_label,const char *_unit,const char *_formula)
 {
+    extDataMode=false;
+
     id=_id;
     service=_service;
     PIDCode=_PIDCode;
@@ -15,12 +17,44 @@ PID::PID(unsigned long _id,unsigned char _service,unsigned char _PIDCode,const c
     if(id==0x7DF)
         responseId=0x7E8;
     if(id==0x7E1)
-        responseId=0x7E9;
+        responseId=0x7E9;     
+}
+
+//If extended, then pid's sometimes don't mean anything
+PID::PID(unsigned long _id,unsigned char _service,const char *_label,const char *_unit,const char *_formula)
+{
+    extDataMode=true;
+
+    id=_id;
+    service=_service;
+    label=_label;
+    unit=_unit;
+    formula=_formula;  
+
+
+    //determine response IDs
+    if(id==0x7DF)
+        responseId=0x7E8;
+    if(id==0x7E1)
+        responseId=0x7E9;         
+}
+
+bool PID::isExtData()
+{
+    return extDataMode;
 }
 
 //Pass each response in to see if there's a match
-bool PID::isMatch(unsigned long incomingId, unsigned int incomingService, unsigned int incomingPid)
+bool PID::isMatch(unsigned long incomingId, unsigned int incomingService, unsigned int incomingPid,unsigned int data0)
 {
+    //If ext data mode, don't match on pid
+    if(extDataMode && incomingId==responseId && data0==service)
+    {       
+        //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,data0,service); 
+        return true;
+    }
+
+    //Do full matching
     if(incomingId==responseId)
     {       
         if(incomingService==(service + 0x40) && incomingPid==PIDCode)
@@ -28,17 +62,6 @@ bool PID::isMatch(unsigned long incomingId, unsigned int incomingService, unsign
             //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,incomingService,(service + 0x40),incomingPid,PIDCode); 
             return true;
         }
-    }
-
-    return false;
-}
-
-bool PID::isMatch(unsigned long incomingId, unsigned int incomingService)
-{
-    if(incomingId==responseId && incomingService==service)
-    {       
-        //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,incomingService,(service + 0x40),incomingPid,PIDCode); 
-        return true;
     }
 
     return false;

@@ -3,6 +3,7 @@
 #include <SoftwareSerial.h>
 
 #include "Gauge.h"
+#include "PID.h"
 
 // This Demo communicates with a 4D Systems Display, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display has a slider, a cool gauge, an LED Digits, a string box and a User LED. Workshop4 Demo Project is located in the /extras folder
@@ -43,6 +44,10 @@ unsigned long nextRefreshTickTime;
 Gauge loadGauge(&genie,0x41,0x04,100,0,0);  //genie*,service,pid,gauge range,ang meter obj #,digits obj #
 Gauge boostGauge(&genie,0x41,0x0B,25,3,2); 
 Gauge coolantTempGauge(&genie,0x41,0x05,250,1,1,0,20,250);   //+ delta threshold, ticks to update, and smoothing
+Gauge transTempGauge(&genie,0x22,0x22,250,2,4,0,20,250); 
+
+//Extra values needed for calculations
+PID baraPressure(0x41,0x33);
 
 //Serial coms
 byte serialBuffer[20];
@@ -182,24 +187,8 @@ void loop()
 
   //new values to process?
   if(retVal)
-  {
-    //set gauges
-    if(loadGauge.isMatch(service,pid))
-    {
-      loadGauge.setValue(value);
-      loadGauge.update(currentTickCount);
-    }  
-    if(coolantTempGauge.isMatch(service,pid))
-    {
-      coolantTempGauge.setValue(value*(9/5)+32);
-      coolantTempGauge.update(currentTickCount);
-    }
-    if(boostGauge.isMatch(service,pid))
-    {
-      Serial.println(value*.145-14.7);
-      boostGauge.setValue(value*.145);
-      boostGauge.update(currentTickCount);
-    }
+  { 
+    updateGauges(service,pid,value);
   }
 
   //Increment ticks to we keep timing sorted
@@ -210,10 +199,43 @@ void loop()
   }
 
   //Get any updates from display
-  //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display
+  //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display  (used to change forms???)
 
-  //small delay to be nice
+  //small delay might be nice?
   //delay(DELAY_MS);
+}
+
+void updateGauges(int service,int pid,int value)
+{
+      //grab values used for calculations
+    if(baraPressure.isMatch(service,pid))
+    {
+      baraPressure.setValue(value);
+    }
+
+    //update gauges after doing any needed calculations
+    if(loadGauge.isMatch(service,pid))
+    {
+      loadGauge.setValue(value);
+      loadGauge.update(currentTickCount);
+    }  
+    if(coolantTempGauge.isMatch(service,pid))
+    {
+      coolantTempGauge.setValue(value*(9/5)+32);
+      coolantTempGauge.update(currentTickCount);
+    }
+    if(transTempGauge.isMatch(service,pid))
+    {
+      transTempGauge.setValue(value*(9/5)+32);
+      transTempGauge.update(currentTickCount);
+    }    
+    if(boostGauge.isMatch(service,pid))
+    {
+      int bara=baraPressure.getValue();
+      float boost=value-bara;
+      boostGauge.setValue(boost*.145);
+      boostGauge.update(currentTickCount);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////
