@@ -4,6 +4,7 @@
 
 #include "Gauge.h"
 #include "PID.h"
+#include "Trip.h"
 
 // This Demo communicates with a 4D Systems Display, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display has a slider, a cool gauge, an LED Digits, a string box and a User LED. Workshop4 Demo Project is located in the /extras folder
@@ -49,6 +50,9 @@ Gauge transTempGauge(&genie,0x22,0x22,250,2,4,0,20,250);
 //Extra values needed for calculations
 PID baraPressure(0x41,0x33);
 
+//Trip
+Trip trip = Trip(&genie);
+
 //Serial coms
 byte serialBuffer[20];
 int currentComIdx=0;
@@ -65,7 +69,7 @@ void setup()
   mySerial.begin(57600);
   
   // Serial1 for the TX/RX pins, as Serial0 is for USB.  
-  Serial1.begin(9600);  
+  Serial1.begin(115200);  
   genie.Begin(Serial1);   // Use Serial1 for talking to the display (Serial is for serial terminal and programming)
 
   //genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events
@@ -85,18 +89,20 @@ void setup()
 
   // Set the brightness/Contrast of the Display - (Not needed but illustrates how)
   // Most Displays use 0-15 for Brightness Control, where 0 = Display OFF, though to 15 = Max Brightness ON.
-  // Some displays are more basic, 1 (or higher) = Display ON, 0 = Display OFF.  
   genie.WriteContrast(10); // About 2/3 Max Brightness
-
-  //Write to String0 on the Display to show the version of the library used
-  //genie.WriteStr(0, GENIE_VERSION);
-  //OR to illustrate (comment out the above, uncomment the below)
-  //genie.WriteStr(0, (String) "Hello 4D World");
 
   //Setup ticks
   currentTickCount=0;
 
   Serial.println("starting....");
+
+
+  //
+  // We only have 1k of EEPROM
+  //
+  //TripSegment segment=TripSegment();
+  //Serial.println(sizeof(trip));
+  //Serial.println(sizeof(segment));
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
@@ -189,8 +195,12 @@ void loop()
   //new values to process?
   if(retVal)
   { 
-    updateGauges(service,pid,value);
+    updateGauges(service,pid,value);  //Update gauges
+    trip.update(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
   }
+
+  //Time to update trip display?
+  trip.updateDisplay(currentTickCount);
 
   //Increment ticks to we keep timing sorted
   if((millis()-lastTickTime)>=TICK_MS)
@@ -198,6 +208,8 @@ void loop()
     lastTickTime=millis();
     currentTickCount++;
   }
+
+  hertz++;
 
   //Get any updates from display
   //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display  (used to change forms???)
@@ -208,7 +220,7 @@ void loop()
 
 void updateGauges(int service,int pid,int value)
 {
-      //grab values used for calculations
+    //grab values used for calculations
     if(baraPressure.isMatch(service,pid))
     {
       baraPressure.setValue(value);
@@ -237,6 +249,8 @@ void updateGauges(int service,int pid,int value)
       boostGauge.setValue(boost*.145);
       boostGauge.update(currentTickCount);
     }
+
+    //update trip values
 }
 
 /////////////////////////////////////////////////////////////////////

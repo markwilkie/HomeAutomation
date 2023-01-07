@@ -70,8 +70,9 @@ double PID::getResult(unsigned int *canFrame)
     te_expr *expr = te_compile(formula, vars, 5, &err);
     if (expr) 
     {
+        //If extended data mode, the data starts 2nd byte in.  otherwise, it's normal with len+svc+pid first....
         if(extDataMode) {
-            a=canFrame[0]; b=canFrame[1]; c=canFrame[2]; d=canFrame[3]; e=canFrame[4];
+            a=canFrame[1]; b=canFrame[2]; c=canFrame[3]; d=canFrame[4]; e=canFrame[5];
         }
         else {
             a=canFrame[3]; b=canFrame[4]; c=canFrame[5]; d=canFrame[6]; e=canFrame[7];

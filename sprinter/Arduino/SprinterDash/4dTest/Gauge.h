@@ -13,7 +13,7 @@ class Gauge
     bool isMatch(int incomingSvc, int incomingPid);
 
     void setValue(int value);
-    void update(int currentTickCount);  //update actual gauge
+    void update(unsigned long currentTickCount);  //update actual gauge
     
   private: 
 
@@ -42,7 +42,7 @@ class Gauge
     float endPos;           //ending gauge position;
 
     //Timing
-    int nextTickCount;      //when to update/refresh the gauge again
+    unsigned long nextTickCount;      //when to update/refresh the gauge again
     long startTime;         //recorded when we update the gauge  (not when a new value comes across the wire)
 };
 

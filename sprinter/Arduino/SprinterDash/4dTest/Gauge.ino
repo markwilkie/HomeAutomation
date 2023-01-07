@@ -62,7 +62,7 @@ c = change = e.g. end pos - beg pos.  This case let's say it's 40-0 (velocity is
 d = duration = 500 * (c / range)   e.g. 500*(40/100) (500ms for the biggest swing possible?  Should be a configurable value)
  */
 
-void Gauge::update(int currentTickCount)
+void Gauge::update(unsigned long currentTickCount)
 {  
     //Determine if it's time to update load value (e.g. generate a new smoothing curve)
     int delta=abs(lastValue-currentValue);

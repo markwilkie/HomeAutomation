@@ -5,7 +5,7 @@ Depends
 end
 Options
     Genie
-    Speed                        9600
+    Speed                        115200
     Checksum                     No
     ResponseSize                 2
     Multidrop                    No
@@ -65,7 +65,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         170
+    Left                         165
     Maxvalue                     100
     MinorTicks                   15
     Minvalue                     0
@@ -122,7 +122,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         110
+    Left                         105
     Maxvalue                     250
     MinorTicks                   15
     Minvalue                     130
@@ -165,16 +165,16 @@ iLedDigits
     ColorActive                  WHEAT
     ColorInactive                0x181818
     DecimalPlace                 0
-    Digits                       3
+    Digits                       2
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         220
+    Left                         224
     ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          104
+    Top                          96
     OnChanged                    IAngularMeter0Set
 end
 iAngularMeter
@@ -197,7 +197,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         270
+    Left                         265
     Maxvalue                     22
     MinorTicks                   5
     Minvalue                     0
@@ -239,7 +239,7 @@ Image
     Alias                        WaterTemp
     Height                       20
     Image                        watertemp.png
-    Left                         146
+    Left                         140
     Source.Height                319
     Source.Left                  111
     Source.Top                   39
@@ -260,12 +260,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         140
+    Left                         135
     ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          4
+    Top                          7
     OnChanged                    IAngularMeter0Set
 end
 iLedDigits
@@ -283,56 +283,8 @@ iLedDigits
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          95
+    Top                          92
     OnChanged                    IAngularMeter0Set
-end
-WinButton
-    Name                         Winbutton0
-    Alias                        NextFormButton0
-    Appearance.Alignment         Center
-    Appearance.Layout            Left
-    Appearance.PictureAlignment  Right
-    Appearance.SimpleLayout      No
-    Appearance.Spacing           3
-    AutoSizeToPicture            No
-    Bevel                        Yes
-    BevelColor                   0x9D9D9D
-    Caption                      >>>
-    Color                        0x313131
-    Font.Color                   clWindowText
-    Font.Effects                 []
-    Font.Name                    Tahoma
-    Font.Size                    8
-    Font.Style                   []
-    Height                       115
-    Left                         465
-    Matrix                       -1
-    Momentary                    Yes
-    Picture                      (None)
-    StatusWhenOff.BGcolor        RED
-    StatusWhenOff.Caption        ''
-    StatusWhenOff.Glow           Yes
-    StatusWhenOff.Color          WHITE
-    StatusWhenOff.Effects        []
-    StatusWhenOff.Name           Tahoma
-    StatusWhenOff.Size           8
-    StatusWhenOff.Style          []
-    StatusWhenOff.Visible        Yes
-    StatusWhenOn.BGcolor         RED
-    StatusWhenOn.Caption         ''
-    StatusWhenOn.Glow            Yes
-    StatusWhenOn.Color           WHITE
-    StatusWhenOn.Effects         []
-    StatusWhenOn.Name            Tahoma
-    StatusWhenOn.Size            8
-    StatusWhenOn.Style           []
-    StatusWhenOn.Visible         Yes
-    Top                          8
-    Width                        12
-    OnChanged                    Form1Activate
-    OnTouchMoving                ''
-    OnTouchPressed               ''
-    OnTouchReleased              ''
 end
 Gauge
     Name                         Gauge0
@@ -402,7 +354,7 @@ Image
     Alias                        Boost
     Height                       20
     Image                        turbo-icon-1.jpg
-    Left                         314
+    Left                         309
     Source.Height                425
     Source.Left                  174
     Source.Top                   191
@@ -449,7 +401,7 @@ iAngularMeter
     LabelFont                    FONT2
     LabelOffset                  -15
     Labels                       \n
-    Left                         46
+    Left                         41
     Maxvalue                     250
     MinorTicks                   15
     Minvalue                     130
@@ -496,12 +448,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         80
+    Left                         75
     ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          4
+    Top                          7
     OnChanged                    IAngularMeter0Set
 end
 Image
@@ -509,7 +461,7 @@ Image
     Alias                        TransTemp
     Height                       20
     Image                        transmission-temperature-warning-light-icon-1024x654.jpg
-    Left                         85
+    Left                         80
     Source.Height                427
     Source.Left                  306
     Source.Top                   96
@@ -525,7 +477,7 @@ Image
     Alias                        LoadImage
     Height                       25
     Image                        load.jpg
-    Left                         228
+    Left                         223
     Source.Height                130
     Source.Left                  26
     Source.Top                   31
@@ -538,15 +490,15 @@ Image
 end
 Image
     Name                         Image6
-    Alias                        AvgMPG
+    Alias                        AvgMPGImg
     Height                       25
     Image                        avg_mpg.jpg
-    Left                         428
+    Left                         420
     Source.Height                381
     Source.Left                  0
     Source.Top                   0
     Source.Width                 543
-    Top                          5
+    Top                          4
     Width                        29
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -554,7 +506,7 @@ Image
 end
 iLedDigits
     Name                         ILedDigits6
-    Alias                        ILedDigits6
+    Alias                        AvgMPGdigits
     ColorActive                  WHEAT
     ColorInactive                0x181818
     DecimalPlace                 1
@@ -562,12 +514,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         380
+    Left                         370
     ShowDP                       Yes
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          5
+    Top                          7
     OnChanged                    ''
 end
 iLedDigits
@@ -580,12 +532,12 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         380
+    Left                         370
     ShowDP                       No
     Signed                       No
     Size                         1
     Spacing                      0
-    Top                          35
+    Top                          36
     OnChanged                    ''
 end
 iLedDigits
@@ -598,7 +550,7 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         368
+    Left                         359
     ShowDP                       No
     Signed                       No
     Size                         1
@@ -616,7 +568,7 @@ iLedDigits
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         346
+    Left                         340
     ShowDP                       Yes
     Signed                       No
     Size                         1
@@ -630,11 +582,11 @@ iLedDigits
     ColorActive                  WHEAT
     ColorInactive                0x181818
     DecimalPlace                 0
-    Digits                       2
+    Digits                       3
     DPisComma                    No
     Format                       Int16
     LeadingZero                  No
-    Left                         394
+    Left                         400
     ShowDP                       No
     Signed                       No
     Size                         1
@@ -647,12 +599,12 @@ Image
     Alias                        Image5
     Height                       23
     Image                        odometer.jpg
-    Left                         428
+    Left                         444
     Source.Height                67
     Source.Left                  0
     Source.Top                   18
     Source.Width                 100
-    Top                          95
+    Top                          96
     Width                        30
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -661,15 +613,15 @@ end
 Image
     Name                         Image7
     Alias                        Image7
-    Height                       25
-    Image                        hourglass.jpg
-    Left                         374
-    Source.Height                778
-    Source.Left                  0
-    Source.Top                   0
-    Source.Width                 573
+    Height                       32
+    Image                        stopwatch.jpg
+    Left                         372
+    Source.Height                180
+    Source.Left                  63
+    Source.Top                   39
+    Source.Width                 130
     Top                          96
-    Width                        15
+    Width                        25
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''
@@ -679,12 +631,12 @@ Image
     Alias                        MilesLeft
     Height                       28
     Image                        milesleft.jpg
-    Left                         428
+    Left                         420
     Source.Height                512
     Source.Left                  0
     Source.Top                   0
     Source.Width                 512
-    Top                          35
+    Top                          33
     Width                        27
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -695,13 +647,58 @@ Image
     Alias                        Image9
     Height                       27
     Image                        Elevation.jpg
-    Left                         428
+    Left                         420
     Source.Height                172
     Source.Left                  12
     Source.Top                   10
     Source.Width                 235
-    Top                          65
+    Top                          63
     Width                        30
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Gauge
+    Name                         Gauge1
+    Alias                        InstMPG
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             BLACK
+    Bevel.InnerHighlight         0x8D8D8D
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            clBtnShadow
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             Lowered
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Inner
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Color                        BLACK
+    Height                       70
+    Left                         456
+    Maxvalue                     30
+    Minvalue                     10
+    Orientation                  Vertical
+    Palette1.High                0x73ECAA
+    Palette1.Low                 0x505C09
+    Palette2.High                0x3EE9FB
+    Palette2.Low                 0x148C8F
+    Palette3.High                0x6061FF
+    Palette3.Low                 MAROON
+    Percent1                     40
+    Percent2                     10
+    Spacing                      2
+    Step                         1
+    Style                        TopRight
+    TickHeight                   2
+    Top                          12
+    Width                        15
+    OnChanged                    ''
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''
