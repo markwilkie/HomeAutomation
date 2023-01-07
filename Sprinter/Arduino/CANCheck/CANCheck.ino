@@ -28,6 +28,7 @@ bool newUpdate=false;
 void setup()
 {
     Serial.begin(115200);
+    Serial.println("Let's begin!");
     
     Wire1.setSDA(6);
     Wire1.setSCL(7);
@@ -44,11 +45,12 @@ void loop()
     int rtr = 0;
     int fd = 0;
     int len = 0;
-    
+  
     unsigned char dtaGet[100];
 
     if(CAN1.read(&id, &ext, &rtr, &fd, &len, dtaGet))
     {
+      //Serial.println(dtaGet[2],HEX);
         if(dtaGet[2]==0x04 && !load){
             load=true;
             newUpdate=true;
@@ -103,7 +105,7 @@ void loop()
         } 
     }
 
-    if(newUpdate)
+    if(newUpdate || !newUpdate)
     {
         newUpdate=false;
         Serial.print("load"); Serial.print(load); 

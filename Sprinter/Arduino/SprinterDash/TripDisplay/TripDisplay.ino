@@ -209,8 +209,6 @@ void loop()
     currentTickCount++;
   }
 
-  hertz++;
-
   //Get any updates from display
   //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display  (used to change forms???)
 
