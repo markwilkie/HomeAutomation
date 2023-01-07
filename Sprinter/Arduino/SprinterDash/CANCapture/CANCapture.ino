@@ -104,7 +104,7 @@ void loop()
 
     //CAN variables
     unsigned int id;
-    unsigned char canFrame[8];
+    unsigned char canFrame[30];
 
     //Check if simulation mode
     if(!digitalRead(10))
