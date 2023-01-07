@@ -1,6 +1,3 @@
-// CANBED DUAL TEST EXAMPLE
-// CAN 0 Send, CAN 1 Recv
-
 #include <Wire.h>
 #include <stdio.h>
 
@@ -11,7 +8,6 @@
 //Can bus interfaces
 CANBedDual CAN0(0);
 CANBedDual CAN1(1);
-unsigned int canFrame[8];
 
 //Used for testing and simulation (actual dump)
 TestData testData;
@@ -50,6 +46,7 @@ void setup()
     CAN1.init(500000);          // CAN1 baudrate: 500kb/s
 }
 
+//not yet used....
 char readFromMaster()
 {
   char retVal='0';
@@ -100,62 +97,62 @@ void sendToMaster(unsigned int service,unsigned int pid,unsigned int value)
 
 void loop()
 {
+    //Blink light
+    digitalWrite(18,HIGH);
+    delay(2);
+    digitalWrite(18,LOW);
+
+    //CAN variables
+    unsigned int id;
+    unsigned char canFrame[8];
+
     //Check if simulation mode
-    if(digitalRead(10))
+    if(!digitalRead(10))
     {
-        //sendData();
-        readData();
+        //load testdata
+        id=testData.GetId();
+        testData.FillCanFrame(canFrame);
     }
     else
     {
-        //Blink light
-        digitalWrite(18,HIGH);
-        delay(2);
-        digitalWrite(18,LOW);
+        //read data from can bus
+        //sendData();
+        id=readData(canFrame);
+    }
 
-        //testdata
-        unsigned int testId=testData.GetId();
-        testData.FillCanFrame(canFrame);
-
-        //Dump pids we read
-        const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
-        for(int i=0;i<arrLen;i++)
+    //Dump known pids we read
+    const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
+    for(int i=0;i<arrLen && id>0;i++)
+    {
+      if(pidArray[i]->isMatch(id,canFrame))
+      {
+        unsigned int result=result=(int)pidArray[i]->getResult(canFrame);
+        
+        //If extended data mode, then we don't have a pid, and we grab the data from the 2nd field and on
+        //  This implimentation is not robust, but should work if this continues to be the only gauge
+        if(pidArray[i]->isExtData())
         {
-          if(pidArray[i]->isMatch(testId,canFrame))
-          {
-            unsigned int result=result=(int)pidArray[i]->getResult(canFrame);
-            
-            //If extended data mode, then we don't have a pid, and we grab the data from the 2nd field and on
-            //  This implimentation is not robust, but should work if this continues to be the only gauge
-            if(pidArray[i]->isExtData())
-            {
-              //we're using first byte as the designator only
-              sendToMaster(canFrame[0],canFrame[0],result);
-              Serial.printf("Designator: 0x%02x -  %s: %d%s\n",canFrame[0],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
-            }
-            else
-            {
-              //1 = service and 2= pid
-              sendToMaster(canFrame[1],canFrame[2],result);
-              Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canFrame[1],canFrame[2],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
-            }
-          }          
+          //we're using first byte as the designator only
+          sendToMaster(canFrame[0],canFrame[0],result);
+          Serial.printf("Designator: 0x%02x -  %s: %d%s\n",canFrame[0],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
         }
+        else
+        {
+          //1 = service and 2= pid
+          sendToMaster(canFrame[1],canFrame[2],result);
+          Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canFrame[1],canFrame[2],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
+        }
+      }
+    }     
 
+    if(!digitalRead(10))
+    {
         //Go to next row from test data
         testData.NextRow();        
-
-        //read data
-        char data=readFromMaster();
-        if(data != '0')
-        {
-          Serial.print("Read: ");
-          Serial.println(data);
-        }
     }
 }
 
-void readData()
+unsigned int readData(unsigned char* canFrame)
 {
     unsigned long id = 0;
     int ext = 0;
@@ -163,29 +160,10 @@ void readData()
     int fd = 0;
     int len = 0;
     
-    unsigned char dtaGet[100];
+    if(!CAN1.read(&id, &ext, &rtr, &fd, &len, canFrame))
+      id=0;
 
-    if(CAN1.read(&id, &ext, &rtr, &fd, &len, dtaGet))
-    {
-        Serial.print(id,HEX);
-        Serial.print(",");
-        //Serial.print("ext = ");
-        //Serial.println(ext);
-        //Serial.print("rtr = ");
-        //Serial.println(rtr);
-        //Serial.print("fd = ");
-        //Serial.println(fd);
-        //Serial.print("len = ");
-        //Serial.println(len);
-
-        for(int i=0; i<len; i++)
-        {
-            Serial.print(dtaGet[i],HEX);
-            if(i<len-1)
-              Serial.print(" ");
-        }
-        Serial.println();
-    }
+    return (unsigned int)id;
 }
 
 void sendData()

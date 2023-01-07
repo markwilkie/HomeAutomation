@@ -7,7 +7,7 @@ class TestData
   public:
     void NextRow();
     unsigned long GetId();
-    void FillCanFrame(unsigned int *);
+    void FillCanFrame(unsigned char *);
     unsigned int GetData(int idx);
     unsigned int* GetDataPtr();
         

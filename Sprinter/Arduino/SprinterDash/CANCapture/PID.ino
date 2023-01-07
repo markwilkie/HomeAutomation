@@ -27,7 +27,7 @@ bool PID::isExtData()
 }
 
 //Pass each response in to see if there's a match
-bool PID::isMatch(unsigned int incomingId,unsigned int *canFrame)
+bool PID::isMatch(unsigned int incomingId,unsigned char *canFrame)
 {
     //If ext data mode, don't match on pid
     if(extDataMode && incomingId==responseId && service==canFrame[0])
@@ -57,7 +57,7 @@ const unsigned int PID::getId()
 }
 
 //Get results when there's a match
-double PID::getResult(unsigned int *canFrame)
+double PID::getResult(unsigned char *canFrame)
 {
     /* Store variable names and pointers. */
     double a,b,c,d,e;

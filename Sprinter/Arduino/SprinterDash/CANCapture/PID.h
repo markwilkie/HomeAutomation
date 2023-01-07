@@ -10,11 +10,11 @@ class PID
     PID(unsigned int _id,unsigned int _service,unsigned int _PID,const char *_label,const char *_unit,const char *_formula,bool _extDataMode=false);  
 
     //Pass each response in to see if there's a match
-    bool isMatch(unsigned int id,unsigned int *canFrame);
+    bool isMatch(unsigned int id,unsigned char *canFrame);
     bool isExtData();
 
     //Get results when there's a match
-    double getResult(unsigned int *canFrame);
+    double getResult(unsigned char *canFrame);
     const unsigned int getId();
     const char *getLabel();
     const char *getUnit();

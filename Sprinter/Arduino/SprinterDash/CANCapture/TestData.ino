@@ -14,10 +14,10 @@ unsigned long TestData::GetId()
     return simData[rowPtr];
 }
 
-void TestData::FillCanFrame(unsigned int *canFrame)
+void TestData::FillCanFrame(unsigned char *canFrame)
 {
     for(int i=0;i<8;i++)
-        canFrame[i]=simData[rowPtr+1+i];
+        canFrame[i]=(char)simData[rowPtr+1+i];
 }
 
 unsigned int TestData::GetData(int idx)

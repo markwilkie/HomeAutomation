@@ -63,6 +63,7 @@ void TripSegment::update(int service,int pid,int value)
 // in miles
 double TripSegment::getMilesTravelled()
 {
+    double milesTravlled=((double)currentKm-(double)startKm)*0.621371;
     return ((double)currentKm-(double)startKm)*0.621371;
 }
 
