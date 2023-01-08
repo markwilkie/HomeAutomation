@@ -25,7 +25,7 @@ PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A");
 PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","A-50",true);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B");
 PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A");
-PID ambientTemp(0x7DF,0x01,0x70,"Ambient Temp","C","A-40");
+PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40");
 PID* pidArray[]={&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&baraPressure,&transTemp,&ambientTemp};
 
 void setup()
