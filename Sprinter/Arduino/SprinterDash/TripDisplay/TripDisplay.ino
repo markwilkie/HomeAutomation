@@ -60,6 +60,9 @@ bool msgStarted=false;
 
 SoftwareSerial mySerial(10, 11); // RX, TX
 
+long lastLoopTime;
+long longestTick;
+
 void setup()
 {
   //USB port serial
@@ -95,6 +98,7 @@ void setup()
   currentTickCount=0;
 
   Serial.println("starting....");
+  lastLoopTime=millis();
 
 
   //
@@ -188,6 +192,14 @@ bool processIncoming(int *service,int *pid,int *value)
 
 void loop()
 {
+  long currentMillis=millis();
+  if((currentMillis-lastLoopTime)>longestTick || (currentMillis-lastLoopTime) > 100)
+  {
+      longestTick=currentMillis-lastLoopTime;
+      Serial.println(longestTick/1000.0);
+  }
+  lastLoopTime=currentMillis;
+
   //read serial from canbus board
   int service; int pid; int value;
   bool retVal=processIncoming(&service,&pid,&value);

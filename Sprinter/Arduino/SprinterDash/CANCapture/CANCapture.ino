@@ -78,7 +78,7 @@ uint16_t checksumCalculator(uint8_t * data, uint16_t length)
 void sendToMaster(unsigned int service,unsigned int pid,unsigned int value)
 {
   //buffer used for communication
-  byte sendBuffer[10];
+  byte sendBuffer[15];
 
   //fill buffer with data
   memcpy(sendBuffer,&service,2);

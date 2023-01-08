@@ -19,7 +19,7 @@ void Trip::update(int service,int pid,int value)
 void Trip::updateDisplay(unsigned long currentTickCount)
 {
     //update fast gauges?
-    if(currentTickCount>=nextSlowTickCount)
+    if(currentTickCount>=nextFastTickCount)
     {
         nextFastTickCount=currentTickCount+TRIP_DISPLAY_FAST_TICKS;
 
@@ -43,7 +43,7 @@ void Trip::updateDisplay(unsigned long currentTickCount)
         geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 7, currentSegment->getMilesLeftInTank());
         geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 8, currentSegment->getCurrentElevation());
         geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 9, currentSegment->getMilesTravelled());
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 10, currentSegment->getHoursDriving());
+        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 5, currentSegment->getHoursDriving());
     }
 }
 
