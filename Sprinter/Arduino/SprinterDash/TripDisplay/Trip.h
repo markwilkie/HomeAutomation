@@ -3,7 +3,7 @@
 
 #include "TripSegment.h"
 
-#define TRIP_DISPLAY_SLOW_TICKS  45      //how often to update the display w/ trip info
+#define TRIP_DISPLAY_SLOW_TICKS  50 //how often to update the display w/ trip info
 #define TRIP_DISPLAY_FAST_TICKS  5  //how often to update fast
 
 class Trip 

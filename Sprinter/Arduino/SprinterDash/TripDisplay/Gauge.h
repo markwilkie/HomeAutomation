@@ -6,8 +6,7 @@
 class Gauge 
 {
   public:
-    Gauge(Genie *_geniePtr,int _service,int _pid,int _range,int _angMeterObjNum,int _digitsObjNum);
-    Gauge(Genie *_geniePtr,int _service,int _pid,int _normalizeRange,int _angMeterObjNum,int _digitsObjNum,int _deltaThreshold,int _refreshTicks,int _freqMs);
+    Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks,int _deltaThreshold=.05,int _freqMs=0);
 
     //Pass each response in to see if there's a match
     bool isMatch(int incomingSvc, int incomingPid);
@@ -17,19 +16,23 @@ class Gauge
     
   private: 
 
+    void updateGauges();
+
     //What this is  (e.g. rpm)
     int service;
     int pid;
 
     //Config
+    int min=0;                  //Gauge minimum
+    int max=100;                //Gauge maximum
+    int refreshTicks=1;         //How many ticks the gauge refreshes    
     float deltaThreshold=.05;   //.10 percent = .1...e.g., we'll just adjust end position and not reset curve if within 10%
-    int refreshTicks=1;         //How many ticks the gauge refreshes
-    int freqMs=200;             //Time smoothing happens over (unless threshold is crossed)
-    int normalizedRange;        //Range for load so it's used to normalize     (e.g. 100 would be between 0-100) 
+    int freqMs=0;               //Time smoothing happens over (unless threshold is crossed)
 
     //CAN values
     int currentValue;   //current value from CAN bus
     int lastValue;      //last reading from CAN bus to use to calc delta
+    int gaugeValue;
 
     //Gauge variables
     //All values are normalized between 0-1

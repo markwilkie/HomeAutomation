@@ -1,5 +1,5 @@
 {
     "board": "arduino:avr:leonardo",
-    "port": "COM8",
-    "sketch": "4dTest.ino"
+    "port": "COM6",
+    "sketch": "TripDisplay.ino"
 }

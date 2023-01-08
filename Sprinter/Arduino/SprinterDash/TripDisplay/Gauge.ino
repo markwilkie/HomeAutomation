@@ -1,27 +1,18 @@
 #include "Gauge.h"
 
-
-Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _normalizeRange,int _angMeterObjNum,int _digitsObjNum)
+Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks,int _deltaThreshold,int _freqMs)
 {
     geniePtr=_geniePtr;
     service=_service;
     pid=_pid;
-    normalizedRange=_normalizeRange;
     angMeterObjNum=_angMeterObjNum;
     digitsObjNum=_digitsObjNum;
-}
 
-Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _normalizeRange,int _angMeterObjNum,int _digitsObjNum,int _deltaThreshold,int _refreshTicks,int _freqMs)
-{
-    geniePtr=_geniePtr;
-    service=_service;
-    pid=_pid;
-    normalizedRange=_normalizeRange;
-    angMeterObjNum=_angMeterObjNum;
-    digitsObjNum=_digitsObjNum;
+    min=_min;
+    max=_max;
+    refreshTicks=_refreshTicks;
 
     deltaThreshold=_deltaThreshold;
-    refreshTicks=_refreshTicks;
     freqMs=_freqMs;
 }
 
@@ -37,6 +28,14 @@ bool Gauge::isMatch(int incomingSvc, int incomingPid)
 void Gauge::setValue(int _value)
 {
     currentValue=_value;
+
+    _value=_value-min;
+    if(_value<min)
+        _value=0;
+    if(_value>(max-min))
+        _value=(max-min);    
+        
+    gaugeValue=_value;
 }
 
 /*
@@ -72,23 +71,26 @@ void Gauge::update(unsigned long currentTickCount)
         nextTickCount=currentTickCount+refreshTicks;
         lastValue=currentValue;
 
+        updateGauges();
+    }
+
+/*
+    //Update load smoothing using time
+    long tms=millis()-startTime;
+    if(tms<=freqMs)
+    {       
         //Figure what we want the gauge to be set to
         if(delta>currentValue*deltaThreshold)
         {   
             startTime=millis();
             begPos=currentGauge;
         }
-
+        
         //Define where we want to end up
-        endPos=(float)currentValue/(float)normalizedRange;   //normalize load to between 0-1    
+        endPos=(float)currentValue/(float)(max-min);   //normalize load to between 0-1    
         normalizedDelta=endPos-begPos;
-    }
-
-    //Update load smoothing using time
-    long tms=millis()-startTime;
-    if(tms<=freqMs)
-    {
-        float t=(float)tms/(float)freqMs;  //needs to be normalized between 0 and 1
+        
+                float t=(float)tms/(float)freqMs;  //needs to be normalized between 0 and 1
         if (t < .5) {
             currentGauge = (normalizedDelta) * (t*t*t*4) + begPos;
         }
@@ -98,9 +100,20 @@ void Gauge::update(unsigned long currentTickCount)
         }    
 
         //Update gauge  (gotta have this here because of the smoothing)
-        if(angMeterObjNum>=0)
-            geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, currentGauge*normalizedRange);
-        if(digitsObjNum>=0)
-            geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);       
-    }    
+        gaugeValue=currentGauge*(max-min);
+        updateGauges();   
+    }
+    else
+    {
+        updateGauges();
+    }
+    */
+}
+
+void Gauge::updateGauges()
+{
+    if(angMeterObjNum>=0)
+        geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);
+    if(digitsObjNum>=0)
+        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);           
 }

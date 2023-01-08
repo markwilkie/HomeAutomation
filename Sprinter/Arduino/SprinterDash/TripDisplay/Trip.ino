@@ -22,7 +22,16 @@ void Trip::updateDisplay(unsigned long currentTickCount)
     if(currentTickCount>=nextSlowTickCount)
     {
         nextFastTickCount=currentTickCount+TRIP_DISPLAY_FAST_TICKS;
-        geniePtr->WriteObject(GENIE_OBJ_GAUGE, 1, currentSegment->getInstantMPG()-10);  //-10 is because the gauge starts at 10
+
+        //instant MPG
+        int instMPG=currentSegment->getInstantMPG();
+        instMPG=instMPG-10;
+        if(instMPG>(30-10))
+            instMPG=20;
+        if(instMPG<10)
+            instMPG=0;
+        instMPG=(30-10)-instMPG; //invert because the gauge is upside down
+        geniePtr->WriteObject(GENIE_OBJ_GAUGE, 1, instMPG); 
     }
 
     //update slow counters?

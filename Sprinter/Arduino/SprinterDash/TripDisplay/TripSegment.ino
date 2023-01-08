@@ -87,14 +87,13 @@ double TripSegment::getFuelGallonsUsed()
 
 double TripSegment::getInstantMPG()
 {
-    //
-    //remember that gauge is  10-30  (means, 1 will translate to 11)
-    //
     if(currentMAF<=0)
         return 0;
 
-    double galPerHour=(((currentMAF/14.7)/454)/6.701)*3600.0;
-    return (currentSpeed*0.621371)/galPerHour;
+    double galPerHour=(((currentMAF/14.6)/453.592)/7.0)*3600.0;
+    double instMPG=(currentSpeed*0.621371)/galPerHour;
+
+    return instMPG;
 }
 
 double TripSegment::getAvgMPG()
@@ -108,10 +107,14 @@ double TripSegment::getAvgMPG()
 int TripSegment::getMilesLeftInTank()
 {
     if(currentFuelPerc<=0)
-        return 0;
+        return 0;   
 
-    double gallonsLeft=FUEL_TANK_SIZE*(double)currentFuelPerc;
+    double gallonsLeft=FUEL_TANK_SIZE*((double)currentFuelPerc/100.0);
     double milesLeft=gallonsLeft*getInstantMPG();
+
+    if(milesLeft>999)
+        milesLeft=999;
+
     return (int)milesLeft;
 }
 

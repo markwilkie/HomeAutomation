@@ -32,7 +32,7 @@
 //defines
 #define RESETLINE 4  //Bringing D4 low resets the display
 
-#define TICK_MS 250   //Number of milli-seconds between "ticks" in the loop
+#define TICK_MS 100   //Number of milli-seconds between "ticks" in the loop
 #define DELAY_MS 10   //Milli-seconds we "delay" in loop
 
 //Global objects
@@ -42,10 +42,10 @@ unsigned long lastTickTime;
 unsigned long nextRefreshTickTime;
 
 //Supported gauges
-Gauge loadGauge(&genie,0x41,0x04,100,0,0);  //genie*,service,pid,gauge range,ang meter obj #,digits obj #
-Gauge boostGauge(&genie,0x41,0x0B,25,3,2); 
-Gauge coolantTempGauge(&genie,0x41,0x05,250,1,1,0,20,250);   //+ delta threshold, ticks to update, and smoothing
-Gauge transTempGauge(&genie,0x22,0x22,250,2,4,0,20,250); 
+Gauge loadGauge(&genie,0x41,0x04,0,0,0,100,1);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
+Gauge boostGauge(&genie,0x41,0x0B,3,2,0,22,1); 
+Gauge coolantTempGauge(&genie,0x41,0x05,1,1,130,250,10);  
+Gauge transTempGauge(&genie,0x22,0x22,2,4,130,250,10);  
 
 //Extra values needed for calculations
 PID baraPressure(0x41,0x33);
@@ -237,7 +237,7 @@ void updateGauges(int service,int pid,int value)
     }
     if(transTempGauge.isMatch(service,pid))
     {
-      transTempGauge.setValue(value*(9/5)+32);
+      transTempGauge.setValue(value*(9/5)+32);      
       transTempGauge.update(currentTickCount);
     }    
     if(boostGauge.isMatch(service,pid))
@@ -247,8 +247,6 @@ void updateGauges(int service,int pid,int value)
       boostGauge.setValue(boost*.145);
       boostGauge.update(currentTickCount);
     }
-
-    //update trip values
 }
 
 /////////////////////////////////////////////////////////////////////

@@ -21,7 +21,7 @@ PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A");
 PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40");
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100"); 
 PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B");
-PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","100/(255*A)");
+PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A");
 PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","A-50",true);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B");
 PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A");
@@ -112,6 +112,7 @@ void loop()
         //load testdata
         id=testData.GetId();
         testData.FillCanFrame(canFrame);
+        delay(10);
     }
     else
     {
