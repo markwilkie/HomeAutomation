@@ -244,12 +244,12 @@ void updateGauges(int service,int pid,int value)
     }  
     if(coolantTempGauge.isMatch(service,pid))
     {
-      coolantTempGauge.setValue(value*(9/5)+32);
+      coolantTempGauge.setValue((float)value*(9.0/5.0)+32.0);
       coolantTempGauge.update(currentTickCount);
     }
     if(transTempGauge.isMatch(service,pid))
     {
-      transTempGauge.setValue(value*(9/5)+32);      
+      transTempGauge.setValue((float)value*(9.0/5.0)+32.0);      
       transTempGauge.update(currentTickCount);
     }    
     if(boostGauge.isMatch(service,pid))

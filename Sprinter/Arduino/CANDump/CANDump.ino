@@ -49,7 +49,7 @@ void loop()
         {
             Serial.print("0x");
             Serial.print(dtaGet[i],HEX);
-            if(i<len-1)
+            //if(i<len-1)
               Serial.print(",");
         }
         Serial.println();

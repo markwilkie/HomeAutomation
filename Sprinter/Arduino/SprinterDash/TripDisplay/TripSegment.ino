@@ -19,6 +19,7 @@ void TripSegment::update(int service,int pid,int value)
     //time since start in seconds
     if(service==0x41 && pid==0x1F)
     {
+      Serial.println(value);
         currentSeconds=value;
         return;
     }  
@@ -73,7 +74,7 @@ double TripSegment::getHoursDriving()
     if(currentSeconds<=0)
         return 0.0;
 
-    return ((float)currentSeconds/60.0/60.0);
+    return ((double)currentSeconds/3600.0);
 }
 
 // in gallons
