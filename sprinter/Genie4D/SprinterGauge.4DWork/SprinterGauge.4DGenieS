@@ -6,10 +6,9 @@
 
 
 
-// generated 1/6/2023 2:50:48 PM
+// generated 1/12/2023 11:47:12 AM
 // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 
-#MODE RUNFLASH
 
 #inherit "4DGL_16bitColours.fnc"
 
@@ -168,7 +167,7 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        13
+    nObjects        15
     nInputs         2
     nAniTimers      0
 #END
@@ -210,18 +209,18 @@
     word IILedDigits8 359, 65, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits5 340, 96, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits9 400, 96, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0, 12
-    word FormEndIndex 12, 13
+    word FormStartIndex 0, 14
+    word FormEndIndex 14, 15
     word iFormStartIndex 0, 14
     word iFormEndIndex 14, 14
-    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0
+    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0
     word InternalInputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word InputData tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
                 OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 0, 0
     word oDipSwitchs 0
     word oWinButtons 2, -1, iWinbutton1
     word oForms 2, -1, -1
-    word oGauges 2, iGauge0, iGauge1
+    word oGauges 4, iGauge0, iGauge1, iGauge2, iGauge3
     word oImages 10, iImage0, iImage1, iImage2, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9
     word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2, IIAngularMeter3
     word oiLedDigitss 10, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3, IILedDigits4, IILedDigits5, IILedDigits6, IILedDigits7, IILedDigits8, IILedDigits9

@@ -12,6 +12,7 @@ class Gauge
     bool isMatch(int incomingSvc, int incomingPid);
 
     void setValue(int value);
+    int getCurrentValue();
     void update(unsigned long currentTickCount);  //update actual gauge
     
   private: 

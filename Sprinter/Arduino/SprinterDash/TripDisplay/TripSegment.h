@@ -40,6 +40,7 @@ class TripSegment
     int currentElevation=0;
     int currentMAF=0;
     int currentSpeed=0;
+    int currentLoad=0;
 };
 
 #endif

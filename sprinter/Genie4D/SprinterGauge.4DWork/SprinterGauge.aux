@@ -1,8 +1,8 @@
 ==============================================================
 ==============================================================
 4DGL Compiler 2.8.1.0 -- Copyright 2004-2016 4D Labs
-** C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS
-compiled Fri Jan 06 14:51:01 2023
+** C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS
+compiled Thu Jan 12 11:47:24 2023
 
 ==============================================================
 ==============================================================
@@ -10,29 +10,29 @@ compiled Fri Jan 06 14:51:01 2023
 
 No Ref for file
 [LINKING]
-function 12, main(main entry point), address 0x43f, stack usage 108 + 4 
+function 12, main(main entry point), address 0x447, stack usage 108 + 4 
 comTX                                  1  word[50]  [local]  (usage 3)
 TouchStatus                           54  word     [local]  (usage 33)
 cmdi                                  51  word     [local]  (usage 27)
 i                                     52  word     [local]  (usage 117)
 
 [LINKING]
-function 11, DoGFXObjects, address 0xb99, stack usage 0 + 4 (Empty Function)
+function 11, DoGFXObjects, address 0xba1, stack usage 0 + 4 (Empty Function)
 [LINKING]
-function 10, UpdateObjects, address 0xb9a, stack usage 6 + 4 
+function 10, UpdateObjects, address 0xba2, stack usage 6 + 4 
 newval                                 1  word     [arg]  (usage 42)
 otherOBJ                               2  word     [local]  (usage 87)
 IPidx                                  1  word     [local]  (usage 18)
 oldvalue                               3  word     [local]  (usage 9)
 
 [LINKING]
-function 9, ActivateForm, address 0xe15, stack usage 10 + 4 
+function 9, ActivateForm, address 0xe1d, stack usage 10 + 4 
 newform                                1  word     [arg]  (usage 3)
 i                                      1  word     [local]  (usage 69)
 j                                      2  word     [local]  (usage 27)
 
 [LINKING]
-function 8, TurnOffButtons, address 0xff1, stack usage 14 + 4 
+function 8, TurnOffButtons, address 0xff9, stack usage 14 + 4 
 n                                      5  word     [local]  (usage 6)
 j                                      1  word     [local]  (usage 12)
 k                                      2  word     [local]  (usage 12)
@@ -41,7 +41,7 @@ group                                  1  word     [arg]  (usage 3)
 m                                      4  word     [local]  (usage 6)
 
 [LINKING]
-function 7, WriteObject, address 0x1088, stack usage 8 + 4 
+function 7, WriteObject, address 0x1090, stack usage 8 + 4 
 ObjectType                             1  word     [arg]  (usage 24)
 NewVal                                 2  word     [arg]  (usage 15)
 Objects                                4  word     [local]  (usage 12)
@@ -51,7 +51,7 @@ j                                      2  word     [local]  (usage 33)
 k                                      3  word     [local]  (usage 27)
 
 [LINKING]
-function 6, ReadObject, address 0x11f5, stack usage 6 + 4 
+function 6, ReadObject, address 0x11fd, stack usage 6 + 4 
 ObjectType                             1  word     [arg]  (usage 33)
 Objects                                3  word     [local]  (usage 6)
 ObjectIdx                              1  word     [arg]  (usage 9)
@@ -59,24 +59,24 @@ j                                      1  word     [local]  (usage 12)
 k                                      2  word     [local]  (usage 36)
 
 [LINKING]
-function 5, SendReport, address 0x12c9, stack usage 0 + 4 
+function 5, SendReport, address 0x12d1, stack usage 0 + 4 
 objn                                   2  word     [arg]  (usage 3)
 val                                    2  word     [arg]  (usage 6)
 objt                                   1  word     [arg]  (usage 3)
 id                                     1  word     [arg]  (usage 3)
 
 [LINKING]
-function 4, seroutOcs, address 0x12fb, stack usage 0 + 4 
+function 4, seroutOcs, address 0x1303, stack usage 0 + 4 
 
 [LINKING]
-function 3, nak0, address 0x130c, stack usage 0 + 4 
+function 3, nak0, address 0x1314, stack usage 0 + 4 
 
 [LINKING]
-function 2, seroutCS, address 0x131c, stack usage 0 + 4 
+function 2, seroutCS, address 0x1324, stack usage 0 + 4 
 op                                     1  word     [arg]  (usage 6)
 
 [LINKING]
-function 1, addressInternalWidget, address 0x132f, stack usage 4 + 4 
+function 1, addressInternalWidget, address 0x1337, stack usage 4 + 4 
 idx                                    1  word     [arg]  (usage 3)
 i                                      1  word     [local]  (usage 24)
 j                                      2  word     [local]  (usage 9)
@@ -159,6 +159,8 @@ I_STAYONTOP                       00000100        256  (usage 3)
 I_TOUCH_DISABLE                   00000020         32  (usage 6)
 iGauge0                           00000001          1  (usage 3)
 iGauge1                           0000000B         11  (usage 3)
+iGauge2                           0000000C         12  (usage 3)
+iGauge3                           0000000D         13  (usage 3)
 iImage0                           00000000          0  (usage 3)
 iImage1                           00000002          2  (usage 3)
 iImage2                           00000003          3  (usage 3)
@@ -172,7 +174,7 @@ iImage9                           0000000A         10  (usage 3)
 IMAGE_INDEX                       00000009          9  (usage 39)
 IMAGE_TAG                         0000000C         12  (usage 9)
 IPDatasize                        00000016         22  (usage 3)
-iWinbutton1                       0000000C         12  (usage 3)
+iWinbutton1                       0000000E         14  (usage 3)
 LANDSCAPE                         00000000          0  (usage 3)
 MaxIntObjects                     0000001B         27  (usage 3)
 MaxTotObjects                     00000043         67  (usage 6)
@@ -199,7 +201,6 @@ READ_OBJ                          00000000          0  (usage 3)
 RED                               0000F800      63488  (usage 21)
 REPORT_EVENT                      00000007          7  (usage 3)
 REPORT_OBJ                        00000005          5  (usage 3)
-RUNFLASH                          00000080        128  (usage 3)
 SLATEGRAY                         00007412      29714  (usage 12)
 t4Dbutton                         0000001E         30  (usage 18)
 tAngularmeter                     00000007          7  (usage 3)
@@ -320,17 +321,17 @@ widget_SetAttributes              FFFFFEB3        -333  args=3 r=1  (usage 3)
 widget_Touched                    FFFFFEB1        -335  args=2 r=1  (usage 3)
 
 [USER FUNCTIONS]
-ActivateForm                      00000E15  args=1 r=0  (usage 9)
-addressInternalWidget             0000132F  args=2 r=0  (usage 9)
-DoGFXObjects                      00000B99  args=0 r=0  (usage 6)
-nak0                              0000130C  args=0 r=0  (usage 12)
-ReadObject                        000011F5  args=2 r=0  (usage 3)
-SendReport                        000012C9  args=4 r=0  (usage 6)
-seroutCS                          0000131C  args=1 r=0  (usage 15)
-seroutOcs                         000012FB  args=0 r=0  (usage 3)
-TurnOffButtons                    00000FF1  args=1 r=0  (usage 6)
-UpdateObjects                     00000B9A  args=1 r=0  (usage 3)
-WriteObject                       00001088  args=3 r=0  (usage 18)
+ActivateForm                      00000E1D  args=1 r=0  (usage 9)
+addressInternalWidget             00001337  args=2 r=0  (usage 9)
+DoGFXObjects                      00000BA1  args=0 r=0  (usage 6)
+nak0                              00001314  args=0 r=0  (usage 12)
+ReadObject                        000011FD  args=2 r=0  (usage 3)
+SendReport                        000012D1  args=4 r=0  (usage 6)
+seroutCS                          00001324  args=1 r=0  (usage 15)
+seroutOcs                         00001303  args=0 r=0  (usage 3)
+TurnOffButtons                    00000FF9  args=1 r=0  (usage 6)
+UpdateObjects                     00000BA2  args=1 r=0  (usage 3)
+WriteObject                       00001090  args=3 r=0  (usage 18)
 
 [GLOBAL VARIABLES]
 cmd                                  313  word[80]   (usage 33)
@@ -427,21 +428,21 @@ wp                                   395  word       (usage 21)
 0327: F6 F6 C3 18 00 00 54 01 60 00 1A 00 17 00 02 00     ööÃ...T.`.......
 0337: 01 00 00 00 01 00 F6 F6 C3 18 00 00 90 01 60 00     ......ööÃ....`.
 0347: 27 00 17 00 03 00 FF FF 00 00 01 00 F6 F6 C3 18     '.....ÿÿ....ööÃ.
-0357: 00 00 00 00 0C 00 0C 00 0D 00 00 00 0E 00 0E 00     ................
+0357: 00 00 00 00 0E 00 0E 00 0F 00 00 00 0E 00 0E 00     ................
 0367: 0E 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF     ..ÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
-0377: FF FF FF FF FF FF FF FF FF FF 00 00 FF FF FF FF     ÿÿÿÿÿÿÿÿÿÿ..ÿÿÿÿ
+0377: FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00     ÿÿÿÿÿÿÿÿÿÿÿÿÿÿ..
 0387: FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF     ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ
-0397: FF FF FF FF FF FF FF FF 06 00 01 00 FF FF FF FF     ÿÿÿÿÿÿÿÿ....ÿÿÿÿ
-03A7: FF FF FF FF FF FF FF FF 00 00 16 00 04 00 67 00     ÿÿÿÿÿÿÿÿ......g.
-03B7: 0A 00 00 00 00 00 12 00 00 00 00 00 00 00 00 00     ................
-03C7: 00 00 00 00 00 00 02 00 FF FF 0C 00 02 00 FF FF     ........ÿÿ....ÿÿ
-03D7: FF FF 02 00 01 00 0B 00 0A 00 00 00 02 00 03 00     ÿÿ..............
-03E7: 04 00 05 00 07 00 06 00 08 00 09 00 0A 00 04 00     ................
-03F7: ED 80 52 81 71 82 CC 81 0A 00 B6 81 2F 82 45 82     í€Rq‚Ì..¶/‚E‚
-0407: 5B 82 D5 82 2D 83 EB 82 01 83 17 83 43 83 00 00     [‚Õ‚-ƒë‚.ƒ.ƒCƒ..
-0417: 00 00 FF FF FF FF BC 0A BC 0A BC 0A BC 0A BC 0A     ..ÿÿÿÿ¼.¼.¼.¼.¼.
-0427: BC 0A BC 0A BC 0A 98 0B 98 0B BC 0A BC 0A BC 0A     ¼.¼.¼.˜.˜.¼.¼.¼.
-0437: BC 0A BC 0A 3B 11 53 11                             ¼.¼.;.S.
+0397: FF FF FF FF FF FF FF FF FF FF FF FF 06 00 01 00     ÿÿÿÿÿÿÿÿÿÿÿÿ....
+03A7: FF FF FF FF FF FF FF FF FF FF FF FF 00 00 16 00     ÿÿÿÿÿÿÿÿÿÿÿÿ....
+03B7: 04 00 67 00 0A 00 00 00 00 00 12 00 00 00 00 00     ..g.............
+03C7: 00 00 00 00 00 00 00 00 00 00 02 00 FF FF 0E 00     ............ÿÿ..
+03D7: 02 00 FF FF FF FF 04 00 01 00 0B 00 0C 00 0D 00     ..ÿÿÿÿ..........
+03E7: 0A 00 00 00 02 00 03 00 04 00 05 00 07 00 06 00     ................
+03F7: 08 00 09 00 0A 00 04 00 ED 80 52 81 71 82 CC 81     ........í€Rq‚Ì
+0407: 0A 00 B6 81 2F 82 45 82 5B 82 D5 82 2D 83 EB 82     ..¶/‚E‚[‚Õ‚-ƒë‚
+0417: 01 83 17 83 43 83 00 00 00 00 FF FF FF FF C4 0A     .ƒ.ƒCƒ....ÿÿÿÿÄ.
+0427: C4 0A C4 0A C4 0A C4 0A C4 0A C4 0A C4 0A A0 0B     Ä.Ä.Ä.Ä.Ä.Ä.Ä. .
+0437: A0 0B C4 0A C4 0A C4 0A C4 0A C4 0A 43 11 5B 11      .Ä.Ä.Ä.Ä.Ä.C.[.
 
 [__MAXPROG]
 32750
@@ -451,7 +452,7 @@ wp                                   395  word       (usage 21)
 [PROGRAM]
 main
 [CODESIZE]
-5046
+5054
 [MEMSIZE]
 395
 [ARGCOUNT]
@@ -463,12 +464,12 @@ NO
 [STACK_ESTIMATE]
 204   (nb:- worst case estimate)
 [MODE]
-128
+0
 
 [PROJECT]
-C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS
+C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS
 C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\pixxiLCD-39P4CT.fnc
 C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\PIXXI44functions.fnc
 C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\4DGL_16bitColours.fnc
 C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\VisualConst.inc
-C:\Users\mawilkie\Documents\GitHub\HomeAutomation\sprinter\Genie4D\SprinterGauge.4DWork\SprinterGaugeConst.inc
+C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\SprinterGauge.4DWork\SprinterGaugeConst.inc

@@ -25,12 +25,17 @@ bool Gauge::isMatch(int incomingSvc, int incomingPid)
     return false;
 }
 
+int Gauge::getCurrentValue()
+{
+    return currentValue;
+}
+
 void Gauge::setValue(int _value)
 {
     currentValue=_value;
 
     _value=_value-min;
-    if(_value<min)
+    if(_value<0)
         _value=0;
     if(_value>(max-min))
         _value=(max-min);    

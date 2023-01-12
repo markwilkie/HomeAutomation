@@ -9,6 +9,12 @@ void TripSegment::setNextSegment(TripSegment *_segment)
 // update value if appropriate
 void TripSegment::update(int service,int pid,int value)
 {
+    //calc engine load
+    if(service==0x41 && pid==0x04)
+    {
+        currentLoad=value;
+        return;
+    }
     //distance travelled in km
     if(service==0x41 && pid==0x31)
     {
@@ -19,7 +25,6 @@ void TripSegment::update(int service,int pid,int value)
     //time since start in seconds
     if(service==0x41 && pid==0x1F)
     {
-      Serial.println(value);
         currentSeconds=value;
         return;
     }  
@@ -74,7 +79,10 @@ double TripSegment::getHoursDriving()
     if(currentSeconds<=0)
         return 0.0;
 
-    return ((double)currentSeconds/3600.0);
+    double hours=(double)currentSeconds/3600.0;
+    Serial.print("Hours: ");
+    Serial.println(hours);
+    return(hours);
 }
 
 // in gallons
@@ -91,7 +99,7 @@ double TripSegment::getInstantMPG()
     if(currentMAF<=0)
         return 0;
 
-    double galPerHour=(((currentMAF/14.6)/453.592)/7.0)*3600.0;
+    double galPerHour=((double)currentMAF*(double)currentLoad)/1006.777948;
     double instMPG=(currentSpeed*0.621371)/galPerHour;
 
     return instMPG;
@@ -101,7 +109,12 @@ double TripSegment::getAvgMPG()
 {
     double gallonsUsed=getFuelGallonsUsed();
     int milesTravelled=getMilesTravelled();
-    return (double)milesTravelled/gallonsUsed;
+
+    if(gallonsUsed==0 || milesTravelled==0)
+        return getInstantMPG();
+
+    double mpg=(double)milesTravelled/gallonsUsed;
+    return(mpg);    
 }
 
 // Uses instant for miles left  (car already has the other)
