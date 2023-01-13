@@ -40,6 +40,8 @@ Genie genie;
 unsigned long currentTickCount;
 unsigned long lastTickTime;
 unsigned long nextRefreshTickTime;
+unsigned long totalMessages;
+unsigned long totalCRC;
 
 //Supported gauges
 Gauge loadGauge(&genie,0x41,0x04,0,0,0,100,1);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
@@ -164,6 +166,9 @@ bool processIncoming(int *service,int *pid,int *value)
   //tokenize if complete message
   if(data==']')
   {
+    //increment message count
+    totalMessages++;
+
     //reset flags
     msgStarted=false;
     currentComIdx=0;
@@ -174,8 +179,21 @@ bool processIncoming(int *service,int *pid,int *value)
     int calcdCRC=checksumCalculator(serialBuffer,6);
     if(crc!=calcdCRC)
     {
+      //If the percentage is high, we'll print to the screen
+      totalCRC++;
+
+      double crcFailureRate=(double)totalCRC/(double)totalMessages;
+      if(crcFailureRate > .025)
+      {
+        Serial.print("Higher rate of CRC errors than normal: ");
+        Serial.print(totalMessages);
+        Serial.print("/");
+        Serial.print(totalCRC);
+        Serial.print(" Failure Rate: ");
+        Serial.println(crcFailureRate);
+      }
+
       //Just drop it and move on
-      Serial.println("CRC ERROR!!!!");
       return false;
     }
 
@@ -192,13 +210,13 @@ bool processIncoming(int *service,int *pid,int *value)
 
 void loop()
 {
-  long currentMillis=millis();
-  if((currentMillis-lastLoopTime)>longestTick || (currentMillis-lastLoopTime) > 100)
-  {
-      longestTick=currentMillis-lastLoopTime;
-      Serial.println(longestTick/1000.0);
-  }
-  lastLoopTime=currentMillis;
+  //long currentMillis=millis();
+  //if((currentMillis-lastLoopTime)>longestTick || (currentMillis-lastLoopTime) > 10)
+  //{
+  //    longestTick=currentMillis-lastLoopTime;
+  //    Serial.println(longestTick/1000.0);
+  //}
+  //lastLoopTime=currentMillis;
 
   //read serial from canbus board
   int service; int pid; int value;

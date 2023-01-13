@@ -80,8 +80,6 @@ double TripSegment::getHoursDriving()
         return 0.0;
 
     double hours=(double)currentSeconds/3600.0;
-    Serial.print("Hours: ");
-    Serial.println(hours);
     return(hours);
 }
 

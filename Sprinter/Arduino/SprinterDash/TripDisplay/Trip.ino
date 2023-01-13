@@ -3,9 +3,23 @@
 // first segment in a linked list  (each tripsegment has the next one)
 Trip::Trip(Genie *_geniePtr)
 {
+    //Save main genie pointer
     geniePtr=_geniePtr;
+
+    //Create root trip segment
     rootSegment=new TripSegment();
     currentSegment=rootSegment;
+
+    //Create objects for the digit displays
+    avgMPG = new Digits(geniePtr,6,0,99,1,11);
+    milesLeftInTank = new Digits(geniePtr,7,0,999,0,9);
+    currentElevation = new Digits(geniePtr,8,0,9999,0,14);
+    milesTravelled = new Digits(geniePtr,9,0,999,0,19);
+    hoursDriving = new Digits(geniePtr,5,0,9,1,19);
+
+    //Bar gauges
+    instMPG = new SplitBarGauge(geniePtr,1,2,0,20,24);
+    wind = new SplitBarGauge(geniePtr,3,0,0,60,26);  
 }
 
 //Update values, then update display
@@ -13,38 +27,30 @@ void Trip::update(int service,int pid,int value)
 {
     //Update values in the current segment
     currentSegment->update(service,pid,value);
+
+    //Update bar gauges
+    instMPG->setValue(currentSegment->getInstantMPG());
+
+    //Update digits
+    avgMPG->setValue(currentSegment->getAvgMPG());
+    milesLeftInTank->setValue(currentSegment->getMilesLeftInTank());
+    currentElevation->setValue(currentSegment->getCurrentElevation());
+    milesTravelled->setValue(currentSegment->getMilesTravelled());
+    hoursDriving->setValue(currentSegment->getHoursDriving());    
 }
 
 //Update display
 void Trip::updateDisplay(unsigned long currentTickCount)
 {
-    //update fast gauges?
-    if(currentTickCount>=nextFastTickCount)
-    {
-        nextFastTickCount=currentTickCount+TRIP_DISPLAY_FAST_TICKS;
+    //Update bar gauges
+    instMPG->update(currentTickCount);
 
-        //instant MPG
-        int instMPG=currentSegment->getInstantMPG();
-        instMPG=instMPG-10;
-        if(instMPG>(30-10))
-            instMPG=20;
-        if(instMPG<10)
-            instMPG=0;
-        instMPG=(30-10)-instMPG; //invert because the gauge is upside down
-        geniePtr->WriteObject(GENIE_OBJ_GAUGE, 1, instMPG); 
-    }
-
-    //update slow counters?
-    if(currentTickCount>=nextSlowTickCount)
-    {
-        nextSlowTickCount=currentTickCount+TRIP_DISPLAY_SLOW_TICKS;
-
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 6, currentSegment->getAvgMPG());
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 7, currentSegment->getMilesLeftInTank());
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 8, currentSegment->getCurrentElevation());
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 9, currentSegment->getMilesTravelled());
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, 5, currentSegment->getHoursDriving());
-    }
+    //Update digits
+    avgMPG->update(currentTickCount);
+    milesLeftInTank->update(currentTickCount);
+    currentElevation->update(currentTickCount);
+    milesTravelled->update(currentTickCount);
+    hoursDriving->update(currentTickCount);
 }
 
 void Trip::addTripSegment()
