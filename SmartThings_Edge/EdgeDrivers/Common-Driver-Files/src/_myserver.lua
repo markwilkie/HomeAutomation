@@ -109,20 +109,9 @@ local function handle_get(client,line)
   client:close()
 end
 
-local function watch_socket(client)
+local function handleIncoming(client)
 
   local line, err
-
-  --[[
-  --Waiting for incoming
-  local client, accept_err = sock:accept()
-  if accept_err ~= nil then
-    log.error("Connection accept error: " .. accept_err .. " from " .. client:getpeername())
-    sock:close()
-    return
-  end
-  log.debug("Accepted connection from", client:getpeername())
-  ]]
 
   --Set timeout
   client:settimeout(CLIENTSOCKTIMEOUT)
@@ -161,23 +150,23 @@ end
 
 local function start_server(driver)
 
-
     -- Startup Server
     local serversock = socket.tcp()
     serversock:bind('*', 0)
-    --serversock:settimeout(30)
-    serversock:listen(1)
+    serversock:listen()
 
     commonglobals.server_ip, commonglobals.server_port = serversock:getsockname()
     log.info(string.format('**************************  Server started at %s:%s', commonglobals.server_ip, commonglobals.server_port))
-  
-    --driver:register_channel_handler(serversock, watch_socket, 'server')
 
+    --Spawn thread to accept incoming connections
     cosock.spawn(function()
-      local client = serversock:accept()
-      log.debug("Accepted connection from", client:getpeername())
-      watch_socket(client)
-    end)
+      while true do
+        local client = serversock:accept()
+        log.debug("Accepted connection from", client:getpeername())
+        handleIncoming(client)
+      end
+    end,"server loop")
+    
 end
 
 return {
