@@ -1,20 +1,9 @@
-local socket = require "cosock.socket"
+local cosock = require "cosock"
+local socket = cosock.socket
 local log = require "log"
 local commonglobals = require "_commonglobals"
 
 local CLIENTSOCKTIMEOUT = 2
-local serversock
-
-local function init_serversocket()
-
-    local serversock = assert(socket.tcp(), "create TCP socket")
-    assert(serversock:bind('*', 0))
-    serversock:settimeout(0)
-    serversock:listen()
-
-    return serversock
-
-end
 
 local function handle_post(client,line)
   local err
@@ -120,10 +109,11 @@ local function handle_get(client,line)
   client:close()
 end
 
-local function watch_socket(_, sock)
+local function watch_socket(client)
 
   local line, err
 
+  --[[
   --Waiting for incoming
   local client, accept_err = sock:accept()
   if accept_err ~= nil then
@@ -132,6 +122,7 @@ local function watch_socket(_, sock)
     return
   end
   log.debug("Accepted connection from", client:getpeername())
+  ]]
 
   --Set timeout
   client:settimeout(CLIENTSOCKTIMEOUT)
@@ -170,13 +161,23 @@ end
 
 local function start_server(driver)
 
+
     -- Startup Server
-    serversock = init_serversocket()
+    local serversock = socket.tcp()
+    serversock:bind('*', 0)
+    --serversock:settimeout(30)
+    serversock:listen(1)
+
     commonglobals.server_ip, commonglobals.server_port = serversock:getsockname()
     log.info(string.format('**************************  Server started at %s:%s', commonglobals.server_ip, commonglobals.server_port))
   
-    driver:register_channel_handler(serversock, watch_socket, 'server')
-  
+    --driver:register_channel_handler(serversock, watch_socket, 'server')
+
+    cosock.spawn(function()
+      local client = serversock:accept()
+      log.debug("Accepted connection from", client:getpeername())
+      watch_socket(client)
+    end)
 end
 
 return {
