@@ -1,6 +1,5 @@
 #include <genieArduino.h>
 #include <Wire.h>
-#include <SoftwareSerial.h>
 
 #include "Gauge.h"
 #include "PID.h"
@@ -35,6 +34,9 @@
 #define TICK_MS 100   //Number of milli-seconds between "ticks" in the loop
 #define DELAY_MS 10   //Milli-seconds we "delay" in loop
 
+#define RXD1 25
+#define TXD1 26
+
 //Global objects
 Genie genie;  
 unsigned long currentTickCount;
@@ -60,22 +62,21 @@ byte serialBuffer[20];
 int currentComIdx=0;
 bool msgStarted=false;
 
-SoftwareSerial mySerial(10, 11); // RX, TX
-
 long lastLoopTime;
 long longestTick;
 
 void setup()
 {
-  //USB port serial
+  //USB port serial  (used for logging)
   Serial.begin(115200);
+  delay(2000);
+
+  //Used to receive CAN bus info from the other board
+  Serial2.begin(921600); 
   
-  // set the data rate for the SoftwareSerial port that's used to communicate with can bus
-  mySerial.begin(57600);
-  
-  // Serial1 for the TX/RX pins, as Serial0 is for USB.  
-  Serial1.begin(115200);  
-  genie.Begin(Serial1);   // Use Serial1 for talking to the display (Serial is for serial terminal and programming)
+  //Used for talking to the display
+  Serial1.begin(115200,SERIAL_8N1, RXD1, TXD1);
+  genie.Begin(Serial1);   
 
   //genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events
 
@@ -130,9 +131,9 @@ bool processIncoming(int *service,int *pid,int *value)
   char data='\0';
 
   //Get to start of message
-  while(mySerial.available() && !msgStarted)
+  while(Serial2.available() && !msgStarted)
   {
-    data=mySerial.read();
+    data=Serial2.read();
     if(data=='[')
     {
       msgStarted=true;
@@ -141,15 +142,15 @@ bool processIncoming(int *service,int *pid,int *value)
   }
 
   //Read message
-  while(mySerial.available() && msgStarted)
+  while(Serial2.available() && msgStarted)
   {
-    data=mySerial.read();
+    data=Serial2.read();
 
     //start again?
     if(data=='[')
     {
       currentComIdx=0;
-      data=mySerial.read();
+      data=Serial2.read();
     }
 
     //done?
@@ -224,7 +225,7 @@ void loop()
 
   //new values to process?
   if(retVal)
-  { 
+  {
     updateGauges(service,pid,value);  //Update gauges
     trip.update(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
   }
@@ -260,16 +261,19 @@ void updateGauges(int service,int pid,int value)
       loadGauge.setValue(value);
       loadGauge.update(currentTickCount);
     }  
+  
     if(coolantTempGauge.isMatch(service,pid))
     {
       coolantTempGauge.setValue((float)value*(9.0/5.0)+32.0);
       coolantTempGauge.update(currentTickCount);
     }
+  
     if(transTempGauge.isMatch(service,pid))
     {
       transTempGauge.setValue((float)value*(9.0/5.0)+32.0);      
       transTempGauge.update(currentTickCount);
     }    
+     
     if(boostGauge.isMatch(service,pid))
     {
       int bara=baraPressure.getValue();

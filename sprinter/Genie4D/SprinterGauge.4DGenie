@@ -686,12 +686,12 @@ Gauge
     Orientation                  Vertical
     Palette1.High                RED
     Palette1.Low                 BLACK
-    Palette2.High                YELLOW
+    Palette2.High                RED
     Palette2.Low                 BLACK
     Palette3.High                CHARTREUSE
     Palette3.Low                 BLACK
     Percent1                     100
-    Percent2                     15
+    Percent2                     0
     Spacing                      2
     Step                         1
     Style                        TopRight

@@ -31,7 +31,7 @@ PID* pidArray[]={&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intake
 void setup()
 {
     Serial.begin(115200);  //logging
-    Serial1.begin(57600); //main arduino board
+    Serial1.begin(921600); //main arduino board
 
     //Setup pins
     pinMode(18, OUTPUT);   //LED
@@ -112,7 +112,7 @@ void loop()
         //load testdata
         id=testData.GetId();
         testData.FillCanFrame(canFrame);
-        delay(10);
+        delay(50);
     }
     else
     {

@@ -118,7 +118,7 @@ void Gauge::update(unsigned long currentTickCount)
 void Gauge::updateGauges()
 {
     if(angMeterObjNum>=0)
-        geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);
+        geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);  
     if(digitsObjNum>=0)
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);           
+        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);               
 }
