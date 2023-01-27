@@ -5,6 +5,12 @@
 #include "PID.h"
 #include "Trip.h"
 
+//
+// SUPER IMPORT POST about setting up the programmer so that high speed transfers work
+//
+// https://forum.4dsystems.com.au/node/62492
+//
+
 // This Demo communicates with a 4D Systems Display, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display has a slider, a cool gauge, an LED Digits, a string box and a User LED. Workshop4 Demo Project is located in the /extras folder
 // The program receives messages from the Slider0 object using the Reported Events. This is triggered each time the Slider changes on the display, and an event
@@ -34,6 +40,7 @@
 #define TICK_MS 100   //Number of milli-seconds between "ticks" in the loop
 #define DELAY_MS 10   //Milli-seconds we "delay" in loop
 
+//Using esp32 firebeatle where io25-->d2 and io26-->d3.  Note that io9/10 (default) conflict (probably with flash) and crash the board  
 #define RXD1 25
 #define TXD1 26
 
@@ -75,7 +82,7 @@ void setup()
   Serial2.begin(921600); 
   
   //Used for talking to the display
-  Serial1.begin(115200,SERIAL_8N1, RXD1, TXD1);
+  Serial1.begin(200000,SERIAL_8N1, RXD1, TXD1);
   genie.Begin(Serial1);   
 
   //genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events

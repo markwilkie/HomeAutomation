@@ -6,7 +6,7 @@
 
 
 
-// generated 1/12/2023 11:47:12 AM
+// generated 1/25/2023 1:29:41 PM
 // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 
 
@@ -630,7 +630,7 @@ func main()
 
     // init comms
     com_Init(comRX,CMDLenMAX,0);
-    com_SetBaud(COM0,11520);
+    com_SetBaud(COM0,19886);
     com_TXbuffer(comTX, 100, 0);
     // tag 'real' objects
     for (i := 0; i <= MaxTotObjects; i++)
