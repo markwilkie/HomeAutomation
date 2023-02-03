@@ -25,7 +25,12 @@ void TripSegment::update(int service,int pid,int value)
     //time since start in seconds
     if(service==0x41 && pid==0x1F)
     {
-        currentSeconds=value;
+        //Did we restart?
+        if(value<currentSeconds)
+            baseSeconds=currentSeconds;
+
+        //Be sure and add any seconds from before
+        currentSeconds=value+baseSeconds;
         return;
     }  
     //fuel available in percentage  (30 --> 30%)
@@ -69,8 +74,8 @@ void TripSegment::update(int service,int pid,int value)
 // in miles
 double TripSegment::getMilesTravelled()
 {
-    double milesTravlled=((double)currentKm-(double)startKm)*0.621371;
-    return ((double)currentKm-(double)startKm)*0.621371;
+    double milesTravelled=((double)currentKm-(double)startKm)*0.621371;
+    return milesTravelled;
 }
 
 // in minutes
@@ -89,7 +94,7 @@ double TripSegment::getFuelGallonsUsed()
     if(currentFuelPerc<=0 || startFuelPerc<=0)
         return 0;
 
-    return FUEL_TANK_SIZE*(((double)currentFuelPerc-(double)startFuelPerc)/100.0);
+    return FUEL_TANK_SIZE*(((double)startFuelPerc-(double)currentFuelPerc)/100.0);
 }
 
 double TripSegment::getInstantMPG()

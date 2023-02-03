@@ -3,7 +3,7 @@
 
 #include <genieArduino.h>
 
-#define FUEL_TANK_SIZE 25.0   // in gallons
+#define FUEL_TANK_SIZE 20.0   // in gallons.   It's actually 25, but the last 5 aren't really usable
 
 class TripSegment 
 {
@@ -31,7 +31,8 @@ class TripSegment
     //Particulars of this segment
     int startKm=-1;
     int currentKm=0;
-    int currentSeconds=0;
+    int baseSeconds=0;      //seconds from before engine turned off
+    int currentSeconds=0;   //seconds from last engine start
     int startFuelPerc=-1;
     int currentFuelPerc=0;
     int maxElevation=-1;
