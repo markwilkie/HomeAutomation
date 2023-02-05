@@ -32,13 +32,8 @@ int Gauge::getCurrentValue()
 
 void Gauge::setValue(int _value)
 {
-    //We don't have anything that is negative
-    if(_value<0)
-        currentValue=0;
-    else
-        currentValue=_value;
+    currentValue=_value;
 
-    //Set gauge which has separate min and max
     _value=_value-min;
     if(_value<0)
         _value=0;
