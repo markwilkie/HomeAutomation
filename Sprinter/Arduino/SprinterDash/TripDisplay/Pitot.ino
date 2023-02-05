@@ -1,3 +1,5 @@
+#include "Pitot.h"
+
 //
 // Calculating airspeed using a pitot and MPXV7002DP
 //
@@ -28,41 +30,48 @@
 //
 
 //Pin used for analog reads
-#define PITOT_ADC_PIN 4
+#define PITOT_ADC_PIN A0
 #define AIR_DENSITY 1.204
 
-float g_reference_pressure;
-float g_air_pressure;
-float g_airspeed_mph = 0;
-
-
-void setup()
+Pitot::Pitot(int _refreshTicks)
 {
-  // Enable serial debug
-  Serial.begin(115200);
-  Serial.print("\n*** Airspeed starting\n");
- 
-  Serial.println("getting reference pressure");
-  g_reference_pressure = analogRead(D2);  
+    refreshTicks=_refreshTicks;
+}
+
+void Pitot::calibrate()
+{
+  Serial.println("Calibrating pitot airspeed indicator");
+  g_reference_pressure = analogRead(PITOT_ADC_PIN);  
   for (int i=1;i<=100;i++)
   {
-    g_reference_pressure = (analogRead(D2))*0.25 + g_reference_pressure*0.75;
+    g_reference_pressure = (analogRead(PITOT_ADC_PIN))*0.25 + g_reference_pressure*0.75;
     delay(20);
   }
   
   g_air_pressure = g_reference_pressure;
 }
 
-void loop()
-{  
-  g_air_pressure = analogRead(D2)*0.25 + g_air_pressure*0.75;
-  float pressure_diff = (g_air_pressure >= g_reference_pressure) ? (g_air_pressure - g_reference_pressure) : 0.0;  
-  g_airspeed_mph = 2.83977*sqrt(pressure_diff/AIR_DENSITY);
 
-  Serial.print(g_reference_pressure);
-  Serial.print(" ");
-  Serial.print(pressure_diff);
-  Serial.print(" ");
-  Serial.println(g_airspeed_mph);
-  delay(500);
+int Pitot::readSpeed(unsigned long currentTickCount)
+{
+    //don't update if it's not time to
+    if(currentTickCount<nextTickCount && currentTickCount>0)
+        return g_airspeed_mph;
+
+    //Update timing
+    nextTickCount=currentTickCount+refreshTicks;
+
+    //Read pitot airspeed
+    g_air_pressure = analogRead(PITOT_ADC_PIN)*0.25 + g_air_pressure*0.75;
+    float pressure_diff = (g_air_pressure >= g_reference_pressure) ? (g_air_pressure - g_reference_pressure) : 0.0;  
+    g_airspeed_mph = 2.83977*sqrt(pressure_diff/AIR_DENSITY);
+
+    Serial.print("Pitot: ");
+    Serial.print(g_reference_pressure);
+    Serial.print(" ");
+    Serial.print(pressure_diff);
+    Serial.print(" ");
+    Serial.println(g_airspeed_mph);
+
+    return g_airspeed_mph;
 }

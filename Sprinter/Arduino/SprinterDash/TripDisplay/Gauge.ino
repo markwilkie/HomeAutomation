@@ -1,6 +1,6 @@
 #include "Gauge.h"
 
-Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks,int _deltaThreshold,int _freqMs)
+Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks,int _deltaThreshold)
 {
     geniePtr=_geniePtr;
     service=_service;
@@ -13,9 +13,7 @@ Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _dig
     refreshTicks=_refreshTicks;
 
     deltaThreshold=_deltaThreshold;
-    freqMs=_freqMs;
 }
-
 
 bool Gauge::isMatch(int incomingSvc, int incomingPid)
 {

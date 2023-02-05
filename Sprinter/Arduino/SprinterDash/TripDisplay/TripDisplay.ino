@@ -4,6 +4,7 @@
 #include "Gauge.h"
 #include "PID.h"
 #include "Trip.h"
+#include "Pitot.h"
 
 //
 // SUPER IMPORT POST about setting up the programmer so that high speed transfers work
@@ -57,9 +58,14 @@ Gauge loadGauge(&genie,0x41,0x04,0,0,0,100,1);  //genie*,service,pid,ang meter o
 Gauge boostGauge(&genie,0x41,0x0B,3,2,0,22,1); 
 Gauge coolantTempGauge(&genie,0x41,0x05,1,1,130,250,10);  
 Gauge transTempGauge(&genie,0x22,0x22,2,4,130,250,10);  
+SplitBarGauge windSpeedGauge = SplitBarGauge(&genie,3,0,3,-29,30,5);  
 
 //Extra values needed for calculations
 PID baraPressure(0x41,0x33);
+PID speed(0x41,0x0D);
+
+//Other sensors
+Pitot pitot(4);  //update every 400 ms
 
 //Trip
 Trip trip = Trip(&genie);
@@ -106,6 +112,9 @@ void setup()
 
   //Setup ticks
   currentTickCount=0;
+
+  //calibrate
+  pitot.calibrate();
 
   Serial.println("starting....");
   lastLoopTime=millis();
@@ -218,14 +227,6 @@ bool processIncoming(int *service,int *pid,int *value)
 
 void loop()
 {
-  //long currentMillis=millis();
-  //if((currentMillis-lastLoopTime)>longestTick || (currentMillis-lastLoopTime) > 10)
-  //{
-  //    longestTick=currentMillis-lastLoopTime;
-  //    Serial.println(longestTick/1000.0);
-  //}
-  //lastLoopTime=currentMillis;
-
   //read serial from canbus board
   int service; int pid; int value;
   bool retVal=processIncoming(&service,&pid,&value);
@@ -256,6 +257,14 @@ void loop()
 
 void updateGauges(int service,int pid,int value)
 {
+    //update wind speed when we get a vehicle speed
+    if(speed.isMatch(service,pid))
+    {
+      int pitotSpeed=pitot.readSpeed(currentTickCount);
+      windSpeedGauge.setValue(pitotSpeed-(value*0.621371));        //we're showing the delta     
+      windSpeedGauge.update(currentTickCount);
+    }
+
     //grab values used for calculations
     if(baraPressure.isMatch(service,pid))
     {

@@ -19,7 +19,6 @@ Trip::Trip(Genie *_geniePtr)
 
     //Bar gauges
     instMPG = new SplitBarGauge(geniePtr,1,2,0,20,24);
-    wind = new SplitBarGauge(geniePtr,3,0,0,60,26);  
 }
 
 //Update values, then update display

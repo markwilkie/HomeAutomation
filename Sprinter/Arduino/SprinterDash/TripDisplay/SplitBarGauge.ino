@@ -11,6 +11,18 @@ SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int
     refreshTicks=_refreshTicks;
 }
 
+SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
+{
+    geniePtr=_geniePtr;
+    lowObjNum=_lowObjNum;   
+    highObjNum=_highObjNum;
+    digitsObjNum=_digitsObjNum;
+
+    min=_min;
+    max=_max;
+    refreshTicks=_refreshTicks;
+}
+
 int SplitBarGauge::getCurrentValue()
 {
     return currentValue;
@@ -21,18 +33,19 @@ void SplitBarGauge::setValue(int _value)
     //Set actual value
     currentValue=_value;
 
-    //Determine gauge values
-    int midPoint=(max-min)/2;
+    int midPoint=(max+min)/2;
+
+    //Set value for the gauge
     if(currentValue>=midPoint)
-        _value=_value-midPoint-(min/2);
+        _value=_value-midPoint;
     if(currentValue<midPoint)
-        _value=midPoint-_value-(min/2);
+        _value=midPoint-_value;
 
     //Check bounds
     if(_value<0)
         _value=0;
-    if(_value>(max-midPoint-(min/2)))
-        _value=(max-midPoint-(min/2));    
+    if(_value>(max-midPoint))
+        _value=(max-midPoint);   
 
     //Set gauges
     if(currentValue>=midPoint)
@@ -58,8 +71,12 @@ void SplitBarGauge::update(unsigned long currentTickCount)
         nextTickCount=currentTickCount+refreshTicks;
         lastValue=currentValue;
 
-        //Determine 
+        //Update both objects 
         geniePtr->WriteObject(GENIE_OBJ_GAUGE, lowObjNum, currentLowValue);  
         geniePtr->WriteObject(GENIE_OBJ_GAUGE, highObjNum, currentHighValue);  
+
+        //Write digits if appropriate
+        if(digitsObjNum>=0)
+            geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, abs(currentValue)); 
     }
 }
