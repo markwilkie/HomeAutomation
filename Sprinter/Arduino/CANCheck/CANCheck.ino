@@ -18,8 +18,8 @@ CANBedDual CAN1(1);
 static IsoTpLink g_link;
 
 /* Alloc send and receive buffer statically in RAM */
-static uint8_t g_isotpRecvBuf[8];
-static uint8_t g_isotpSendBuf[8];
+static uint8_t g_isotpRecvBuf[90];
+static uint8_t g_isotpSendBuf[90];
 
 
 //Flags
@@ -40,8 +40,8 @@ bool ambientTemp=false;
 bool newUpdate=false;
 bool sentFlag=false;
 
-unsigned char recData[10];
-unsigned char sndData[10];
+unsigned char recData[80];
+unsigned char sndData[80];
 
 
 void setup()
@@ -116,6 +116,8 @@ void loop()
           Serial.println("Problem sending request");
       }
     }
+
+    isotp_poll(&g_link);
 
     if(CAN1.read(&id, &ext, &rtr, &fd, &len, recData))
     {
