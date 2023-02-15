@@ -6,7 +6,7 @@
 
 
 
-// generated 1/25/2023 1:29:41 PM
+// generated 2/14/2023 9:28:02 PM
 // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 
 
@@ -17,6 +17,7 @@
 
 #inherit "SprinterGaugeConst.inc"
 
+#inherit "CLPrintStringsGciFS.inc"
 
 #constant IPDatasize 22
 
@@ -167,9 +168,10 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        15
-    nInputs         2
+    nObjects        16
+    nInputs         3
     nAniTimers      0
+    nStrings        27
 #END
 
 #DATA
@@ -209,22 +211,52 @@
     word IILedDigits8 359, 65, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits5 340, 96, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits9 400, 96, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0, 14
-    word FormEndIndex 14, 15
-    word iFormStartIndex 0, 14
-    word iFormEndIndex 14, 14
-    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0
+    word FormStartIndex 0, 14, 16
+    word FormEndIndex 14, 16, 16
+    word iFormStartIndex 0, 14, 14
+    word iFormEndIndex 14, 14, 14
+    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 44
     word InternalInputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word InputData tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
-                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 0, 0
+                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 0, 0,
+                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 0, 2
+    word iStrings0  Strings0StartH, Strings0StartL, Strings0Size, 55, 10, 194, 40, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings1  Strings1StartH, Strings1StartL, Strings1Size, 55, 85, 254, 115, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings2  Strings2StartH, Strings2StartL, Strings2Size, 55, 47, 254, 77, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings3  Strings3StartH, Strings3StartL, Strings3Size, 250, 10, 283, 40, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings4  Strings4StartH, Strings4StartL, Strings4Size, 8, 10, 51, 40, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings5  Strings5StartH, Strings5StartL, Strings5Size, 212, 10, 242, 40, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings6  Strings6StartH, Strings6StartL, Strings6Size, 240, 10, 248, 40, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings7  Strings7StartH, Strings7StartL, Strings7Size, 288, 10, 431, 40, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings8  Strings8StartH, Strings8StartL, Strings8Size, 8, 85, 51, 115, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings9  Strings9StartH, Strings9StartL, Strings9Size, 2, 47, 46, 77, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings10  Strings10StartH, Strings10StartL, Strings10Size, 265, 92, 319, 111, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings11  Strings11StartH, Strings11StartL, Strings11Size, 325, 92, 464, 111, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings12  Strings12StartH, Strings12StartL, Strings12Size, 8, 4, 163, 34, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings2
+    word iStrings13  Strings13StartH, Strings13StartL, Strings13Size, 288, 12, 319, 31, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings14  Strings14StartH, Strings14StartL, Strings14Size, 325, 12, 441, 31, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings15  Strings15StartH, Strings15StartL, Strings15Size, 65, 64, 164, 83, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings16  Strings16StartH, Strings16StartL, Strings16Size, 65, 45, 175, 64, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings17  Strings17StartH, Strings17StartL, Strings17Size, 12, 45, 64, 64, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings18  Strings18StartH, Strings18StartL, Strings18Size, 12, 65, 64, 84, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings19  Strings19StartH, Strings19StartL, Strings19Size, 12, 85, 64, 104, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings20  Strings20StartH, Strings20StartL, Strings20Size, 64, 85, 169, 104, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings21  Strings21StartH, Strings21StartL, Strings21Size, 300, 32, 321, 51, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings22  Strings22StartH, Strings22StartL, Strings22Size, 325, 32, 424, 51, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings23  Strings23StartH, Strings23StartL, Strings23Size, 284, 52, 318, 71, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings24  Strings24StartH, Strings24StartL, Strings24Size, 325, 52, 424, 71, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings25  Strings25StartH, Strings25StartL, Strings25Size, 284, 72, 318, 91, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings26  Strings26StartH, Strings26StartL, Strings26Size, 325, 72, 467, 91, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
     word oDipSwitchs 0
-    word oWinButtons 2, -1, iWinbutton1
-    word oForms 2, -1, -1
+    word oWinButtons 2, iWinbutton0, iWinbutton1
+    word oForms 3, -1, -1, -1
     word oGauges 4, iGauge0, iGauge1, iGauge2, iGauge3
     word oImages 10, iImage0, iImage1, iImage2, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9
+    word oStringss 27, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
+                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26
     word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2, IIAngularMeter3
     word oiLedDigitss 10, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3, IILedDigits4, IILedDigits5, IILedDigits6, IILedDigits7, IILedDigits8, IILedDigits9
-    word FormBGcolors 0x0000, 0x0000
+    word FormBGcolors 0x0000, 0x0000, 0x0000
     word kKeyboardKeystrokes -1
     word rKeyboardRoutines -1
 #END
@@ -243,6 +275,7 @@
     var vILedDigits8[WIDGET_RAM_SPACE+2] ;
     var vILedDigits5[WIDGET_RAM_SPACE+2] ;
     var vILedDigits9[WIDGET_RAM_SPACE+2] ;
+var stringsCV[27] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -319,6 +352,8 @@ func ReadObject(var ObjectType, var ObjectIdx)
     j := 2 + ObjectIdx * 2 + Objects ;
      if (ObjectType == tForm)
         k := CurrentForm ;
+    else if (ObjectType == tStrings)
+        k := stringsCV[ObjectIdx];
         else
         k := img_GetWord(hndl, *j, IMAGE_INDEX);
         if (((ObjectType == tWinButton) || (ObjectType == tAniButton) || (ObjectType == tUserButton) || (ObjectType == t4Dbutton)) && (k)) k := 1 ; // this is not correct for blocked buttons and cannot be fixed as we cannot
@@ -375,6 +410,10 @@ func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
 //        endif
         endif
 
+        if (ObjectType == tStrings)
+            PrintStrings(ObjectIdx, NewVal, 0);
+            return ;
+        endif
     img_SetWord(hndl, i , IMAGE_INDEX, NewVal); // where state is 0 to 2
     img_Show(hndl, i) ; // will only display if form is current
     return ; // compiler bug circumvention!
@@ -465,6 +504,11 @@ print([HEX4] gfxInternals, " ", [HEX4] gfx_AngularMeter, " ", [HEX4] gfx_Gauge, 
         endif
     next
 
+    for (i := 0; i < nStrings; i++)
+        if (stringsCV[i] != -1)
+            WriteObject(tStrings, i, stringsCV[i]) ;
+        endif
+    next
 
 endfunc
 
@@ -519,6 +563,14 @@ func UpdateObjects(var newval)
                         WriteObject(*(otherOBJ+Ofs_IPD_P5),*(otherOBJ+Ofs_IPD_P2),img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX)+1) ;
                     endif
                     newval := img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) ;
+                else if (*(otherOBJ) == OT_PREVSTRING)
+                    if (stringsCV[*(otherOBJ+Ofs_IPD_P2)])
+                        WriteObject(tStrings,*(otherOBJ+Ofs_IPD_P2),stringsCV[*(otherOBJ+Ofs_IPD_P2)]-1) ;
+                    endif
+                else if (*(otherOBJ) == OT_NEXTSTRING)
+                    if (stringsCV[*(otherOBJ+Ofs_IPD_P2)] < *(otherOBJ+Ofs_IPD_P3)) // fix IPD_P2 not filled in yet
+                        WriteObject(tStrings,*(otherOBJ+Ofs_IPD_P2),stringsCV[*(otherOBJ+Ofs_IPD_P2)]+1) ;
+                    endif
                 endif
             endif
             IPidx := *(otherOBJ+TouchState) ;
@@ -569,7 +621,7 @@ func main()
     oObjects[tLed] := oDipSwitchs ; // dummy as no object there
     oObjects[tLeddigits] := oDipSwitchs ; // dummy as no object there
     oObjects[tMeter] := oDipSwitchs ; // dummy as no object there
-    oObjects[tStrings] := oDipSwitchs ; // dummy as no object there
+    oObjects[tStrings] := oStringss ;
     oObjects[tThermometer] := oDipSwitchs ; // dummy as no object there
     oObjects[tUserled] := oDipSwitchs ; // dummy as no object there
     oObjects[tVideo] := oDipSwitchs ; // dummy as no object there
@@ -668,8 +720,56 @@ func main()
         if (com_Count() != 0)
             i := serin() ;
             InputCS ^= i ;               // update checksum
+            if (   (cmdi > 2)
+                && (cmd[0] == WRITE_STRU) )
+                j := (cmdi-1) >> 1 + 2 ;
+                if (j == CMDLenMAX)    // max length exceeded
+                    nak0() ;
+                    cmdi := -1 ;
+                else if (cmdi & 1)
+                    cmd[j] := i ;
+                    if (cmd[2] == 0)    // if string complete
+                        if (InputCS)
+                            nak0() ;
+                        else
+                            if (cmd[0] == WRITE_STRU)
+                            cmd[j] := 0 ;                     // terminate it
+                            PrintStrings(cmd[1], &cmd[3], 1) ;
+                            serout(ACK) ;
+                            else
+                            endif
+                        endif
+                        cmdi := -1 ;
+                    endif
+                else
+                    cmd[j] := cmd[j] << 8 + i ;
+                    cmd[2]-- ;          // dec length
+                endif
+                cmdi++ ;
+            else // not unicode string
                 cmd[cmdi++] := i ;
-                 if (   (cmd[0] == READ_OBJ)
+                 if ((cmd[0] == WRITE_STR) || (cmd[0] == WRITE_LABEL) )                  // Ansi String or Label
+                    if (cmdi == CMDLenMAX)      // max length exceeded
+                        nak0() ;
+                        cmdi := 0 ;
+                    else if (cmdi > 2)
+                        if (cmd[2] == -1)
+                            if (InputCS)
+                                nak0() ;
+                            else
+                                if ((cmd[0] == WRITE_STR) || (cmd[0] == WRITE_LABEL))
+                                cmd[cmdi-1] := 0 ;                     // terminate it
+                                PrintStrings(cmd[1], &cmd[3], 1) ;
+                                serout(ACK) ;
+                                else
+                                endif
+                            endif
+                            cmdi := 0 ;
+                        else
+                            cmd[2]-- ;          // dec length
+                        endif
+                    endif
+                else if (   (cmd[0] == READ_OBJ)
                          && (cmdi == 4)         )
                     if (InputCS)
                         nak0() ;
@@ -699,6 +799,7 @@ func main()
                     nak0() ;
                     cmdi := 0 ;
                 endif
+            endif   // not unicode string
         endif   // a character is available
 
 
@@ -730,6 +831,9 @@ func main()
                 ImageTouched := oldn ;                     // simulate release of what we touched
                 oldn := -1 ;                    // prevent double release
                 TouchState := Ofs_IPD_RELEASE ;
+            endif
+            if (TouchStatus == TOUCH_PRESSED)
+#inherit "MagicTouch.inc"
             endif
             if (ImageTouched >= 0)
                         CurInputData := InputControls[ImageTouched] + InputData;

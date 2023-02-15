@@ -1,16 +1,21 @@
-Contents    Start(hex)    Size(dec)
-Image0        00000080          806
-Gauge0        000003A6       53,328
-Image1        0000D3F6          806
-Image2        0000D71C          806
-Image3        0000DA42          806
-Image4        0000DD68        1,256
-Image6        0000E250        1,456
-Image5        0000E800        1,386
-Image7        0000ED6A        1,606
-Image8        0000F3B0        1,518
-Image9        0000F99E        1,626
-Gauge1        0000FFF8       15,848
-Gauge2        00013DE0       15,848
-Gauge3        00017BC8       53,328
-Winbutton1    00024C18        7,368
+Contents                              Start(hex)    Size(dec)
+Image0                                  000000A8          806
+Gauge0                                  000003CE       53,328
+Image1                                  0000D41E          806
+Image2                                  0000D744          806
+Image3                                  0000DA6A          806
+Image4                                  0000DD90        1,256
+Image6                                  0000E278        1,456
+Image5                                  0000E828        1,386
+Image7                                  0000ED92        1,606
+Image8                                  0000F3D8        1,518
+Image9                                  0000F9C6        1,626
+Gauge1                                  00010020       15,848
+Gauge2                                  00013E08       15,848
+Gauge3                                  00017BF0       53,328
+Winbutton1                              00024C40       10,588
+Winbutton0                              0002759C       18,804
+Font Arial-12____A                      0002BF10        8,480
+Font MS Reference Sans Serif-14b___A    0002E030       16,508
+Font MS Reference Sans Serif-10b___A    000320AC        7,588
+                                        00033E50       13,824

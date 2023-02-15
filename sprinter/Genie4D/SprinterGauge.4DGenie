@@ -793,6 +793,33 @@ Gauge
     OnTouchPressed               ''
     OnTouchReleased              ''
 end
+MagicTouch
+    Name                         MagicTouch
+    Alias                        MagicTouch
+    Code                         MagicTouch.inc
+end
+iFont
+    Name                         IFont0
+    Alias                        IFont0
+    Bold                         No
+    CharSet                      ANSI
+    FontName                     Arial
+    Italic                       No
+    Size                         -12
+    Strikethrough                No
+    Underline                    No
+end
+iFont
+    Name                         IFont1
+    Alias                        IFont1
+    Bold                         No
+    CharSet                      ANSI
+    FontName                     Arial
+    Italic                       No
+    Size                         -12
+    Strikethrough                No
+    Underline                    No
+end
 Form
     Name                         Form1
     Alias                        Form1
@@ -829,7 +856,7 @@ WinButton
     Font.Size                    8
     Font.Style                   []
     Height                       115
-    Left                         460
+    Left                         440
     Matrix                       -1
     Momentary                    Yes
     Picture                      (None)
@@ -852,9 +879,668 @@ WinButton
     StatusWhenOn.Style           []
     StatusWhenOn.Visible         Yes
     Top                          8
-    Width                        16
+    Width                        23
     OnChanged                    Form0Activate
     OnTouchMoving                ''
     OnTouchPressed               ''
     OnTouchReleased              ''
+end
+Strings
+    Name                         Strings2
+    Alias                        Strings2
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         55
+    Strings                      'Gallons Expected\n'
+    StringsStyle                 Message
+    Top                          47
+    Width                        200
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings0
+    Alias                        Strings0
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         55
+    Strings                      'Miles Driven\n'
+    StringsStyle                 Message
+    Top                          10
+    Width                        140
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings1
+    Alias                        Strings1
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         55
+    Strings                      'Expected Range'
+    StringsStyle                 Message
+    Top                          85
+    Width                        200
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings4
+    Alias                        Strings4
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         8
+    Strings                      999\n
+    StringsStyle                 Message
+    Top                          10
+    Width                        44
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings5
+    Alias                        Strings5
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         212
+    Strings                      12\n
+    StringsStyle                 Message
+    Top                          10
+    Width                        31
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings6
+    Alias                        Strings6
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         240
+    Strings                      :\n
+    StringsStyle                 Message
+    Top                          10
+    Width                        9
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings3
+    Alias                        Strings3
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         250
+    Strings                      60\n
+    StringsStyle                 Message
+    Top                          10
+    Width                        34
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings7
+    Alias                        Strings7
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         288
+    Strings                      'Time Elapsed\n'
+    StringsStyle                 Message
+    Top                          10
+    Width                        144
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings8
+    Alias                        Strings8
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         8
+    Strings                      999\n
+    StringsStyle                 Message
+    Top                          85
+    Width                        44
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings9
+    Alias                        Strings9
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         2
+    Strings                      99\n
+    StringsStyle                 Message
+    Top                          47
+    Width                        45
+    OnChanged                    ''
+end
+WinButton
+    Name                         Winbutton0
+    Alias                        Winbutton0
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   WHEAT
+    Caption                      'Finish Day'
+    Color                        BLACK
+    Font.Color                   clWhite
+    Font.Effects                 []
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Size                    12
+    Font.Style                   [Bold]
+    Height                       37
+    Left                         276
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         CLOSED!
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          64
+    Width                        127
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Form
+    Name                         Form2
+    Alias                        Form2
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings10
+    Alias                        Strings10
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         265
+    Strings                      99,999\n
+    StringsStyle                 Message
+    Top                          92
+    Width                        55
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings11
+    Alias                        Strings11
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Elevation Gain\n'
+    StringsStyle                 Message
+    Top                          92
+    Width                        140
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings12
+    Alias                        Strings12
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         8
+    Strings                      'Day Summary\n'
+    StringsStyle                 Message
+    Top                          4
+    Width                        156
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings15
+    Alias                        Strings15
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         65
+    Strings                      'Time Driving\n\n'
+    StringsStyle                 Message
+    Top                          64
+    Width                        100
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings16
+    Alias                        Strings16
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         65
+    Strings                      'Time Elapsed\n'
+    StringsStyle                 Message
+    Top                          45
+    Width                        111
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings18
+    Alias                        Strings18
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      12:12\n
+    StringsStyle                 Message
+    Top                          65
+    Width                        53
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings19
+    Alias                        Strings19
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      12:12\n
+    StringsStyle                 Message
+    Top                          85
+    Width                        53
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings20
+    Alias                        Strings20
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         64
+    Strings                      'Time Stopped\n\n'
+    StringsStyle                 Message
+    Top                          85
+    Width                        106
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings21
+    Alias                        Strings21
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         300
+    Strings                      99\n
+    StringsStyle                 Message
+    Top                          32
+    Width                        22
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings22
+    Alias                        Strings22
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Gallons Used\n\n'
+    StringsStyle                 Message
+    Top                          32
+    Width                        100
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings23
+    Alias                        Strings23
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         284
+    Strings                      99.9\n
+    StringsStyle                 Message
+    Top                          52
+    Width                        35
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings24
+    Alias                        Strings24
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Average MPG\n\n'
+    StringsStyle                 Message
+    Top                          52
+    Width                        100
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings13
+    Alias                        Strings13
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         288
+    Strings                      999\n
+    StringsStyle                 Message
+    Top                          12
+    Width                        32
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings14
+    Alias                        Strings14
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Miles Travelled\n\n'
+    StringsStyle                 Message
+    Top                          12
+    Width                        117
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings25
+    Alias                        Strings25
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         284
+    Strings                      99.9\n
+    StringsStyle                 Message
+    Top                          72
+    Width                        35
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings26
+    Alias                        Strings26
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Avg Moving Speed\n\n'
+    StringsStyle                 Message
+    Top                          72
+    Width                        143
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings17
+    Alias                        Strings17
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      12:12\n
+    StringsStyle                 Message
+    Top                          45
+    Width                        53
+    OnChanged                    ''
 end

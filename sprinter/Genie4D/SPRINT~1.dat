@@ -12,4 +12,5 @@
 "Gauge1" 0A00 0001 1C8 30
 "Gauge2" 4800 0001 1C8 08
 "Gauge3" 8600 0001 10 34
-"Winbutton1" 5800 0002 1CC 08
+"Winbutton1" 5800 0002 1B8 08
+"Winbutton0" 8200 0002 114 40
