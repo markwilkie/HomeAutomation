@@ -1,0 +1,6 @@
+{
+    "configuration": "flash=2097152_0,freq=125,dbgport=Disabled,dbglvl=None,usbstack=picosdk",
+    "board": "longan-rp2040:longan-rp2040:canbedDual",
+    "sketch": "CANCheck2.ino",
+    "port": "COM7"
+}

@@ -50,6 +50,9 @@ void setup()
 
 void loop()
 {   
+    //make sure buffers are cleared
+    memset(txMsg.Buffer, (uint8_t)0, 8);
+    memset(rxMsg.Buffer, (uint8_t)0, MAX_MSGBUF);
 
     if(millis()>coolantSendTime)
     {

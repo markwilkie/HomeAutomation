@@ -115,6 +115,7 @@ void IsoTp::fc_delay(uint8_t sep_time)
     delay(0x7F);
 }
 
+//single frame (most everything)
 uint8_t IsoTp::rcv_sf(struct Message_t* msg)
 {
   /* get the SF_DL from the N_PCI byte */
@@ -126,30 +127,28 @@ uint8_t IsoTp::rcv_sf(struct Message_t* msg)
   return 0;
 }
 
+//first frame of multi frame response
 uint8_t IsoTp::rcv_ff(struct Message_t* msg)
 {
-  //we read whatever comes in directly and don't 'seed' the number.  ff doesn't have a sequence...
-  //msg->seq_id=1;
-
+  //start counter for timeout
   wait_cf=millis();
 
   /* get the FF_DL */
   msg->len = (rxBuffer[0] & 0x0F) << 8;
   msg->len += rxBuffer[1];
   rest=msg->len;
-
-  /* copy the first received data bytes */
-  memcpy(msg->Buffer,rxBuffer+2,6); // Skip 2 bytes PCI, FF must have 6 bytes!
-  rest-=6; // Restlength
-
   msg->tp_state = ISOTP_WAIT_DATA;
 
 #ifdef ISO_TP_DEBUG
   Serial.print(F("First frame received with message length: "));
   Serial.println(rest);
-  Serial.println(F("Send flow controll."));
+  Serial.println(F("Sending flow controll."));
   Serial.print(F("ISO-TP state: ")); Serial.println(msg->tp_state);
 #endif
+
+  /* copy the first received data bytes */
+  memcpy(msg->Buffer,rxBuffer+2,6); // Skip 2 bytes PCI, FF must have 6 bytes!
+  rest-=6; // Restlength
 
   /* send our first FC frame with Target Address*/
   struct Message_t fc;
@@ -160,6 +159,7 @@ uint8_t IsoTp::rcv_ff(struct Message_t* msg)
   return send_fc(&fc);
 }
 
+//consequtive frame of multi frame response
 uint8_t IsoTp::rcv_cf(struct Message_t* msg)
 {
   //Handle Timeout
@@ -172,13 +172,13 @@ uint8_t IsoTp::rcv_cf(struct Message_t* msg)
   if((delta >= TIMEOUT_FC) && msg->seq_id>1)
   {
 #ifdef ISO_TP_DEBUG
-    Serial.println(F("CF frame timeout during receive wait_cf="));
-    Serial.print(wait_cf); Serial.print(F(" delta="));
-    Serial.println(delta);
+    Serial.println(F("CF frame timeout during receive wait_cf"));
 #endif
     msg->tp_state = ISOTP_IDLE;
     return 1;
   }
+
+  //reset timer
   wait_cf=millis();
 
 #ifdef ISO_TP_DEBUG
@@ -189,9 +189,15 @@ uint8_t IsoTp::rcv_cf(struct Message_t* msg)
 
   if (msg->tp_state != ISOTP_WAIT_DATA) return 0;
 
-  if(rest<=7) // Last Frame
+  // There's a bug here because frames come in out of sequence.  The # of bytes to copy in should NOT be based
+  // on many are left, but rather on math using sequence and total expected.  
+  // e.g.  expectedFrames = ((totalBytesExpected-6) / 7) + 1    noite: '6' is the data in the first frame and is always that
+  // then if last frame (known by current vs. total-expected), 
+  // bytesToCopy = totalBytesExpected-6-((expectedFrames-1)*7)  
+  //
+  if(rest<=7) // Last Frame (but still may be out of sequence)
   {
-    memcpy(msg->Buffer+6+7*(msg->seq_id-1),rxBuffer+1,rest);// 6 Bytes in FF +7
+    //memcpy(msg->Buffer+6+7*(msg->seq_id-1),rxBuffer+1,rest);// 6 Bytes in FF +7
     msg->tp_state=ISOTP_FINISHED;                           // per CF skip PCI
 #ifdef ISO_TP_DEBUG
     Serial.print(F("Last CF received with seq. ID: "));
@@ -204,17 +210,26 @@ uint8_t IsoTp::rcv_cf(struct Message_t* msg)
     Serial.print(F("CF received with seq. ID: "));
     Serial.println(msg->seq_id);
 #endif
-    memcpy(msg->Buffer+6+7*(msg->seq_id-1),rxBuffer+1,7); // 6 Bytes in FF +7
-                                                          // per CF
-    rest-=7; // Got another 7 Bytes of Data;
+    //memcpy(msg->Buffer+6+7*(msg->seq_id-1),rxBuffer+1,7); // 6 Bytes in FF +7
+    //rest-=7; // Got another 7 Bytes of Data;
   }
 
-  //Reading actual seq id because msgs come out of order
-  //msg->seq_id++;
+  //Calc how many bytes to copy based on sequence, not bytes left  (see note on bug below)
+  int bytesToCopy=7;  //as default
+  int expectedFrames=((msg->len-6) / 7) + 1;
+  if(msg->seq_id>=expectedFrames)
+  {
+      bytesToCopy=msg->len-6-((expectedFrames-1)*7);
+  }
+
+  //OK, now copy buffer and we know how many bytes regardless on which order we received the frames
+  memcpy(msg->Buffer+6+7*(msg->seq_id-1),rxBuffer+1,bytesToCopy);// 6 Bytes in FF +7
+  rest-=bytesToCopy;
 
   return 0;
 }
 
+//flow control receive (I don't use this, but send_fx IS used to ack the ff of multi receive)
 uint8_t IsoTp::rcv_fc(struct Message_t* msg)
 {
   uint8_t retval=0;
