@@ -15,33 +15,24 @@ CANBedDual CAN1(1);
 
 //ISP TP implementation (mostly for multi frame support)
 /* Alloc IsoTpLink statically in RAM */
-static IsoTpLink g_link;
+
+static IsoTpLink g_coolantlink;
+static IsoTpLink g_translink;
 
 /* Alloc send and receive buffer statically in RAM */
-static uint8_t g_isotpRecvBuf[90];
-static uint8_t g_isotpSendBuf[90];
+static uint8_t g_isotpCoolantRecvBuf[20];
+static uint8_t g_isotpCoolantSendBuf[20];
 
+static uint8_t g_isotpTransRecvBuf[512];
+static uint8_t g_isotpTransSendBuf[20];
 
-//Flags
-bool load=false;
-bool coolant=false;
-bool manPressure=false;
-bool rpm=false;
-bool speed=false;
-bool intake=false;
-bool maf=false;
-bool runtime=false;
-bool fuel=false;
-bool transTemp=false;
-bool distance=false;
-bool bara=false;
-bool ambientTemp=false;
+unsigned char recData[512];
+unsigned char sndData[100];
 
-bool newUpdate=false;
-bool sentFlag=false;
-
-unsigned char recData[80];
-unsigned char sndData[80];
+long coolantSendTime;
+long transSendTime;
+bool coolantDone;
+bool transDone;
 
 
 void setup()
@@ -56,8 +47,17 @@ void setup()
     //CAN0.init(500000);          // CAN0 baudrate: 500kb/s
     CAN1.init(500000);          // CAN1 baudrate: 500kb/s
 
+    delay(10000);
+
     /* Initialize link, 0x7DF is the CAN ID you send with */
-    isotp_init_link(&g_link, 0x7DF,	g_isotpSendBuf, sizeof(g_isotpSendBuf), g_isotpRecvBuf, sizeof(g_isotpRecvBuf));
+    isotp_init_link(&g_coolantlink, 0x7DF,	g_isotpCoolantSendBuf, sizeof(g_isotpCoolantSendBuf), g_isotpCoolantRecvBuf, sizeof(g_isotpCoolantRecvBuf));
+    isotp_init_link(&g_translink, 0x7E1,  g_isotpTransSendBuf, sizeof(g_isotpTransSendBuf), g_isotpTransRecvBuf, sizeof(g_isotpTransRecvBuf));
+    
+    coolantSendTime=millis();
+    transSendTime=millis();    
+
+    coolantDone=false;
+    transDone=false;    
 }
 
 /* required, this must send a single CAN message with the given arbitration
@@ -66,6 +66,19 @@ void setup()
 int  isotp_user_send_can(const uint32_t arbitration_id, const uint8_t* data, const uint8_t size) 
 {
     //void CANBedDual::send(unsigned long id, unsigned char ext, unsigned char rtr, unsigned char fd, unsigned char len, unsigned char *dta)    
+
+    Serial.print("0x");
+    Serial.print(arbitration_id,HEX);
+    Serial.print(",");
+    for(int i=0; i<size; i++)
+    {
+        Serial.print("0x");
+        Serial.print(data[i],HEX);
+        Serial.print(",");
+    }
+    Serial.println();
+
+    
     CAN1.send(arbitration_id, 0, 0, 0, size, (unsigned char*)data);
     return 0;
 }
@@ -89,149 +102,125 @@ void loop()
     int rtr = 0;
     int fd = 0;
     int len = 0;
+    int ret;
+    uint16_t out_size;
 
-    int ret    ;
+    //Read raw bytes off the CAN bus
+    if(CAN1.read(&id, &ext, &rtr, &fd, &len, recData))
+    {
+      Serial.print("Received CAN ID: 0x");      
+      Serial.println(id,HEX);  
 
-
-    //Only send if we've already sent, and are still waiting for an update
-    if(!sentFlag && !newUpdate)
-    { 
-      //Be very nice to the bus
-      delay(2000);
-
-      sndData[0]=0x02;  //length
-      sndData[1]=0x01;  //service
-      sndData[2]=0x05;  //coolant
-
-      Serial.println("sending request");
-      
-      /* In case you want to send data w/ functional addressing, use isotp_send_with_id */
-      ret = isotp_send_with_id(&g_link, 0x7df, sndData, sizeof(sndData));
-      if (ISOTP_RET_OK == ret) 
+      //Most everything
+      if(id == 0x7E8)
       {
-          sentFlag=true;
-      } 
-      else 
+        Serial.println("Received coolant!");
+        isotp_on_can_message(&g_coolantlink, recData, len);
+      }  
+
+      //Transmission temp
+      if(id == 0x7E9)
       {
-          Serial.println("Problem sending request");
+        Serial.println("Received trans temp!");
+        dump(recData,len);
+        isotp_on_can_message(&g_translink, recData, len);
+      }          
+    }
+
+    //Links for multi frame and general house keeping  (might only need one for multi frame)
+    isotp_poll(&g_coolantlink);  
+    isotp_poll(&g_translink);
+
+
+    if(!coolantDone)
+    {
+      //Receiving now
+      ret = isotp_receive(&g_coolantlink, recData, sizeof(recData), &out_size);  
+      if (ret == ISOTP_RET_OK) 
+      {
+          Serial.println("Coolant Data: ");
+          dump(recData,out_size);
+          coolantDone=true;   
+      }
+      else
+      {
+        //Serial.print("Coolant Data Recv Error: ");
+        //Serial.println(ret);
       }
     }
 
-    isotp_poll(&g_link);
-
-    if(CAN1.read(&id, &ext, &rtr, &fd, &len, recData))
-    {
-        Serial.print("Received code: ");      
-        Serial.println(recData[2]);      
-        
-        if(recData[2]==0x05 && !coolant)
-        {
-            isotp_on_can_message(&g_link, recData, len);
-            coolant=true;
-            newUpdate=true;
-
-            Serial.println("Received Coolant!");
-
-            /* You can receive message with isotp_receive.
-            payload is upper layer message buffer, usually UDS;
-            payload_size is payload buffer size;
-            out_size is the actuall read size;
-            */
-            uint16_t out_size;
-            ret = isotp_receive(&g_link, recData, sizeof(recData), &out_size);
-            if (ISOTP_RET_OK == ret) 
-            {
-                Serial.print("Lib receive size: ");
-                Serial.println(out_size);
-                Serial.print("Fancy Received code: ");      
-                Serial.println(recData[2]);                   
-            }                  
-        }  
-
-        
-        //if(dtaGet[2]==0x30 && !transTemp){
-        //    transTemp=true;
-        //    newUpdate=true;
-        //}         
+    if(!transDone)
+    {                  
+      ret = isotp_receive(&g_translink, recData, sizeof(recData), &out_size);   
+      if (ret == ISOTP_RET_OK) 
+      {
+          Serial.println("Trans Temp Data: ");
+          dump(recData,out_size);
+          transDone=true; 
+      }
+      else
+      {
+        //Serial.print("Trans Temp Data Recv Error: ");
+        //Serial.println(ret);
+      }
     }
 
-    if(newUpdate || !newUpdate)
+    if(millis()>coolantSendTime)
     {
-        //reset flags so we'll send again
-        newUpdate=false;
-        sentFlag=false;
-        
-        //Serial.print("load"); Serial.print(load); 
-        Serial.print("| coolant:"); Serial.print(coolant);
-        //Serial.print(" | manPressure:"); Serial.print(manPressure);
-        //Serial.print(" | rpm:"); Serial.print(rpm);
-        //Serial.print(" | speed:"); Serial.print(speed);
-        //Serial.print(" | intake:"); Serial.print(intake);
-        //Serial.print(" | maf:"); Serial.print(maf);
-        //Serial.print(" | runtime:"); Serial.print(runtime);
-        //Serial.print(" | fuel:"); Serial.print(fuel);
-        //Serial.print(" | transTemp:"); Serial.print(transTemp);
-        //Serial.print(" | distance:"); Serial.print(distance);
-        //Serial.print(" | bara:"); Serial.print(bara);
-        //Serial.print(" | ambientTemp:"); Serial.print(ambientTemp);
-        Serial.println("");
+     //send coolant request
+      //Serial.println("sending coolant request");
+      sndData[0]=0x01;  //service
+      sndData[1]=0x05;  //coolant    
+      ret = isotp_send(&g_coolantlink, sndData, 2);
+      if (ISOTP_RET_OK == ret) 
+      {
+          Serial.println("Sent coolant request");
+          coolantDone=false;
+      } 
+      else 
+      {
+          Serial.print("Coolant request not sent: ");
+          Serial.println(ret);
+      }
+
+      coolantSendTime=millis()+10000;
+    }
+
+    if(millis()>transSendTime)
+    {
+      //send trans request
+      //Serial.println("sending trans temp request");
+      sndData[0]=0x21;  //service
+      sndData[1]=0x30;  //trans temp    
+      ret = isotp_send(&g_translink, sndData, 2);
+      if (ISOTP_RET_OK == ret) 
+      {
+          Serial.println("Sent trans temp request");
+          transDone=false;
+      } 
+      else 
+      {
+          Serial.print("Trans temp request not sent: ");
+          Serial.println(ret);
+      }
+
+      transSendTime=millis()+5000;      
     }
 }
 
-/*
-      //Serial.println(dtaGet[2],HEX);
-        if(dtaGet[2]==0x04 && !load){
-            load=true;
-            newUpdate=true;
-        }
-        if(dtaGet[2]==0x05 && !coolant){
-            coolant=true;
-            newUpdate=true;
-        }        
-        if(dtaGet[2]==0x0B && !manPressure){
-            manPressure=true;
-            newUpdate=true;
-        }  
-        if(dtaGet[2]==0x0C && !rpm){
-            rpm=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x0D && !speed){
-            speed=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x0F && !intake){
-            intake=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x10 && !maf){
-            maf=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x1F && !runtime){
-            runtime=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x2F && !fuel){
-            fuel=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x30 && !transTemp){
-            transTemp=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x31 && !distance){
-            distance=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x33 && !bara){
-            bara=true;
-            newUpdate=true;
-        } 
-        if(dtaGet[2]==0x70 && !ambientTemp){
-            ambientTemp=true;
-            newUpdate=true;
-        } */
+void dump(unsigned char *data,int len)
+{
+    Serial.print("Bytes received size: ");
+    Serial.println(len);  
+    Serial.print("DUMP: ");
+    for(int i=0; i<len; i++)
+    {
+        Serial.print("0x");
+        Serial.print(data[i],HEX);
+        Serial.print(",");
+    }
+    Serial.println();
+}
 
 
 /*

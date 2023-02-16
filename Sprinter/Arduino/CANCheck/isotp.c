@@ -268,9 +268,11 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const uint8_t payload[], ui
 
     if (link->send_size < 8) {
         /* send single frame */
+        //isotp_user_debug("single");
         ret = isotp_send_single_frame(link, id);
     } else {
         /* send multi-frame */
+        //isotp_user_debug("multi");
         ret = isotp_send_first_frame(link, id);
 
         /* init multi-frame control flags */
@@ -286,6 +288,15 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const uint8_t payload[], ui
     }
 
     return ret;
+}
+
+int isotp_is_single_frame(IsoTpLink *link, uint8_t *data, uint8_t len) {
+    IsoTpCanMessage message;
+
+    memcpy(message.as.data_array.ptr, data, len);
+    memset(message.as.data_array.ptr + len, 0, sizeof(message.as.data_array.ptr) - len);
+
+    return (message.as.common.type==ISOTP_PCI_TYPE_SINGLE);
 }
 
 void isotp_on_can_message(IsoTpLink *link, uint8_t *data, uint8_t len) {
@@ -517,4 +528,3 @@ void isotp_poll(IsoTpLink *link) {
 
     return;
 }
-

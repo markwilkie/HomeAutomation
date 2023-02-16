@@ -123,9 +123,11 @@ int isotp_send_with_id(IsoTpLink *link, uint32_t id, const uint8_t payload[], ui
  */
 int isotp_receive(IsoTpLink *link, uint8_t *payload, const uint16_t payload_size, uint16_t *out_size);
 
+// Checks to see if it's a single frame type
+int isotp_is_single_frame(IsoTpLink *link, uint8_t *data, uint8_t len);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif // __ISOTP_H__
-

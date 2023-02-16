@@ -4,7 +4,7 @@
 /* Max number of messages the receiver can receive at one time, this value 
  * is affectied by can driver queue length
  */
-#define ISO_TP_DEFAULT_BLOCK_SIZE   8
+#define ISO_TP_DEFAULT_BLOCK_SIZE   0
 
 /* The STmin parameter value specifies the minimum time gap allowed between 
  * the transmission of consecutive frame network protocol data units
@@ -26,4 +26,3 @@
 #define ISO_TP_FRAME_PADDING
 
 #endif
-
