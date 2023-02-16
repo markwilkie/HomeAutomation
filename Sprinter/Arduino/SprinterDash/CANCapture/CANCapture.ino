@@ -3,29 +3,33 @@
 
 #include "PID.h"
 #include "TestData.h"
-#include "canbed_dual.h"
+#include "isotp.h"
 
 //Can bus interfaces
-CANBedDual CAN0(0);
+//CANBedDual CAN0(0);
 CANBedDual CAN1(1);
+IsoTp isotp(&CAN1);
 
 //Used for testing and simulation (actual dump)
 TestData testData;
 
+//Buffers for CAN bus commms
+struct Message_t txMsg, rxMsg;
+
 //Setup PIDs
-PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55");
-PID coolantTemp(0x7DF,0x01,0x05,"Coolant Temp","C","A-40");
-PID manPressure(0x7DF,0x01,0x0B,"Manifold","kPa","A");
-PID engineRPM(0x7DF,0x01,0x0C,"RPM","RPM","((256*A)+B)/4");  
-PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A"); 
-PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40");
-PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100"); 
-PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B");
-PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A");
-PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","A-50",true);
-PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B");
-PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A");
-PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40");
+PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55",200);
+PID coolantTemp(0x7DF,0x01,0x05,"Coolant Temp","C","A-40",10000);
+PID manPressure(0x7DF,0x01,0x0B,"Manifold","kPa","A",200);
+PID engineRPM(0x7DF,0x01,0x0C,"RPM","RPM","((256*A)+B)/4",500);  
+PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A",500); 
+PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40",1000);
+PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100",200); 
+PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B",1000);
+PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A",60000);
+PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","L-50",10000);
+PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
+PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
+PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
 PID* pidArray[]={&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&baraPressure,&transTemp,&ambientTemp};
 
 void setup()
@@ -42,11 +46,15 @@ void setup()
     Wire1.setSCL(7);
     Wire1.begin();
   
-    CAN0.init(500000);          // CAN0 baudrate: 500kb/s
+    //CAN0.init(500000);          // CAN0 baudrate: 500kb/s
     CAN1.init(500000);          // CAN1 baudrate: 500kb/s
+
+    //Setup buffers for CAN comm
+    txMsg.Buffer = (uint8_t *)calloc(8, sizeof(uint8_t));
+    rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));    
 }
 
-//not yet used....
+//not yet used....  
 char readFromMaster()
 {
   char retVal='0';
@@ -102,79 +110,62 @@ void loop()
     delay(2);
     digitalWrite(18,LOW);
 
-    //CAN variables
-    unsigned int id;
-    unsigned char canFrame[30];
+    //make sure CAN com buffers are cleared
+    memset(txMsg.Buffer, (uint8_t)0, 8);
+    memset(rxMsg.Buffer, (uint8_t)0, MAX_MSGBUF);    
 
-    //Check if simulation mode
-    if(!digitalRead(10))
-    {
-        //load testdata
-        id=testData.GetId();
-        testData.FillCanFrame(canFrame);
-        delay(50);
-    }
-    else
-    {
-        //read data from can bus
-        //sendData();
-        id=readData(canFrame);
-    }
-
-    //Dump known pids we read
+    //Let's go through each PID we setup and get the values
+    int retVal=0;
     const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
-    for(int i=0;i<arrLen && id>0;i++)
+    for(int i=0;i<arrLen;i++)
     {
-      if(pidArray[i]->isMatch(id,canFrame))
+      //Is it time??
+      if(millis()>pidArray[i]->getNextUpdateMillis())
       {
-        unsigned int result=result=(int)pidArray[i]->getResult(canFrame);
-        
-        //If extended data mode, then we don't have a pid, and we grab the data from the 2nd field and on
-        //  This implimentation is not robust, but should work if this continues to be the only gauge
-        if(pidArray[i]->isExtData())
+        pidArray[i]->setNextUpdateMillis();
+
+        //Build request for ECU's and then send it!
+        txMsg.len = 2;  //stnd size
+        txMsg.tx_id = pidArray[i]->getId();
+        txMsg.rx_id = pidArray[i]->getRxId();
+        txMsg.Buffer[0]=pidArray[i]->getService();
+        txMsg.Buffer[1]=pidArray[i]->getPID();
+        Serial.print("Sending ");
+        Serial.println(pidArray[i]->getLabel());
+        retVal=isotp.send(&txMsg); 
+
+        if(retVal)
         {
-          //we're using first byte as the designator only
-          sendToMaster(canFrame[0],canFrame[0],result);
-          Serial.printf("Designator: 0x%02x -  %s: %d%s\n",canFrame[0],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
+          Serial.println("ERROR sending");
         }
         else
         {
+          //OK, now receive the data
+          rxMsg.tx_id = pidArray[i]->getId();
+          rxMsg.rx_id = pidArray[i]->getRxId();
+          Serial.print(F("Receiving "));
+          Serial.println(pidArray[i]->getLabel());
+          retVal=isotp.receive(&rxMsg);
+        }
+
+        //If we successfully received the data, let's parse and send it back now
+        if(retVal)
+        {
+          Serial.println("ERROR receving");
+        }
+        else
+        {
+          isotp.print_buffer(rxMsg.rx_id, rxMsg.Buffer, rxMsg.len);        
+
+          //OK, now get the result from the buffer we just received
+          unsigned int result=(int)pidArray[i]->getResult(rxMsg.Buffer);
+          
           //1 = service and 2= pid
-          sendToMaster(canFrame[1],canFrame[2],result);
-          Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canFrame[1],canFrame[2],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
+          sendToMaster(rxMsg.Buffer[0],rxMsg.Buffer[1],result);
+          Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",rxMsg.Buffer[0],rxMsg.Buffer[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
         }
       }
     }     
-
-    if(!digitalRead(10))
-    {
-        //Go to next row from test data
-        testData.NextRow();        
-    }
-}
-
-unsigned int readData(unsigned char* canFrame)
-{
-    unsigned long id = 0;
-    int ext = 0;
-    int rtr = 0;
-    int fd = 0;
-    int len = 0;
-    
-    if(!CAN1.read(&id, &ext, &rtr, &fd, &len, canFrame))
-      id=0;
-
-    return (unsigned int)id;
-}
-
-void sendData()
-{
-    static unsigned int cnt = 0;
-    cnt++;
-    if(cnt > 99)cnt = 0;
-    unsigned char str[8];
-    for(int i=0; i<8; i++)str[i] = cnt;
-    CAN0.send(0x01, 0, 0, 0, 8, str);
 }
 
 // ENDIF

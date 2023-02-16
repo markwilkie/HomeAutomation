@@ -2,9 +2,8 @@
 #include "tinyexpr.h"
 
 //translation will have to conv 0x01 to 0x04 and 0x7E8 from 0x7DF
-//extDataMode (defaults to false) means that we're searching for a frame that is part of a multi-frame reponse....e.g., the pid and service are long gone - part of an earlier frame.
 //
-PID::PID(unsigned int _id,unsigned int _service,unsigned int _PIDCode,const char *_label,const char *_unit,const char *_formula,bool _extDataMode)
+PID::PID(unsigned int _id,unsigned int _service,unsigned int _PIDCode,const char *_label,const char *_unit,const char *_formula,int _updateFreq)
 {
     id=_id;
     service=_service;
@@ -12,7 +11,7 @@ PID::PID(unsigned int _id,unsigned int _service,unsigned int _PIDCode,const char
     label=_label;
     unit=_unit;
     formula=_formula;
-    extDataMode=_extDataMode;
+    updateFreq=_updateFreq;
 
     //determine response IDs
     if(id==0x7DF)
@@ -21,20 +20,17 @@ PID::PID(unsigned int _id,unsigned int _service,unsigned int _PIDCode,const char
         responseId=0x7E9;     
 }
 
-bool PID::isExtData()
-{
-    return extDataMode;
-}
-
 //Pass each response in to see if there's a match
 bool PID::isMatch(unsigned int incomingId,unsigned char *canFrame)
 {
     //If ext data mode, don't match on pid
+    /*
     if(extDataMode && incomingId==responseId && service==canFrame[0])
     {       
         //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,data0,service); 
         return true;
     }
+    */
 
     //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,testData->GetData(1),(service + 0x40),testData->GetData(2),PIDCode); 
 
@@ -56,12 +52,37 @@ const unsigned int PID::getId()
     return id;
 }
 
+const unsigned int PID::getRxId()
+{
+    return responseId;
+}
+
+unsigned int PID::getService()
+{
+    return service;
+}
+
+unsigned int PID::getPID()
+{
+    return PIDCode;
+}
+
+unsigned long PID::getNextUpdateMillis()
+{
+    return nextUpdateMillis;
+}
+
+void PID::setNextUpdateMillis()
+{
+    nextUpdateMillis=millis()+updateFreq;
+}
+
 //Get results when there's a match
-double PID::getResult(unsigned char *canFrame)
+double PID::getResult(unsigned char *buffer)
 {
     /* Store variable names and pointers. */
-    double a,b,c,d,e;
-    te_variable vars[] = {{"A", &a}, {"B", &b}, {"C", &c}, {"D", &d}, {"E", &e}};
+    double a,b,c,d,e,l;
+    te_variable vars[] = {{"A", &a}, {"B", &b}, {"C", &c}, {"D", &d}, {"E", &e}, {"L", &l}};
 
     int err;
     double result; 
@@ -71,15 +92,10 @@ double PID::getResult(unsigned char *canFrame)
     if (expr) 
     {
         //If extended data mode, the data starts 2nd byte in.  otherwise, it's normal with len+svc+pid first....
-        if(extDataMode) {
-            a=canFrame[1]; b=canFrame[2]; c=canFrame[3]; d=canFrame[4]; e=canFrame[5];
-        }
-        else {
-            a=canFrame[3]; b=canFrame[4]; c=canFrame[5]; d=canFrame[6]; e=canFrame[7];
-        }
+        a=buffer[2]; b=buffer[3]; c=buffer[4]; d=buffer[5]; e=buffer[6]; l=buffer[14];
         
         result = te_eval(expr);
-        //Serial.printf("Formula Result:%f using %s with %d\n", result,formula,a);
+        Serial.printf("Formula Result:%f using %s with %d\n", result,formula,a);
         te_free(expr);
     } 
     else 
