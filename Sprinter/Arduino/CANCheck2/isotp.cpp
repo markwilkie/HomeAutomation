@@ -128,17 +128,15 @@ uint8_t IsoTp::rcv_sf(struct Message_t* msg)
 
 uint8_t IsoTp::rcv_ff(struct Message_t* msg)
 {
-  msg->seq_id=1;
+  //we read whatever comes in directly and don't 'seed' the number.  ff doesn't have a sequence...
+  //msg->seq_id=1;
+
+  wait_cf=millis();
 
   /* get the FF_DL */
-  msg->len=8;
-  rest = (rxBuffer[0] & 0x0F) << 8;
-  rest += rxBuffer[1];
-
-  //old
-  //msg->len = (rxBuffer[0] & 0x0F) << 8;
-  //msg->len += rxBuffer[1];
-  //rest=msg->len;
+  msg->len = (rxBuffer[0] & 0x0F) << 8;
+  msg->len += rxBuffer[1];
+  rest=msg->len;
 
   /* copy the first received data bytes */
   memcpy(msg->Buffer,rxBuffer+2,6); // Skip 2 bytes PCI, FF must have 6 bytes!
@@ -167,6 +165,9 @@ uint8_t IsoTp::rcv_cf(struct Message_t* msg)
   //Handle Timeout
   //If no Frame within 250ms change State to ISOTP_IDLE
   uint32_t delta=millis()-wait_cf;
+  
+  //don't calc our own, use whatever comes back
+  msg->seq_id=rxBuffer[0] & 0x0F;
 
   if((delta >= TIMEOUT_FC) && msg->seq_id>1)
   {
@@ -188,17 +189,6 @@ uint8_t IsoTp::rcv_cf(struct Message_t* msg)
 
   if (msg->tp_state != ISOTP_WAIT_DATA) return 0;
 
-  if ((rxBuffer[0] & 0x0F) != (msg->seq_id & 0x0F))
-  {
-#ifdef ISO_TP_DEBUG
-    Serial.print(F("Got sequence ID: ")); Serial.print(rxBuffer[0] & 0x0F);
-    Serial.print(F(" Expected: ")); Serial.println(msg->seq_id & 0x0F);
-#endif
-    msg->tp_state = ISOTP_IDLE;
-    msg->seq_id = 1;
-    return 1;
-  }
-
   if(rest<=7) // Last Frame
   {
     memcpy(msg->Buffer+6+7*(msg->seq_id-1),rxBuffer+1,rest);// 6 Bytes in FF +7
@@ -219,7 +209,8 @@ uint8_t IsoTp::rcv_cf(struct Message_t* msg)
     rest-=7; // Got another 7 Bytes of Data;
   }
 
-  msg->seq_id++;
+  //Reading actual seq id because msgs come out of order
+  //msg->seq_id++;
 
   return 0;
 }
