@@ -75,14 +75,16 @@ unsigned long PID::getNextUpdateMillis()
 void PID::setNextUpdateMillis()
 {
     nextUpdateMillis=millis()+updateFreq;
+    Serial.print("Setting next update to: ");
+    Serial.println(nextUpdateMillis);
 }
 
 //Get results when there's a match
 double PID::getResult(unsigned char *buffer)
 {
     /* Store variable names and pointers. */
-    double a,b,c,d,e,l;
-    te_variable vars[] = {{"A", &a}, {"B", &b}, {"C", &c}, {"D", &d}, {"E", &e}, {"L", &l}};
+    double a,b,c,d,e;
+    te_variable vars[] = {{"A", &a}, {"B", &b}, {"C", &c}, {"D", &d}, {"E", &e}};
 
     int err;
     double result; 
@@ -92,7 +94,7 @@ double PID::getResult(unsigned char *buffer)
     if (expr) 
     {
         //If extended data mode, the data starts 2nd byte in.  otherwise, it's normal with len+svc+pid first....
-        a=buffer[2]; b=buffer[3]; c=buffer[4]; d=buffer[5]; e=buffer[6]; l=buffer[14];
+        a=buffer[2]; b=buffer[3]; c=buffer[4]; d=buffer[5]; e=buffer[13];
         
         result = te_eval(expr);
         Serial.printf("Formula Result:%f using %s with %d\n", result,formula,a);

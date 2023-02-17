@@ -26,7 +26,7 @@ PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40",1000);
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100",200); 
 PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B",1000);
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A",60000);
-PID transTemp(0x7E1,0x22,0x30,"Trans Temp","C","L-50",10000);
+PID transTemp(0x7E1,0x21,0x30,"Trans Temp","C","E-50",10000);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
 PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
 PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
@@ -40,6 +40,8 @@ void setup()
     //Setup pins
     pinMode(18, OUTPUT);   //LED
     pinMode(10, INPUT_PULLUP);  //pull low for simulation mode
+
+    delay(10000);
 
     //Setup I2C to CAN transceiver
     Wire1.setSDA(6);
@@ -120,6 +122,16 @@ void loop()
     for(int i=0;i<arrLen;i++)
     {
       //Is it time??
+      Serial.print("Next PID / Current Time: ");
+      Serial.print(pidArray[i]->getLabel());
+      Serial.print("-");
+      Serial.print(pidArray[i]->getNextUpdateMillis());
+      Serial.print("/");
+      Serial.println(millis());
+
+      //be nice
+      delay(200);
+      
       if(millis()>pidArray[i]->getNextUpdateMillis())
       {
         pidArray[i]->setNextUpdateMillis();
