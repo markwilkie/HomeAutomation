@@ -1,6 +1,10 @@
 #include "Arduino.h"
 #include "isotp.h"
 
+//
+// Thanks to https://github.com/altelch/iso-tp for something that was very close
+//
+
 IsoTp::IsoTp(CANBedDual* bus)
 {
   _bus = bus;
