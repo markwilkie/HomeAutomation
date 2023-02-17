@@ -37,7 +37,7 @@ bool PID::isMatch(unsigned int incomingId,unsigned char *canFrame)
     //Do full matching
     if(incomingId==responseId)
     {       
-        if((service+0x40)==canFrame[1] && PIDCode==canFrame[2])
+        if((service+0x40)==canFrame[0] && PIDCode==canFrame[1])
         {
             //Serial.printf("Match- id:0x%04x,resp:0x%04x,s:0x%02x,rs:0x%02x,ipid:0x%02x,pid:0x%02x \n",incomingId,responseId,incomingService,(service + 0x40),incomingPid,PIDCode); 
             return true;
@@ -75,8 +75,6 @@ unsigned long PID::getNextUpdateMillis()
 void PID::setNextUpdateMillis()
 {
     nextUpdateMillis=millis()+updateFreq;
-    Serial.print("Setting next update to: ");
-    Serial.println(nextUpdateMillis);
 }
 
 //Get results when there's a match

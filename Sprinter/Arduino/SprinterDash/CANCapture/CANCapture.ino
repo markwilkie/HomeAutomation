@@ -5,13 +5,20 @@
 #include "TestData.h"
 #include "isotp.h"
 
+#define MIN_TIME_BETWEEN_REQUESTS  200
+
 //Can bus interfaces
 //CANBedDual CAN0(0);
 CANBedDual CAN1(1);
 IsoTp isotp(&CAN1);
 
+//timing 
+unsigned long lastSend;
+
 //Used for testing and simulation (actual dump)
 TestData testData;
+unsigned int testId;
+unsigned char canTestFrame[30];
 
 //Buffers for CAN bus commms
 struct Message_t txMsg, rxMsg;
@@ -53,7 +60,9 @@ void setup()
 
     //Setup buffers for CAN comm
     txMsg.Buffer = (uint8_t *)calloc(8, sizeof(uint8_t));
-    rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));    
+    rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));  
+
+    Serial.println("and we're off!");
 }
 
 //not yet used....  
@@ -112,6 +121,29 @@ void loop()
     delay(2);
     digitalWrite(18,LOW);
 
+     //Loop while in simulation mode
+    while(!digitalRead(10))
+    {
+        testId=testData.GetId();
+        testData.FillCanFrame(canTestFrame);
+        delay(50);
+
+        const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
+        for(int i=0;i<arrLen && testId>0;i++)
+        {
+          if(pidArray[i]->isMatch(testId,canTestFrame))
+          {
+            unsigned int result=result=(int)pidArray[i]->getResult(canTestFrame);
+            //1 = service and 2= pid
+            sendToMaster(canTestFrame[0],canTestFrame[1],result);
+            Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit()); 
+            break;           
+          }
+        }
+
+        testData.NextRow(); 
+    }
+
     //make sure CAN com buffers are cleared
     memset(txMsg.Buffer, (uint8_t)0, 8);
     memset(rxMsg.Buffer, (uint8_t)0, MAX_MSGBUF);    
@@ -121,20 +153,19 @@ void loop()
     const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
     for(int i=0;i<arrLen;i++)
     {
-      //Is it time??
-      Serial.print("Next PID / Current Time: ");
-      Serial.print(pidArray[i]->getLabel());
-      Serial.print("-");
-      Serial.print(pidArray[i]->getNextUpdateMillis());
-      Serial.print("/");
-      Serial.println(millis());
+      //be nice by delaying at least min_time
+      long timeSinceLast=millis()-lastSend;   
+      if(timeSinceLast<MIN_TIME_BETWEEN_REQUESTS)
+      {
+        delay(MIN_TIME_BETWEEN_REQUESTS-timeSinceLast);
+      }
 
-      //be nice
-      delay(200);
-      
+      //Is it time??      
       if(millis()>pidArray[i]->getNextUpdateMillis())
       {
+        //Set timing that that we're about to send
         pidArray[i]->setNextUpdateMillis();
+        lastSend=millis();
 
         //Build request for ECU's and then send it!
         txMsg.len = 2;  //stnd size

@@ -16,8 +16,8 @@ unsigned long TestData::GetId()
 
 void TestData::FillCanFrame(unsigned char *canFrame)
 {
-    for(int i=0;i<8;i++)
-        canFrame[i]=(char)simData[rowPtr+1+i];
+    for(int i=0;i<7;i++)
+        canFrame[i]=(char)simData[rowPtr+2+i];
 }
 
 unsigned int TestData::GetData(int idx)
