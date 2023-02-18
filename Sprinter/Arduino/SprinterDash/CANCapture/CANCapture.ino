@@ -153,16 +153,16 @@ void loop()
     const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
     for(int i=0;i<arrLen;i++)
     {
-      //be nice by delaying at least min_time
-      long timeSinceLast=millis()-lastSend;   
-      if(timeSinceLast<MIN_TIME_BETWEEN_REQUESTS)
-      {
-        delay(MIN_TIME_BETWEEN_REQUESTS-timeSinceLast);
-      }
-
-      //Is it time??      
+      //Is it time to send this PID?     
       if(millis()>pidArray[i]->getNextUpdateMillis())
       {
+        //be nice by delaying at least min_time before sending
+        long timeSinceLast=millis()-lastSend;   
+        if(timeSinceLast<MIN_TIME_BETWEEN_REQUESTS)
+        {
+          delay(MIN_TIME_BETWEEN_REQUESTS-timeSinceLast);
+        }
+
         //Set timing that that we're about to send
         pidArray[i]->setNextUpdateMillis();
         lastSend=millis();
@@ -173,7 +173,8 @@ void loop()
         txMsg.rx_id = pidArray[i]->getRxId();
         txMsg.Buffer[0]=pidArray[i]->getService();
         txMsg.Buffer[1]=pidArray[i]->getPID();
-        Serial.print("Sending ");
+        Serial.print(millis());
+        Serial.print(": Sending ");
         Serial.println(pidArray[i]->getLabel());
         retVal=isotp.send(&txMsg); 
 
