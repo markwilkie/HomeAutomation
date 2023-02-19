@@ -91,7 +91,7 @@ void setup()
   Serial1.begin(200000,SERIAL_8N1, RXD1, TXD1);
   genie.Begin(Serial1);   
 
-  //genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events
+  genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events
 
   // Reset the Display (change D4 to D2 if you have original 4D Arduino Adaptor)
   // THIS IS IMPORTANT AND CAN PREVENT OUT OF SYNC ISSUES, SLOW SPEED RESPONSE ETC
@@ -236,10 +236,8 @@ void loop()
   {
     updateGauges(service,pid,value);  //Update gauges
     trip.update(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
+    trip.updateDisplay(currentTickCount);  //Time to update trip display?
   }
-
-  //Time to update trip display?
-  trip.updateDisplay(currentTickCount);
 
   //Increment ticks to we keep timing sorted
   if((millis()-lastTickTime)>=TICK_MS)
@@ -248,11 +246,8 @@ void loop()
     currentTickCount++;
   }
 
-  //Get any updates from display
-  //genie.DoEvents(); // This calls the library each loop to process the queued responses from the display  (used to change forms???)
-
-  //small delay might be nice?
-  //delay(DELAY_MS);
+  //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
+  genie.DoEvents(); 
 }
 
 void updateGauges(int service,int pid,int value)
@@ -312,68 +307,31 @@ void updateGauges(int service,int pid,int value)
 // response to a READ_OBJ (genie.ReadObject) request.
 //
 
-/* COMPACT VERSION HERE, LONGHAND VERSION BELOW WHICH MAY MAKE MORE SENSE
+//COMPACT VERSION HERE, LONGHAND VERSION BELOW WHICH MAY MAKE MORE SENSE
 void myGenieEventHandler(void)
 {
   genieFrame Event;
   genie.DequeueEvent(&Event);
 
-  int slider_val = 0;
-
-  //Filter Events from Slider0 (Index = 0) for a Reported Message from Display
-  if (genie.EventIs(&Event, GENIE_REPORT_EVENT, GENIE_OBJ_SLIDER, 0))
-  {
-    slider_val = genie.GetEventData(&Event);  // Receive the event data from the Slider0
-    genie.WriteObject(GENIE_OBJ_LED_DIGITS, 0, slider_val);     // Write Slider0 value to LED Digits 0
-  }
-
-  //Filter Events from UserLed0 (Index = 0) for a Reported Object from Display (triggered from genie.ReadObject in User Code)
-  if (genie.EventIs(&Event, GENIE_REPORT_OBJ,   GENIE_OBJ_USER_LED, 0))
-  {
-    bool UserLed0_val = genie.GetEventData(&Event);               // Receive the event data from the UserLed0
-    UserLed0_val = !UserLed0_val;                                 // Toggle the state of the User LED Variable
-    genie.WriteObject(GENIE_OBJ_USER_LED, 0, UserLed0_val);       // Write UserLed0_val value back to UserLed0
-  }
-} */
-
-/*
-
-// LONG HAND VERSION, MAYBE MORE VISIBLE AND MORE LIKE VERSION 1 OF THE LIBRARY
-void myGenieEventHandler(void)
-{
-  genieFrame Event;
-  genie.DequeueEvent(&Event); // Remove the next queued event from the buffer, and process it below
-
-  int slider_val = 0;
+  Serial.print("CMD: ");
+  Serial.print(Event.reportObject.cmd);
+  Serial.print(" OBJ: ");
+  Serial.print(Event.reportObject.object);
+  Serial.print(" IDX: ");
+  Serial.println(Event.reportObject.index);  
 
   //If the cmd received is from a Reported Event (Events triggered from the Events tab of Workshop4 objects)
   if (Event.reportObject.cmd == GENIE_REPORT_EVENT)
   {
-    if (Event.reportObject.object == GENIE_OBJ_SLIDER)                // If the Reported Message was from a Slider
+    if (Event.reportObject.object == GENIE_OBJ_WINBUTTON) // If a Winbutton was pressed
     {
-      if (Event.reportObject.index == 0)                              // If Slider0 (Index = 0)
+      if (Event.reportObject.index == 0) // If Winbutton #0 was pressed   
       {
-        slider_val = genie.GetEventData(&Event);                      // Receive the event data from the Slider0
-        genie.WriteObject(GENIE_OBJ_LED_DIGITS, 0, slider_val);       // Write Slider0 value to LED Digits 0
-      }
-    }
-  }
-
-  //If the cmd received is from a Reported Object, which occurs if a Read Object (genie.ReadOject) is requested in the main code, reply processed here.
-  if (Event.reportObject.cmd == GENIE_REPORT_OBJ)
-  {
-    if (Event.reportObject.object == GENIE_OBJ_USER_LED)              // If the Reported Message was from a User LED
-    {
-      if (Event.reportObject.index == 0)                              // If UserLed0 (Index = 0)
-      {
-        bool UserLed0_val = genie.GetEventData(&Event);               // Receive the event data from the UserLed0
-        UserLed0_val = !UserLed0_val;                                 // Toggle the state of the User LED Variable
-        genie.WriteObject(GENIE_OBJ_USER_LED, 0, UserLed0_val);       // Write UserLed0_val value back to UserLed0
+        Serial.println("Start Tip button pressed!");
       }
     }
   }
 }
-  */
 
   /********** This can be expanded as more objects are added that need to be captured *************
   *************************************************************************************************
