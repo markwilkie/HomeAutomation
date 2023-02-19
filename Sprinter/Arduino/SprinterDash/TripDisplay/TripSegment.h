@@ -3,7 +3,7 @@
 
 #include <genieArduino.h>
 
-#define FUEL_TANK_SIZE 25.0   // in gallons
+#define FUEL_TANK_SIZE 22.0   // in gallons
 
 class TripSegment 
 {
