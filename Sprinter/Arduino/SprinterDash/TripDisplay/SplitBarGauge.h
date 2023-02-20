@@ -11,7 +11,7 @@ class SplitBarGauge
 
     void setValue(int value);  //does not actually update the screen
     int getCurrentValue();
-    void update(unsigned long currentTickCount);  //update actual digits on screen
+    void update();  //update actual digits on screen
     
   private: 
     Genie *geniePtr;

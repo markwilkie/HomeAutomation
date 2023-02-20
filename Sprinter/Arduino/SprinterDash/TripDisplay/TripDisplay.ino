@@ -1,10 +1,7 @@
 #include <genieArduino.h>
 #include <Wire.h>
 
-#include "Gauge.h"
-#include "PID.h"
-#include "Trip.h"
-#include "Pitot.h"
+#include "PrimaryForm.h"
 
 //
 // SUPER IMPORT POST about setting up the programmer so that high speed transfers work
@@ -38,37 +35,42 @@
 //defines
 #define RESETLINE 4  //Bringing D4 low resets the display
 
-#define TICK_MS 100   //Number of milli-seconds between "ticks" in the loop
-#define DELAY_MS 10   //Milli-seconds we "delay" in loop
-
 //Using esp32 firebeatle where io25-->d2 and io26-->d3.  Note that io9/10 (default) conflict (probably with flash) and crash the board  
 #define RXD1 25
 #define TXD1 26
 
 //Global objects
 Genie genie;  
-unsigned long currentTickCount;
-unsigned long lastTickTime;
-unsigned long nextRefreshTickTime;
+int currentActiveForm=0;
 unsigned long totalMessages;
 unsigned long totalCRC;
 
 //Supported gauges
-Gauge loadGauge(&genie,0x41,0x04,0,0,0,100,1);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
-Gauge boostGauge(&genie,0x41,0x0B,3,2,0,22,1); 
-Gauge coolantTempGauge(&genie,0x41,0x05,1,1,130,250,10);  
-Gauge transTempGauge(&genie,0x22,0x22,2,4,130,250,10);  
-SplitBarGauge windSpeedGauge = SplitBarGauge(&genie,3,0,3,-29,30,5);  
+Gauge loadGauge = Gauge(&genie,0x41,0x04,0,0,0,100,100);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
+Gauge boostGauge = Gauge(&genie,0x41,0x0B,3,2,0,22,100); 
+Gauge coolantTempGauge = Gauge(&genie,0x41,0x05,1,1,130,250,1000);  
+Gauge transTempGauge = Gauge(&genie,0x61,0x30,2,4,130,250,1000);    //0x61, 0x30
+
+//Split bar gauges
+SplitBarGauge windSpeedGauge = SplitBarGauge(&genie,3,0,3,-29,30,500);  
+SplitBarGauge instMPG = SplitBarGauge(&genie,1,2,0,20,500);
 
 //Extra values needed for calculations
-PID baraPressure(0x41,0x33);
-PID speed(0x41,0x0D);
+PID baraPressure = PID(0x41,0x33);
+PID speed = PID(0x41,0x0D);
 
 //Other sensors
-Pitot pitot(4);  //update every 400 ms
+Pitot pitot = Pitot(400);  //update every 400 ms        
 
-//Trip
-Trip trip = Trip(&genie);
+//Create objects for the digit displays
+Digits avgMPG = Digits(&genie,6,0,99,1,1100);
+Digits milesLeftInTank = Digits(&genie,7,0,999,0,2000);
+Digits currentElevation = Digits(&genie,8,0,9999,0,1400);
+Digits milesTravelled = Digits(&genie,9,0,999,0,1900);
+Digits hoursDriving = Digits(&genie,5,0,9,1,1900); 
+
+//Forms
+PrimaryForm primaryForm = PrimaryForm(&genie,0,"Main Screen");
 
 //Serial coms
 byte serialBuffer[20];
@@ -91,8 +93,6 @@ void setup()
   Serial1.begin(200000,SERIAL_8N1, RXD1, TXD1);
   genie.Begin(Serial1);   
 
-  genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events
-
   // Reset the Display (change D4 to D2 if you have original 4D Arduino Adaptor)
   // THIS IS IMPORTANT AND CAN PREVENT OUT OF SYNC ISSUES, SLOW SPEED RESPONSE ETC
   // If NOT using a 4D Arduino Adaptor, digitalWrites must be reversed as Display Reset is Active Low, and
@@ -104,14 +104,15 @@ void setup()
 
   // Let the display start up after the reset (This is important)
   // Increase to 4500 or 5000 if you have sync problems as your project gets larger. Can depent on microSD init speed.
-  delay (5000); 
+  delay(5000); 
 
   // Set the brightness/Contrast of the Display - (Not needed but illustrates how)
   // Most Displays use 0-15 for Brightness Control, where 0 = Display OFF, though to 15 = Max Brightness ON.
   genie.WriteContrast(10); // About 2/3 Max Brightness
 
-  //Setup ticks
-  currentTickCount=0;
+
+  //This is how we get notified when a button is pressed
+  genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
 
   //calibrate
   pitot.calibrate();
@@ -119,13 +120,34 @@ void setup()
   Serial.println("starting....");
   lastLoopTime=millis();
 
-
   //
   // We only have 1k of EEPROM
   //
   //TripSegment segment=TripSegment();
   //Serial.println(sizeof(trip));
   //Serial.println(sizeof(segment));
+}
+
+void loop()
+{
+  //read serial from canbus board
+  int service; int pid; int value;
+  bool retVal=processIncoming(&service,&pid,&value);
+
+  //new values to process?
+  if(retVal)
+  { 
+    primaryForm.updateData(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
+
+    //Update display for active forms only
+    if(primaryForm.getFormId()==currentActiveForm)
+    {   
+      primaryForm.updateDisplay();  //Time to update trip display?
+    }
+  }
+
+  //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
+  genie.DoEvents(); 
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
@@ -152,6 +174,7 @@ bool processIncoming(int *service,int *pid,int *value)
     data=Serial2.read();
     if(data=='[')
     {
+      currentComIdx=0;
       msgStarted=true;
       break;
     }
@@ -225,75 +248,6 @@ bool processIncoming(int *service,int *pid,int *value)
   return false;  //nothing new
 }
 
-void loop()
-{
-  //read serial from canbus board
-  int service; int pid; int value;
-  bool retVal=processIncoming(&service,&pid,&value);
-
-  //new values to process?
-  if(retVal)
-  {
-    updateGauges(service,pid,value);  //Update gauges
-    trip.update(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
-    trip.updateDisplay(currentTickCount);  //Time to update trip display?
-  }
-
-  //Increment ticks to we keep timing sorted
-  if((millis()-lastTickTime)>=TICK_MS)
-  {
-    lastTickTime=millis();
-    currentTickCount++;
-  }
-
-  //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
-  genie.DoEvents(); 
-}
-
-void updateGauges(int service,int pid,int value)
-{
-    //update wind speed when we get a vehicle speed
-    if(speed.isMatch(service,pid))
-    {
-      int pitotSpeed=pitot.readSpeed(currentTickCount);
-      windSpeedGauge.setValue(pitotSpeed-(value*0.621371));        //we're showing the delta     
-      windSpeedGauge.update(currentTickCount);
-    }
-
-    //grab values used for calculations
-    if(baraPressure.isMatch(service,pid))
-    {
-      baraPressure.setValue(value);
-    }
-
-    //update gauges after doing any needed calculations
-    if(loadGauge.isMatch(service,pid))
-    {
-      loadGauge.setValue(value);
-      loadGauge.update(currentTickCount);
-    }  
-  
-    if(coolantTempGauge.isMatch(service,pid))
-    {
-      coolantTempGauge.setValue((float)value*(9.0/5.0)+32.0);
-      coolantTempGauge.update(currentTickCount);
-    }
-  
-    if(transTempGauge.isMatch(service,pid))
-    {
-      transTempGauge.setValue((float)value*(9.0/5.0)+32.0);      
-      transTempGauge.update(currentTickCount);
-    }    
-     
-    if(boostGauge.isMatch(service,pid))
-    {
-      int bara=baraPressure.getValue();
-      float boost=value-bara;
-      boostGauge.setValue(boost*.145);
-      boostGauge.update(currentTickCount);
-    }
-}
-
 /////////////////////////////////////////////////////////////////////
 //
 // This is the user's event handler. It is called by genieDoEvents()
@@ -323,6 +277,14 @@ void myGenieEventHandler(void)
   //If the cmd received is from a Reported Event (Events triggered from the Events tab of Workshop4 objects)
   if (Event.reportObject.cmd == GENIE_REPORT_EVENT)
   {
+    //Form activate 
+    if (Event.reportObject.object == GENIE_OBJ_FORM) //If a form is activated
+    {
+      currentActiveForm=Event.reportObject.index;
+      Serial.print("Form Activated: ");
+      Serial.println(currentActiveForm);
+    }
+
     if (Event.reportObject.object == GENIE_OBJ_WINBUTTON) // If a Winbutton was pressed
     {
       if (Event.reportObject.index == 0) // If Winbutton #0 was pressed   

@@ -17,7 +17,6 @@ class PID
     int service;
     int pid;
     int value;
-
 };
 
 #endif

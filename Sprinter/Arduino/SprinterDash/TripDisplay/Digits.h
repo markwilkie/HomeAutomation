@@ -10,7 +10,7 @@ class Digits
 
     void setValue(double value);  //does not actually update the screen
     double getCurrentValue();
-    void update(unsigned long currentTickCount);  //update actual digits on screen
+    void update();  //update actual digits on screen
     
   private: 
     Genie *geniePtr;
@@ -29,7 +29,6 @@ class Digits
 
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again
-    long startTime;         //recorded when we update the gauge  (not when a new value comes across the wire)
 };
 
 #endif

@@ -9,6 +9,11 @@ Digits::Digits(Genie *_geniePtr,int _digitsObjNum,int _min,int _max,int _decimal
     max=_max;
     decimal=_decimal;
     refreshTicks=_refreshTicks;
+
+    //init values
+    nextTickCount=millis()+refreshTicks;
+    currentValue=0;
+    lastValue=0;    
 }
 
 double Digits::getCurrentValue()
@@ -42,15 +47,15 @@ void Digits::setValue(double _value)
 }
 
 
-void Digits::update(unsigned long currentTickCount)
+void Digits::update()
 {  
 
     //Determine if it's time to update load value (e.g. generate a new smoothing curve)
     double delta=abs(lastValue-currentValue);
-    if((currentTickCount>=nextTickCount || currentTickCount==0) && delta>0.0)
+    if(millis()>=nextTickCount && delta>0.0)
     {
         //Update timing
-        nextTickCount=currentTickCount+refreshTicks;
+        nextTickCount=millis()+refreshTicks;
         lastValue=currentValue;
 
         geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentDigitValue);  

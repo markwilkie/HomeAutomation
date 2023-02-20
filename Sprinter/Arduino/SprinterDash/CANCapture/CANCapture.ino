@@ -126,7 +126,7 @@ void loop()
     {
         testId=testData.GetId();
         testData.FillCanFrame(canTestFrame);
-        delay(50);
+        delay(10);
 
         const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
         for(int i=0;i<arrLen && testId>0;i++)

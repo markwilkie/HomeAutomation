@@ -9,6 +9,11 @@ SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int
     min=_min;
     max=_max;
     refreshTicks=_refreshTicks;
+
+    //init values
+    nextTickCount=millis()+refreshTicks;
+    currentValue=0;
+    lastValue=0;    
 }
 
 SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
@@ -61,14 +66,14 @@ void SplitBarGauge::setValue(int _value)
 }
 
 
-void SplitBarGauge::update(unsigned long currentTickCount)
+void SplitBarGauge::update()
 {  
     //Determine if it's time to update load value 
     int delta=lastValue-currentValue;
-    if((currentTickCount>=nextTickCount || currentTickCount==0) && delta!=0)
+    if(millis()>=nextTickCount && delta!=0)
     {
         //Update timing
-        nextTickCount=currentTickCount+refreshTicks;
+        nextTickCount=millis()+refreshTicks;
         lastValue=currentValue;
 
         //Update both objects 

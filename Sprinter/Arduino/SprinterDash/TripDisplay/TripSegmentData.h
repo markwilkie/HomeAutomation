@@ -1,15 +1,11 @@
-#ifndef TripSegment_h
-#define TripSegment_h
-
-#include <genieArduino.h>
+#ifndef TripSegmentData_h
+#define TripSegmentData_h
 
 #define FUEL_TANK_SIZE 22.0   // in gallons
 
-class TripSegment 
+class TripSegmentData
 {
   public:
-    void setNextSegment(TripSegment *);
-
     void update(int service,int pid,int value);
 
     double getMilesTravelled();
@@ -22,9 +18,6 @@ class TripSegment
     int getTotalClimb();
 
   private: 
-
-    //Next segment in this trip  (linked list)
-    TripSegment* nextSegment=NULL;
 
     int calcAltitude(int currentkPa);
 

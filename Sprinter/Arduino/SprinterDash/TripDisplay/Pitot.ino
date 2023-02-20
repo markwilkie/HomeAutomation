@@ -52,14 +52,14 @@ void Pitot::calibrate()
 }
 
 
-int Pitot::readSpeed(unsigned long currentTickCount)
+int Pitot::readSpeed()
 {
     //don't update if it's not time to
-    if(currentTickCount<nextTickCount && currentTickCount>0)
+    if(millis()<nextTickCount)
         return g_airspeed_mph;
 
     //Update timing
-    nextTickCount=currentTickCount+refreshTicks;
+    nextTickCount=millis()+refreshTicks;
 
     //Read pitot airspeed
     g_air_pressure = analogRead(PITOT_ADC_PIN)*0.25 + g_air_pressure*0.75;

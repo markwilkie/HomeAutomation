@@ -1,13 +1,7 @@
-#include "TripSegment.h"
-
-// 'Trip' object will set this next segment as part of the linked list  (root is in 'Trip')
-void TripSegment::setNextSegment(TripSegment *_segment)
-{
-    nextSegment=_segment;
-}
+#include "TripSegmentData.h"
 
 // update value if appropriate
-void TripSegment::update(int service,int pid,int value)
+void TripSegmentData::update(int service,int pid,int value)
 {
     //calc engine load
     if(service==0x41 && pid==0x04)
@@ -67,14 +61,14 @@ void TripSegment::update(int service,int pid,int value)
 }
 
 // in miles
-double TripSegment::getMilesTravelled()
+double TripSegmentData::getMilesTravelled()
 {
     double milesTravlled=((double)currentKm-(double)startKm)*0.621371;
     return ((double)currentKm-(double)startKm)*0.621371;
 }
 
 // in minutes
-double TripSegment::getHoursDriving()
+double TripSegmentData::getHoursDriving()
 {
     if(currentSeconds<=0)
         return 0.0;
@@ -84,7 +78,7 @@ double TripSegment::getHoursDriving()
 }
 
 // in gallons
-double TripSegment::getFuelGallonsUsed()
+double TripSegmentData::getFuelGallonsUsed()
 {
     if(currentFuelPerc<=0 || startFuelPerc<=0)
         return 0;
@@ -92,7 +86,7 @@ double TripSegment::getFuelGallonsUsed()
     return FUEL_TANK_SIZE*(((double)currentFuelPerc-(double)startFuelPerc)/100.0);
 }
 
-double TripSegment::getInstantMPG()
+double TripSegmentData::getInstantMPG()
 {
     if(currentMAF<=0)
         return 0;
@@ -103,7 +97,7 @@ double TripSegment::getInstantMPG()
     return instMPG;
 }
 
-double TripSegment::getAvgMPG()
+double TripSegmentData::getAvgMPG()
 {
     double gallonsUsed=getFuelGallonsUsed();
     int milesTravelled=getMilesTravelled();
@@ -116,7 +110,7 @@ double TripSegment::getAvgMPG()
 }
 
 // Uses instant for miles left  (car already has the other)
-int TripSegment::getMilesLeftInTank()
+int TripSegmentData::getMilesLeftInTank()
 {
     if(currentFuelPerc<=0)
         return 0;   
@@ -131,20 +125,20 @@ int TripSegment::getMilesLeftInTank()
 }
 
 // in feet
-int TripSegment::getCurrentElevation()
+int TripSegmentData::getCurrentElevation()
 {
     return currentElevation;
 }
 
 // in feet
-int TripSegment::getTotalClimb()
+int TripSegmentData::getTotalClimb()
 {
     return totalClimb;
 }
 
 // return elevation in feet
 // note that this is inacurate because it makes an assumption about what pressure sea level is at
-int TripSegment::calcAltitude(int currentkPa) 
+int TripSegmentData::calcAltitude(int currentkPa) 
 {
     if(currentkPa<0)
         return 0;

@@ -1,6 +1,6 @@
 #include "Gauge.h"
 
-Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks,int _deltaThreshold)
+Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
 {
     geniePtr=_geniePtr;
     service=_service;
@@ -12,7 +12,10 @@ Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _dig
     max=_max;
     refreshTicks=_refreshTicks;
 
-    deltaThreshold=_deltaThreshold;
+    //init values
+    nextTickCount=millis()+refreshTicks;
+    currentValue=0;
+    lastValue=0;
 }
 
 bool Gauge::isMatch(int incomingSvc, int incomingPid)
@@ -41,82 +44,23 @@ void Gauge::setValue(int _value)
     gaugeValue=_value;
 }
 
-/*
-We're solving for a position at a given time, e.g. p(t)
-
-t = time = where in time (x axis) I'm at
-b = beginning = beginning position
-c = change = how much it'll be changed at the end, or end pos - beg pos (velocity is c/d)
-d = duration = how long we want to take to change
-
-So for linear, (e.g. car travelling at a specific speed) it'd be:
-t = 2 hours
-position = 2 X velocity
-p = 2 X (change / duration)    e.g. 120 miles traveled / 2 hours == 60
-
-Of the 4 variables, only 1 changes....time.  So, we'll solve for position given time.
-
-So for a gauge, the variables will corrospond to:
-
-t = time = current millis()
-b = beginning = gauge # (e.g. 0 for the load gauge)
-c = change = e.g. end pos - beg pos.  This case let's say it's 40-0 (velocity is c/d)
-d = duration = 500 * (c / range)   e.g. 500*(40/100) (500ms for the biggest swing possible?  Should be a configurable value)
- */
-
-void Gauge::update(unsigned long currentTickCount)
+void Gauge::update()
 {  
-    //Determine if it's time to update load value (e.g. generate a new smoothing curve)
+    //Determine if it's time to update value
     int delta=abs(lastValue-currentValue);
-    if((currentTickCount>=nextTickCount || currentTickCount==0) && delta>0)
+    if(millis()>=nextTickCount && delta>0)
     {
         //Update timing
-        nextTickCount=currentTickCount+refreshTicks;
+        nextTickCount=millis()+refreshTicks;
         lastValue=currentValue;
 
-        updateGauges();
-    }
-
-/*
-    //Update load smoothing using time
-    long tms=millis()-startTime;
-    if(tms<=freqMs)
-    {       
-        //Figure what we want the gauge to be set to
-        if(delta>currentValue*deltaThreshold)
-        {   
-            startTime=millis();
-            begPos=currentGauge;
+        if(angMeterObjNum>=0)
+        {
+            geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);  
         }
-        
-        //Define where we want to end up
-        endPos=(float)currentValue/(float)(max-min);   //normalize load to between 0-1    
-        normalizedDelta=endPos-begPos;
-        
-                float t=(float)tms/(float)freqMs;  //needs to be normalized between 0 and 1
-        if (t < .5) {
-            currentGauge = (normalizedDelta) * (t*t*t*4) + begPos;
+        if(digitsObjNum>=0)
+        {
+            geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);   
         }
-        else {
-            float tt=(t*2)-2;
-            currentGauge = (normalizedDelta) * ((tt*tt*tt*.5)+1) + begPos;
-        }    
-
-        //Update gauge  (gotta have this here because of the smoothing)
-        gaugeValue=currentGauge*(max-min);
-        updateGauges();   
     }
-    else
-    {
-        updateGauges();
-    }
-    */
-}
-
-void Gauge::updateGauges()
-{
-    if(angMeterObjNum>=0)
-        geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);  
-    if(digitsObjNum>=0)
-        geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);               
 }

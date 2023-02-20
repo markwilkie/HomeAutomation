@@ -6,18 +6,16 @@
 class Gauge 
 {
   public:
-    Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks,int _deltaThreshold=.05);
+    Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks);
 
     //Pass each response in to see if there's a match
     bool isMatch(int incomingSvc, int incomingPid);
 
     void setValue(int value);
     int getCurrentValue();
-    void update(unsigned long currentTickCount);  //update actual gauge
+    void update();  //update actual gauge
     
   private: 
-
-    void updateGauges();
 
     //What this is  (e.g. rpm)
     int service;
@@ -28,7 +26,6 @@ class Gauge
     int max=100;                //Gauge maximum
     int refreshTicks=1;         //How many ticks the gauge refreshes    
     float deltaThreshold=.05;   //.10 percent = .1...e.g., we'll just adjust end position and not reset curve if within 10%
-    int freqMs=0;               //Time smoothing happens over (unless threshold is crossed)
 
     //CAN values
     int currentValue;   //current value from CAN bus
@@ -47,7 +44,6 @@ class Gauge
 
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again
-    long startTime;         //recorded when we update the gauge  (not when a new value comes across the wire)
 };
 
 #endif
