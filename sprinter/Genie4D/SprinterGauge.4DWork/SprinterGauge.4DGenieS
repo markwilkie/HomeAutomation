@@ -6,7 +6,7 @@
 
 
 
-// generated 2/14/2023 9:28:02 PM
+// generated 2/19/2023 3:05:54 PM
 // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 
 
@@ -168,10 +168,10 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        16
-    nInputs         3
+    nObjects        26
+    nInputs         27
     nAniTimers      0
-    nStrings        27
+    nStrings        33
 #END
 
 #DATA
@@ -183,80 +183,112 @@
     word xobj2iobj 0x2700, 0x2701, 0x2F00, 0x2703, 0x2F01, 0x2F02, 0x2F03, 0x2702, 0x2F04, 0x2F06, 0x2F07, 0x2F08, 0x2F05, 0x2F09
     word IIAngularMeter0 60, 55, 30, 15, 0, 0, 10, -5, 2, GRAY, 320, 350,
         0x4228, 0xC620, RED, 1, 4, 1, WHITE, -15, LIAngularMeter0, 0x3, 2,
-        0xBFB5, -15, -7, 0, 165, 4, 140, 122, 235, 65, BLACK, 135, 405, 0, 100,
+        0xBFB5, -15, -7, 0, 165, 9, 140, 122, 235, 70, BLACK, 135, 405, 0, 100,
         40, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter0 "",0, "",0, "",0, "",0, "",0
-    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 200, 227,
+    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 183, 227,
         0x4228, 0xC620, RED, 1, 3, 1, WHITE, -15, LIAngularMeter1, 0x3, 1,
-        WHITESMOKE, -15, 0, 0, 105, 32, 100, 90, 155, 77, BLACK, 65, 280, 130,
+        WHITESMOKE, -15, 0, 0, 105, 37, 100, 90, 155, 82, BLACK, 65, 280, 130,
         250, 32, 0x5, 17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter1 "",0, "",0, "",0, "",0
-    word IILedDigits0 224, 96, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits0 224, 101, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
     word IIAngularMeter3 40, 35, 4, 5, 0, 0, 10, -5, 2, GRAY, 360, 360, 0x4228,
         0x4228, 0x4228, 1, 2, 1, WHITE, -15, LIAngularMeter3, 0x3, 1, 0xBFB5,
-        -15, 0, 0, 265, 0, 96, 89, 313, 44, BLACK, 235, 450, 0, 22, 32, 0x5,
+        -15, 0, 0, 265, 5, 95, 89, 312, 49, BLACK, 235, 450, 0, 22, 32, 0x5,
         17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter3 "",0, "",0, "",0
-    word IILedDigits1 135, 7, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits2 296, 92, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits3 8, 100, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x10
-    word IIAngularMeter2 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 200, 227,
+    word IILedDigits1 135, 12, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits2 296, 102, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits3 4, 101, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x10
+    word IIAngularMeter2 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 183, 227,
         0x4228, 0xC620, RED, 1, 3, 1, WHITE, -15, LIAngularMeter2, 0x3, 1,
-        WHITESMOKE, -15, 0, 0, 41, 32, 100, 90, 91, 77, BLACK, 65, 280, 130,
+        WHITESMOKE, -15, 0, 0, 41, 37, 100, 90, 91, 82, BLACK, 65, 280, 130,
         250, 32, 0x5, 17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter2 "",0, "",0, "",0, "",0
-    word IILedDigits4 75, 7, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits6 370, 7, 39, 23, 3, 1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits7 370, 36, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits8 359, 65, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits5 340, 96, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits9 400, 96, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0, 14, 16
-    word FormEndIndex 14, 16, 16
-    word iFormStartIndex 0, 14, 14
-    word iFormEndIndex 14, 14, 14
-    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 44
+    word IILedDigits4 80, 12, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits6 370, 12, 39, 23, 3, 1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits7 370, 41, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits8 359, 70, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits5 340, 101, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IILedDigits9 400, 101, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word FormStartIndex 0, 16, 18, 20, 25
+    word FormEndIndex 16, 18, 20, 25, 26
+    word iFormStartIndex 0, 14, 14, 14, 14
+    word iFormEndIndex 14, 14, 14, 14, 14
+    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 66, 132, 176, 242, 308, 374, 440, 484, 506, 528
     word InternalInputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-    word InputData tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
-                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 0, 0,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 0, 2
-    word iStrings0  Strings0StartH, Strings0StartL, Strings0Size, 55, 10, 194, 40, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings1  Strings1StartH, Strings1StartL, Strings1Size, 55, 85, 254, 115, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings2  Strings2StartH, Strings2StartL, Strings2Size, 55, 47, 254, 77, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings3  Strings3StartH, Strings3StartL, Strings3Size, 250, 10, 283, 40, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings4  Strings4StartH, Strings4StartL, Strings4Size, 8, 10, 51, 40, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings5  Strings5StartH, Strings5StartL, Strings5Size, 212, 10, 242, 40, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings6  Strings6StartH, Strings6StartL, Strings6Size, 240, 10, 248, 40, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings7  Strings7StartH, Strings7StartL, Strings7Size, 288, 10, 431, 40, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings8  Strings8StartH, Strings8StartL, Strings8Size, 8, 85, 51, 115, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings9  Strings9StartH, Strings9StartL, Strings9Size, 2, 47, 46, 77, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings10  Strings10StartH, Strings10StartL, Strings10Size, 265, 92, 319, 111, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings11  Strings11StartH, Strings11StartL, Strings11Size, 325, 92, 464, 111, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings12  Strings12StartH, Strings12StartL, Strings12Size, 8, 4, 163, 34, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings2
-    word iStrings13  Strings13StartH, Strings13StartL, Strings13Size, 288, 12, 319, 31, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings14  Strings14StartH, Strings14StartL, Strings14Size, 325, 12, 441, 31, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings15  Strings15StartH, Strings15StartL, Strings15Size, 65, 64, 164, 83, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings16  Strings16StartH, Strings16StartL, Strings16Size, 65, 45, 175, 64, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings17  Strings17StartH, Strings17StartL, Strings17Size, 12, 45, 64, 64, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings18  Strings18StartH, Strings18StartL, Strings18Size, 12, 65, 64, 84, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word InputData tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
+                OT_ACTIVATE, 10, 2, 0, 18, 0, 0, 0, 0, 44, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 88, 2,
+                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 110, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 154, 6,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 198, 8,
+                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 220, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 264, 18,
+                OT_ACTIVATE, 10, 3, 0, 18, 0, 0, 0, 0, 286, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 330, 10,
+                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 352, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 396, 12,
+                OT_ACTIVATE, 10, 4, 0, 18, 0, 0, 0, 0, 418, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
+                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 462, 2,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 0, 4,
+                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 0, 6,
+                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 550, 14,
+                OT_ACTIVATE, 10, 0, 0, 18, 0, 0, 0, 0, 572, 0,
+                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    word iStrings0  Strings0StartH, Strings0StartL, Strings0Size, 250, 16, 389, 46, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings1  Strings1StartH, Strings1StartL, Strings1Size, 327, 16, 466, 46, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings2
+    word iStrings2  Strings2StartH, Strings2StartL, Strings2Size, 250, 85, 435, 115, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings3  Strings3StartH, Strings3StartL, Strings3Size, 12, 110, 64, 129, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings4  Strings4StartH, Strings4StartL, Strings4Size, 196, 16, 239, 46, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings5  Strings5StartH, Strings5StartL, Strings5Size, 172, 51, 237, 81, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings6  Strings6StartH, Strings6StartL, Strings6Size, 65, 110, 170, 129, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings7  Strings7StartH, Strings7StartL, Strings7Size, 250, 51, 393, 81, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings8  Strings8StartH, Strings8StartL, Strings8Size, 327, 52, 466, 82, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings2
+    word iStrings9  Strings9StartH, Strings9StartL, Strings9Size, 188, 84, 232, 114, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings10  Strings10StartH, Strings10StartL, Strings10Size, 265, 110, 319, 129, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings11  Strings11StartH, Strings11StartL, Strings11Size, 325, 110, 464, 129, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings12  Strings12StartH, Strings12StartL, Strings12Size, 92, 4, 275, 34, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings2
+    word iStrings13  Strings13StartH, Strings13StartL, Strings13Size, 288, 10, 319, 29, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings14  Strings14StartH, Strings14StartL, Strings14Size, 325, 10, 441, 29, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings15  Strings15StartH, Strings15StartL, Strings15Size, 65, 35, 164, 54, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings16  Strings16StartH, Strings16StartL, Strings16Size, 65, 60, 175, 79, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings17  Strings17StartH, Strings17StartL, Strings17Size, 12, 35, 64, 54, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings18  Strings18StartH, Strings18StartL, Strings18Size, 12, 60, 64, 79, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
     word iStrings19  Strings19StartH, Strings19StartL, Strings19Size, 12, 85, 64, 104, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings20  Strings20StartH, Strings20StartL, Strings20Size, 64, 85, 169, 104, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings21  Strings21StartH, Strings21StartL, Strings21Size, 300, 32, 321, 51, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings22  Strings22StartH, Strings22StartL, Strings22Size, 325, 32, 424, 51, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings23  Strings23StartH, Strings23StartL, Strings23Size, 284, 52, 318, 71, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings24  Strings24StartH, Strings24StartL, Strings24Size, 325, 52, 424, 71, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings25  Strings25StartH, Strings25StartL, Strings25Size, 284, 72, 318, 91, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings26  Strings26StartH, Strings26StartL, Strings26Size, 325, 72, 467, 91, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings20  Strings20StartH, Strings20StartL, Strings20Size, 65, 85, 102, 104, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings21  Strings21StartH, Strings21StartL, Strings21Size, 300, 35, 321, 54, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings22  Strings22StartH, Strings22StartL, Strings22Size, 325, 35, 424, 54, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings23  Strings23StartH, Strings23StartL, Strings23Size, 284, 60, 318, 79, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings24  Strings24StartH, Strings24StartL, Strings24Size, 325, 60, 424, 79, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings25  Strings25StartH, Strings25StartL, Strings25Size, 284, 85, 318, 104, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings26  Strings26StartH, Strings26StartL, Strings26Size, 325, 85, 467, 104, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings27  Strings27StartH, Strings27StartL, Strings27Size, 105, 85, 126, 104, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings28  Strings28StartH, Strings28StartL, Strings28Size, 130, 85, 211, 104, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
+    word iStrings29  Strings29StartH, Strings29StartL, Strings29Size, 280, 52, 323, 82, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings2
+    word iStrings30  Strings30StartH, Strings30StartL, Strings30Size, 260, 88, 325, 118, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings2
+    word iStrings31  Strings31StartH, Strings31StartL, Strings31Size, 327, 88, 470, 118, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings2
+    word iStrings32  Strings32StartH, Strings32StartL, Strings32Size, 308, 16, 325, 46, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings2
     word oDipSwitchs 0
-    word oWinButtons 2, iWinbutton0, iWinbutton1
-    word oForms 3, -1, -1, -1
+    word oWinButtons 3, iWinbutton0, iWinbutton1, iWinbutton2
+    word oForms 5, -1, -1, -1, -1, -1
     word oGauges 4, iGauge0, iGauge1, iGauge2, iGauge3
-    word oImages 10, iImage0, iImage1, iImage2, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9
-    word oStringss 27, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
-                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26
+    word oImages 11, iImage0, iImage1, -1, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9, iImage10
+    word oLeds 1, iLed0
+    word oStringss 33, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
+                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26, iStrings27, iStrings28, iStrings29, iStrings30, iStrings31, iStrings32
+    word oUserButtons 9, iUserbutton0, iUserbutton1, iUserbutton2, iUserbutton3, iUserbutton4, iUserbutton5, iUserbutton6, -1, iUserbutton8
     word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2, IIAngularMeter3
     word oiLedDigitss 10, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3, IILedDigits4, IILedDigits5, IILedDigits6, IILedDigits7, IILedDigits8, IILedDigits9
-    word FormBGcolors 0x0000, 0x0000, 0x0000
+    word FormBGcolors 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
     word kKeyboardKeystrokes -1
     word rKeyboardRoutines -1
 #END
@@ -275,7 +307,7 @@
     var vILedDigits8[WIDGET_RAM_SPACE+2] ;
     var vILedDigits5[WIDGET_RAM_SPACE+2] ;
     var vILedDigits9[WIDGET_RAM_SPACE+2] ;
-var stringsCV[27] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
+var stringsCV[33] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -390,6 +422,9 @@ func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
         case tWinButton :
             j := InputControls[oWinButtons[ObjectIdx+1]] ;
             break ;
+        case tUserButton :
+            j := InputControls[oUserButtons[ObjectIdx+1]] ;
+            break ;
         default : j := -1 ;
     endswitch
 
@@ -432,6 +467,10 @@ func TurnOffButtons(var group)
                 img_SetWord(hndl, l, IMAGE_INDEX, 0);
                 img_Show(hndl, l);      // only shows on current form
 
+            else if (*(InputData+k) == tUserButton)
+                l := oUserButtons[*(InputData+k+Ofs_IPD_OBJVIDX)/2] ;
+                img_SetWord(hndl, l, IMAGE_INDEX, img_GetWord(hndl, l, IMAGE_INDEX) & 0xfffc );
+                img_Show(hndl, l);      // only shows on current form
             endif
         endif
     next
@@ -618,7 +657,7 @@ func main()
     oObjects[tGauge] := oGauges ;
     oObjects[tImage] := oImages ;
     oObjects[tKeyboard] := oDipSwitchs ; // dummy as no object there
-    oObjects[tLed] := oDipSwitchs ; // dummy as no object there
+    oObjects[tLed] := oLeds ;
     oObjects[tLeddigits] := oDipSwitchs ; // dummy as no object there
     oObjects[tMeter] := oDipSwitchs ; // dummy as no object there
     oObjects[tStrings] := oStringss ;
@@ -636,7 +675,7 @@ func main()
     oObjects[t4Dbutton] := oDipSwitchs ; // dummy as no object there
     oObjects[tAniButton] := oDipSwitchs ; // dummy as no object there
     oObjects[tColorPicker] := oDipSwitchs ; // dummy as no object there
-    oObjects[tUserButton] := oDipSwitchs ; // dummy as no object there
+    oObjects[tUserButton] := oUserButtons ;
     oObjects[tMagicObject] := oDipSwitchs ; // dummy as no object there
     oObjects[tSmartGauge] := oDipSwitchs ; // dummy as no object there
     oObjects[tSmartSlider] := oDipSwitchs ; // dummy as no object there

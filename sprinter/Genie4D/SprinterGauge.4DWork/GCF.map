@@ -1,21 +1,31 @@
 Contents                              Start(hex)    Size(dec)
-Image0                                  000000A8          806
-Gauge0                                  000003CE       53,328
-Image1                                  0000D41E          806
-Image2                                  0000D744          806
-Image3                                  0000DA6A          806
-Image4                                  0000DD90        1,256
-Image6                                  0000E278        1,456
-Image5                                  0000E828        1,386
-Image7                                  0000ED92        1,606
-Image8                                  0000F3D8        1,518
-Image9                                  0000F9C6        1,626
-Gauge1                                  00010020       15,848
-Gauge2                                  00013E08       15,848
-Gauge3                                  00017BF0       53,328
-Winbutton1                              00024C40       10,588
-Winbutton0                              0002759C       18,804
-Font Arial-12____A                      0002BF10        8,480
-Font MS Reference Sans Serif-14b___A    0002E030       16,508
-Font MS Reference Sans Serif-10b___A    000320AC        7,588
-                                        00033E50       13,824
+Image0                                  000000F8          806
+Gauge0                                  0000041E       49,608
+Image1                                  0000C5E6          806
+Image3                                  0000C90C          806
+Image4                                  0000CC32        1,256
+Image6                                  0000D11A        1,456
+Image5                                  0000D6CA        1,386
+Image7                                  0000DC34        1,356
+Image8                                  0000E180        1,518
+Image9                                  0000E76E        1,626
+Gauge1                                  0000EDC8       15,848
+Gauge2                                  00012BB0       15,848
+Gauge3                                  00016998       49,608
+Image10                                 00022B60          806
+Userbutton1                             00022E86        3,368
+Led0                                    00023BAE          908
+Userbutton0                             00023F3A        5,328
+Userbutton2                             0002540A        5,328
+Userbutton3                             000268DA        3,368
+Userbutton8                             00027602        1,608
+Userbutton4                             000248F8        5,328
+Userbutton5                             00025EF8        5,328
+Winbutton0                              00027C4A       19,528
+Winbutton1                              0002C892       16,008
+Winbutton2                              0003071A       16,008
+Userbutton6                             000248F8        5,328
+Font Arial-12____A                      000345A2        8,480
+Font MS Reference Sans Serif-14b___A    000366C2       16,508
+Font MS Reference Sans Serif-10b___A    0003A73E        7,588
+                                        0003C4E2       16,896
