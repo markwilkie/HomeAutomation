@@ -5,14 +5,6 @@
 
 #include "TripSegmentData.h"
 
-#include "Gauge.h"
-#include "Digits.h"
-#include "SplitBarGauge.h"
-
-#include "PID.h"
-#include "Pitot.h"
-
-
 class PrimaryForm 
 {
   public:

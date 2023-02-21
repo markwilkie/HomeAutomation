@@ -1,6 +1,14 @@
 #include <genieArduino.h>
 #include <Wire.h>
 
+#include "Gauge.h"
+#include "Digits.h"
+#include "SplitBarGauge.h"
+
+#include "PID.h"
+#include "Pitot.h"
+#include "IgnState.h"
+
 #include "PrimaryForm.h"
 
 //
@@ -42,12 +50,14 @@
 //Global objects
 Genie genie;  
 int currentActiveForm=0;
+int currentContrast=10;
+bool currentIgnState=false;
 unsigned long totalMessages;
 unsigned long totalCRC;
 
 //Supported gauges
-Gauge loadGauge = Gauge(&genie,0x41,0x04,0,0,0,100,100);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
-Gauge boostGauge = Gauge(&genie,0x41,0x0B,3,2,0,22,100); 
+Gauge loadGauge = Gauge(&genie,0x41,0x04,0,0,0,100,150);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
+Gauge boostGauge = Gauge(&genie,0x41,0x0B,3,2,0,22,150); 
 Gauge coolantTempGauge = Gauge(&genie,0x41,0x05,1,1,130,250,1000);  
 Gauge transTempGauge = Gauge(&genie,0x61,0x30,2,4,130,250,1000);    //0x61, 0x30
 
@@ -58,9 +68,11 @@ SplitBarGauge instMPG = SplitBarGauge(&genie,1,2,0,20,500);
 //Extra values needed for calculations
 PID baraPressure = PID(0x41,0x33);
 PID speed = PID(0x41,0x0D);
+PID lightLevel = PID(0x77,0x01);
 
 //Other sensors
-Pitot pitot = Pitot(400);  //update every 400 ms        
+Pitot pitot = Pitot(400);  //update every 400 ms
+IgnState ignState = IgnState(1000);
 
 //Create objects for the digit displays
 Digits avgMPG = Digits(&genie,6,0,99,1,1100);
@@ -106,11 +118,6 @@ void setup()
   // Increase to 4500 or 5000 if you have sync problems as your project gets larger. Can depent on microSD init speed.
   delay(5000); 
 
-  // Set the brightness/Contrast of the Display - (Not needed but illustrates how)
-  // Most Displays use 0-15 for Brightness Control, where 0 = Display OFF, though to 15 = Max Brightness ON.
-  genie.WriteContrast(10); // About 2/3 Max Brightness
-
-
   //This is how we get notified when a button is pressed
   genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
 
@@ -136,18 +143,61 @@ void loop()
 
   //new values to process?
   if(retVal)
-  { 
+  {
     primaryForm.updateData(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
 
     //Update display for active forms only
     if(primaryForm.getFormId()==currentActiveForm)
     {   
       primaryForm.updateDisplay();  //Time to update trip display?
-    }
-  }
+    }     
+
+    updateLCD(service,pid,value);  //deals with stuff like light sensor and ign on/off  
+  } 
 
   //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
   genie.DoEvents(); 
+}
+
+//These are user defined PIDs and sensors which control the main display in various ways
+void updateLCD(int service,int pid,int value)
+{
+    //Adjust screen based on light level
+    if(service==0x77 && pid==0x01)
+    {
+      int contrast = map(value, 500, 3000, 1, 15);
+      if(contrast<1) contrast=1;
+      if(contrast>15) contrast=15;
+      if(currentContrast!=contrast)
+      {
+        genie.WriteContrast(contrast);   
+        currentContrast=contrast;
+      }
+      return;
+    } 
+
+    //Go to stopped form if ignition is turned off, or to start when first turned on
+    bool state=ignState.getIgnState();
+    if(state!=currentIgnState)
+    {
+      currentIgnState=state;
+
+      if(currentIgnState)
+      {
+        Serial.println("activating STARTING form");
+        currentActiveForm=3;
+        genie.form(3);
+        //genie.WriteObject(GENIE_OBJ_FORM,3,1);
+      }
+      else
+      {
+        Serial.println("activating STOPPING form");
+        currentActiveForm=1;
+        genie.form(1);
+        //genie.WriteObject(GENIE_OBJ_FORM,1,1);
+      }
+      return;
+    }
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)

@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "PID.h"
+#include "LDR.h"
 #include "TestData.h"
 #include "isotp.h"
 
@@ -38,6 +39,9 @@ PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
 PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
 PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
 PID* pidArray[]={&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&baraPressure,&transTemp,&ambientTemp};
+
+//Setup analog sensors
+LDR ldr(0x77,0x01,500);
 
 void setup()
 {
@@ -114,6 +118,11 @@ void sendToMaster(unsigned int service,unsigned int pid,unsigned int value)
   Serial1.write(']');
 }
 
+void readAnalogSensors()
+{
+  sendToMaster(ldr.getService(),ldr.getPid(),ldr.readLightLevel());
+}
+
 void loop()
 {
     //Blink light
@@ -124,6 +133,8 @@ void loop()
      //Loop while in simulation mode
     while(!digitalRead(10))
     {
+        readAnalogSensors();
+
         testId=testData.GetId();
         testData.FillCanFrame(canTestFrame);
         delay(10);
@@ -135,6 +146,7 @@ void loop()
           {
             unsigned int result=result=(int)pidArray[i]->getResult(canTestFrame);
             //1 = service and 2= pid
+
             sendToMaster(canTestFrame[0],canTestFrame[1],result);
             Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit()); 
             break;           
@@ -147,6 +159,9 @@ void loop()
     //make sure CAN com buffers are cleared
     memset(txMsg.Buffer, (uint8_t)0, 8);
     memset(rxMsg.Buffer, (uint8_t)0, MAX_MSGBUF);    
+
+    //read sensors
+    readAnalogSensors();
 
     //Let's go through each PID we setup and get the values
     int retVal=0;
