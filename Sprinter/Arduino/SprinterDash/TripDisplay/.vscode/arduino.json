@@ -1,6 +1,6 @@
 {
     "board": "esp32:esp32:firebeetle32",
-    "port": "COM9",
+    "port": "COM11",
     "sketch": "TripDisplay.ino",
     "configuration": "FlashFreq=80,UploadSpeed=921600"
 }

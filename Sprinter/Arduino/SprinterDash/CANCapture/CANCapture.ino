@@ -25,6 +25,7 @@ unsigned char canTestFrame[30];
 struct Message_t txMsg, rxMsg;
 
 //Setup PIDs
+PID diagnostics(0x7DF,0x01,0x01,"Diag","","A",10000);
 PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55",200);
 PID coolantTemp(0x7DF,0x01,0x05,"Coolant Temp","C","A-40",10000);
 PID manPressure(0x7DF,0x01,0x0B,"Manifold","kPa","A",200);
@@ -36,12 +37,51 @@ PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B",1000);
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A",60000);
 PID transTemp(0x7E1,0x21,0x30,"Trans Temp","C","E-50",10000);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
-PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
+//PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
 PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
-PID* pidArray[]={&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&baraPressure,&transTemp,&ambientTemp};
+PID* pidArray[]={&diagnostics,&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&transTemp,&ambientTemp};
 
 //Setup analog sensors
 LDR ldr(0x77,0x01,500);
+
+/*
+Add DTC support
+
+Number of codes == 2  (remember to take off the on/off bit for CEL)
+https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01_PID_01
+09:56:31.907 -> 0x7DF,0x2,0x1,0x1,0xFF,0xFF,0xFF,0xFF,0xFF,
+09:56:31.907 -> 0x7E8,0x6,0x41,0x1,-->0x2<--,0x7,0x81,0x0,0x0,
+
+unsigned int b=0x02;
+int cel = b>>7;
+int numCodes = b & 0x7F;
+Serial.println(cel);
+Serial.println(numCodes);
+
+Pending codes - service x07  (in this case the code is P0672, no CEL)
+09:57:07.715 -> 0x7DF,0x1,0x7,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+09:57:07.715 -> 0x7E8,0x6,0x47,0x2,0x6,0x72,0x0,0x0,0x0,
+
+Stored codes - service x03 (same code...P0672)
+https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_03_(no_PID_required)
+09:57:27.965 -> 0x7DF,0x1,0x3,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+09:57:27.965 -> 0x7E8,0x6,0x43,0x2,0x6,0x72,0x0,0x0,0x0,
+
+unsigned int b1=0x06;
+unsigned int b2=0x72;
+int code = b1>>6;
+int d1 = (b1 & 0x3F) >> 4;
+int d2 = b1 & 0x0F;
+int d3 = b2 >> 4;
+int d4 = b2 & 0x0F;
+
+Serial.println("===============");
+Serial.println(code);
+Serial.print(d1);
+Serial.print(d2);
+Serial.print(d3);
+Serial.println(d4);
+*/
 
 void setup()
 {
@@ -148,7 +188,9 @@ void loop()
             //1 = service and 2= pid
 
             sendToMaster(canTestFrame[0],canTestFrame[1],result);
-            Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit()); 
+            Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());        
+          }
+
             break;           
           }
         }

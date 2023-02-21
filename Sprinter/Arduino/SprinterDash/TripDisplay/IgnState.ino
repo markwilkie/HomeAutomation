@@ -24,8 +24,8 @@ bool IgnState::getIgnState()
     //Read state
     ignState = digitalRead(IGN_PIN);
 
-    Serial.print("IGN State: ");
-    Serial.println(ignState);
+    //Serial.print("IGN State: ");
+    //Serial.println(ignState);
 
     return ignState;
 }

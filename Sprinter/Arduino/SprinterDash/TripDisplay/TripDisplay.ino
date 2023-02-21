@@ -4,6 +4,7 @@
 #include "Gauge.h"
 #include "Digits.h"
 #include "SplitBarGauge.h"
+#include "Led.h"
 
 #include "PID.h"
 #include "Pitot.h"
@@ -47,11 +48,21 @@
 #define RXD1 25
 #define TXD1 26
 
-//Global objects
+//Form numbers
+#define PRIMARY_FORM 0
+#define STOPPED_FORM 1
+#define SUMMARY_FORM 2
+#define STARTING_FORM 3
+
+//How often contrast and form switches based on external inputs happen
+#define LCD_REFRESH_RATE 1000;
+
+//Global objects for LCD
 Genie genie;  
 int currentActiveForm=0;
 int currentContrast=10;
 bool currentIgnState=false;
+unsigned long nextLCDRefresh=0;
 unsigned long totalMessages;
 unsigned long totalCRC;
 
@@ -81,8 +92,11 @@ Digits currentElevation = Digits(&genie,8,0,9999,0,1400);
 Digits milesTravelled = Digits(&genie,9,0,999,0,1900);
 Digits hoursDriving = Digits(&genie,5,0,9,1,1900); 
 
+//LED objects
+Led codesLed = Led(0,0x41,0x1,1000);
+
 //Forms
-PrimaryForm primaryForm = PrimaryForm(&genie,0,"Main Screen");
+PrimaryForm primaryForm = PrimaryForm(&genie,PRIMARY_FORM,"Main Screen");
 
 //Serial coms
 byte serialBuffer[20];
@@ -141,6 +155,12 @@ void loop()
   int service; int pid; int value;
   bool retVal=processIncoming(&service,&pid,&value);
 
+  //Barametric values
+  //if(baraPressure.isMatch(service,pid))
+  //{        
+  //  baraPressure.setValue(value);
+  //}
+
   //new values to process?
   if(retVal)
   {
@@ -151,30 +171,45 @@ void loop()
     {   
       primaryForm.updateDisplay();  //Time to update trip display?
     }     
-
-    updateLCD(service,pid,value);  //deals with stuff like light sensor and ign on/off  
   } 
+
+  //Update main LCD, like adjust contract, switch forms, etc
+  updatePIDs(service,pid,value); 
+  updateLCD();
 
   //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
   genie.DoEvents(); 
 }
 
-//These are user defined PIDs and sensors which control the main display in various ways
-void updateLCD(int service,int pid,int value)
+//Update PIDs that are not specific to any one form  (e.g. light level so we can set contrast)
+void updatePIDs(int service,int pid,int value)
 {
-    //Adjust screen based on light level
-    if(service==0x77 && pid==0x01)
-    {
-      int contrast = map(value, 500, 3000, 1, 15);
-      if(contrast<1) contrast=1;
-      if(contrast>15) contrast=15;
-      if(currentContrast!=contrast)
-      {
-        genie.WriteContrast(contrast);   
-        currentContrast=contrast;
-      }
-      return;
+    if(lightLevel.isMatch(service,pid))
+    {        
+      lightLevel.setValue(value);
     } 
+}
+
+//These are user defined PIDs and sensors which control the main display in various ways
+void updateLCD()
+{
+    //don't update if it's not time to
+    if(millis()<nextLCDRefresh)
+        return;
+
+    //Update timing
+    nextLCDRefresh=millis()+LCD_REFRESH_RATE;
+
+    //Adjust screen based on light level
+    int contrast = map(lightLevel.getValue(), 500, 3000, 1, 15);
+    if(contrast<1) contrast=1;
+    if(contrast>15) contrast=15;
+    if(currentContrast!=contrast)
+    {
+      Serial.println("adjusting CONTRAST");
+      genie.WriteContrast(contrast);   
+      currentContrast=contrast;
+    }
 
     //Go to stopped form if ignition is turned off, or to start when first turned on
     bool state=ignState.getIgnState();
@@ -185,18 +220,25 @@ void updateLCD(int service,int pid,int value)
       if(currentIgnState)
       {
         Serial.println("activating STARTING form");
-        currentActiveForm=3;
-        genie.form(3);
-        //genie.WriteObject(GENIE_OBJ_FORM,3,1);
+        currentActiveForm=STARTING_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,STARTING_FORM,0);
       }
       else
       {
         Serial.println("activating STOPPING form");
-        currentActiveForm=1;
-        genie.form(1);
-        //genie.WriteObject(GENIE_OBJ_FORM,1,1);
+        currentActiveForm=STOPPED_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,STOPPED_FORM,0);
       }
       return;
+    }
+
+    //If on stopped form, and our speed goes above 0, switch to main
+    if(currentActiveForm==STOPPED_FORM && speed.getValue()>5)
+    {
+        Serial.println("activating PRIMARY form");
+        currentActiveForm=PRIMARY_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
+        return;
     }
 }
 

@@ -95,7 +95,7 @@ double PID::getResult(unsigned char *buffer)
         a=buffer[2]; b=buffer[3]; c=buffer[4]; d=buffer[5]; e=buffer[13];
         
         result = te_eval(expr);
-        Serial.printf("Formula Result:%f using %s with %d\n", result,formula,a);
+        //Serial.printf("Formula Result:%f using %s with %d\n", result,formula,a);
         te_free(expr);
     } 
     else 

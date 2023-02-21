@@ -34,8 +34,8 @@ void PrimaryForm::updateData(int service,int pid,int value)
     instMPG.setValue(dataSinceLastStop.getInstantMPG());
     avgMPG.setValue(dataSinceLastStop.getAvgMPG());
     milesLeftInTank.setValue(dataSinceLastStop.getMilesLeftInTank());
-    currentElevation.setValue(dataSinceLastStop.getHoursDriving());
-    milesTravelled.setValue(dataSinceLastStop.getFuelGallonsUsed());
+    currentElevation.setValue(dataSinceLastStop.getCurrentElevation());
+    milesTravelled.setValue(dataSinceLastStop.getMilesTravelled());
     hoursDriving.setValue(dataSinceLastStop.getHoursDriving());      
 }
 
@@ -43,15 +43,9 @@ void PrimaryForm::updateGaugeData(int service,int pid,int value)
 {
     //update wind speed when we get a vehicle speed
     if(speed.isMatch(service,pid))
-    {        
+    {
       int pitotSpeed=pitot.readSpeed();
       windSpeedGauge.setValue(pitotSpeed-(value*0.621371));        //we're showing the delta     
-    }
-
-    //grab values used for calculations
-    if(baraPressure.isMatch(service,pid))
-    {        
-      baraPressure.setValue(value);
     }
 
     //update gauges after doing any needed calculations
@@ -77,7 +71,16 @@ void PrimaryForm::updateGaugeData(int service,int pid,int value)
       int bara=baraPressure.getValue();
       float boost=value-bara;
       boostGauge.setValue(boost*.145);
-    }       
+    } 
+
+    if(codesLed.isMatch(service,pid))
+    {
+      if(value>0 && !codesLed.isActive())
+        codesLed.startBlink();
+
+      if(value==0 && codesLed.isActive())
+        codesLed.turnOff();
+    }
 }
 
 //Update display
@@ -94,4 +97,5 @@ void PrimaryForm::updateDisplay()
     currentElevation.update();
     milesTravelled.update();
     hoursDriving.update();
+    codesLed.update();
 }

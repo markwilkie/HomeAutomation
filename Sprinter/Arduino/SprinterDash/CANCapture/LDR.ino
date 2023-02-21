@@ -41,8 +41,7 @@ int LDR::readLightLevel()
       delay(10);
     }
 
-    Serial.print("LDR:  ");
-    Serial.println(lightLevel);
+    //Serial.print("LDR:  ");  Serial.println(lightLevel);
 
     return lightLevel;
 }
