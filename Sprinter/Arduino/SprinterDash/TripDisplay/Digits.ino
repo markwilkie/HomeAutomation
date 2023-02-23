@@ -1,6 +1,6 @@
 #include "Digits.h"
 
-Digits::Digits(Genie *_geniePtr,int _digitsObjNum,int _min,int _max,int _decimal,int _refreshTicks)
+void Digits::init(Genie *_geniePtr,int _digitsObjNum,int _min,int _max,int _decimal,int _refreshTicks)
 {
     geniePtr=_geniePtr;
     digitsObjNum=_digitsObjNum;

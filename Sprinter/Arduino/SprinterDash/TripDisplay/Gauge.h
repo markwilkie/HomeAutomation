@@ -6,7 +6,7 @@
 class Gauge 
 {
   public:
-    Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks);
+    void init(Genie *_geniePtr,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks);
 
     //Pass each response in to see if there's a match
     bool isMatch(int incomingSvc, int incomingPid);

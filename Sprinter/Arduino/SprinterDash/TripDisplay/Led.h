@@ -6,7 +6,7 @@
 class Led 
 {
   public:
-    Led(int _ledObjNum,int _service,int _pid,int _refreshTicks);
+    void init(Genie *_geniePtr,int _ledObjNum,int _refreshTicks);
 
     bool isMatch(int incomingSvc, int incomingPid);
 
@@ -18,6 +18,7 @@ class Led
     
   private: 
     //What this is  (e.g. rpm)
+    Genie *geniePtr;
     int service;
     int pid;
 

@@ -1,14 +1,37 @@
 #include "PrimaryForm.h"
+#include "Gauge.h"
 
 // first segment in a linked list  (each tripsegment has the next one)
-PrimaryForm::PrimaryForm(Genie* _geniePtr,int _formID,const char* _label)
+PrimaryForm::PrimaryForm(Genie* _geniePtr,int _formID,const char* _label,TripData *_dataSinceLastStop,CurrentData *_currentDataPtr)
 {
-    //Save main genie pointer
+    //Poi
     geniePtr=_geniePtr;
+    dataSinceLastStop=_dataSinceLastStop;
+    currentDataPtr=_currentDataPtr;
 
     //Save context
     formID=_formID;
     label=_label;
+
+    //Radial gauges
+    loadGauge.init(geniePtr,0,0,0,100,150);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
+    boostGauge.init(geniePtr,3,2,0,22,150); 
+    coolantTempGauge.init(geniePtr,1,1,130,250,1000);  
+    transTempGauge.init(geniePtr,2,4,130,250,1000);    //0x61, 0x30   
+
+    //Split bar gauges
+    windSpeedGauge.init(geniePtr,3,0,3,-29,30,500);  
+    instMPG.init(geniePtr,1,2,0,20,500);     
+
+    //Create objects for the digit displays
+    avgMPG.init(geniePtr,6,0,99,1,1100);
+    milesLeftInTank.init(geniePtr,7,0,999,0,2000);
+    currentElevation.init(geniePtr,8,0,9999,0,1400);
+    milesTravelled.init(geniePtr,9,0,999,0,1900);
+    hoursDriving.init(geniePtr,5,0,9,1,1900); 
+
+    //LED objects
+    codesLed.init(geniePtr,0,1000);    
 }
 
 int PrimaryForm::getFormId()
@@ -16,76 +39,40 @@ int PrimaryForm::getFormId()
     return formID;
 }
 
-void PrimaryForm::displayForm()
-{
-    geniePtr->WriteObject(GENIE_OBJ_FORM, formID, 0);  //3rd parameter is a no-op
-}
-
 //Update values, then update display
-void PrimaryForm::updateData(int service,int pid,int value)
-{
-    //Update gauges that are specific to this form
-    updateGaugeData(service,pid,value);
+void PrimaryForm::updateData()
+{   
+    //Radial gauges
+    loadGauge.setValue(currentDataPtr->currentLoad);
+    boostGauge.setValue(currentDataPtr->currentBoost);
+    coolantTempGauge.setValue(currentDataPtr->currentCoolantTemp);
+    transTempGauge.setValue(currentDataPtr->currentTransmissionTemp);
 
-    //Update values in the current segment and this form
-    dataSinceLastStop.update(service,pid,value);
-    
-    //Now update widgets on this form with the segment data
-    instMPG.setValue(dataSinceLastStop.getInstantMPG());
-    avgMPG.setValue(dataSinceLastStop.getAvgMPG());
-    milesLeftInTank.setValue(dataSinceLastStop.getMilesLeftInTank());
-    currentElevation.setValue(dataSinceLastStop.getCurrentElevation());
-    milesTravelled.setValue(dataSinceLastStop.getMilesTravelled());
-    hoursDriving.setValue(dataSinceLastStop.getHoursDriving());      
-}
+    //Split bar gauges
+    int headWind=currentDataPtr->currentPitotSpeed - currentDataPtr->currentSpeed;
+    windSpeedGauge.setValue(headWind);
+    instMPG.setValue(dataSinceLastStop->getInstantMPG());
 
-void PrimaryForm::updateGaugeData(int service,int pid,int value)
-{
-    //update wind speed when we get a vehicle speed
-    if(speed.isMatch(service,pid))
-    {
-      int pitotSpeed=pitot.readSpeed();
-      windSpeedGauge.setValue(pitotSpeed-(value*0.621371));        //we're showing the delta     
-    }
+    //Digits
+    avgMPG.setValue(dataSinceLastStop->getAvgMPG());
+    milesLeftInTank.setValue(dataSinceLastStop->getMilesLeftInTank());
+    currentElevation.setValue(dataSinceLastStop->getCurrentElevation());
+    milesTravelled.setValue(dataSinceLastStop->getMilesTravelled());
+    hoursDriving.setValue(dataSinceLastStop->getHoursDriving());   
 
-    //update gauges after doing any needed calculations
-    if(loadGauge.isMatch(service,pid))
-    { 
-      loadGauge.setValue(value);
-    }  
-  
-    if(coolantTempGauge.isMatch(service,pid))
-    {
-      if(value>0)
-        coolantTempGauge.setValue((float)value*(9.0/5.0)+32.0);
-    }
-  
-    if(transTempGauge.isMatch(service,pid))
-    {
-      if(value>0)
-        transTempGauge.setValue((float)value*(9.0/5.0)+32.0);      
-    }    
-     
-    if(boostGauge.isMatch(service,pid))
-    {        
-      int bara=baraPressure.getValue();
-      float boost=value-bara;
-      boostGauge.setValue(boost*.145);
-    } 
-
-    if(codesLed.isMatch(service,pid))
-    {
-      if(value>0 && !codesLed.isActive())
+    //LED
+    if(currentDataPtr->codesPresent && !codesLed.isActive())
         codesLed.startBlink();
 
-      if(value==0 && codesLed.isActive())
+    if(!currentDataPtr->codesPresent && codesLed.isActive())
         codesLed.turnOff();
-    }
 }
 
 //Update display
 void PrimaryForm::updateDisplay()
 {
+    updateData();
+
     windSpeedGauge.update();
     loadGauge.update();
     coolantTempGauge.update();   

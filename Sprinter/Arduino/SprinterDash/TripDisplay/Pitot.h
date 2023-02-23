@@ -4,7 +4,7 @@
 class Pitot 
 {
   public:
-    Pitot(int _refreshTicks);
+    void init(int _refreshTicks);
     void calibrate();
     int readSpeed();
     

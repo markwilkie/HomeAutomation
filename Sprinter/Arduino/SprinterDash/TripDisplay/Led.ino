@@ -1,23 +1,14 @@
 #include "Led.h"
 
-Led::Led(int _ledObjNum,int _service,int _pid,int _refreshTicks)
+void Led::init(Genie *_geniePtr,int _ledObjNum,int _refreshTicks)
 {
+    geniePtr=_geniePtr;
     ledObjNum=_ledObjNum;
-    service=_service;
-    pid=_pid;
 
     refreshTicks=_refreshTicks;
 
     //init values
     nextTickCount=millis()+refreshTicks;  
-}
-
-bool Led::isMatch(int incomingSvc, int incomingPid)
-{
-    if(incomingSvc==service && incomingPid==pid)
-        return true;
-    
-    return false;
 }
 
 bool Led::isActive()
@@ -46,7 +37,6 @@ void Led::startBlink()
 
 void Led::update()
 {  
-
     //Determine if it's time to update load value (e.g. generate a new smoothing curve)
     if(millis()>=nextTickCount && (blink || ledState!=lastState))
     {
@@ -64,6 +54,6 @@ void Led::update()
         }
         
         //update led on form
-        genie.WriteObject(GENIE_OBJ_USER_LED, ledObjNum, ledState);  
+        geniePtr->WriteObject(GENIE_OBJ_USER_LED, ledObjNum, ledState);  
     }
 }

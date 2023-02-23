@@ -33,13 +33,13 @@ PID engineRPM(0x7DF,0x01,0x0C,"RPM","RPM","((256*A)+B)/4",500);
 PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A",500); 
 PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40",1000);
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100",200); 
-PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B",1000);
+//PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B",1000);
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A",60000);
 PID transTemp(0x7E1,0x21,0x30,"Trans Temp","C","E-50",10000);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
 //PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
 PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
-PID* pidArray[]={&diagnostics,&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&runtime,&fuelLevel,&distanceTrav,&transTemp,&ambientTemp};
+PID* pidArray[]={&diagnostics,&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&fuelLevel,&distanceTrav,&transTemp,&ambientTemp};
 
 //Setup analog sensors
 LDR ldr(0x77,0x01,500);
@@ -189,9 +189,6 @@ void loop()
 
             sendToMaster(canTestFrame[0],canTestFrame[1],result);
             Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());        
-          }
-
-            break;           
           }
         }
 

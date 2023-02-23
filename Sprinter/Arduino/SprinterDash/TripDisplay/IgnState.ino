@@ -7,7 +7,7 @@
 //Pin used for reads
 #define IGN_PIN D4
 
-IgnState::IgnState(int _refreshTicks)
+void IgnState::init(int _refreshTicks)
 {
     refreshTicks=_refreshTicks;
 }

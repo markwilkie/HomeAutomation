@@ -1,16 +1,11 @@
-#include <genieArduino.h>
 #include <Wire.h>
+#include <genieArduino.h>
 
-#include "Gauge.h"
-#include "Digits.h"
-#include "SplitBarGauge.h"
-#include "Led.h"
-
-#include "PID.h"
-#include "Pitot.h"
-#include "IgnState.h"
+#include "CurrentData.h"
+#include "TripData.h"
 
 #include "PrimaryForm.h"
+#include "SummaryForm.h"
 
 //
 // SUPER IMPORT POST about setting up the programmer so that high speed transfers work
@@ -48,11 +43,14 @@
 #define RXD1 25
 #define TXD1 26
 
-//Form numbers
+//Form object numbers
 #define PRIMARY_FORM 0
 #define STOPPED_FORM 1
 #define SUMMARY_FORM 2
 #define STARTING_FORM 3
+
+#define SUMMARY_SCREEN_BUTTON 1
+#define SUMMARY_TO_PRIMARY_BUTTON 3
 
 //How often contrast and form switches based on external inputs happen
 #define LCD_REFRESH_RATE 1000;
@@ -66,37 +64,15 @@ unsigned long nextLCDRefresh=0;
 unsigned long totalMessages;
 unsigned long totalCRC;
 
-//Supported gauges
-Gauge loadGauge = Gauge(&genie,0x41,0x04,0,0,0,100,150);  //genie*,service,pid,ang meter obj #,digits obj #,min,max,refresh ticks
-Gauge boostGauge = Gauge(&genie,0x41,0x0B,3,2,0,22,150); 
-Gauge coolantTempGauge = Gauge(&genie,0x41,0x05,1,1,130,250,1000);  
-Gauge transTempGauge = Gauge(&genie,0x61,0x30,2,4,130,250,1000);    //0x61, 0x30
-
-//Split bar gauges
-SplitBarGauge windSpeedGauge = SplitBarGauge(&genie,3,0,3,-29,30,500);  
-SplitBarGauge instMPG = SplitBarGauge(&genie,1,2,0,20,500);
-
-//Extra values needed for calculations
-PID baraPressure = PID(0x41,0x33);
-PID speed = PID(0x41,0x0D);
-PID lightLevel = PID(0x77,0x01);
-
-//Other sensors
-Pitot pitot = Pitot(400);  //update every 400 ms
-IgnState ignState = IgnState(1000);
-
-//Create objects for the digit displays
-Digits avgMPG = Digits(&genie,6,0,99,1,1100);
-Digits milesLeftInTank = Digits(&genie,7,0,999,0,2000);
-Digits currentElevation = Digits(&genie,8,0,9999,0,1400);
-Digits milesTravelled = Digits(&genie,9,0,999,0,1900);
-Digits hoursDriving = Digits(&genie,5,0,9,1,1900); 
-
-//LED objects
-Led codesLed = Led(0,0x41,0x1,1000);
+//Trip data
+CurrentData currentData=CurrentData();
+TripData sinceLastStop=TripData(&currentData);  //used for the primary form
+TripData currentSegment=TripData(&currentData);
+TripData fullTrip=TripData(&currentData);
 
 //Forms
-PrimaryForm primaryForm = PrimaryForm(&genie,PRIMARY_FORM,"Main Screen");
+PrimaryForm primaryForm = PrimaryForm(&genie,PRIMARY_FORM,"Main Screen",&sinceLastStop,&currentData);
+SummaryForm sinceLastStopSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Since Stopped",&currentSegment);
 
 //Serial coms
 byte serialBuffer[20];
@@ -135,8 +111,8 @@ void setup()
   //This is how we get notified when a button is pressed
   genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
 
-  //calibrate
-  pitot.calibrate();
+  //calibrate and setup
+  currentData.init();
 
   Serial.println("starting....");
   lastLoopTime=millis();
@@ -155,16 +131,16 @@ void loop()
   int service; int pid; int value;
   bool retVal=processIncoming(&service,&pid,&value);
 
-  //Barametric values
-  //if(baraPressure.isMatch(service,pid))
-  //{        
-  //  baraPressure.setValue(value);
-  //}
-
   //new values to process?
   if(retVal)
   {
-    primaryForm.updateData(service,pid,value);   //Update trip info  (miles travelled, mpg, etc)
+    //Update current data that's shared for everyone
+    currentData.updateData(service,pid,value);
+
+    //Now make sure all the trip data objects have the latest
+    sinceLastStop.updateTripData();
+    currentSegment.updateTripData();
+    fullTrip.updateTripData();    
 
     //Update display for active forms only
     if(primaryForm.getFormId()==currentActiveForm)
@@ -174,20 +150,10 @@ void loop()
   } 
 
   //Update main LCD, like adjust contract, switch forms, etc
-  updatePIDs(service,pid,value); 
   updateLCD();
 
   //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
   genie.DoEvents(); 
-}
-
-//Update PIDs that are not specific to any one form  (e.g. light level so we can set contrast)
-void updatePIDs(int service,int pid,int value)
-{
-    if(lightLevel.isMatch(service,pid))
-    {        
-      lightLevel.setValue(value);
-    } 
 }
 
 //These are user defined PIDs and sensors which control the main display in various ways
@@ -201,7 +167,7 @@ void updateLCD()
     nextLCDRefresh=millis()+LCD_REFRESH_RATE;
 
     //Adjust screen based on light level
-    int contrast = map(lightLevel.getValue(), 500, 3000, 1, 15);
+    int contrast = map(currentData.currentLightLevel, 500, 3000, 1, 15);
     if(contrast<1) contrast=1;
     if(contrast>15) contrast=15;
     if(currentContrast!=contrast)
@@ -212,7 +178,7 @@ void updateLCD()
     }
 
     //Go to stopped form if ignition is turned off, or to start when first turned on
-    bool state=ignState.getIgnState();
+    bool state=currentData.ignitionState;
     if(state!=currentIgnState)
     {
       currentIgnState=state;
@@ -233,7 +199,7 @@ void updateLCD()
     }
 
     //If on stopped form, and our speed goes above 0, switch to main
-    if(currentActiveForm==STOPPED_FORM && speed.getValue()>5)
+    if(currentActiveForm==STOPPED_FORM && currentData.currentSpeed>5)
     {
         Serial.println("activating PRIMARY form");
         currentActiveForm=PRIMARY_FORM;
@@ -375,13 +341,38 @@ void myGenieEventHandler(void)
       currentActiveForm=Event.reportObject.index;
       Serial.print("Form Activated: ");
       Serial.println(currentActiveForm);
+      return;
     }
+
+    if (Event.reportObject.object == GENIE_OBJ_USERBUTTON)
+    {
+      if (Event.reportObject.index == SUMMARY_SCREEN_BUTTON)
+      {
+        Serial.println("activating SUMMARY form");
+        currentActiveForm=SUMMARY_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,SUMMARY_FORM,0);
+        sinceLastStopSummaryForm.updateDisplay();
+        return;
+      }
+    } 
+
+    if (Event.reportObject.object == GENIE_OBJ_USERBUTTON) 
+    {
+      if (Event.reportObject.index == SUMMARY_TO_PRIMARY_BUTTON) 
+      {
+        Serial.println("activating PRIMARY form");
+        currentActiveForm=PRIMARY_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
+        return;
+      }
+    }       
 
     if (Event.reportObject.object == GENIE_OBJ_WINBUTTON) // If a Winbutton was pressed
     {
       if (Event.reportObject.index == 0) // If Winbutton #0 was pressed   
       {
         Serial.println("Start Tip button pressed!");
+        return;
       }
     }
   }

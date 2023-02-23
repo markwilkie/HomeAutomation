@@ -3,31 +3,53 @@
 
 #include <genieArduino.h>
 
-#include "TripSegmentData.h"
+#include "Gauge.h"
+#include "Digits.h"
+#include "SplitBarGauge.h"
+#include "Led.h"
+
+#include "TripData.h"
 
 class PrimaryForm 
 {
   public:
-    PrimaryForm(Genie* geniePtr,int formID,const char* label);
+    PrimaryForm(Genie* geniePtr,int formID,const char* label,TripData *_dataSinceLastStop,CurrentData *_currentDataPtr);
 
     int getFormId();
-    void displayForm();  //actually display form
-    void updateData(int service,int pid,int value);
     void updateDisplay();
 
   private: 
-
-    void updateGaugeData(int service,int pid,int value);
+    //Update data by calc values from current data
+    void updateData();
 
     //State
     int formID;
     const char* label;
 
     //Display
-    Genie *geniePtr;       
+    Genie *geniePtr;
+    TripData *dataSinceLastStop;
+    CurrentData *currentDataPtr;
 
-    //Trip data
-    TripSegmentData dataSinceLastStop=TripSegmentData();   
+    //Radial gauges
+    Gauge loadGauge;
+    Gauge boostGauge;
+    Gauge coolantTempGauge; 
+    Gauge transTempGauge;    
+
+    //Split bar gauges
+    SplitBarGauge windSpeedGauge;
+    SplitBarGauge instMPG;
+
+    //Create objects for the digit displays
+    Digits avgMPG;
+    Digits milesLeftInTank;
+    Digits currentElevation;
+    Digits milesTravelled;
+    Digits hoursDriving;
+
+    //LED objects
+    Led codesLed;   
 };
 
 #endif

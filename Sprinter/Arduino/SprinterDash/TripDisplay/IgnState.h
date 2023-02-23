@@ -4,7 +4,7 @@
 class IgnState 
 {
   public:
-    IgnState(int _refreshTicks);
+    void init(int _refreshTicks);
     bool getIgnState();
     
   private: 

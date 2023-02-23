@@ -1,10 +1,8 @@
 #include "Gauge.h"
 
-Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
+void Gauge::init(Genie *_geniePtr,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
 {
     geniePtr=_geniePtr;
-    service=_service;
-    pid=_pid;
     angMeterObjNum=_angMeterObjNum;
     digitsObjNum=_digitsObjNum;
 
@@ -16,14 +14,6 @@ Gauge::Gauge(Genie *_geniePtr,int _service,int _pid,int _angMeterObjNum,int _dig
     nextTickCount=millis()+refreshTicks;
     currentValue=0;
     lastValue=0;
-}
-
-bool Gauge::isMatch(int incomingSvc, int incomingPid)
-{
-    if(incomingSvc==service && incomingPid==pid)
-        return true;
-    
-    return false;
 }
 
 int Gauge::getCurrentValue()
@@ -52,7 +42,7 @@ void Gauge::update()
     {
         //Update timing
         nextTickCount=millis()+refreshTicks;
-        lastValue=currentValue;
+        lastValue=currentValue;        
 
         if(angMeterObjNum>=0)
         {

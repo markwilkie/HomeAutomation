@@ -1,6 +1,6 @@
 #include "SplitBarGauge.h"
 
-SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _min,int _max,int _refreshTicks)
+void SplitBarGauge::init(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _min,int _max,int _refreshTicks)
 {
     geniePtr=_geniePtr;
     lowObjNum=_lowObjNum;   
@@ -16,7 +16,7 @@ SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int
     lastValue=0;    
 }
 
-SplitBarGauge::SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
+void SplitBarGauge::init(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
 {
     geniePtr=_geniePtr;
     lowObjNum=_lowObjNum;   

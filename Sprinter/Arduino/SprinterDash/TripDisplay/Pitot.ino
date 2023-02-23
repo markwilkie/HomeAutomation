@@ -33,7 +33,7 @@
 #define PITOT_ADC_PIN A0
 #define AIR_DENSITY 1.204
 
-Pitot::Pitot(int _refreshTicks)
+void Pitot::init(int _refreshTicks)
 {
     refreshTicks=_refreshTicks;
 }

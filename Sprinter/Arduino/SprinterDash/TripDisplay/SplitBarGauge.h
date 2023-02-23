@@ -6,8 +6,8 @@
 class SplitBarGauge 
 {
   public:
-    SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _min,int _max,int _refreshTicks);
-    SplitBarGauge(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks);
+    void init(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _min,int _max,int _refreshTicks);
+    void init(Genie *_geniePtr,int _lowObjNum,int _highObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks);
 
     void setValue(int value);  //does not actually update the screen
     int getCurrentValue();
@@ -29,7 +29,7 @@ class SplitBarGauge
     int refreshTicks=1;         //How many ticks the gauge refreshes    
     int lowObjNum;              //Gauge for the numbers below mid point
     int highObjNum;
-    int digitsObjNum=0;         //Digits (zero if not using)
+    int digitsObjNum=-1;         //Digits (zero if not using)
 
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again

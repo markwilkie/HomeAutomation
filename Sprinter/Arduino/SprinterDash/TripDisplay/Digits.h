@@ -6,7 +6,7 @@
 class Digits 
 {
   public:
-    Digits(Genie *_geniePtr,int _digitsObjNum,int _min,int _max,int _decimal,int _refreshTicks);
+    void init(Genie *_geniePtr,int _digitsObjNum,int _min,int _max,int _decimal,int _refreshTicks);
 
     void setValue(double value);  //does not actually update the screen
     double getCurrentValue();
