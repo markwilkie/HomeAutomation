@@ -58,7 +58,7 @@ void PrimaryForm::updateData()
     milesLeftInTank.setValue(dataSinceLastStop->getMilesLeftInTank());
     currentElevation.setValue(dataSinceLastStop->getCurrentElevation());
     milesTravelled.setValue(dataSinceLastStop->getMilesTravelled());
-    hoursDriving.setValue(dataSinceLastStop->getHoursDriving());   
+    hoursDriving.setValue(dataSinceLastStop->getDrivingTime());   
 
     //LED
     if(currentDataPtr->codesPresent && !codesLed.isActive())

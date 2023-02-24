@@ -61,6 +61,10 @@ void Barometer::update()
     readingReady=false;
     readingPressureNow=true;
 
+    //Account for negative altitude
+    if(elevation<0)    
+      elevation=1;  //1 means that we'll not try and reset the values
+
     //Serial.print("Altitude = ");
     //Serial.println(elevation); 
   }

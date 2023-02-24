@@ -49,8 +49,17 @@
 #define SUMMARY_FORM 2
 #define STARTING_FORM 3
 
-#define SUMMARY_SCREEN_BUTTON 1
+#define PRIMARY_TO_SUMMARY_BUTTON 1
+#define SUMMARY_TO_START_BUTTON 2
 #define SUMMARY_TO_PRIMARY_BUTTON 3
+#define END_TO_START_BUTTON 5
+#define CYCLE_SUMMARY_FORM_BUTTON 8
+
+#define START_NEW_TRIP 0
+#define START_NEW_SEGMENT 1
+#define MERGE_SEGMENT 2
+
+#define NUMBER_OF_SUMMARY_FORMS 3
 
 //How often contrast and form switches based on external inputs happen
 #define LCD_REFRESH_RATE 1000;
@@ -58,6 +67,7 @@
 //Global objects for LCD
 Genie genie;  
 int currentActiveForm=0;
+int currentActiveSummaryForm=0;
 int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
@@ -66,13 +76,15 @@ unsigned long totalCRC;
 
 //Trip data
 CurrentData currentData=CurrentData();
-TripData sinceLastStop=TripData(&currentData);  //used for the primary form
-TripData currentSegment=TripData(&currentData);
-TripData fullTrip=TripData(&currentData);
+TripData sinceLastStop=TripData(&currentData,0);  //used for the primary form
+TripData currentSegment=TripData(&currentData,1);
+TripData fullTrip=TripData(&currentData,2);
 
 //Forms
 PrimaryForm primaryForm = PrimaryForm(&genie,PRIMARY_FORM,"Main Screen",&sinceLastStop,&currentData);
-SummaryForm sinceLastStopSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Since Stopped",&currentSegment);
+SummaryForm sinceLastStopSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Since Stopped",&sinceLastStop);
+SummaryForm currentSegmentSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Current Segment",&currentSegment);
+SummaryForm fullTripSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Full Trip",&fullTrip);
 
 //Serial coms
 byte serialBuffer[20];
@@ -114,15 +126,13 @@ void setup()
   //calibrate and setup
   currentData.init();
 
+  //Initialize or load data from EEPROM for each of the trip bucket objects
+  sinceLastStop.resetTripData();
+  currentSegment.loadTripData();
+  fullTrip.loadTripData();
+
   Serial.println("starting....");
   lastLoopTime=millis();
-
-  //
-  // We only have 1k of EEPROM
-  //
-  //TripSegment segment=TripSegment();
-  //Serial.println(sizeof(trip));
-  //Serial.println(sizeof(segment));
 }
 
 void loop()
@@ -191,7 +201,10 @@ void updateLCD()
       }
       else
       {
-        Serial.println("activating STOPPING form");
+        Serial.println("saving to EEPROM and activating STOPPING form");
+        //sinceLastStop.saveTripData();
+        currentSegment.saveTripData();
+        fullTrip.saveTripData();
         currentActiveForm=STOPPED_FORM;
         genie.WriteObject(GENIE_OBJ_FORM,STOPPED_FORM,0);
       }
@@ -346,7 +359,7 @@ void myGenieEventHandler(void)
 
     if (Event.reportObject.object == GENIE_OBJ_USERBUTTON)
     {
-      if (Event.reportObject.index == SUMMARY_SCREEN_BUTTON)
+      if (Event.reportObject.index == PRIMARY_TO_SUMMARY_BUTTON)
       {
         Serial.println("activating SUMMARY form");
         currentActiveForm=SUMMARY_FORM;
@@ -354,10 +367,6 @@ void myGenieEventHandler(void)
         sinceLastStopSummaryForm.updateDisplay();
         return;
       }
-    } 
-
-    if (Event.reportObject.object == GENIE_OBJ_USERBUTTON) 
-    {
       if (Event.reportObject.index == SUMMARY_TO_PRIMARY_BUTTON) 
       {
         Serial.println("activating PRIMARY form");
@@ -365,15 +374,55 @@ void myGenieEventHandler(void)
         genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
         return;
       }
+      if (Event.reportObject.index == CYCLE_SUMMARY_FORM_BUTTON) 
+      {
+        Serial.println("cycling SUMMARY form");
+        currentActiveSummaryForm++;
+        if(currentActiveSummaryForm>=NUMBER_OF_SUMMARY_FORMS)
+          currentActiveSummaryForm=0;
+                  
+        if(currentActiveSummaryForm==0)
+          sinceLastStopSummaryForm.updateDisplay();
+        if(currentActiveSummaryForm==1)
+          currentSegmentSummaryForm.updateDisplay();
+        if(currentActiveSummaryForm==2)
+          fullTripSummaryForm.updateDisplay();                    
+        return;
+      }
+      if (Event.reportObject.index==SUMMARY_TO_START_BUTTON || Event.reportObject.index==END_TO_START_BUTTON) 
+      {
+        Serial.println("activating START form");
+        currentActiveForm=STARTING_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,STARTING_FORM,0);
+        return;
+      }               
     }       
 
     if (Event.reportObject.object == GENIE_OBJ_WINBUTTON) // If a Winbutton was pressed
     {
-      if (Event.reportObject.index == 0) // If Winbutton #0 was pressed   
+      //Start new trip button
+      if (Event.reportObject.index == START_NEW_TRIP)  
       {
-        Serial.println("Start Tip button pressed!");
+        Serial.println("Start Trip button pressed!");
+        currentSegment.resetTripData();
+        fullTrip.resetTripData();        
+
+        Serial.println("activating PRIMARY form");
+        currentActiveForm=PRIMARY_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);        
         return;
       }
+      //Start new segment button
+      if (Event.reportObject.index == START_NEW_SEGMENT)  
+      {
+        Serial.println("Start Segment button pressed!");
+        currentSegment.resetTripData();     
+
+        Serial.println("activating PRIMARY form");
+        currentActiveForm=PRIMARY_FORM;
+        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);        
+        return;
+      }      
     }
   }
 }

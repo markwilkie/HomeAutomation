@@ -11,7 +11,7 @@ CurrentData::CurrentData()
 
 void CurrentData::init()
 {
-    //calibrate and setup
+    //calibrate and setup sensors
     pitot.calibrate();
     barometer.setup();
     rtc.setup();
@@ -26,7 +26,7 @@ void CurrentData::updateData(int service,int pid,int value)
 void CurrentData::updateDataFromSensors()
 {
     //Barometer
-    barometer.update();
+    barometer.update();  //this has timing built in....
     currentElevation=barometer.getElevation();
 
     //RTC

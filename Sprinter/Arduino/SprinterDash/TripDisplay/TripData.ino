@@ -1,54 +1,212 @@
 #include "TripData.h"
 
-TripData::TripData(CurrentData *_currentDataPtr)
+TripData::TripData(CurrentData *_currentDataPtr,int _tripIdx)
 {
     currentDataPtr=_currentDataPtr;
+    tripIdx=_tripIdx;  //used to calc offset on EEPROM
 }
 
 void TripData::resetTripData()
 {
-    startValuesSetFlag=true;
-    startMiles=currentDataPtr->currentMiles;
-    startSeconds=currentDataPtr->currentSeconds;
-    startFuelPerc=currentDataPtr->currentFuelPerc;
-    lastElevation=currentDataPtr->currentElevation;
-    totalClimb=0;
+    data.startMiles=currentDataPtr->currentMiles;
+    data.startSeconds=currentDataPtr->currentSeconds;
+    data.startFuelPerc=currentDataPtr->currentFuelPerc;
+    data.lastElevation=currentDataPtr->currentElevation;
+
+    data.lastMiles=data.startMiles;
+    data.priorTotalMiles=0;
+    data.ignOffSeconds=0;
+    data.totalParkedSeconds=0;
+    data.totalStoppedSeconds=0;
+    data.numberOfStops=0;
+    data.lastFuelPerc=data.startFuelPerc;
+    data.priorTotalGallonsUsed=0;
+    data.totalClimb=0;
+}
+
+//Save data to EEPROM
+void TripData::saveTripData()
+{
+  Serial.println("Saving to EEPROM");
+
+  // The begin() call is required to initialise the EEPROM library
+  int dataSize=sizeof(data);
+  EEPROM.begin(512);
+
+  // put some data into eeprom
+  EEPROM.put(dataSize*tripIdx, data); 
+
+  // write the data to EEPROM
+  Serial.print("EEPROM Ret: ");
+  Serial.println(EEPROM.commit());
+
+  dumpTripData();
+}
+
+//Load data to EEPROM
+void TripData::loadTripData()
+{
+  Serial.println("Loading from EEPROM");
+
+  // The begin() call is required to initialise the EEPROM library
+  int dataSize=sizeof(data);
+  EEPROM.begin(512);
+
+  // get some data from eeprom
+  EEPROM.get(dataSize*tripIdx, data);
+
+  EEPROM.end();
+
+  dumpTripData()  ;
+}
+
+void TripData::dumpTripData()
+{
+    Serial.print("Data Idx: ");
+    Serial.println(tripIdx);
+    Serial.print("Start Miles: ");
+    Serial.println(data.startMiles);
+    Serial.print("Start Seconds: ");
+    Serial.println(data.startSeconds);
+    Serial.print("Start Fuel: ");
+    Serial.println(data.startFuelPerc);
+    Serial.print("Last Elev: ");
+    Serial.println(data.lastElevation);
+    Serial.print("Last Miles: ");
+    Serial.println(data.lastMiles);
+    Serial.print("Piror total Miles: ");
+    Serial.println(data.priorTotalMiles);
+    Serial.print("Ign Off Sec: ");
+    Serial.println(data.ignOffSeconds);
+    Serial.print("Parked Seconds: ");
+    Serial.println(data.totalParkedSeconds);
+    Serial.print("Stopped Seconds: ");
+    Serial.println(data.totalStoppedSeconds);
+    Serial.print("Num of Stops: ");
+    Serial.println(data.numberOfStops);
+    Serial.print("Last fuel: ");
+    Serial.println(data.lastFuelPerc);
+    Serial.print("Prior total Gall: ");
+    Serial.println(data.priorTotalGallonsUsed);
+    Serial.print("Totcal Climb: ");
+    Serial.println(data.totalClimb);
+    Serial.println("=========================");
 }
 
 void TripData::updateTripData()
 {
-    //If we haven't set the starting values yet, we need to
-    if(!startValuesSetFlag)
+    //Make sure we're init'd ok
+    if(data.startFuelPerc==0 || data.startMiles==0 || data.startSeconds==0)
         resetTripData();
 
     //Calc elevation gained
-    if(currentDataPtr->currentElevation>lastElevation)
+    int currentElevation=currentDataPtr->currentElevation;
+    if(currentElevation>0)
     {
-        totalClimb=totalClimb+(currentDataPtr->currentElevation-lastElevation);
+        if(currentElevation>data.lastElevation)
+        {
+            data.totalClimb=data.totalClimb+(currentElevation-data.lastElevation);
+        }
+        data.lastElevation=currentElevation;
     }
-    lastElevation=currentDataPtr->currentElevation;
+
+    //Calc time igntion off and the buckets that go with that
+    unsigned long currentSeconds = currentDataPtr->currentSeconds;
+    if(!currentDataPtr->ignitionState && data.ignOffSeconds==0)
+    {
+        data.ignOffSeconds=currentSeconds;
+        data.numberOfStops++;
+    }
+    if(currentDataPtr->ignitionState && data.ignOffSeconds>0)
+    {
+        int totalSecondsOff=currentSeconds-data.ignOffSeconds;
+        if(totalSecondsOff>3600)
+            data.totalParkedSeconds=data.totalParkedSeconds+totalSecondsOff;
+        else
+            data.totalStoppedSeconds=data.totalStoppedSeconds+totalSecondsOff;
+        
+        data.ignOffSeconds=0;
+    }
 }
 
 // in miles
 int TripData::getMilesTravelled()
 {
-    int milesTravelled=currentDataPtr->currentMiles-startMiles;
+    int currentMiles=currentDataPtr->currentMiles;
+    if(currentMiles<=0)
+        return 0;
+
+    if(currentMiles<data.lastMiles)
+    {
+        data.priorTotalMiles=data.priorTotalMiles+data.lastMiles-data.startMiles;
+        data.startMiles=currentMiles;
+    }
+    data.lastMiles=currentMiles;
+
+    int milesTravelled=currentMiles-data.startMiles+data.priorTotalMiles;
+
     return milesTravelled;
 }
 
-// in minutes
-double TripData::getHoursDriving()
+// in hours
+double TripData::getElapsedTime()
 {
-    unsigned long seconds=currentDataPtr->currentSeconds-startSeconds;
+    if(currentDataPtr->currentSeconds<=0)
+        return 0;
+
+    unsigned long seconds=currentDataPtr->currentSeconds-data.startSeconds;
     double hours=(double)seconds/3600.0;
 
+    return(hours);
+}
+
+// in hours
+double TripData::getDrivingTime()
+{
+    unsigned long seconds=currentDataPtr->currentSeconds-data.startSeconds-data.totalStoppedSeconds-data.totalParkedSeconds;
+    double hours=(double)seconds/3600.0;
+
+    return(hours);
+}
+
+// in hours
+double TripData::getStoppedTime()
+{
+    double hours=(double)data.totalStoppedSeconds/3600.0;
+    return(hours);
+}
+
+int TripData::getNumberOfStops()
+{
+    return data.numberOfStops;
+}
+
+// in hours
+double TripData::getParkedTime()
+{
+    double hours=(double)data.totalParkedSeconds/3600.0;
     return(hours);
 }
 
 // in gallons
 double TripData::getFuelGallonsUsed()
 {
-    return FUEL_TANK_SIZE*(((double)currentDataPtr->currentFuelPerc-(double)startFuelPerc)/100.0);
+    double currentFuelPerc=currentDataPtr->currentFuelPerc;
+    if(currentFuelPerc<=0)
+        return 0;
+
+    if(currentFuelPerc<data.lastFuelPerc)
+    {
+        double priorGallonsUsed=FUEL_TANK_SIZE*((data.lastFuelPerc-data.startFuelPerc)/100.0);
+        data.priorTotalGallonsUsed=data.priorTotalGallonsUsed+priorGallonsUsed;
+        data.startFuelPerc=currentFuelPerc;
+    }
+    data.lastFuelPerc=currentFuelPerc;
+
+    double gallonsUsed = FUEL_TANK_SIZE*((currentFuelPerc-data.startFuelPerc)/100.0);
+    gallonsUsed=gallonsUsed+data.priorTotalGallonsUsed;
+
+    return gallonsUsed;
 }
 
 double TripData::getInstantMPG()
@@ -64,11 +222,17 @@ double TripData::getAvgMPG()
     double gallonsUsed=getFuelGallonsUsed();
     int milesTravelled=getMilesTravelled();
 
-    if(gallonsUsed==0 || milesTravelled==0)
+    if(gallonsUsed<1.0 || milesTravelled<10)
         return getInstantMPG();
 
     double mpg=(double)milesTravelled/gallonsUsed;
     return(mpg);    
+}
+
+double TripData::getAvgMovingSpeed()
+{
+    double hours=getDrivingTime();
+    return (double)getMilesTravelled()/hours;
 }
 
 // Uses instant for miles left  (car already has the other)
@@ -92,5 +256,5 @@ int TripData::getCurrentElevation()
 // in feet
 int TripData::getTotalClimb()
 {
-    return totalClimb;
+    return data.totalClimb;
 }

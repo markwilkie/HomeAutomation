@@ -159,24 +159,6 @@ iAngularMeter
     Width                        100
     OnChanged                    ''
 end
-iLedDigits
-    Name                         ILedDigits0
-    Alias                        LoadDigits
-    ColorActive                  WHEAT
-    ColorInactive                0x181818
-    DecimalPlace                 0
-    Digits                       2
-    DPisComma                    No
-    Format                       Int16
-    LeadingZero                  No
-    Left                         224
-    ShowDP                       No
-    Signed                       No
-    Size                         1
-    Spacing                      0
-    Top                          101
-    OnChanged                    IAngularMeter0Set
-end
 iAngularMeter
     Name                         IAngularMeter3
     Alias                        BoostPressure
@@ -482,7 +464,7 @@ Image
     Source.Left                  0
     Source.Top                   0
     Source.Width                 543
-    Top                          9
+    Top                          10
     Width                        29
     OnTouchMoving                ''
     OnTouchPressed               ''
@@ -823,38 +805,66 @@ end
 UserButton
     Name                         Userbutton1
     Alias                        InfoButton
-    Height                       28
-    Images                       document.png
+    Height                       35
+    Images                       nextform.png
     Left                         32
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
     Top                          12
-    Width                        30
-    OnChanged                    Form2Activate
+    Width                        35
+    OnChanged                    'Report Message'
 end
-Led
-    Name                         Led0
-    Alias                        PendingCodesLED
+UserLed
+    Name                         Userled0
+    Alias                        DTCLed
     Active                       No
-    Caption                      ''
-    Color                        BLACK
-    Font.Color                   clWhite
-    Font.Effects                 []
-    Font.Name                    Arial
-    Font.Size                    8
-    Font.Style                   []
-    Glyphs                       (None)
-    Height                       15
-    Layout                       Left
-    LedType                      Rounded
-    Left                         230
-    Palette.High                 clRed
-    Palette.Low                  0x000051
-    Spacing                      5
-    Top                          84
-    Width                        15
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             clBtnFace
+    Bevel.InnerHighlight         clLime
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            0x005100
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             None
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Outer
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Height                       12
+    Left                         225
+    OutlineColor                 BLACK
+    OutlineWidth                 0
+    PaletteEx.High1              clRed
+    PaletteEx.High2              RED
+    PaletteEx.Low1               0x000051
+    PaletteEx.Low2               BLACK
+    Top                          87
+    Width                        25
     OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits0
+    Alias                        LoadDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       2
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         225
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          101
+    OnChanged                    IAngularMeter0Set
 end
 Form
     Name                         Form1
@@ -888,7 +898,7 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         250
+    Left                         215
     Strings                      'Gallons Expected\n'
     StringsStyle                 Message
     Top                          85
@@ -910,11 +920,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         250
-    Strings                      'Miles Driven\n'
+    Left                         215
+    Strings                      'Miles Since Last Stop\n'
     StringsStyle                 Message
     Top                          16
-    Width                        140
+    Width                        260
     OnChanged                    ''
 end
 Strings
@@ -932,11 +942,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         196
-    Strings                      999\n
+    Left                         150
+    Strings                      9999\n
     StringsStyle                 Message
     Top                          16
-    Width                        44
+    Width                        60
     OnChanged                    ''
 end
 Strings
@@ -954,11 +964,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         172
-    Strings                      12:00\n
+    Left                         150
+    Strings                      9999\n
     StringsStyle                 Message
-    Top                          51
-    Width                        66
+    Top                          52
+    Width                        60
     OnChanged                    ''
 end
 Strings
@@ -976,11 +986,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         250
-    Strings                      'Time Elapsed\n'
+    Left                         215
+    Strings                      'Hours Elapsed\n'
     StringsStyle                 Message
     Top                          51
-    Width                        144
+    Width                        192
     OnChanged                    ''
 end
 Strings
@@ -998,10 +1008,10 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         188
+    Left                         155
     Strings                      99\n
     StringsStyle                 Message
-    Top                          84
+    Top                          86
     Width                        45
     OnChanged                    ''
 end
@@ -1016,19 +1026,19 @@ UserButton
     Stretch                      No
     Top                          16
     Width                        38
-    OnChanged                    Form0Activate
+    OnChanged                    'Report Message'
 end
 UserButton
-    Name                         Userbutton2
-    Alias                        StoppedFormErrorButton
+    Name                         Userbutton5
+    Alias                        StoppedStartButton
     Height                       35
-    Images                       error.png
+    Images                       play.png
     Left                         24
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
     Top                          72
-    Width                        38
+    Width                        35
     OnChanged                    'Report Message'
 end
 Form
@@ -1063,11 +1073,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         265
-    Strings                      99,999\n
+    Left                         272
+    Strings                      99999\n
     StringsStyle                 Message
-    Top                          110
-    Width                        55
+    Top                          108
+    Width                        50
     OnChanged                    ''
 end
 Strings
@@ -1107,11 +1117,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         92
-    Strings                      'XXXX Summary\n'
+    Left                         55
+    Strings                      0123456789012345\n
     StringsStyle                 Message
     Top                          4
-    Width                        184
+    Width                        217
     OnChanged                    ''
 end
 Strings
@@ -1174,10 +1184,10 @@ Strings
     Font.Strikethrough           No
     Font.Underline               No
     Left                         12
-    Strings                      12:12\n
+    Strings                      9999\n
     StringsStyle                 Message
     Top                          60
-    Width                        53
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1196,10 +1206,10 @@ Strings
     Font.Strikethrough           No
     Font.Underline               No
     Left                         12
-    Strings                      12:12\n
+    Strings                      9999\n
     StringsStyle                 Message
     Top                          85
-    Width                        53
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1239,11 +1249,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         300
-    Strings                      99\n
+    Left                         288
+    Strings                      999\n
     StringsStyle                 Message
-    Top                          35
-    Width                        22
+    Top                          36
+    Width                        30
     OnChanged                    ''
 end
 Strings
@@ -1287,7 +1297,7 @@ Strings
     Strings                      99.9\n
     StringsStyle                 Message
     Top                          60
-    Width                        35
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1327,11 +1337,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         288
-    Strings                      999\n
+    Left                         280
+    Strings                      9999
     StringsStyle                 Message
-    Top                          10
-    Width                        32
+    Top                          12
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1375,7 +1385,7 @@ Strings
     Strings                      99.9\n
     StringsStyle                 Message
     Top                          85
-    Width                        35
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1416,10 +1426,10 @@ Strings
     Font.Strikethrough           No
     Font.Underline               No
     Left                         12
-    Strings                      12:12\n
+    Strings                      9999\n
     StringsStyle                 Message
     Top                          35
-    Width                        53
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1438,10 +1448,10 @@ Strings
     Font.Strikethrough           No
     Font.Underline               No
     Left                         12
-    Strings                      12:12\n
+    Strings                      9999\n
     StringsStyle                 Message
     Top                          110
-    Width                        53
+    Width                        40
     OnChanged                    ''
 end
 Strings
@@ -1521,20 +1531,33 @@ UserButton
     Stretch                      No
     Top                          4
     Width                        30
-    OnChanged                    Form0Activate
+    OnChanged                    'Report Message'
 end
 UserButton
     Name                         Userbutton8
-    Alias                        SumFormUserButton
-    Height                       20
-    Images                       settings.png
-    Left                         216
+    Alias                        CycleFormButton
+    Height                       35
+    Images                       reload.png
+    Left                         220
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
     Top                          40
-    Width                        20
-    OnChanged                    Form3Activate
+    Width                        35
+    OnChanged                    'Report Message'
+end
+UserButton
+    Name                         Userbutton2
+    Alias                        SummaryStartButton
+    Height                       35
+    Images                       play.png
+    Left                         220
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          84
+    Width                        35
+    OnChanged                    'Report Message'
 end
 Form
     Name                         Form3
@@ -1558,20 +1581,20 @@ Strings
     Alias                        TripMilesDrivenLbl
     Alignment                    Left
     BGcolor                      BLACK
-    Height                       31
+    Height                       21
     FGcolor                      WHITE
     Font.Bold                    Yes
     Font.CharSet                 ANSI
     Font.Italic                  No
     Font.Name                    'MS Reference Sans Serif'
     Font.Opaque                  Yes
-    Font.Size                    -14
+    Font.Size                    -12
     Font.Strikethrough           No
     Font.Underline               No
     Left                         327
     Strings                      'Miles Driven\n'
     StringsStyle                 Message
-    Top                          52
+    Top                          68
     Width                        140
     OnChanged                    ''
 end
@@ -1580,21 +1603,21 @@ Strings
     Alias                        TripMilesDriven
     Alignment                    Left
     BGcolor                      BLACK
-    Height                       31
+    Height                       20
     FGcolor                      WHEAT
     Font.Bold                    Yes
     Font.CharSet                 ANSI
     Font.Italic                  No
     Font.Name                    'MS Reference Sans Serif'
     Font.Opaque                  Yes
-    Font.Size                    -14
+    Font.Size                    -12
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         280
-    Strings                      999\n
+    Left                         270
+    Strings                      9999\n
     StringsStyle                 Message
-    Top                          52
-    Width                        44
+    Top                          68
+    Width                        46
     OnChanged                    ''
 end
 Strings
@@ -1602,21 +1625,21 @@ Strings
     Alias                        TripElapsed
     Alignment                    Left
     BGcolor                      BLACK
-    Height                       31
+    Height                       21
     FGcolor                      WHEAT
     Font.Bold                    Yes
     Font.CharSet                 ANSI
     Font.Italic                  No
     Font.Name                    'MS Reference Sans Serif'
     Font.Opaque                  Yes
-    Font.Size                    -14
+    Font.Size                    -12
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         260
-    Strings                      12:00\n
+    Left                         270
+    Strings                      9999\n
     StringsStyle                 Message
-    Top                          88
-    Width                        66
+    Top                          92
+    Width                        50
     OnChanged                    ''
 end
 Strings
@@ -1624,20 +1647,20 @@ Strings
     Alias                        TripElapsedLbl
     Alignment                    Left
     BGcolor                      BLACK
-    Height                       31
+    Height                       22
     FGcolor                      WHITE
     Font.Bold                    Yes
     Font.CharSet                 ANSI
     Font.Italic                  No
     Font.Name                    'MS Reference Sans Serif'
     Font.Opaque                  Yes
-    Font.Size                    -14
+    Font.Size                    -12
     Font.Strikethrough           No
     Font.Underline               No
     Left                         327
     Strings                      'Time Elapsed\n'
     StringsStyle                 Message
-    Top                          88
+    Top                          90
     Width                        144
     OnChanged                    ''
 end
@@ -1650,29 +1673,156 @@ UserButton
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
-    Top                          16
+    Top                          15
     Width                        38
-    OnChanged                    Form0Activate
-end
-UserButton
-    Name                         Userbutton5
-    Alias                        StartingFormError
-    Height                       35
-    Images                       error.png
-    Left                         12
-    Matrix                       -1
-    Momentary                    Yes
-    Stretch                      No
-    Top                          72
-    Width                        38
-    OnChanged                    Form4Activate
+    OnChanged                    'Report Message'
 end
 Strings
     Name                         Strings1
     Alias                        HeaterFuelLbl
     Alignment                    Left
     BGcolor                      BLACK
-    Height                       31
+    Height                       21
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         327
+    Strings                      'Heater Fuel\n'
+    StringsStyle                 Message
+    Top                          46
+    Width                        140
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings32
+    Alias                        HeaterFuel
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       21
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         305
+    Strings                      9\n
+    StringsStyle                 Message
+    Top                          46
+    Width                        14
+    OnChanged                    ''
+end
+WinButton
+    Name                         Winbutton0
+    Alias                        StartTripButton
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start New Trip'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         65
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          15
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton1
+    Alias                        StartSegButton
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start Segment'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         65
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          64
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings33
+    Alias                        StartFormTitle
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       25
     FGcolor                      WHITE
     Font.Bold                    Yes
     Font.CharSet                 ANSI
@@ -1682,206 +1832,10 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         327
-    Strings                      'Heater Fuel\n'
+    Left                         284
+    Strings                      'Current Trip\n'
     StringsStyle                 Message
-    Top                          16
-    Width                        140
+    Top                          15
+    Width                        139
     OnChanged                    ''
-end
-Strings
-    Name                         Strings32
-    Alias                        HeaterFuel
-    Alignment                    Left
-    BGcolor                      BLACK
-    Height                       31
-    FGcolor                      WHEAT
-    Font.Bold                    Yes
-    Font.CharSet                 ANSI
-    Font.Italic                  No
-    Font.Name                    'MS Reference Sans Serif'
-    Font.Opaque                  Yes
-    Font.Size                    -14
-    Font.Strikethrough           No
-    Font.Underline               No
-    Left                         308
-    Strings                      9\n
-    StringsStyle                 Message
-    Top                          16
-    Width                        18
-    OnChanged                    ''
-end
-WinButton
-    Name                         Winbutton0
-    Alias                        StartTrip
-    Appearance.Alignment         Center
-    Appearance.Layout            Left
-    Appearance.PictureAlignment  Right
-    Appearance.SimpleLayout      No
-    Appearance.Spacing           3
-    AutoSizeToPicture            No
-    Bevel                        Yes
-    BevelColor                   LIGHTGREY
-    Caption                      'Start Trip'
-    Color                        0x2C2C2C
-    Font.Color                   WHEAT
-    Font.Effects                 []
-    Font.Name                    Tahoma
-    Font.Size                    14
-    Font.Style                   [Bold]
-    Height                       61
-    Left                         60
-    Matrix                       -1
-    Momentary                    Yes
-    Picture                      (None)
-    StatusWhenOff.BGcolor        RED
-    StatusWhenOff.Caption        ''
-    StatusWhenOff.Glow           Yes
-    StatusWhenOff.Color          WHITE
-    StatusWhenOff.Effects        []
-    StatusWhenOff.Name           Tahoma
-    StatusWhenOff.Size           8
-    StatusWhenOff.Style          []
-    StatusWhenOff.Visible        Yes
-    StatusWhenOn.BGcolor         RED
-    StatusWhenOn.Caption         ''
-    StatusWhenOn.Glow            Yes
-    StatusWhenOn.Color           WHITE
-    StatusWhenOn.Effects         []
-    StatusWhenOn.Name            Tahoma
-    StatusWhenOn.Size            8
-    StatusWhenOn.Style           []
-    StatusWhenOn.Visible         Yes
-    Top                          32
-    Width                        80
-    OnChanged                    'Report Message'
-    OnTouchMoving                ''
-    OnTouchPressed               ''
-    OnTouchReleased              ''
-end
-WinButton
-    Name                         Winbutton1
-    Alias                        Winbutton1
-    Appearance.Alignment         Center
-    Appearance.Layout            Left
-    Appearance.PictureAlignment  Right
-    Appearance.SimpleLayout      No
-    Appearance.Spacing           3
-    AutoSizeToPicture            No
-    Bevel                        Yes
-    BevelColor                   LIGHTGREY
-    Caption                      'Start Seg'
-    Color                        0x2C2C2C
-    Font.Color                   WHEAT
-    Font.Effects                 []
-    Font.Name                    Tahoma
-    Font.Size                    14
-    Font.Style                   [Bold]
-    Height                       50
-    Left                         164
-    Matrix                       -1
-    Momentary                    Yes
-    Picture                      (None)
-    StatusWhenOff.BGcolor        RED
-    StatusWhenOff.Caption        ''
-    StatusWhenOff.Glow           Yes
-    StatusWhenOff.Color          WHITE
-    StatusWhenOff.Effects        []
-    StatusWhenOff.Name           Tahoma
-    StatusWhenOff.Size           8
-    StatusWhenOff.Style          []
-    StatusWhenOff.Visible        Yes
-    StatusWhenOn.BGcolor         RED
-    StatusWhenOn.Caption         ''
-    StatusWhenOn.Glow            Yes
-    StatusWhenOn.Color           WHITE
-    StatusWhenOn.Effects         []
-    StatusWhenOn.Name            Tahoma
-    StatusWhenOn.Size            8
-    StatusWhenOn.Style           []
-    StatusWhenOn.Visible         Yes
-    Top                          8
-    Width                        80
-    OnChanged                    ''
-    OnTouchMoving                ''
-    OnTouchPressed               ''
-    OnTouchReleased              ''
-end
-WinButton
-    Name                         Winbutton2
-    Alias                        Winbutton2
-    Appearance.Alignment         Center
-    Appearance.Layout            Left
-    Appearance.PictureAlignment  Right
-    Appearance.SimpleLayout      No
-    Appearance.Spacing           3
-    AutoSizeToPicture            No
-    Bevel                        Yes
-    BevelColor                   LIGHTGREY
-    Caption                      'Merge Seg'
-    Color                        0x2C2C2C
-    Font.Color                   WHEAT
-    Font.Effects                 []
-    Font.Name                    Tahoma
-    Font.Size                    14
-    Font.Style                   [Bold]
-    Height                       50
-    Left                         164
-    Matrix                       -1
-    Momentary                    Yes
-    Picture                      (None)
-    StatusWhenOff.BGcolor        RED
-    StatusWhenOff.Caption        ''
-    StatusWhenOff.Glow           Yes
-    StatusWhenOff.Color          WHITE
-    StatusWhenOff.Effects        []
-    StatusWhenOff.Name           Tahoma
-    StatusWhenOff.Size           8
-    StatusWhenOff.Style          []
-    StatusWhenOff.Visible        Yes
-    StatusWhenOn.BGcolor         RED
-    StatusWhenOn.Caption         ''
-    StatusWhenOn.Glow            Yes
-    StatusWhenOn.Color           WHITE
-    StatusWhenOn.Effects         []
-    StatusWhenOn.Name            Tahoma
-    StatusWhenOn.Size            8
-    StatusWhenOn.Style           []
-    StatusWhenOn.Visible         Yes
-    Top                          68
-    Width                        80
-    OnChanged                    ''
-    OnTouchMoving                ''
-    OnTouchPressed               ''
-    OnTouchReleased              ''
-end
-Form
-    Name                         Form4
-    Alias                        ErrorForm
-    Bgtype                       Color
-    Color                        BLACK
-    Image                        (None)
-    Source.Height                0
-    Source.Left                  0
-    Source.Top                   0
-    Source.Width                 0
-    OnActivate                   'Report Message'
-    OnCreate                     ''
-    OnRepeat                     ''
-    OnTouchMoving                ''
-    OnTouchPressed               ''
-    OnTouchReleased              ''
-end
-UserButton
-    Name                         Userbutton6
-    Alias                        ErrorFormHomeButton
-    Height                       35
-    Images                       home.png
-    Left                         16
-    Matrix                       -1
-    Momentary                    Yes
-    Stretch                      No
-    Top                          16
-    Width                        38
-    OnChanged                    Form0Activate
 end
