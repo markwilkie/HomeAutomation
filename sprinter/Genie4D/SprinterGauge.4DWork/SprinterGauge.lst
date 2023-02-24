@@ -3927,7 +3927,7 @@ file C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\PIXXI44functions.f
 003921  000006        
 003922  000007        
 003923  000008        
-003924  000009  // generated 2/24/2023 2:25:40 PM
+003924  000009  // generated 2/24/2023 2:55:01 PM
 003925  000010  // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 003926  000011        
 003927  000012        
@@ -3966,7 +3966,7 @@ file C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\Sprinter
 
 003955  000018  #inherit "SprinterGaugeConst.inc"
 003956  000018  #inherit "SprinterGaugeConst.inc"
-003957  000001  // File generated 2/24/2023 2:25:36 PM
+003957  000001  // File generated 2/24/2023 2:54:57 PM
 003958  000002  // Warning! This is a generated file, any manual changes will be
 003959  000003  // lost during the next generation.
 003960  000004        
@@ -3980,20 +3980,20 @@ file C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\Sprinter
 003968  000008  #constant  Strings0Size     22
 003969  000009  #constant  Strings4Count    1
 003970  000009  #constant  Strings4Count    1
-003971  000010  #constant  Strings4Size     5
-003972  000010  #constant  Strings4Size     5
+003971  000010  #constant  Strings4Size     6
+003972  000010  #constant  Strings4Size     6
 003973  000011  #constant  Strings5Count    1
 003974  000011  #constant  Strings5Count    1
-003975  000012  #constant  Strings5Size     5
-003976  000012  #constant  Strings5Size     5
+003975  000012  #constant  Strings5Size     6
+003976  000012  #constant  Strings5Size     6
 003977  000013  #constant  Strings7Count    1
 003978  000013  #constant  Strings7Count    1
 003979  000014  #constant  Strings7Size     14
 003980  000014  #constant  Strings7Size     14
 003981  000015  #constant  Strings9Count    1
 003982  000015  #constant  Strings9Count    1
-003983  000016  #constant  Strings9Size     5
-003984  000016  #constant  Strings9Size     5
+003983  000016  #constant  Strings9Size     7
+003984  000016  #constant  Strings9Size     7
 003985  000017  #constant  Strings10Count    1
 003986  000017  #constant  Strings10Count    1
 003987  000018  #constant  Strings10Size     6
@@ -4028,32 +4028,32 @@ file C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\Sprinter
 004016  000032  #constant  Strings20Size     5
 004017  000033  #constant  Strings21Count    1
 004018  000033  #constant  Strings21Count    1
-004019  000034  #constant  Strings21Size     4
-004020  000034  #constant  Strings21Size     4
+004019  000034  #constant  Strings21Size     7
+004020  000034  #constant  Strings21Size     7
 004021  000035  #constant  Strings22Count    1
 004022  000035  #constant  Strings22Count    1
 004023  000036  #constant  Strings22Size     13
 004024  000036  #constant  Strings22Size     13
 004025  000037  #constant  Strings23Count    1
 004026  000037  #constant  Strings23Count    1
-004027  000038  #constant  Strings23Size     5
-004028  000038  #constant  Strings23Size     5
+004027  000038  #constant  Strings23Size     7
+004028  000038  #constant  Strings23Size     7
 004029  000039  #constant  Strings24Count    1
 004030  000039  #constant  Strings24Count    1
 004031  000040  #constant  Strings24Size     12
 004032  000040  #constant  Strings24Size     12
 004033  000041  #constant  Strings13Count    1
 004034  000041  #constant  Strings13Count    1
-004035  000042  #constant  Strings13Size     5
-004036  000042  #constant  Strings13Size     5
+004035  000042  #constant  Strings13Size     7
+004036  000042  #constant  Strings13Size     7
 004037  000043  #constant  Strings14Count    1
 004038  000043  #constant  Strings14Count    1
 004039  000044  #constant  Strings14Size     16
 004040  000044  #constant  Strings14Size     16
 004041  000045  #constant  Strings25Count    1
 004042  000045  #constant  Strings25Count    1
-004043  000046  #constant  Strings25Size     5
-004044  000046  #constant  Strings25Size     5
+004043  000046  #constant  Strings25Size     7
+004044  000046  #constant  Strings25Size     7
 004045  000047  #constant  Strings26Count    1
 004046  000047  #constant  Strings26Count    1
 004047  000048  #constant  Strings26Size     17
@@ -4100,8 +4100,8 @@ file C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\Sprinter
 004088  000068  #constant  Strings1Size     12
 004089  000069  #constant  Strings32Count    1
 004090  000069  #constant  Strings32Count    1
-004091  000070  #constant  Strings32Size     2
-004092  000070  #constant  Strings32Size     2
+004091  000070  #constant  Strings32Size     7
+004092  000070  #constant  Strings32Size     7
 004093  000071  #constant  Strings33Count    1
 004094  000071  #constant  Strings33Count    1
 004095  000072  #constant  Strings33Size     13
@@ -9196,7 +9196,7 @@ Strings12Size                         17  0x00000011 (const dword)  (usage 3)
 Strings12StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings12StartL                     4096  0x00001000 (const dword)  (usage 3)
 Strings13Count                         1  0x00000001 (const dword)  (not used)
-Strings13Size                          5  0x00000005 (const dword)  (usage 3)
+Strings13Size                          7  0x00000007 (const dword)  (usage 3)
 Strings13StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings13StartL                     9216  0x00002400 (const dword)  (usage 3)
 Strings14Count                         1  0x00000001 (const dword)  (not used)
@@ -9232,7 +9232,7 @@ Strings20Size                          5  0x00000005 (const dword)  (usage 3)
 Strings20StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings20StartL                     6656  0x00001a00 (const dword)  (usage 3)
 Strings21Count                         1  0x00000001 (const dword)  (not used)
-Strings21Size                          4  0x00000004 (const dword)  (usage 3)
+Strings21Size                          7  0x00000007 (const dword)  (usage 3)
 Strings21StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings21StartL                     7168  0x00001c00 (const dword)  (usage 3)
 Strings22Count                         1  0x00000001 (const dword)  (not used)
@@ -9240,7 +9240,7 @@ Strings22Size                         13  0x0000000d (const dword)  (usage 3)
 Strings22StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings22StartL                     7680  0x00001e00 (const dword)  (usage 3)
 Strings23Count                         1  0x00000001 (const dword)  (not used)
-Strings23Size                          5  0x00000005 (const dword)  (usage 3)
+Strings23Size                          7  0x00000007 (const dword)  (usage 3)
 Strings23StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings23StartL                     8192  0x00002000 (const dword)  (usage 3)
 Strings24Count                         1  0x00000001 (const dword)  (not used)
@@ -9248,7 +9248,7 @@ Strings24Size                         12  0x0000000c (const dword)  (usage 3)
 Strings24StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings24StartL                     8704  0x00002200 (const dword)  (usage 3)
 Strings25Count                         1  0x00000001 (const dword)  (not used)
-Strings25Size                          5  0x00000005 (const dword)  (usage 3)
+Strings25Size                          7  0x00000007 (const dword)  (usage 3)
 Strings25StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings25StartL                    10240  0x00002800 (const dword)  (usage 3)
 Strings26Count                         1  0x00000001 (const dword)  (not used)
@@ -9280,7 +9280,7 @@ Strings31Size                         13  0x0000000d (const dword)  (usage 3)
 Strings31StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings31StartL                    15360  0x00003c00 (const dword)  (usage 3)
 Strings32Count                         1  0x00000001 (const dword)  (not used)
-Strings32Size                          2  0x00000002 (const dword)  (usage 3)
+Strings32Size                          7  0x00000007 (const dword)  (usage 3)
 Strings32StartH                        0  0x00000000 (const dword)  (usage 3)
 Strings32StartL                    16384  0x00004000 (const dword)  (usage 3)
 Strings33Count                         1  0x00000001 (const dword)  (not used)
@@ -9292,11 +9292,11 @@ Strings3Size                           5  0x00000005 (const dword)  (usage 3)
 Strings3StartH                         0  0x00000000 (const dword)  (usage 3)
 Strings3StartL                     11776  0x00002e00 (const dword)  (usage 3)
 Strings4Count                          1  0x00000001 (const dword)  (not used)
-Strings4Size                           5  0x00000005 (const dword)  (usage 3)
+Strings4Size                           6  0x00000006 (const dword)  (usage 3)
 Strings4StartH                         0  0x00000000 (const dword)  (usage 3)
 Strings4StartL                      1024  0x00000400 (const dword)  (usage 3)
 Strings5Count                          1  0x00000001 (const dword)  (not used)
-Strings5Size                           5  0x00000005 (const dword)  (usage 3)
+Strings5Size                           6  0x00000006 (const dword)  (usage 3)
 Strings5StartH                         0  0x00000000 (const dword)  (usage 3)
 Strings5StartL                      1536  0x00000600 (const dword)  (usage 3)
 Strings6Count                          1  0x00000001 (const dword)  (not used)
@@ -9312,7 +9312,7 @@ Strings8Size                          13  0x0000000d (const dword)  (usage 3)
 Strings8StartH                         0  0x00000000 (const dword)  (usage 3)
 Strings8StartL                     13824  0x00003600 (const dword)  (usage 3)
 Strings9Count                          1  0x00000001 (const dword)  (not used)
-Strings9Size                           5  0x00000005 (const dword)  (usage 3)
+Strings9Size                           7  0x00000007 (const dword)  (usage 3)
 Strings9StartH                         0  0x00000000 (const dword)  (usage 3)
 Strings9StartL                      2560  0x00000a00 (const dword)  (usage 3)
 stringsCV                            322  0x00000142 (mem) word[34] (global)  (usage 27)

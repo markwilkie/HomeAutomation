@@ -930,7 +930,7 @@ end
 Strings
     Name                         Strings4
     Alias                        MilesDriven
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       31
     FGcolor                      WHEAT
@@ -942,7 +942,7 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         150
+    Left                         145
     Strings                      9999\n
     StringsStyle                 Message
     Top                          16
@@ -952,7 +952,7 @@ end
 Strings
     Name                         Strings5
     Alias                        TimeElapsed
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       31
     FGcolor                      WHEAT
@@ -964,7 +964,7 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         150
+    Left                         145
     Strings                      9999\n
     StringsStyle                 Message
     Top                          52
@@ -1008,11 +1008,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         155
+    Left                         145
     Strings                      99\n
     StringsStyle                 Message
     Top                          86
-    Width                        45
+    Width                        60
     OnChanged                    ''
 end
 UserButton
@@ -1061,7 +1061,7 @@ end
 Strings
     Name                         Strings10
     Alias                        ElevationGain
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1073,7 +1073,7 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         272
+    Left                         270
     Strings                      99999\n
     StringsStyle                 Message
     Top                          108
@@ -1098,7 +1098,7 @@ Strings
     Left                         325
     Strings                      'Elevation Gain\n'
     StringsStyle                 Message
-    Top                          110
+    Top                          108
     Width                        140
     OnChanged                    ''
 end
@@ -1171,7 +1171,7 @@ end
 Strings
     Name                         Strings18
     Alias                        TimeDriving
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1193,7 +1193,7 @@ end
 Strings
     Name                         Strings19
     Alias                        TimeStopped
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1237,7 +1237,7 @@ end
 Strings
     Name                         Strings21
     Alias                        SumGalUsed
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1249,11 +1249,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         288
+    Left                         270
     Strings                      999\n
     StringsStyle                 Message
     Top                          36
-    Width                        30
+    Width                        50
     OnChanged                    ''
 end
 Strings
@@ -1281,7 +1281,7 @@ end
 Strings
     Name                         Strings23
     Alias                        AvgMPG
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1293,11 +1293,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         284
+    Left                         270
     Strings                      99.9\n
     StringsStyle                 Message
     Top                          60
-    Width                        40
+    Width                        50
     OnChanged                    ''
 end
 Strings
@@ -1337,11 +1337,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         280
-    Strings                      9999
+    Left                         270
+    Strings                      9999\n
     StringsStyle                 Message
     Top                          12
-    Width                        40
+    Width                        50
     OnChanged                    ''
 end
 Strings
@@ -1362,14 +1362,14 @@ Strings
     Left                         325
     Strings                      'Miles Travelled\n\n'
     StringsStyle                 Message
-    Top                          10
+    Top                          12
     Width                        117
     OnChanged                    ''
 end
 Strings
     Name                         Strings25
     Alias                        AvgMovingSpeed
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1381,11 +1381,11 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         284
+    Left                         270
     Strings                      99.9\n
     StringsStyle                 Message
     Top                          85
-    Width                        40
+    Width                        50
     OnChanged                    ''
 end
 Strings
@@ -1413,7 +1413,7 @@ end
 Strings
     Name                         Strings17
     Alias                        SumTimeElapsed
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1435,7 +1435,7 @@ end
 Strings
     Name                         Strings3
     Alias                        TimeParked
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1479,7 +1479,7 @@ end
 Strings
     Name                         Strings27
     Alias                        numStopped
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1601,7 +1601,7 @@ end
 Strings
     Name                         Strings29
     Alias                        TripMilesDriven
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       20
     FGcolor                      WHEAT
@@ -1617,13 +1617,13 @@ Strings
     Strings                      9999\n
     StringsStyle                 Message
     Top                          68
-    Width                        46
+    Width                        50
     OnChanged                    ''
 end
 Strings
     Name                         Strings30
     Alias                        TripElapsed
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       21
     FGcolor                      WHEAT
@@ -1702,7 +1702,7 @@ end
 Strings
     Name                         Strings32
     Alias                        HeaterFuel
-    Alignment                    Left
+    Alignment                    Right
     BGcolor                      BLACK
     Height                       21
     FGcolor                      WHEAT
@@ -1714,11 +1714,11 @@ Strings
     Font.Size                    -12
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         305
+    Left                         270
     Strings                      9\n
     StringsStyle                 Message
     Top                          46
-    Width                        14
+    Width                        50
     OnChanged                    ''
 end
 WinButton

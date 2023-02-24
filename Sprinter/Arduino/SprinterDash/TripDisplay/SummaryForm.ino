@@ -68,7 +68,7 @@ void SummaryForm::updateField(int objNum,char *field,double value)
   else
   {
     //Room to put a decimal or not
-    if(value<=(pow(10, fieldLen-2)-1))
+    if(value<=(pow(10, fieldLen-2)-1) && value>0)
     {
       dblFormat[1]=fieldLen+'0';
       sprintf(field, dblFormat, value);
