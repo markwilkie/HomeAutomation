@@ -1,4 +1,4 @@
-// File generated 2/24/2023 2:54:57 PM
+// File generated 2/25/2023 6:34:01 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -70,7 +70,11 @@
 #constant  Strings32Size     7
 #constant  Strings33Count    1
 #constant  Strings33Size     13
-#constant  IFONT_OFFSET     34
+#constant  Strings34Count    0
+#constant  Strings34Size     1
+#constant  Strings35Count    1
+#constant  Strings35Size     12
+#constant  IFONT_OFFSET     36
 // object indexes into WIDGET pointer
 #CONST
     iIAngularMeter0
@@ -191,13 +195,17 @@
 #constant  Strings32StartL   0x4000
 #constant  Strings33StartH   0x0
 #constant  Strings33StartL   0x4200
+#constant  Strings34StartH   0x0
+#constant  Strings34StartL   0x4400
+#constant  Strings35StartH   0x0
+#constant  Strings35StartL   0x4600
 
-#constant  ffsEndUnits4k    0x0048  // First unused 4k Sector on Flash
+#constant  ffsEndUnits4k    0x0049  // First unused 4k Sector on Flash
 #constant  ffsEnd4kH        0x0004  // Address of first unused 4k Sector on Flash, High
-#constant  ffsEnd4kL        0x8000  // Address of first unused 4k Sector on Flash, Low
-#constant  ffsEndUnits32k   0x0009  // First unused 32k Block on Flash
-#constant  ffsEnd32kH       0x0004  // Address of first unused 32k Block on Flash, High
-#constant  ffsEnd32kL       0x8000  // Address of first unused 32k Block on Flash, Low
+#constant  ffsEnd4kL        0x9000  // Address of first unused 4k Sector on Flash, Low
+#constant  ffsEndUnits32k   0x000A  // First unused 32k Block on Flash
+#constant  ffsEnd32kH       0x0005  // Address of first unused 32k Block on Flash, High
+#constant  ffsEnd32kL       0x0000  // Address of first unused 32k Block on Flash, Low
 #constant  ffsEndUnits64k   0x0005  // First unused 64k Block on Flash
 #constant  ffsEnd64kH       0x0005  // Address of first unused 64k Block on Flash, High
 #constant  ffsEnd64kL       0x0000  // Address of first unused 64k Block on Flash, Low

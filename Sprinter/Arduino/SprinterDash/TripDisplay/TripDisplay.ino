@@ -6,6 +6,7 @@
 
 #include "PrimaryForm.h"
 #include "SummaryForm.h"
+#include "StatusForm.h"
 
 //
 // SUPER IMPORT POST about setting up the programmer so that high speed transfers work
@@ -48,11 +49,15 @@
 #define STOPPED_FORM 1
 #define SUMMARY_FORM 2
 #define STARTING_FORM 3
+#define STATUS_FORM 4
 
+#define END_TO_HOME_BUTTON 0
 #define PRIMARY_TO_SUMMARY_BUTTON 1
 #define SUMMARY_TO_START_BUTTON 2
 #define SUMMARY_TO_PRIMARY_BUTTON 3
+#define START_TO_HOME_BUTTON 4
 #define END_TO_START_BUTTON 5
+
 #define CYCLE_SUMMARY_FORM_BUTTON 8
 
 #define START_NEW_TRIP 0
@@ -61,18 +66,21 @@
 
 #define NUMBER_OF_SUMMARY_FORMS 3
 
-//How often contrast and form switches based on external inputs happen
+//timing
 #define LCD_REFRESH_RATE 1000;
+#define VERIFY_TIMEOUT 60000;   //How long we'll wait for everything to come online when we first start
 
 //Global objects for LCD
 Genie genie;  
-int currentActiveForm=0;
+int currentActiveForm=4;
 int currentActiveSummaryForm=0;
 int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
 unsigned long totalMessages;
 unsigned long totalCRC;
+char displayBuffer[150];  //used for status form
+bool online= false;  //If true, it means every PID and sensor is online  (will list those which are not on boot)
 
 //Trip data
 CurrentData currentData=CurrentData();
@@ -85,6 +93,9 @@ PrimaryForm primaryForm = PrimaryForm(&genie,PRIMARY_FORM,"Main Screen",&sinceLa
 SummaryForm sinceLastStopSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Since Stopped",&sinceLastStop);
 SummaryForm currentSegmentSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Current Segment",&currentSegment);
 SummaryForm fullTripSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Full Trip",&fullTrip);
+SummaryForm startForm = SummaryForm(&genie,STARTING_FORM,"Starting Form",&fullTrip);
+SummaryForm stopForm = SummaryForm(&genie,STOPPED_FORM,"Stopping Form",&sinceLastStop);
+StatusForm statusForm = StatusForm(&genie,STATUS_FORM);
 
 //Serial coms
 byte serialBuffer[20];
@@ -93,6 +104,9 @@ bool msgStarted=false;
 
 long lastLoopTime;
 long longestTick;
+
+
+int doneFlag=0;
 
 void setup()
 {
@@ -118,21 +132,69 @@ void setup()
 
   // Let the display start up after the reset (This is important)
   // Increase to 4500 or 5000 if you have sync problems as your project gets larger. Can depent on microSD init speed.
+  Serial.println("Waiting for screen");
   delay(5000); 
 
   //This is how we get notified when a button is pressed
   genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
 
-  //calibrate and setup
+  //calibrate and setup sensors
+  Serial.println("Initializing sensors");
   currentData.init();
+  delay(500);
+
+  Serial.println("Validating interfaces");
+  verifyInterfaces();
+
+  //Reset the data since last stop because we're booting
+  Serial.println("Reseting trip data from last stop");
+  sinceLastStop.resetTripData();
 
   //Initialize or load data from EEPROM for each of the trip bucket objects
-  sinceLastStop.resetTripData();
+  Serial.println("Loading data from EEPROM");
   currentSegment.loadTripData();
   fullTrip.loadTripData();
 
-  Serial.println("starting....");
+  //Let's go!
+  Serial.println("Starting now....");
   lastLoopTime=millis();
+}
+
+void verifyInterfaces()
+{
+  //read serial from canbus board
+  int service=0; int pid=0; int value=0;
+
+  //Set title
+  statusForm.updateTitle("Establishing Links");
+
+  bool online=false;
+  unsigned long timeout=millis()+VERIFY_TIMEOUT;
+  while(!online && millis()<timeout)
+  {
+    displayBuffer[0]='\0';
+    bool retVal=processIncoming(&service,&pid,&value);
+    if(retVal)
+    {
+      online=currentData.verifyInterfaces(service,pid,value,displayBuffer);
+      statusForm.updateText(displayBuffer);
+    }
+    delay(100);
+  }
+
+  Serial.print("Online: ");  Serial.println(online);
+
+  //Pause and give message if not all online
+  if(!online)
+  {
+    statusForm.updateTitle("Links NOT available:");
+    delay(10000);
+  }
+
+  //Activate primary form
+  Serial.println("activating PRIMARY form");
+  currentActiveForm=PRIMARY_FORM;
+  genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
 }
 
 void loop()
@@ -157,7 +219,15 @@ void loop()
     {   
       primaryForm.updateDisplay();  //Time to update trip display?
     }     
-  } 
+    if(startForm.getFormId()==currentActiveForm)
+    {   
+      startForm.updateDisplay();
+    }  
+    if(stopForm.getFormId()==currentActiveForm)
+    {   
+      stopForm.updateDisplay(); 
+    }
+  }
 
   //Update main LCD, like adjust contract, switch forms, etc
   updateLCD();
@@ -182,7 +252,6 @@ void updateLCD()
     if(contrast>15) contrast=15;
     if(currentContrast!=contrast)
     {
-      Serial.println("adjusting CONTRAST");
       genie.WriteContrast(contrast);   
       currentContrast=contrast;
     }
@@ -212,7 +281,7 @@ void updateLCD()
     }
 
     //If on stopped form, and our speed goes above 0, switch to main
-    if(currentActiveForm==STOPPED_FORM && currentData.currentSpeed>5)
+    if(currentActiveForm==STARTING_FORM && currentData.currentSpeed>5)
     {
         Serial.println("activating PRIMARY form");
         currentActiveForm=PRIMARY_FORM;
@@ -367,7 +436,8 @@ void myGenieEventHandler(void)
         sinceLastStopSummaryForm.updateDisplay();
         return;
       }
-      if (Event.reportObject.index == SUMMARY_TO_PRIMARY_BUTTON) 
+      if (Event.reportObject.index==SUMMARY_TO_PRIMARY_BUTTON || Event.reportObject.index==END_TO_HOME_BUTTON 
+          || Event.reportObject.index==START_TO_HOME_BUTTON) 
       {
         Serial.println("activating PRIMARY form");
         currentActiveForm=PRIMARY_FORM;
@@ -380,7 +450,7 @@ void myGenieEventHandler(void)
         currentActiveSummaryForm++;
         if(currentActiveSummaryForm>=NUMBER_OF_SUMMARY_FORMS)
           currentActiveSummaryForm=0;
-                  
+
         if(currentActiveSummaryForm==0)
           sinceLastStopSummaryForm.updateDisplay();
         if(currentActiveSummaryForm==1)

@@ -16,6 +16,7 @@ class SummaryForm
   private: 
 
     void updateField(int objNum,char *title,double value);
+    void updateField(int objNum,char *title,double value,int fieldLen);
 
     //State
     int formID;

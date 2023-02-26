@@ -7,6 +7,7 @@ class Barometer
 {
   public:
     void init(int _refreshTicks);
+    bool isOnline();
     void setup();
     void update();
     int getElevation();
@@ -15,6 +16,8 @@ class Barometer
   private: 
     Adafruit_MPL3115A2 baro;
     int refreshTicks;
+    bool pressOnline=false;
+    bool AltOnline=false;
     bool readingPressureNow = true;
     bool readingStarted = false;
     bool readingReady = false;

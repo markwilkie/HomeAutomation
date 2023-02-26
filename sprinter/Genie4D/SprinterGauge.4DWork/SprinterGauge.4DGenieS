@@ -6,7 +6,7 @@
 
 
 
-// generated 2/24/2023 2:55:01 PM
+// generated 2/25/2023 6:34:03 PM
 // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 
 
@@ -171,7 +171,7 @@
     nObjects        24
     nInputs         18
     nAniTimers      0
-    nStrings        34
+    nStrings        36
 #END
 
 #DATA
@@ -211,10 +211,10 @@
     word IILedDigits5 340, 101, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits9 400, 101, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits0 225, 101, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0, 16, 18, 21
-    word FormEndIndex 16, 18, 21, 24
-    word iFormStartIndex 0, 14, 14, 14
-    word iFormEndIndex 14, 14, 14, 14
+    word FormStartIndex 0, 16, 18, 21, 24
+    word FormEndIndex 16, 18, 21, 24, 24
+    word iFormStartIndex 0, 14, 14, 14, 14
+    word iFormEndIndex 14, 14, 14, 14, 14
     word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 44, 88, 132, 176, 220, 264, 308, 352
     word InternalInputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word InputData tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
@@ -269,18 +269,20 @@
     word iStrings31  Strings31StartH, Strings31StartL, Strings31Size, 327, 90, 470, 111, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings8
     word iStrings32  Strings32StartH, Strings32StartL, Strings32Size, 270, 46, 319, 66, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings8
     word iStrings33  Strings33StartH, Strings33StartL, Strings33Size, 284, 15, 422, 39, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings2
+    word iStrings34  Strings34StartH, Strings34StartL, Strings34Size, 190, 15, 468, 111, WHEAT, BLACK, 0, 1, 1, 4, -1-iFontStrings10
+    word iStrings35  Strings35StartH, Strings35StartL, Strings35Size, 15, 16, 182, 35, WHITE, BLACK, 0, 1, 1, 4, -1-iFontStrings10
     word oDipSwitchs 0
     word oWinButtons 2, iWinbutton0, iWinbutton1
-    word oForms 4, -1, -1, -1, -1
+    word oForms 5, -1, -1, -1, -1, -1
     word oGauges 4, iGauge0, iGauge1, iGauge2, iGauge3
     word oImages 11, iImage0, iImage1, -1, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9, iImage10
-    word oStringss 34, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
-                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26, iStrings27, iStrings28, iStrings29, iStrings30, iStrings31, iStrings32, iStrings33
+    word oStringss 36, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
+                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26, iStrings27, iStrings28, iStrings29, iStrings30, iStrings31, iStrings32, iStrings33, iStrings34, iStrings35
     word oUserleds 1, iUserled0
     word oUserButtons 9, iUserbutton0, iUserbutton1, iUserbutton2, iUserbutton3, iUserbutton4, iUserbutton5, -1, -1, iUserbutton8
     word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2, IIAngularMeter3
     word oiLedDigitss 10, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3, IILedDigits4, IILedDigits5, IILedDigits6, IILedDigits7, IILedDigits8, IILedDigits9
-    word FormBGcolors 0x0000, 0x0000, 0x0000, 0x0000
+    word FormBGcolors 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
     word kKeyboardKeystrokes -1
     word rKeyboardRoutines -1
 #END
@@ -299,7 +301,7 @@
     var vILedDigits5[WIDGET_RAM_SPACE+2] ;
     var vILedDigits9[WIDGET_RAM_SPACE+2] ;
     var vILedDigits0[WIDGET_RAM_SPACE+2] ;
-var stringsCV[34] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
+var stringsCV[36] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -739,7 +741,7 @@ func main()
     CurrentForm := -1 ;
 // End P4.inc
 // Start P5.inc
-    ActivateForm(0) ; // need to change this according to first actual form
+    ActivateForm(4) ; // need to change this according to first actual form
 
 // End P5.inc
 // Start P6.inc px44

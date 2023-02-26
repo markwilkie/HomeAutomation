@@ -11,7 +11,7 @@ Options
     Multidrop                    No
     Destination                  0
     DestBank                     0
-    MainForm                     0
+    MainForm                     4
     SndBuf                       0
     ButtonDisable                No
     SignedDigits                 No
@@ -1837,5 +1837,66 @@ Strings
     StringsStyle                 Message
     Top                          15
     Width                        139
+    OnChanged                    ''
+end
+Form
+    Name                         Form4
+    Alias                        Status
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings34
+    Alias                        StatusTextBox
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       97
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         190
+    Strings                      \n
+    StringsStyle                 Book
+    Top                          15
+    Width                        279
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings35
+    Alias                        StatusTitle
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         15
+    Strings                      Booting....\n
+    StringsStyle                 Message
+    Top                          16
+    Width                        168
     OnChanged                    ''
 end

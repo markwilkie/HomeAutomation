@@ -1,5 +1,7 @@
 #include "CurrentData.h"
 
+
+
 CurrentData::CurrentData()
 {
     //Other sensors
@@ -15,6 +17,58 @@ void CurrentData::init()
     pitot.calibrate();
     barometer.setup();
     rtc.setup();
+}
+
+bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
+{
+  //Let's assume we're done and then check for exceptions
+  bool allOnline=true;
+  int offlineCount=0;
+
+  //Poll sensors
+  updateDataFromSensors();
+  
+  //check sensors
+  if(!barometer.isOnline())
+  {
+    strcpy(buffer+strlen(buffer),"Barometer\n");
+    offlineCount++;
+    allOnline=false;
+  }
+  if(!rtc.isOnline())
+  {
+    strcpy(buffer+strlen(buffer),"RTC\n");
+    offlineCount++;
+    allOnline=false;
+  }
+  
+  //Loop through pids 
+  const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
+  for(int i=0;i<arrLen;i++)
+  {
+
+    if(service==pidArray[i]->service && pid==pidArray[i]->pid)
+    {
+        pidArray[i]->online=true;
+        
+        //Be sure and save off the value
+        updateDataFromPIDs(service,pid,value);
+    }
+    else
+    {
+      if(!pidArray[i]->online)
+      {
+        allOnline=false;
+        offlineCount++;
+        if(offlineCount>5)
+          return allOnline;
+
+        strcpy(buffer+strlen(buffer),pidArray[i]->label);
+      }
+    }  
+  }
+
+  return allOnline;
 }
 
 void CurrentData::updateData(int service,int pid,int value)
@@ -40,60 +94,55 @@ void CurrentData::updateDataFromSensors()
 void CurrentData::updateDataFromPIDs(int service,int pid,int value)
 {   
     //calc engine load
-    if(service==0x41 && pid==0x04)
+    if(service==load.service && pid==load.pid)
     {
         currentLoad=value;
         return;
     }
     //distance travelled in km, converting to miles
-    if(service==0x41 && pid==0x31)
+    if(service==distance.service && pid==distance.pid)
     {
         currentMiles=value*0.621371;
         return;
     }
     //fuel available in percentage  (30 --> 30%)
-    if(service==0x41 && pid==0x2F)
+    if(service==fuel.service && pid==fuel.pid)
     {
         currentFuelPerc=value;
         return;
     }
     //MAF in g/s
-    if(service==0x41 && pid==0x10)
+    if(service==maf.service && pid==maf.pid)
     {
         currentMAF=value;
         return;
     }      
     //Current speed in km/h
-    if(service==0x41 && pid==0x0D)
+    if(service==speed.service && pid==speed.pid)
     {
         currentSpeed=value*0.621371;
         currentPitotSpeed=pitot.readSpeed()-currentSpeed;
         return;
     } 
-    //update gauges after doing any needed calculations
-    if(service==0x41 && pid==0x04)
-    { 
-      currentLoad=value;   
-    }  
     //Coolant temp
-    if(service==0x41 && pid==0x05)
+    if(service==coolant.service && pid==coolant.pid)
     {
       currentCoolantTemp=((float)value*(9.0/5.0)+32.0);
     }
     //Transmision temp
-    if(service==0x61 && pid==0x30)
+    if(service==trans.service && pid==trans.pid)
     {
       currentTransmissionTemp=((float)value*(9.0/5.0)+32.0);      
     }    
     //Manifold pressure in kPa
-    if(service==0x41 && pid==0x0B)
+    if(service==manPres.service && pid==manPres.pid)
     {        
       double bara=barometer.getPressure();
       float boost=value-bara;
       currentBoost=boost*.145;
     } 
     //Diag - e.g. how many codes are stored
-    if(service==0x41 && pid==0x1)
+    if(service==diag.service && pid==diag.pid)
     {
       if(value>0)
         codesPresent=true;
@@ -101,7 +150,7 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
         codesPresent=false;
     }
     //Light level -- this one is "fake" and sent as a PID from a sensor on the board
-    if(service==0x77 && pid==0x01)
+    if(service==ldr.service && pid==ldr.pid)
     {
         currentLightLevel=value;
     }

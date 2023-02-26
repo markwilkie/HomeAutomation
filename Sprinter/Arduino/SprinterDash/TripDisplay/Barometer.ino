@@ -13,6 +13,11 @@ void Barometer::setup()
   }
 }
 
+bool Barometer::isOnline()
+{
+  return pressOnline&&AltOnline;
+}
+
 void Barometer::update()
 {
   //don't update if it's not time to
@@ -47,6 +52,7 @@ void Barometer::update()
   if(readingPressureNow)
   {
     pressure = baro.getLastConversionResults(MPL3115A2_PRESSURE)/10.0;
+    pressOnline=true;
     readingStarted=false;
     readingReady=false;
     readingPressureNow=false;
@@ -57,6 +63,7 @@ void Barometer::update()
   else
   {
     elevation = baro.getLastConversionResults(MPL3115A2_ALTITUDE)* 3.28084;
+    AltOnline=true;
     readingStarted=false;
     readingReady=false;
     readingPressureNow=true;

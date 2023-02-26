@@ -22,6 +22,8 @@ void TripData::resetTripData()
     data.lastFuelPerc=data.startFuelPerc;
     data.priorTotalGallonsUsed=0;
     data.totalClimb=0;
+
+    dumpTripData();
 }
 
 //Save data to EEPROM
@@ -95,10 +97,6 @@ void TripData::dumpTripData()
 
 void TripData::updateTripData()
 {
-    //Make sure we're init'd ok
-    if(data.startFuelPerc==0 || data.startMiles==0 || data.startSeconds==0)
-        resetTripData();
-
     //Calc elevation gained
     int currentElevation=currentDataPtr->currentElevation;
     if(currentElevation>0)

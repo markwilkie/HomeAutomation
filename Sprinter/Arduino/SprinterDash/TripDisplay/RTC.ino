@@ -17,6 +17,11 @@ void RTC::setup()
   rtc.start();  
 }
 
+bool RTC::isOnline()
+{
+  return online;
+}
+
 uint32_t RTC::getSecondsSinc2000()
 {
   //don't update if it's not time to
@@ -27,6 +32,12 @@ uint32_t RTC::getSecondsSinc2000()
   //get current time from clock
   DateTime now = rtc.now();
   secondsSince2000=now.secondstime();
+
+  //Mark sensor as online
+  if(secondsSince2000>0)
+    online=true;
+  else
+    online=false;
 
   return secondsSince2000;
 }

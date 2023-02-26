@@ -66,6 +66,7 @@ int Pitot::readSpeed()
     float pressure_diff = (g_air_pressure >= g_reference_pressure) ? (g_air_pressure - g_reference_pressure) : 0.0;  
     g_airspeed_mph = 2.83977*sqrt(pressure_diff/AIR_DENSITY);
 
+    /*
     Serial.print("Pitot: (ref,pres,diff,mph) ");
     Serial.print(g_reference_pressure);
     Serial.print(" ");
@@ -74,6 +75,7 @@ int Pitot::readSpeed()
     Serial.print(pressure_diff);
     Serial.print(" ");
     Serial.println(g_airspeed_mph);
+    */
 
     return g_airspeed_mph;
 }

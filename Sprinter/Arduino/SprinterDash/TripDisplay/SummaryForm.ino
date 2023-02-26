@@ -45,7 +45,7 @@ void SummaryForm::updateDisplay()
   updateField(DRIVING_TIME_STRING, drivingTime, tripSegDataPtr->getDrivingTime());
   updateField(ELASPED_TIME_STRING, elapsedTime, tripSegDataPtr->getElapsedTime());
   updateField(TIME_STOPPED_STRING, stoppedTime,tripSegDataPtr->getStoppedTime());
-  updateField(NUM_STOPS_STRING, numberOfStops, tripSegDataPtr->getNumberOfStops());
+  updateField(NUM_STOPS_STRING, numberOfStops, tripSegDataPtr->getNumberOfStops(),2);
   updateField(TIME_PARKED_STRING, parkedTime, tripSegDataPtr->getParkedTime());
 
   //Update moving data fields
@@ -58,8 +58,11 @@ void SummaryForm::updateDisplay()
 
 void SummaryForm::updateField(int objNum,char *field,double value)
 {
-  int fieldLen = sizeof(field);
+  updateField(objNum,field,value,sizeof(field));
+}
 
+void SummaryForm::updateField(int objNum,char *field,double value,int fieldLen)
+{
   //Value in range?
   if(value<0 || value>(pow(10, fieldLen)-1))
   {
@@ -68,7 +71,7 @@ void SummaryForm::updateField(int objNum,char *field,double value)
   else
   {
     //Room to put a decimal or not
-    if(value<=(pow(10, fieldLen-2)-1) && value>0)
+    if(value<=(pow(10, fieldLen-2)-1) && value>0 && fieldLen>2)
     {
       dblFormat[1]=fieldLen+'0';
       sprintf(field, dblFormat, value);
