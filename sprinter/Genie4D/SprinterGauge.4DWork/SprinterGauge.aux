@@ -2,7 +2,7 @@
 ==============================================================
 4DGL Compiler 2.8.1.0 -- Copyright 2004-2016 4D Labs
 ** C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\SprinterGauge.4DWork\SprinterGauge.4DGenieS
-compiled Sat Feb 25 18:34:18 2023
+compiled Mon Feb 27 14:34:50 2023
 
 ==============================================================
 ==============================================================
@@ -10,49 +10,49 @@ compiled Sat Feb 25 18:34:18 2023
 
 No Ref for file
 [LINKING]
-function 13, main(main entry point), address 0xa86, stack usage 108 + 4 
+function 13, main(main entry point), address 0xc52, stack usage 108 + 4 
 comTX                                  1  word[50]  [local]  (usage 3)
-TouchStatus                           54  word     [local]  (usage 36)
+TouchStatus                           54  word     [local]  (usage 33)
 cmdi                                  51  word     [local]  (usage 60)
 i                                     52  word     [local]  (usage 123)
 j                                     53  word     [local]  (usage 18)
 
 [LINKING]
-function 12, DoGFXObjects, address 0x1360, stack usage 0 + 4 (Empty Function)
+function 12, DoGFXObjects, address 0x1524, stack usage 0 + 4 (Empty Function)
 [LINKING]
-function 11, UpdateObjects, address 0x1361, stack usage 6 + 4 
+function 11, UpdateObjects, address 0x1525, stack usage 6 + 4 
 newval                                 1  word     [arg]  (usage 42)
 otherOBJ                               2  word     [local]  (usage 114)
 IPidx                                  1  word     [local]  (usage 18)
 oldvalue                               3  word     [local]  (usage 9)
 
 [LINKING]
-function 10, ActivateForm, address 0x164b, stack usage 10 + 4 
+function 10, ActivateForm, address 0x180f, stack usage 10 + 4 
 newform                                1  word     [arg]  (usage 3)
-i                                      1  word     [local]  (usage 87)
+i                                      1  word     [local]  (usage 90)
 j                                      2  word     [local]  (usage 27)
 
 [LINKING]
-function 9, TurnOffButtons, address 0x1862, stack usage 14 + 4 
+function 9, TurnOffButtons, address 0x1a38, stack usage 14 + 4 
 n                                      5  word     [local]  (usage 6)
 j                                      1  word     [local]  (usage 12)
 k                                      2  word     [local]  (usage 18)
-l                                      3  word     [local]  (usage 24)
+l                                      3  word     [local]  (usage 30)
 group                                  1  word     [arg]  (usage 3)
 m                                      4  word     [local]  (usage 6)
 
 [LINKING]
-function 8, WriteObject, address 0x1945, stack usage 8 + 4 
+function 8, WriteObject, address 0x1b3f, stack usage 8 + 4 
 ObjectType                             1  word     [arg]  (usage 27)
-NewVal                                 2  word     [arg]  (usage 18)
+NewVal                                 2  word     [arg]  (usage 24)
 Objects                                4  word     [local]  (usage 12)
 ObjectIdx                              1  word     [arg]  (usage 18)
-i                                      1  word     [local]  (usage 24)
+i                                      1  word     [local]  (usage 72)
 j                                      2  word     [local]  (usage 36)
-k                                      3  word     [local]  (usage 27)
+k                                      3  word     [local]  (usage 33)
 
 [LINKING]
-function 7, ReadObject, address 0x1ade, stack usage 6 + 4 
+function 7, ReadObject, address 0x1e10, stack usage 6 + 4 
 ObjectType                             1  word     [arg]  (usage 36)
 Objects                                3  word     [local]  (usage 6)
 ObjectIdx                              1  word     [arg]  (usage 12)
@@ -60,30 +60,30 @@ j                                      1  word     [local]  (usage 12)
 k                                      2  word     [local]  (usage 39)
 
 [LINKING]
-function 6, SendReport, address 0x1bc7, stack usage 0 + 4 
+function 6, SendReport, address 0x1ef9, stack usage 0 + 4 
 objn                                   2  word     [arg]  (usage 3)
 val                                    2  word     [arg]  (usage 6)
 objt                                   1  word     [arg]  (usage 3)
 id                                     1  word     [arg]  (usage 3)
 
 [LINKING]
-function 5, seroutOcs, address 0x1bf9, stack usage 0 + 4 
+function 5, seroutOcs, address 0x1f2b, stack usage 0 + 4 
 
 [LINKING]
-function 4, nak0, address 0x1c0a, stack usage 0 + 4 
+function 4, nak0, address 0x1f3c, stack usage 0 + 4 
 
 [LINKING]
-function 3, seroutCS, address 0x1c1a, stack usage 0 + 4 
+function 3, seroutCS, address 0x1f4c, stack usage 0 + 4 
 op                                     1  word     [arg]  (usage 6)
 
 [LINKING]
-function 2, addressInternalWidget, address 0x1c2d, stack usage 4 + 4 
+function 2, addressInternalWidget, address 0x1f5f, stack usage 4 + 4 
 idx                                    1  word     [arg]  (usage 3)
 i                                      1  word     [local]  (usage 24)
 j                                      2  word     [local]  (usage 9)
 
 [LINKING]
-function 1, PrintStrings, address 0x1cb4, stack usage 14 + 4 
+function 1, PrintStrings, address 0x1fe6, stack usage 14 + 4 
 String                                 2  word     [arg]  (usage 6)
 StringID                               1  word     [local]  (usage 81)
 offs32                                 4  word[2]  [local]  (usage 6)
@@ -162,16 +162,17 @@ ALL                               0000FFFF      65535  (usage 6)
 BACKGROUND_COLOUR                 00000011         17  (usage 3)
 BLACK                             00000000          0  (usage 120)
 CMDLenMAX                         00000050         80  (usage 12)
-ColorBGimage                      00000020         32  (usage 6)
+ColorBGimage                      00000020         32  (usage 12)
 COM0                              0000F804      63492  (usage 3)
 FLASH_ADDR_DEF_COMMAND            0000FFFF      65535  (usage 3)
 GRAY                              00008410      33808  (usage 12)
-I_ENABLED                         00008000      32768  (usage 3)
+I_ENABLED                         00008000      32768  (usage 6)
 I_STAYONTOP                       00000100        256  (usage 3)
-I_TOUCH_DISABLE                   00000020         32  (usage 6)
-iFontStrings10                    0000001A         26  (usage 44)
-iFontStrings2                     00000019         25  (usage 16)
-iFontStrings8                     0000001B         27  (usage 12)
+I_TOUCH_DISABLE                   00000020         32  (usage 12)
+iFontStrings10                    00000024         36  (usage 44)
+iFontStrings2                     00000023         35  (usage 16)
+iFontStrings8                     00000025         37  (usage 12)
+iForm5                            0000001B         27  (usage 3)
 iGauge0                           00000001          1  (usage 3)
 iGauge1                           0000000A         10  (usage 3)
 iGauge2                           0000000B         11  (usage 3)
@@ -186,27 +187,42 @@ iImage6                           00000005          5  (usage 3)
 iImage7                           00000007          7  (usage 3)
 iImage8                           00000008          8  (usage 3)
 iImage9                           00000009          9  (usage 3)
-IMAGE_INDEX                       00000009          9  (usage 45)
+IMAGE_FLAGS                       00000006          6  (usage 3)
+IMAGE_HEIGHT                      00000005          5  (usage 6)
+IMAGE_INDEX                       00000009          9  (usage 57)
 IMAGE_TAG                         0000000C         12  (usage 9)
+IMAGE_WIDTH                       00000004          4  (usage 6)
+IMAGE_XPOS                        00000002          2  (usage 12)
+IMAGE_YPOS                        00000003          3  (usage 12)
 IPDatasize                        00000016         22  (usage 3)
-iTextStrings                      0000001C         28  (usage 9)
+iStatictext0                      0000001C         28  (usage 3)
+iTextStrings                      00000026         38  (usage 9)
 iUserbutton0                      00000010         16  (usage 3)
 iUserbutton1                      0000000E         14  (usage 3)
-iUserbutton2                      00000014         20  (usage 3)
+iUserbutton10                     00000014         20  (usage 3)
+iUserbutton11                     00000018         24  (usage 3)
+iUserbutton2                      00000022         34  (usage 3)
 iUserbutton3                      00000012         18  (usage 3)
 iUserbutton4                      00000015         21  (usage 3)
 iUserbutton5                      00000011         17  (usage 3)
+iUserbutton6                      00000019         25  (usage 3)
+iUserbutton7                      0000001A         26  (usage 3)
 iUserbutton8                      00000013         19  (usage 3)
+iUserbutton9                      0000001D         29  (usage 3)
 iUserled0                         0000000F         15  (usage 3)
 iWinbutton0                       00000016         22  (usage 3)
 iWinbutton1                       00000017         23  (usage 3)
+iWinbutton2                       0000001E         30  (usage 3)
+iWinbutton3                       0000001F         31  (usage 3)
+iWinbutton4                       00000020         32  (usage 3)
+iWinbutton5                       00000021         33  (usage 3)
 LANDSCAPE                         00000000          0  (usage 3)
 MaxIntObjects                     0000001B         27  (usage 3)
 MaxTotObjects                     00000043         67  (usage 6)
 NAK                               00000015         21  (usage 3)
-nInputs                           00000012         18  (usage 3)
+nInputs                           00000024         36  (usage 3)
 nStrings                          00000024         36  (usage 3)
-OFF                               00000000          0  (usage 3)
+OFF                               00000000          0  (usage 6)
 Ofs_IPD_DOWN                      00000010         16  (usage 6)
 Ofs_IPD_OBJVIDX                   00000014         20  (usage 12)
 Ofs_IPD_P1                        00000002          2  (usage 18)
@@ -230,14 +246,14 @@ Ofs_String_x1                     00000006          6  (usage 12)
 Ofs_String_x2                     0000000A         10  (usage 9)
 Ofs_String_y1                     00000008          8  (usage 12)
 Ofs_String_y2                     0000000C         12  (usage 9)
-ON                                00000001          1  (usage 3)
+ON                                00000001          1  (usage 6)
 OT_ACTIVATE                       00000067        103  (usage 3)
 OT_MAGIC                          0000006C        108  (usage 3)
 OT_NEXTFRAME                      00000068        104  (usage 3)
 OT_NEXTSTRING                     0000006A        106  (usage 3)
 OT_PREVFRAME                      00000069        105  (usage 3)
 OT_PREVSTRING                     0000006B        107  (usage 3)
-OT_REPORT                         00000064        100  (usage 30)
+OT_REPORT                         00000064        100  (usage 57)
 OT_SETANOTHER                     00000066        102  (usage 3)
 OT_SETCONST                       00000065        101  (usage 3)
 PIXXI                             00000004          4  (usage 3)
@@ -330,7 +346,7 @@ Strings33StartL                   00004200      16896  (usage 3)
 Strings34Size                     00000001          1  (usage 3)
 Strings34StartH                   00000000          0  (usage 3)
 Strings34StartL                   00004400      17408  (usage 3)
-Strings35Size                     0000000C         12  (usage 3)
+Strings35Size                     00000011         17  (usage 3)
 Strings35StartH                   00000000          0  (usage 3)
 Strings35StartL                   00004600      17920  (usage 3)
 Strings3Size                      00000005          5  (usage 3)
@@ -405,7 +421,7 @@ TOUCH_ENABLE                      00000000          0  (usage 3)
 TOUCH_GETX                        00000001          1  (usage 3)
 TOUCH_GETY                        00000002          2  (usage 3)
 TOUCH_MOVING                      00000003          3  (usage 3)
-TOUCH_PRESSED                     00000001          1  (usage 12)
+TOUCH_PRESSED                     00000001          1  (usage 9)
 TOUCH_RELEASED                    00000002          2  (usage 18)
 TOUCH_STATUS                      00000000          0  (usage 3)
 tPinInput                         0000001D         29  (usage 6)
@@ -424,11 +440,11 @@ tTank                             0000001A         26  (usage 3)
 tThermometer                      00000012         18  (usage 3)
 tTimer                            00000017         23  (usage 6)
 tTrackbar                         00000005          5  (usage 6)
-tUserButton                       00000021         33  (usage 39)
+tUserButton                       00000021         33  (usage 54)
 tUserImages                       0000001B         27  (usage 3)
 tUserled                          00000013         19  (usage 3)
 tVideo                            00000014         20  (usage 3)
-tWinButton                        00000006          6  (usage 27)
+tWinButton                        00000006          6  (usage 39)
 WHEAT                             0000F6F6      63222  (usage 81)
 WHITE                             0000FFFF      65535  (usage 69)
 WHITESMOKE                        0000F7BE      63422  (usage 18)
@@ -449,24 +465,24 @@ com_SetBaud                       FFFFFF72        -142  args=2 r=1  (usage 3)
 com_TXbuffer                      FFFFFF82        -126  args=3 r=0  (usage 3)
 file_LoadImageControl             FFFFFF04        -252  args=3 r=1  (usage 3)
 gfx_AngularMeter                  FFFFFEC8        -312  args=3 r=0  (usage 3)
-gfx_Clipping                      FFFFFFA2         -94  args=1 r=0  (usage 6)
-gfx_ClipWindow                    FFFFFFB5         -75  args=4 r=0  (usage 3)
+gfx_Clipping                      FFFFFFA2         -94  args=1 r=0  (usage 12)
+gfx_ClipWindow                    FFFFFFB5         -75  args=4 r=0  (usage 6)
 gfx_Cls                           FFFFFFCD         -51  args=0 r=0  (usage 3)
 gfx_Contrast                      FFFFFF9C        -100  args=1 r=1  (usage 3)
 gfx_LedDigits                     FFFFFEC2        -318  args=3 r=0  (usage 3)
 gfx_MoveTo                        FFFFFFCC         -52  args=2 r=0  (usage 3)
-gfx_RectangleFilled               FFFFFFC4         -60  args=5 r=0  (usage 6)
+gfx_RectangleFilled               FFFFFFC4         -60  args=5 r=0  (usage 9)
 gfx_ScreenMode                    FFFFFF9E         -98  args=1 r=1  (usage 3)
 gfx_Set                           FFFFFFCE         -50  args=2 r=0  (usage 3)
-img_ClearAttributes               FFFFFF45        -187  args=3 r=1  (usage 3)
+img_ClearAttributes               FFFFFF45        -187  args=3 r=1  (usage 6)
 img_Disable                       FFFFFF4C        -180  args=2 r=1  (usage 6)
 img_FileGetC                      FFFFFE7C        -388  args=2 r=1  (usage 3)
 img_FileGetW                      FFFFFE7B        -389  args=2 r=1  (usage 3)
 img_FileSeek                      FFFFFE80        -384  args=4 r=1  (usage 3)
-img_GetWord                       FFFFFF48        -184  args=3 r=1  (usage 39)
-img_SetAttributes                 FFFFFF46        -186  args=3 r=1  (usage 6)
-img_SetWord                       FFFFFF49        -183  args=4 r=1  (usage 15)
-img_Show                          FFFFFF47        -185  args=2 r=1  (usage 18)
+img_GetWord                       FFFFFF48        -184  args=3 r=1  (usage 87)
+img_SetAttributes                 FFFFFF46        -186  args=3 r=1  (usage 9)
+img_SetWord                       FFFFFF49        -183  args=4 r=1  (usage 18)
+img_Show                          FFFFFF47        -185  args=2 r=1  (usage 21)
 img_Touched                       FFFFFF44        -188  args=2 r=1  (usage 3)
 img_TxtFontID                     FFFFFE74        -396  args=2 r=1  (usage 3)
 media_InitFlash                   FFFFFE69        -407  args=1 r=1  (usage 6)
@@ -493,24 +509,24 @@ widget_SetAttributes              FFFFFEB3        -333  args=3 r=1  (usage 3)
 widget_Touched                    FFFFFEB1        -335  args=2 r=1  (usage 3)
 
 [USER FUNCTIONS]
-ActivateForm                      0000164B  args=1 r=0  (usage 9)
-addressInternalWidget             00001C2D  args=2 r=0  (usage 9)
-DoGFXObjects                      00001360  args=0 r=0  (usage 6)
-nak0                              00001C0A  args=0 r=0  (usage 24)
-PrintStrings                      00001CB4  args=3 r=0  (usage 9)
-ReadObject                        00001ADE  args=2 r=0  (usage 3)
-SendReport                        00001BC7  args=4 r=0  (usage 6)
-seroutCS                          00001C1A  args=1 r=0  (usage 15)
-seroutOcs                         00001BF9  args=0 r=0  (usage 3)
-TurnOffButtons                    00001862  args=1 r=0  (usage 6)
-UpdateObjects                     00001361  args=1 r=0  (usage 3)
-WriteObject                       00001945  args=3 r=0  (usage 27)
+ActivateForm                      0000180F  args=1 r=0  (usage 9)
+addressInternalWidget             00001F5F  args=2 r=0  (usage 9)
+DoGFXObjects                      00001524  args=0 r=0  (usage 6)
+nak0                              00001F3C  args=0 r=0  (usage 24)
+PrintStrings                      00001FE6  args=3 r=0  (usage 9)
+ReadObject                        00001E10  args=2 r=0  (usage 3)
+SendReport                        00001EF9  args=4 r=0  (usage 6)
+seroutCS                          00001F4C  args=1 r=0  (usage 15)
+seroutOcs                         00001F2B  args=0 r=0  (usage 3)
+TurnOffButtons                    00001A38  args=1 r=0  (usage 6)
+UpdateObjects                     00001525  args=1 r=0  (usage 3)
+WriteObject                       00001B3F  args=3 r=0  (usage 27)
 
 [GLOBAL VARIABLES]
 cmd                                  350  word[80]   (usage 90)
 comRX                                310  word[40]   (usage 3)
 CurInputData                         308  word       (usage 30)
-CurrentForm                          301  word       (usage 54)
+CurrentForm                          301  word       (usage 63)
 GObjectDATA                          230  word       (usage 6)
 GObjectFunc                          228  word       (usage 6)
 GObjectIdx                           227  word       (usage 21)
@@ -518,7 +534,7 @@ GObjectParms                         231  word       (usage 3)
 GObjectRAM                           229  word       (usage 15)
 GObjectStrings                       232  word       (usage 3)
 GObjectType                          306  word       (usage 90)
-hndl                                   1  word       (usage 102)
+hndl                                   1  word       (usage 162)
 ImageTouched                         303  word       (usage 72)
 InputCS                              430  word       (usage 21)
 oldn                                 302  word       (usage 42)
@@ -602,121 +618,150 @@ wp                                   432  word       (usage 21)
 0327: F6 F6 C3 18 00 00 90 01 65 00 27 00 17 00 03 00     ццГ...ђ.e.'.....
 0337: FF FF 00 00 01 00 F6 F6 C3 18 00 00 E1 00 65 00     яя....ццГ...б.e.
 0347: 1A 00 17 00 02 00 FF FF 00 00 01 00 F6 F6 C3 18     ......яя....ццГ.
-0357: 00 00 00 00 10 00 12 00 15 00 18 00 10 00 12 00     ................
-0367: 15 00 18 00 18 00 00 00 0E 00 0E 00 0E 00 0E 00     ................
-0377: 0E 00 0E 00 0E 00 0E 00 0E 00 FF FF FF FF FF FF     ..........яяяяяя
-0387: FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF     яяяяяяяяяяяяяяяя
-0397: FF FF FF FF FF FF 00 00 FF FF 2C 00 58 00 84 00     яяяяяя..яя,.X.„.
-03A7: B0 00 DC 00 08 01 34 01 60 01 FF FF FF FF FF FF     °.Ь...4.`.яяяяяя
-03B7: FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF     яяяяяяяяяяяяяяяя
-03C7: FF FF FF FF FF FF 21 00 01 00 FF FF FF FF FF FF     яяяяяя!...яяяяяя
-03D7: FF FF FF FF FF FF 00 00 16 00 04 00 64 00 00 00     яяяяяя......d...
-03E7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-03F7: 01 00 21 00 01 00 FF FF FF FF FF FF FF FF FF FF     ..!...яяяяяяяяяя
-0407: FF FF 00 00 42 00 02 00 64 00 00 00 00 00 00 00     яя..B...d.......
-0417: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 21 00     ..............!.
-0427: 01 00 FF FF FF FF FF FF FF FF FF FF FF FF 00 00     ..яяяяяяяяяяяя..
-0437: 6E 00 0C 00 64 00 00 00 00 00 00 00 00 00 00 00     n...d...........
-0447: 00 00 00 00 00 00 00 00 05 00 21 00 01 00 FF FF     ..........!...яя
-0457: FF FF FF FF FF FF FF FF FF FF 00 00 9A 00 08 00     яяяяяяяяяя..љ...
-0467: 64 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     d...............
-0477: 00 00 00 00 03 00 21 00 01 00 FF FF FF FF FF FF     ......!...яяяяяя
-0487: FF FF FF FF FF FF 00 00 C6 00 12 00 64 00 00 00     яяяяяя..Ж...d...
-0497: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-04A7: 08 00 21 00 01 00 FF FF FF FF FF FF FF FF FF FF     ..!...яяяяяяяяяя
-04B7: FF FF 00 00 F2 00 06 00 64 00 00 00 00 00 00 00     яя..т...d.......
-04C7: 00 00 00 00 00 00 00 00 00 00 00 00 02 00 21 00     ..............!.
-04D7: 01 00 FF FF FF FF FF FF FF FF FF FF FF FF 00 00     ..яяяяяяяяяяяя..
-04E7: 1E 01 0A 00 64 00 00 00 00 00 00 00 00 00 00 00     ....d...........
-04F7: 00 00 00 00 00 00 00 00 04 00 06 00 01 00 FF FF     ..............яя
-0507: FF FF FF FF FF FF FF FF FF FF 00 00 4A 01 02 00     яяяяяяяяяя..J...
-0517: 64 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     d...............
-0527: 00 00 00 00 00 00 06 00 01 00 FF FF FF FF FF FF     ..........яяяяяя
-0537: FF FF FF FF FF FF 00 00 76 01 04 00 64 00 00 00     яяяяяя..v...d...
-0547: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-0557: 01 00 00 00 00 02 16 00 D7 00 10 00 DA 01 2E 00     ........Ч...Ъ...
-0567: FF FF 00 00 00 00 01 00 01 00 01 00 E6 FF 00 00     яя..........жя..
-0577: 00 3E 0C 00 47 01 2E 00 D2 01 42 00 FF FF 00 00     .>..G...Т.B.яя..
-0587: 00 00 01 00 01 00 03 00 E4 FF 00 00 00 00 11 00     ........дя......
-0597: D7 00 55 00 90 01 73 00 FF FF 00 00 00 00 01 00     Ч.U.ђ.s.яя......
-05A7: 01 00 01 00 E6 FF 00 00 00 2E 05 00 0C 00 6E 00     ....жя........n.
-05B7: 33 00 81 00 F6 F6 00 00 00 00 01 00 01 00 02 00     3.Ѓ.цц..........
-05C7: E5 FF 00 00 00 04 06 00 91 00 10 00 CC 00 2E 00     ея......‘...М...
-05D7: F6 F6 00 00 00 00 01 00 01 00 01 00 E6 FF 00 00     цц..........жя..
-05E7: 00 06 06 00 91 00 34 00 CC 00 52 00 F6 F6 00 00     ....‘.4.М.R.цц..
-05F7: 00 00 01 00 01 00 01 00 E6 FF 00 00 00 30 0C 00     ........жя...0..
-0607: 41 00 6E 00 AA 00 81 00 FF FF 00 00 00 00 01 00     A.n.Є.Ѓ.яя......
-0617: 01 00 02 00 E5 FF 00 00 00 08 0E 00 D7 00 33 00     ....ея......Ч.3.
-0627: 96 01 51 00 FF FF 00 00 00 00 01 00 01 00 01 00     –.Q.яя..........
-0637: E6 FF 00 00 00 36 0D 00 47 01 44 00 D2 01 58 00     жя...6..G.D.Т.X.
-0647: FF FF 00 00 00 00 01 00 01 00 03 00 E4 FF 00 00     яя..........дя..
-0657: 00 0A 07 00 91 00 56 00 CC 00 74 00 F6 F6 00 00     ....‘.V.М.t.цц..
-0667: 00 00 01 00 01 00 01 00 E6 FF 00 00 00 0C 06 00     ........жя......
-0677: 0E 01 6C 00 3F 01 7F 00 F6 F6 00 00 00 00 01 00     ..l.?..цц......
-0687: 01 00 02 00 E5 FF 00 00 00 0E 0F 00 45 01 6C 00     ....ея......E.l.
-0697: D0 01 7F 00 FF FF 00 00 00 00 01 00 01 00 02 00     Р..яя..........
-06A7: E5 FF 00 00 00 10 11 00 37 00 04 00 0F 01 22 00     ея......7.....".
-06B7: FF FF 00 00 00 00 01 00 01 00 02 00 E6 FF 00 00     яя..........жя..
-06C7: 00 24 07 00 0E 01 0C 00 3F 01 1F 00 F6 F6 00 00     .$......?...цц..
-06D7: 00 00 01 00 01 00 02 00 E5 FF 00 00 00 26 10 00     ........ея...&..
-06E7: 45 01 0C 00 B9 01 1F 00 FF FF 00 00 00 00 01 00     E...№...яя......
-06F7: 01 00 02 00 E5 FF 00 00 00 12 0D 00 41 00 23 00     ....ея......A.#.
-0707: A4 00 36 00 FF FF 00 00 00 00 01 00 01 00 02 00     ¤.6.яя..........
-0717: E5 FF 00 00 00 14 0D 00 41 00 3C 00 AF 00 4F 00     ея......A.<.Ї.O.
-0727: FF FF 00 00 00 00 01 00 01 00 02 00 E5 FF 00 00     яя..........ея..
-0737: 00 2C 05 00 0C 00 23 00 33 00 36 00 F6 F6 00 00     .,....#.3.6.цц..
-0747: 00 00 01 00 01 00 02 00 E5 FF 00 00 00 16 05 00     ........ея......
-0757: 0C 00 3C 00 33 00 4F 00 F6 F6 00 00 00 00 01 00     ..<.3.O.цц......
-0767: 01 00 02 00 E5 FF 00 00 00 18 05 00 0C 00 55 00     ....ея........U.
-0777: 33 00 68 00 F6 F6 00 00 00 00 01 00 01 00 02 00     3.h.цц..........
-0787: E5 FF 00 00 00 1A 05 00 41 00 55 00 66 00 68 00     ея......A.U.f.h.
-0797: FF FF 00 00 00 00 01 00 01 00 02 00 E5 FF 00 00     яя..........ея..
-07A7: 00 1C 07 00 0E 01 24 00 3F 01 37 00 F6 F6 00 00     ......$.?.7.цц..
-07B7: 00 00 01 00 01 00 02 00 E5 FF 00 00 00 1E 0D 00     ........ея......
-07C7: 45 01 23 00 A8 01 36 00 FF FF 00 00 00 00 01 00     E.#.Ё.6.яя......
-07D7: 01 00 02 00 E5 FF 00 00 00 20 07 00 0E 01 3C 00     ....ея... ....<.
-07E7: 3F 01 4F 00 F6 F6 00 00 00 00 01 00 01 00 02 00     ?.O.цц..........
-07F7: E5 FF 00 00 00 22 0C 00 45 01 3C 00 A8 01 4F 00     ея..."..E.<.Ё.O.
-0807: FF FF 00 00 00 00 01 00 01 00 02 00 E5 FF 00 00     яя..........ея..
-0817: 00 28 07 00 0E 01 55 00 3F 01 68 00 F6 F6 00 00     .(....U.?.h.цц..
-0827: 00 00 01 00 01 00 02 00 E5 FF 00 00 00 2A 11 00     ........ея...*..
-0837: 45 01 55 00 D3 01 68 00 FF FF 00 00 00 00 01 00     E.U.У.h.яя......
-0847: 01 00 02 00 E5 FF 00 00 00 32 03 00 69 00 55 00     ....ея...2..i.U.
-0857: 7E 00 68 00 F6 F6 00 00 00 00 01 00 01 00 02 00     ~.h.цц..........
-0867: E5 FF 00 00 00 34 0A 00 82 00 55 00 D3 00 68 00     ея...4..‚.U.У.h.
-0877: FF FF 00 00 00 00 01 00 01 00 02 00 E5 FF 00 00     яя..........ея..
-0887: 00 38 05 00 0E 01 44 00 3F 01 57 00 F6 F6 00 00     .8....D.?.W.цц..
-0897: 00 00 01 00 01 00 03 00 E4 FF 00 00 00 3A 05 00     ........дя...:..
-08A7: 0E 01 5C 00 3F 01 70 00 F6 F6 00 00 00 00 01 00     ..\.?.p.цц......
-08B7: 01 00 03 00 E4 FF 00 00 00 3C 0D 00 47 01 5A 00     ....дя...<..G.Z.
-08C7: D6 01 6F 00 FF FF 00 00 00 00 01 00 01 00 03 00     Ц.o.яя..........
-08D7: E4 FF 00 00 00 40 07 00 0E 01 2E 00 3F 01 42 00     дя...@......?.B.
-08E7: F6 F6 00 00 00 00 01 00 01 00 03 00 E4 FF 00 00     цц..........дя..
-08F7: 00 42 0D 00 1C 01 0F 00 A6 01 27 00 FF FF 00 00     .B......¦.'.яя..
-0907: 00 00 01 00 01 00 03 00 E6 FF 00 00 00 44 01 00     ........жя...D..
-0917: BE 00 0F 00 D4 01 6F 00 F6 F6 00 00 00 00 01 00     ѕ...Ф.o.цц......
-0927: 01 00 04 00 E5 FF 00 00 00 46 0C 00 0F 00 10 00     ....ея...F......
-0937: B6 00 23 00 FF FF 00 00 00 00 01 00 01 00 04 00     ¶.#.яя..........
-0947: E5 FF 00 00 02 00 16 00 17 00 05 00 FF FF FF FF     ея..........яяяя
-0957: FF FF FF FF FF FF 04 00 01 00 0A 00 0B 00 0C 00     яяяяяя..........
-0967: 0B 00 00 00 02 00 FF FF 03 00 04 00 06 00 05 00     ......яя........
-0977: 07 00 08 00 09 00 0D 00 24 00 59 85 75 85 91 85     ........$.Y…u…‘…
-0987: AD 85 C9 85 E5 85 01 86 1D 86 39 86 55 86 71 86     ­…Й…е….†.†9†U†q†
-0997: 8D 86 A9 86 C5 86 E1 86 FD 86 19 87 35 87 51 87     Ќ†©†Е†б†э†.‡5‡Q‡
-09A7: 6D 87 89 87 A5 87 C1 87 DD 87 F9 87 15 88 31 88     m‡‰‡Ґ‡Б‡Э‡щ‡.€1€
-09B7: 4D 88 69 88 85 88 A1 88 BD 88 D9 88 F5 88 11 89     M€i€…€Ў€Ѕ€Щ€х€.‰
-09C7: 2D 89 01 00 0F 00 09 00 10 00 0E 00 14 00 12 00     -‰..............
-09D7: 15 00 11 00 FF FF FF FF 13 00 04 00 ED 80 52 81     ....яяяя....нЂRЃ
-09E7: 5B 82 B6 81 0A 00 43 83 19 82 2F 82 45 82 BF 82     [‚¶Ѓ..Cѓ.‚/‚E‚ї‚
-09F7: 17 83 D5 82 EB 82 01 83 2D 83 00 00 00 00 00 00     .ѓХ‚л‚.ѓ-ѓ......
-0A07: 00 00 00 00 FF FF FF FF 00 00 00 00 00 00 00 00     ....яяяя........
-0A17: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-0A27: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-0A37: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-0A47: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
-0A57: 83 12 83 12 83 12 83 12 83 12 83 12 83 12 83 12     ѓ.ѓ.ѓ.ѓ.ѓ.ѓ.ѓ.ѓ.
-0A67: 5F 13 5F 13 83 12 83 12 83 12 83 12 83 12 06 21     _._.ѓ.ѓ.ѓ.ѓ.ѓ..!
-0A77: F7 19 0F 1A 27 1A                                   ч...'.
+0357: 00 00 00 00 10 00 12 00 15 00 19 00 1B 00 1D 00     ................
+0367: 10 00 12 00 15 00 19 00 1B 00 1D 00 23 00 00 00     ............#...
+0377: 0E 00 0E 00 0E 00 0E 00 0E 00 0E 00 0E 00 0E 00     ................
+0387: 0E 00 0E 00 0E 00 0E 00 0E 00 FF FF FF FF FF FF     ..........яяяяяя
+0397: FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF     яяяяяяяяяяяяяяяя
+03A7: FF FF FF FF FF FF 00 00 FF FF 2C 00 58 00 84 00     яяяяяя..яя,.X.„.
+03B7: B0 00 DC 00 08 01 34 01 60 01 8C 01 B8 01 E4 01     °.Ь...4.`.Њ.ё.д.
+03C7: FF FF FF FF 10 02 3C 02 68 02 94 02 C0 02 EC 02     яяяя..<.h.”.А.м.
+03D7: FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF     яяяяяяяяяяяяяяяя
+03E7: FF FF FF FF FF FF FF FF FF FF FF FF 21 00 01 00     яяяяяяяяяяяя!...
+03F7: FF FF FF FF FF FF FF FF FF FF FF FF 00 00 16 00     яяяяяяяяяяяя....
+0407: 04 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00     ..d.............
+0417: 00 00 00 00 00 00 01 00 21 00 01 00 FF FF FF FF     ........!...яяяя
+0427: FF FF FF FF FF FF FF FF 00 00 42 00 02 00 64 00     яяяяяяяя..B...d.
+0437: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+0447: 00 00 00 00 21 00 01 00 FF FF FF FF FF FF FF FF     ....!...яяяяяяяя
+0457: FF FF FF FF 00 00 6E 00 0C 00 64 00 00 00 00 00     яяяя..n...d.....
+0467: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00     ................
+0477: 21 00 01 00 FF FF FF FF FF FF FF FF FF FF FF FF     !...яяяяяяяяяяяя
+0487: 00 00 9A 00 08 00 64 00 00 00 00 00 00 00 00 00     ..љ...d.........
+0497: 00 00 00 00 00 00 00 00 00 00 03 00 21 00 01 00     ............!...
+04A7: FF FF FF FF FF FF FF FF FF FF FF FF 00 00 C6 00     яяяяяяяяяяяя..Ж.
+04B7: 12 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00     ..d.............
+04C7: 00 00 00 00 00 00 08 00 21 00 01 00 FF FF FF FF     ........!...яяяя
+04D7: FF FF FF FF FF FF FF FF 00 00 F2 00 16 00 64 00     яяяяяяяя..т...d.
+04E7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+04F7: 00 00 0A 00 21 00 01 00 FF FF FF FF FF FF FF FF     ....!...яяяяяяяя
+0507: FF FF FF FF 00 00 1E 01 0A 00 64 00 00 00 00 00     яяяя......d.....
+0517: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 00     ................
+0527: 06 00 01 00 FF FF FF FF FF FF FF FF FF FF FF FF     ....яяяяяяяяяяяя
+0537: 00 00 4A 01 02 00 64 00 00 00 00 00 00 00 00 00     ..J...d.........
+0547: 00 00 00 00 00 00 00 00 00 00 00 00 06 00 01 00     ................
+0557: FF FF FF FF FF FF FF FF FF FF FF FF 00 00 76 01     яяяяяяяяяяяя..v.
+0567: 04 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00     ..d.............
+0577: 00 00 00 00 00 00 01 00 21 00 01 00 FF FF FF FF     ........!...яяяя
+0587: FF FF FF FF FF FF FF FF 00 00 A2 01 18 00 64 00     яяяяяяяя..ў...d.
+0597: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+05A7: 00 00 0B 00 21 00 01 00 FF FF FF FF FF FF FF FF     ....!...яяяяяяяя
+05B7: FF FF FF FF 00 00 CE 01 0E 00 64 00 00 00 00 00     яяяя..О...d.....
+05C7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 06 00     ................
+05D7: 21 00 01 00 FF FF FF FF FF FF FF FF FF FF FF FF     !...яяяяяяяяяяяя
+05E7: 00 00 FA 01 10 00 64 00 00 00 00 00 00 00 00 00     ..ъ...d.........
+05F7: 00 00 00 00 00 00 00 00 00 00 07 00 21 00 01 00     ............!...
+0607: FF FF FF FF FF FF FF FF FF FF FF FF 00 00 26 02     яяяяяяяяяяяя..&.
+0617: 14 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00     ..d.............
+0627: 00 00 00 00 00 00 09 00 06 00 01 00 FF FF FF FF     ............яяяя
+0637: FF FF FF FF FF FF FF FF 00 00 52 02 06 00 64 00     яяяяяяяя..R...d.
+0647: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+0657: 00 00 02 00 06 00 01 00 FF FF FF FF FF FF FF FF     ........яяяяяяяя
+0667: FF FF FF FF 00 00 7E 02 08 00 64 00 00 00 00 00     яяяя..~...d.....
+0677: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00     ................
+0687: 06 00 01 00 FF FF FF FF FF FF FF FF FF FF FF FF     ....яяяяяяяяяяяя
+0697: 00 00 AA 02 0A 00 64 00 00 00 00 00 00 00 00 00     ..Є...d.........
+06A7: 00 00 00 00 00 00 00 00 00 00 04 00 06 00 01 00     ................
+06B7: FF FF FF FF FF FF FF FF FF FF FF FF 00 00 D6 02     яяяяяяяяяяяя..Ц.
+06C7: 0C 00 64 00 00 00 00 00 00 00 00 00 00 00 00 00     ..d.............
+06D7: 00 00 00 00 00 00 05 00 21 00 01 00 FF FF FF FF     ........!...яяяя
+06E7: FF FF FF FF FF FF FF FF 00 00 02 03 06 00 64 00     яяяяяяяя......d.
+06F7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+0707: 00 00 02 00 00 00 00 02 16 00 D7 00 10 00 DA 01     ..........Ч...Ъ.
+0717: 2E 00 FF FF 00 00 00 00 01 00 01 00 01 00 DC FF     ..яя..........Ья
+0727: 00 00 00 3E 0C 00 47 01 2E 00 D2 01 42 00 FF FF     ...>..G...Т.B.яя
+0737: 00 00 00 00 01 00 01 00 03 00 DA FF 00 00 00 00     ..........Ъя....
+0747: 11 00 D7 00 55 00 90 01 73 00 FF FF 00 00 00 00     ..Ч.U.ђ.s.яя....
+0757: 01 00 01 00 01 00 DC FF 00 00 00 2E 05 00 0C 00     ......Ья........
+0767: 6E 00 33 00 81 00 F6 F6 00 00 00 00 01 00 01 00     n.3.Ѓ.цц........
+0777: 02 00 DB FF 00 00 00 04 06 00 91 00 10 00 CC 00     ..Ыя......‘...М.
+0787: 2E 00 F6 F6 00 00 00 00 01 00 01 00 01 00 DC FF     ..цц..........Ья
+0797: 00 00 00 06 06 00 91 00 34 00 CC 00 52 00 F6 F6     ......‘.4.М.R.цц
+07A7: 00 00 00 00 01 00 01 00 01 00 DC FF 00 00 00 30     ..........Ья...0
+07B7: 0C 00 41 00 6E 00 AA 00 81 00 FF FF 00 00 00 00     ..A.n.Є.Ѓ.яя....
+07C7: 01 00 01 00 02 00 DB FF 00 00 00 08 0E 00 D7 00     ......Ыя......Ч.
+07D7: 33 00 96 01 51 00 FF FF 00 00 00 00 01 00 01 00     3.–.Q.яя........
+07E7: 01 00 DC FF 00 00 00 36 0D 00 47 01 44 00 D2 01     ..Ья...6..G.D.Т.
+07F7: 58 00 FF FF 00 00 00 00 01 00 01 00 03 00 DA FF     X.яя..........Ъя
+0807: 00 00 00 0A 07 00 91 00 56 00 CC 00 74 00 F6 F6     ......‘.V.М.t.цц
+0817: 00 00 00 00 01 00 01 00 01 00 DC FF 00 00 00 0C     ..........Ья....
+0827: 06 00 0E 01 6E 00 3F 01 81 00 F6 F6 00 00 00 00     ....n.?.Ѓ.цц....
+0837: 01 00 01 00 02 00 DB FF 00 00 00 0E 0F 00 45 01     ......Ыя......E.
+0847: 6E 00 D0 01 81 00 FF FF 00 00 00 00 01 00 01 00     n.Р.Ѓ.яя........
+0857: 02 00 DB FF 00 00 00 10 11 00 37 00 07 00 0F 01     ..Ыя......7.....
+0867: 25 00 FF FF 00 00 00 00 01 00 01 00 02 00 DC FF     %.яя..........Ья
+0877: 00 00 00 24 07 00 0E 01 10 00 3F 01 23 00 F6 F6     ...$......?.#.цц
+0887: 00 00 00 00 01 00 01 00 02 00 DB FF 00 00 00 26     ..........Ыя...&
+0897: 10 00 45 01 10 00 B9 01 23 00 FF FF 00 00 00 00     ..E...№.#.яя....
+08A7: 01 00 01 00 02 00 DB FF 00 00 00 12 0D 00 41 00     ......Ыя......A.
+08B7: 26 00 A4 00 39 00 FF FF 00 00 00 00 01 00 01 00     &.¤.9.яя........
+08C7: 02 00 DB FF 00 00 00 14 0D 00 41 00 3E 00 AF 00     ..Ыя......A.>.Ї.
+08D7: 51 00 FF FF 00 00 00 00 01 00 01 00 02 00 DB FF     Q.яя..........Ыя
+08E7: 00 00 00 2C 05 00 0C 00 26 00 33 00 39 00 F6 F6     ...,....&.3.9.цц
+08F7: 00 00 00 00 01 00 01 00 02 00 DB FF 00 00 00 16     ..........Ыя....
+0907: 05 00 0C 00 3E 00 33 00 51 00 F6 F6 00 00 00 00     ....>.3.Q.цц....
+0917: 01 00 01 00 02 00 DB FF 00 00 00 18 05 00 0C 00     ......Ыя........
+0927: 56 00 33 00 69 00 F6 F6 00 00 00 00 01 00 01 00     V.3.i.цц........
+0937: 02 00 DB FF 00 00 00 1A 05 00 41 00 56 00 66 00     ..Ыя......A.V.f.
+0947: 69 00 FF FF 00 00 00 00 01 00 01 00 02 00 DB FF     i.яя..........Ыя
+0957: 00 00 00 1C 07 00 0E 01 26 00 3F 01 39 00 F6 F6     ........&.?.9.цц
+0967: 00 00 00 00 01 00 01 00 02 00 DB FF 00 00 00 1E     ..........Ыя....
+0977: 0D 00 45 01 26 00 A8 01 39 00 FF FF 00 00 00 00     ..E.&.Ё.9.яя....
+0987: 01 00 01 00 02 00 DB FF 00 00 00 20 07 00 0E 01     ......Ыя... ....
+0997: 3E 00 3F 01 51 00 F6 F6 00 00 00 00 01 00 01 00     >.?.Q.цц........
+09A7: 02 00 DB FF 00 00 00 22 0C 00 45 01 3E 00 A8 01     ..Ыя..."..E.>.Ё.
+09B7: 51 00 FF FF 00 00 00 00 01 00 01 00 02 00 DB FF     Q.яя..........Ыя
+09C7: 00 00 00 28 07 00 0E 01 56 00 3F 01 69 00 F6 F6     ...(....V.?.i.цц
+09D7: 00 00 00 00 01 00 01 00 02 00 DB FF 00 00 00 2A     ..........Ыя...*
+09E7: 11 00 45 01 56 00 D3 01 69 00 FF FF 00 00 00 00     ..E.V.У.i.яя....
+09F7: 01 00 01 00 02 00 DB FF 00 00 00 32 03 00 69 00     ......Ыя...2..i.
+0A07: 56 00 7E 00 69 00 F6 F6 00 00 00 00 01 00 01 00     V.~.i.цц........
+0A17: 02 00 DB FF 00 00 00 34 0A 00 82 00 56 00 D3 00     ..Ыя...4..‚.V.У.
+0A27: 69 00 FF FF 00 00 00 00 01 00 01 00 02 00 DB FF     i.яя..........Ыя
+0A37: 00 00 00 38 05 00 0E 01 44 00 3F 01 57 00 F6 F6     ...8....D.?.W.цц
+0A47: 00 00 00 00 01 00 01 00 03 00 DA FF 00 00 00 3A     ..........Ъя...:
+0A57: 05 00 0E 01 5C 00 3F 01 70 00 F6 F6 00 00 00 00     ....\.?.p.цц....
+0A67: 01 00 01 00 03 00 DA FF 00 00 00 3C 0D 00 47 01     ......Ъя...<..G.
+0A77: 5A 00 D6 01 6F 00 FF FF 00 00 00 00 01 00 01 00     Z.Ц.o.яя........
+0A87: 03 00 DA FF 00 00 00 40 07 00 0E 01 2E 00 3F 01     ..Ъя...@......?.
+0A97: 42 00 F6 F6 00 00 00 00 01 00 01 00 03 00 DA FF     B.цц..........Ъя
+0AA7: 00 00 00 42 0D 00 1C 01 0F 00 A6 01 27 00 FF FF     ...B......¦.'.яя
+0AB7: 00 00 00 00 01 00 01 00 03 00 DC FF 00 00 00 44     ..........Ья...D
+0AC7: 01 00 BE 00 0F 00 D4 01 6F 00 F6 F6 00 00 00 00     ..ѕ...Ф.o.цц....
+0AD7: 01 00 01 00 04 00 DB FF 00 00 00 46 11 00 0F 00     ......Ыя...F....
+0AE7: 10 00 B6 00 23 00 FF FF 00 00 00 00 01 00 01 00     ..¶.#.яя........
+0AF7: 04 00 DB FF 00 00 06 00 16 00 17 00 1E 00 1F 00     ..Ыя............
+0B07: 20 00 21 00 07 00 FF FF FF FF FF FF FF FF FF FF      .!...яяяяяяяяяя
+0B17: 1B 00 FF FF 04 00 01 00 0A 00 0B 00 0C 00 0B 00     ..яя............
+0B27: 00 00 02 00 FF FF 03 00 04 00 06 00 05 00 07 00     ....яя..........
+0B37: 08 00 09 00 0D 00 24 00 0B 87 27 87 43 87 5F 87     ......$..‡'‡C‡_‡
+0B47: 7B 87 97 87 B3 87 CF 87 EB 87 07 88 23 88 3F 88     {‡—‡і‡П‡л‡.€#€?€
+0B57: 5B 88 77 88 93 88 AF 88 CB 88 E7 88 03 89 1F 89     [€w€“€Ї€Л€з€.‰.‰
+0B67: 3B 89 57 89 73 89 8F 89 AB 89 C7 89 E3 89 FF 89     ;‰W‰s‰Џ‰«‰З‰г‰я‰
+0B77: 1B 8A 37 8A 53 8A 6F 8A 8B 8A A7 8A C3 8A DF 8A     .Љ7ЉSЉoЉ‹Љ§ЉГЉЯЉ
+0B87: 01 00 0F 00 01 00 1C 00 0C 00 10 00 0E 00 22 00     ..............".
+0B97: 12 00 15 00 11 00 19 00 1A 00 13 00 1D 00 14 00     ................
+0BA7: 18 00 04 00 ED 80 52 81 5B 82 B6 81 0A 00 43 83     ....нЂRЃ[‚¶Ѓ..Cѓ
+0BB7: 19 82 2F 82 45 82 BF 82 17 83 D5 82 EB 82 01 83     .‚/‚E‚ї‚.ѓХ‚л‚.ѓ
+0BC7: 2D 83 00 00 00 00 00 00 00 00 00 00 20 00 00 00     -ѓ.......... ...
+0BD7: FF FF FF FF 00 00 00 00 00 00 00 00 00 00 00 00     яяяя............
+0BE7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+0BF7: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+0C07: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00     ................
+0C17: 00 00 00 00 00 00 00 00 00 00 00 00 47 14 47 14     ............G.G.
+0C27: 47 14 47 14 47 14 47 14 47 14 47 14 23 15 23 15     G.G.G.G.G.G.#.#.
+0C37: 47 14 47 14 47 14 47 14 47 14 06 21 F1 1B 09 1C     G.G.G.G.G..!с...
+0C47: 21 1C                                               !.
 
 [__MAXPROG]
 32750
@@ -726,7 +771,7 @@ wp                                   432  word       (usage 21)
 [PROGRAM]
 main
 [CODESIZE]
-7864
+8682
 [MEMSIZE]
 432
 [ARGCOUNT]
@@ -748,4 +793,3 @@ C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\4DGL_16bitColours.fnc
 C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\VisualConst.inc
 C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\SprinterGauge.4DWork\SprinterGaugeConst.inc
 C:\Program Files (x86)\4D Labs\4D Workshop 4 IDE\include\CLPrintStringsGciFS.inc
-C:\Users\mawilkie\Documents\GitHub\HomeAutomation\Sprinter\Genie4D\SprinterGauge.ImgData\MagicTouch.inc

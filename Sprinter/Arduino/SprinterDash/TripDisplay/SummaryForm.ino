@@ -13,10 +13,6 @@
 #define AVG_MOV_SPEED_STRING 25
 #define ELEVATION_GAIN_STRING 10
 
-//Field masks for sprintfs
-char dblFormat[]={'%','x','.','1','l','f','\0'};
-char decFormat[]={'%','x','d','\0'};
-
 // first segment in a linked list  (each tripsegment has the next one)
 SummaryForm::SummaryForm(Genie* _geniePtr,int _formID,const char* _label,TripData *_tripSegDataPtr)
 {
@@ -42,48 +38,16 @@ void SummaryForm::updateDisplay()
   geniePtr->WriteStr(TITLE_STRING, label);
 
   //Update time data fields
-  updateField(DRIVING_TIME_STRING, drivingTime, tripSegDataPtr->getDrivingTime());
-  updateField(ELASPED_TIME_STRING, elapsedTime, tripSegDataPtr->getElapsedTime());
-  updateField(TIME_STOPPED_STRING, stoppedTime,tripSegDataPtr->getStoppedTime());
-  updateField(NUM_STOPS_STRING, numberOfStops, tripSegDataPtr->getNumberOfStops(),2);
-  updateField(TIME_PARKED_STRING, parkedTime, tripSegDataPtr->getParkedTime());
+  strField.updateField(geniePtr,DRIVING_TIME_STRING, drivingTime, tripSegDataPtr->getDrivingTime());
+  strField.updateField(geniePtr,ELASPED_TIME_STRING, elapsedTime, tripSegDataPtr->getElapsedTime());
+  strField.updateField(geniePtr,TIME_STOPPED_STRING, stoppedTime,tripSegDataPtr->getStoppedTime());
+  strField.updateField(geniePtr,NUM_STOPS_STRING, numberOfStops, tripSegDataPtr->getNumberOfStops(),2);
+  strField.updateField(geniePtr,TIME_PARKED_STRING, parkedTime, tripSegDataPtr->getParkedTime());
 
   //Update moving data fields
-  updateField(MILES_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled());
-  updateField(GALLONS_STRING, gallonsUsed, tripSegDataPtr->getFuelGallonsUsed());
-  updateField(AVG_MPG_STRING, avgMPG, tripSegDataPtr->getAvgMPG());
-  updateField(AVG_MOV_SPEED_STRING, avgMovingSpeed, tripSegDataPtr->getAvgMovingSpeed());
-  updateField(ELEVATION_GAIN_STRING, elevationGain, tripSegDataPtr->getTotalClimb());
-}
-
-void SummaryForm::updateField(int objNum,char *field,double value)
-{
-  updateField(objNum,field,value,sizeof(field));
-}
-
-void SummaryForm::updateField(int objNum,char *field,double value,int fieldLen)
-{
-  //Value in range?
-  if(value<0 || value>(pow(10, fieldLen)-1))
-  {
-    sprintf(field, "%s", errorStr);
-  }
-  else
-  {
-    //Room to put a decimal or not
-    if(value<=(pow(10, fieldLen-2)-1) && value>0 && fieldLen>2)
-    {
-      dblFormat[1]=fieldLen+'0';
-      sprintf(field, dblFormat, value);
-    }
-    else
-    {
-      decFormat[1]=fieldLen+'0';
-      int intVal=value;
-      sprintf(field, decFormat, intVal);
-    }
-  }
-
-  //Write to the form
-  geniePtr->WriteStr(objNum,field);
+  strField.updateField(geniePtr,MILES_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled());
+  strField.updateField(geniePtr,GALLONS_STRING, gallonsUsed, tripSegDataPtr->getFuelGallonsUsed());
+  strField.updateField(geniePtr,AVG_MPG_STRING, avgMPG, tripSegDataPtr->getAvgMPG());
+  strField.updateField(geniePtr,AVG_MOV_SPEED_STRING, avgMovingSpeed, tripSegDataPtr->getAvgMovingSpeed());
+  strField.updateField(geniePtr,ELEVATION_GAIN_STRING, elevationGain, tripSegDataPtr->getTotalClimb());
 }

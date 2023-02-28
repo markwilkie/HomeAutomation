@@ -5,7 +5,7 @@
 CurrentData::CurrentData()
 {
     //Other sensors
-    pitot.init(400);  //update every 400 ms
+    pitot.init(200);  //update every 400 ms
     ignState.init(1000);
     barometer.init(5000);
     rtc.init(1000);
@@ -14,9 +14,18 @@ CurrentData::CurrentData()
 void CurrentData::init()
 {
     //calibrate and setup sensors
-    pitot.calibrate();
     barometer.setup();
     rtc.setup();
+}
+
+void CurrentData::calibratePitot()
+{
+    pitot.calibrate();
+}
+
+int CurrentData::readPitot()
+{
+  return pitot.readSpeed();
 }
 
 bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)

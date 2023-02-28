@@ -4,9 +4,10 @@
 #include "CurrentData.h"
 #include "TripData.h"
 
+#include "FormHelpers.h"
 #include "PrimaryForm.h"
 #include "SummaryForm.h"
-#include "StatusForm.h"
+#include "Forms.h"
 
 //
 // SUPER IMPORT POST about setting up the programmer so that high speed transfers work
@@ -44,36 +45,15 @@
 #define RXD1 25
 #define TXD1 26
 
-//Form object numbers
-#define PRIMARY_FORM 0
-#define STOPPED_FORM 1
-#define SUMMARY_FORM 2
-#define STARTING_FORM 3
-#define STATUS_FORM 4
-
-#define END_TO_HOME_BUTTON 0
-#define PRIMARY_TO_SUMMARY_BUTTON 1
-#define SUMMARY_TO_START_BUTTON 2
-#define SUMMARY_TO_PRIMARY_BUTTON 3
-#define START_TO_HOME_BUTTON 4
-#define END_TO_START_BUTTON 5
-
-#define CYCLE_SUMMARY_FORM_BUTTON 8
-
-#define START_NEW_TRIP 0
-#define START_NEW_SEGMENT 1
-#define MERGE_SEGMENT 2
-
-#define NUMBER_OF_SUMMARY_FORMS 3
-
 //timing
 #define LCD_REFRESH_RATE 1000;
 #define VERIFY_TIMEOUT 60000;   //How long we'll wait for everything to come online when we first start
 
+//Misc defines
+#define NUMBER_OF_SUMMARY_FORMS 3
+
 //Global objects for LCD
 Genie genie;  
-int currentActiveForm=4;
-int currentActiveSummaryForm=0;
 int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
@@ -83,30 +63,26 @@ char displayBuffer[150];  //used for status form
 bool online= false;  //If true, it means every PID and sensor is online  (will list those which are not on boot)
 
 //Trip data
+int currentActiveSummaryData=0;
 CurrentData currentData=CurrentData();
 TripData sinceLastStop=TripData(&currentData,0);  //used for the primary form
 TripData currentSegment=TripData(&currentData,1);
 TripData fullTrip=TripData(&currentData,2);
 
 //Forms
+FormNavigator formNavigator;
 PrimaryForm primaryForm = PrimaryForm(&genie,PRIMARY_FORM,"Main Screen",&sinceLastStop,&currentData);
 SummaryForm sinceLastStopSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Since Stopped",&sinceLastStop);
 SummaryForm currentSegmentSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Current Segment",&currentSegment);
 SummaryForm fullTripSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Full Trip",&fullTrip);
-SummaryForm startForm = SummaryForm(&genie,STARTING_FORM,"Starting Form",&fullTrip);
-SummaryForm stopForm = SummaryForm(&genie,STOPPED_FORM,"Stopping Form",&sinceLastStop);
-StatusForm statusForm = StatusForm(&genie,STATUS_FORM);
+StartingForm startForm = StartingForm(&genie,STARTING_FORM,&fullTrip,1000);
+StoppedForm stopForm = StoppedForm(&genie,STOPPED_FORM,&sinceLastStop,1000);
+StatusForm statusForm = StatusForm(&genie,STATUS_FORM,600);
 
 //Serial coms
 byte serialBuffer[20];
 int currentComIdx=0;
 bool msgStarted=false;
-
-long lastLoopTime;
-long longestTick;
-
-
-int doneFlag=0;
 
 void setup()
 {
@@ -136,6 +112,7 @@ void setup()
   delay(5000); 
 
   //This is how we get notified when a button is pressed
+  formNavigator.init(&genie);
   genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
 
   //calibrate and setup sensors
@@ -143,21 +120,23 @@ void setup()
   currentData.init();
   delay(500);
 
-  Serial.println("Validating interfaces");
-  verifyInterfaces();
-
-  //Reset the data since last stop because we're booting
-  Serial.println("Reseting trip data from last stop");
-  sinceLastStop.resetTripData();
-
   //Initialize or load data from EEPROM for each of the trip bucket objects
   Serial.println("Loading data from EEPROM");
   currentSegment.loadTripData();
   fullTrip.loadTripData();
 
+  //Calibrate Pitot
+  currentData.calibratePitot();
+
+  Serial.println("Validating interfaces"); 
+  verifyInterfaces();
+
+  //Reset the data since last stop because we're booting
+  Serial.println("Reseting trip data from last stop");
+  sinceLastStop.resetTripData();  
+
   //Let's go!
   Serial.println("Starting now....");
-  lastLoopTime=millis();
 }
 
 void verifyInterfaces()
@@ -165,8 +144,9 @@ void verifyInterfaces()
   //read serial from canbus board
   int service=0; int pid=0; int value=0;
 
-  //Set title
-  statusForm.updateTitle("Establishing Links");
+  //Show setup form
+  formNavigator.activateForm(STATUS_FORM); 
+  statusForm.updateTitle("Validating Links");
 
   bool online=false;
   unsigned long timeout=millis()+VERIFY_TIMEOUT;
@@ -179,22 +159,21 @@ void verifyInterfaces()
       online=currentData.verifyInterfaces(service,pid,value,displayBuffer);
       statusForm.updateText(displayBuffer);
     }
-    delay(100);
-  }
+    genie.DoEvents();   //so that the buttons will work
 
-  Serial.print("Online: ");  Serial.println(online);
+    //If someone pressed the button, time to bail
+    if(formNavigator.getActiveForm()!=STATUS_FORM)
+      return;
+  }
 
   //Pause and give message if not all online
   if(!online)
   {
     statusForm.updateTitle("Links NOT available:");
     delay(10000);
-  }
+  } 
 
-  //Activate primary form
-  Serial.println("activating PRIMARY form");
-  currentActiveForm=PRIMARY_FORM;
-  genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
+  formNavigator.activateForm(PRIMARY_FORM);    
 }
 
 void loop()
@@ -215,15 +194,15 @@ void loop()
     fullTrip.updateTripData();    
 
     //Update display for active forms only
-    if(primaryForm.getFormId()==currentActiveForm)
+    if(primaryForm.getFormId()==formNavigator.getActiveForm())
     {   
       primaryForm.updateDisplay();  //Time to update trip display?
     }     
-    if(startForm.getFormId()==currentActiveForm)
+    if(startForm.getFormId()==formNavigator.getActiveForm())
     {   
       startForm.updateDisplay();
     }  
-    if(stopForm.getFormId()==currentActiveForm)
+    if(stopForm.getFormId()==formNavigator.getActiveForm())
     {   
       stopForm.updateDisplay(); 
     }
@@ -264,30 +243,110 @@ void updateLCD()
 
       if(currentIgnState)
       {
-        Serial.println("activating STARTING form");
-        currentActiveForm=STARTING_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,STARTING_FORM,0);
+        formNavigator.activateForm(STARTING_FORM);
       }
       else
       {
         Serial.println("saving to EEPROM and activating STOPPING form");
-        //sinceLastStop.saveTripData();
         currentSegment.saveTripData();
         fullTrip.saveTripData();
-        currentActiveForm=STOPPED_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,STOPPED_FORM,0);
+        formNavigator.activateForm(STOPPED_FORM);
       }
       return;
     }
 
     //If on stopped form, and our speed goes above 0, switch to main
-    if(currentActiveForm==STARTING_FORM && currentData.currentSpeed>5)
+    if(formNavigator.getActiveForm()==STARTING_FORM && currentData.currentSpeed>5)
     {
-        Serial.println("activating PRIMARY form");
-        currentActiveForm=PRIMARY_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
-        return;
+      formNavigator.activateForm(PRIMARY_FORM);
+      return;
     }
+}
+
+void calibratePitot()
+{
+    Serial.println("Calibrating Pitot");
+    formNavigator.activateForm(STATUS_FORM); 
+    statusForm.updateTitle("Calibrating Pitot");
+    currentData.calibratePitot();
+
+    //Now read the pitot gauge until the user exits out using a button
+    statusForm.updateTitle("Current Readings");
+    while(1)
+    {
+      int pitotSpeed=currentData.readPitot();
+      statusForm.updateText(pitotSpeed);
+      genie.DoEvents();   //so that the buttons will work
+    }
+}
+
+void myGenieEventHandler(void)
+{
+  genieFrame event;
+  genie.DequeueEvent(&event);
+
+  Serial.print("CMD: ");
+  Serial.print(event.reportObject.cmd);
+  Serial.print(" OBJ: ");
+  Serial.print(event.reportObject.object);
+  Serial.print(" IDX: ");
+  Serial.println(event.reportObject.index);
+
+  //Act on returned action
+  int action=formNavigator.determineAction(&event);
+  switch(action)
+  {
+    case ACTION_ACTIVATE_PRIMARY_FORM:
+      formNavigator.activateForm(PRIMARY_FORM);
+      break;
+    case ACTION_ACTIVATE_SUMMARY_FORM:
+      formNavigator.activateForm(SUMMARY_FORM);
+      sinceLastStopSummaryForm.updateDisplay();
+      break;
+    case ACTION_CYCLE_SUMMARY:
+      Serial.println("cycling SUMMARY form");
+       currentActiveSummaryData++;
+      if(currentActiveSummaryData>=NUMBER_OF_SUMMARY_FORMS)
+        currentActiveSummaryData=0;
+
+      if(currentActiveSummaryData==0)
+        sinceLastStopSummaryForm.updateDisplay();
+      if(currentActiveSummaryData==1)
+        currentSegmentSummaryForm.updateDisplay();
+      if(currentActiveSummaryData==2)
+        fullTripSummaryForm.updateDisplay();                    
+      break; 
+    case ACTION_ACTIVATE_STARTING_FORM:
+      formNavigator.activateForm(STARTING_FORM);
+      break;  
+    case ACTION_ACTIVATE_MENU_FORM:
+      formNavigator.activateForm(MENU_FORM);
+      break;  
+    case ACTION_START_NEW_TRIP:
+      Serial.println("Start Trip button pressed!");
+      currentSegment.resetTripData();
+      fullTrip.resetTripData();        
+      formNavigator.activateForm(PRIMARY_FORM);
+      break;
+    case ACTION_START_NEW_SEGMENT:
+      Serial.println("Start Segment button pressed!");
+      currentSegment.resetTripData();     
+      formNavigator.activateForm(PRIMARY_FORM);
+      break;
+    case ACTION_ACTIVATE_STATUS_FORM:
+      verifyInterfaces();
+      break;
+    case ACTION_PITOT:
+      calibratePitot();
+      break;
+  }
+
+  //Did we just move from stopped form?  If so, reset data
+  if(formNavigator.getLastActiveForm()==STOPPED_FORM)
+  {
+    Serial.println("Reseting since last stop trip data");
+    sinceLastStop.resetTripData();
+  }    
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
@@ -387,120 +446,3 @@ bool processIncoming(int *service,int *pid,int *value)
 
   return false;  //nothing new
 }
-
-/////////////////////////////////////////////////////////////////////
-//
-// This is the user's event handler. It is called by genieDoEvents()
-// when the following conditions are true
-//
-//    The link is in an IDLE state, and
-//    There is an event to handle
-//
-// The event can be either a REPORT_EVENT frame sent asynchronously
-// from the display or a REPORT_OBJ frame sent by the display in
-// response to a READ_OBJ (genie.ReadObject) request.
-//
-
-//COMPACT VERSION HERE, LONGHAND VERSION BELOW WHICH MAY MAKE MORE SENSE
-void myGenieEventHandler(void)
-{
-  genieFrame Event;
-  genie.DequeueEvent(&Event);
-
-  Serial.print("CMD: ");
-  Serial.print(Event.reportObject.cmd);
-  Serial.print(" OBJ: ");
-  Serial.print(Event.reportObject.object);
-  Serial.print(" IDX: ");
-  Serial.println(Event.reportObject.index);  
-
-  //If the cmd received is from a Reported Event (Events triggered from the Events tab of Workshop4 objects)
-  if (Event.reportObject.cmd == GENIE_REPORT_EVENT)
-  {
-    //Form activate 
-    if (Event.reportObject.object == GENIE_OBJ_FORM) //If a form is activated
-    {
-      currentActiveForm=Event.reportObject.index;
-      Serial.print("Form Activated: ");
-      Serial.println(currentActiveForm);
-      return;
-    }
-
-    if (Event.reportObject.object == GENIE_OBJ_USERBUTTON)
-    {
-      if (Event.reportObject.index == PRIMARY_TO_SUMMARY_BUTTON)
-      {
-        Serial.println("activating SUMMARY form");
-        currentActiveForm=SUMMARY_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,SUMMARY_FORM,0);
-        sinceLastStopSummaryForm.updateDisplay();
-        return;
-      }
-      if (Event.reportObject.index==SUMMARY_TO_PRIMARY_BUTTON || Event.reportObject.index==END_TO_HOME_BUTTON 
-          || Event.reportObject.index==START_TO_HOME_BUTTON) 
-      {
-        Serial.println("activating PRIMARY form");
-        currentActiveForm=PRIMARY_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);
-        return;
-      }
-      if (Event.reportObject.index == CYCLE_SUMMARY_FORM_BUTTON) 
-      {
-        Serial.println("cycling SUMMARY form");
-        currentActiveSummaryForm++;
-        if(currentActiveSummaryForm>=NUMBER_OF_SUMMARY_FORMS)
-          currentActiveSummaryForm=0;
-
-        if(currentActiveSummaryForm==0)
-          sinceLastStopSummaryForm.updateDisplay();
-        if(currentActiveSummaryForm==1)
-          currentSegmentSummaryForm.updateDisplay();
-        if(currentActiveSummaryForm==2)
-          fullTripSummaryForm.updateDisplay();                    
-        return;
-      }
-      if (Event.reportObject.index==SUMMARY_TO_START_BUTTON || Event.reportObject.index==END_TO_START_BUTTON) 
-      {
-        Serial.println("activating START form");
-        currentActiveForm=STARTING_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,STARTING_FORM,0);
-        return;
-      }               
-    }       
-
-    if (Event.reportObject.object == GENIE_OBJ_WINBUTTON) // If a Winbutton was pressed
-    {
-      //Start new trip button
-      if (Event.reportObject.index == START_NEW_TRIP)  
-      {
-        Serial.println("Start Trip button pressed!");
-        currentSegment.resetTripData();
-        fullTrip.resetTripData();        
-
-        Serial.println("activating PRIMARY form");
-        currentActiveForm=PRIMARY_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);        
-        return;
-      }
-      //Start new segment button
-      if (Event.reportObject.index == START_NEW_SEGMENT)  
-      {
-        Serial.println("Start Segment button pressed!");
-        currentSegment.resetTripData();     
-
-        Serial.println("activating PRIMARY form");
-        currentActiveForm=PRIMARY_FORM;
-        genie.WriteObject(GENIE_OBJ_FORM,PRIMARY_FORM,0);        
-        return;
-      }      
-    }
-  }
-}
-
-  /********** This can be expanded as more objects are added that need to be captured *************
-  *************************************************************************************************
-  Event.reportObject.cmd is used to determine the command of that event, such as an reported event
-  Event.reportObject.object is used to determine the object type, such as a Slider
-  Event.reportObject.index is used to determine the index of the object, such as Slider0
-  genie.GetEventData(&Event) us used to save the data from the Event, into a variable.
-  *************************************************************************************************/

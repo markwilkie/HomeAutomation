@@ -1,4 +1,4 @@
-// File generated 2/25/2023 6:34:01 PM
+// File generated 2/27/2023 2:34:27 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -73,7 +73,7 @@
 #constant  Strings34Count    0
 #constant  Strings34Size     1
 #constant  Strings35Count    1
-#constant  Strings35Size     12
+#constant  Strings35Size     17
 #constant  IFONT_OFFSET     36
 // object indexes into WIDGET pointer
 #CONST
@@ -115,11 +115,21 @@
     iUserbutton5    // offset 0x26600
     iUserbutton3    // offset 0x27A00
     iUserbutton8    // offset 0x28800
-    iUserbutton2    // offset 0x26600
+    iUserbutton10   // offset 0x26600
     iUserbutton4    // offset 0x25000
     iWinbutton0     // offset 0x29C00
     iWinbutton1     // offset 0x31800
-    iFontIFont0
+    iUserbutton11   // offset 0x26600
+    iUserbutton6    // offset 0x25000
+    iUserbutton7    // offset 0x26600
+    iForm5          // offset 0x39400
+    iStatictext0    // offset 0x57600
+    iUserbutton9    // offset 0x25000
+    iWinbutton2     // offset 0x58800
+    iWinbutton3     // offset 0x60400
+    iWinbutton4     // offset 0x29C00
+    iWinbutton5     // offset 0x31800
+    iUserbutton2    // offset 0x23600
     iFontStrings2
     iFontStrings10
     iFontStrings8
@@ -200,14 +210,14 @@
 #constant  Strings35StartH   0x0
 #constant  Strings35StartL   0x4600
 
-#constant  ffsEndUnits4k    0x0049  // First unused 4k Sector on Flash
-#constant  ffsEnd4kH        0x0004  // Address of first unused 4k Sector on Flash, High
-#constant  ffsEnd4kL        0x9000  // Address of first unused 4k Sector on Flash, Low
-#constant  ffsEndUnits32k   0x000A  // First unused 32k Block on Flash
-#constant  ffsEnd32kH       0x0005  // Address of first unused 32k Block on Flash, High
-#constant  ffsEnd32kL       0x0000  // Address of first unused 32k Block on Flash, Low
-#constant  ffsEndUnits64k   0x0005  // First unused 64k Block on Flash
-#constant  ffsEnd64kH       0x0005  // Address of first unused 64k Block on Flash, High
+#constant  ffsEndUnits4k    0x0075  // First unused 4k Sector on Flash
+#constant  ffsEnd4kH        0x0007  // Address of first unused 4k Sector on Flash, High
+#constant  ffsEnd4kL        0x5000  // Address of first unused 4k Sector on Flash, Low
+#constant  ffsEndUnits32k   0x000F  // First unused 32k Block on Flash
+#constant  ffsEnd32kH       0x0007  // Address of first unused 32k Block on Flash, High
+#constant  ffsEnd32kL       0x8000  // Address of first unused 32k Block on Flash, Low
+#constant  ffsEndUnits64k   0x0008  // First unused 64k Block on Flash
+#constant  ffsEnd64kH       0x0008  // Address of first unused 64k Block on Flash, High
 #constant  ffsEnd64kL       0x0000  // Address of first unused 64k Block on Flash, Low
 
 #IFNOT EXISTS NOGLOBALS

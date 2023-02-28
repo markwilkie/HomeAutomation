@@ -1,11 +1,7 @@
 #ifndef CurrentData_h
 #define CurrentData_h
 
-#include "Pitot.h"
-#include "IgnState.h"
-#include "Barometer.h"
-#include "RTC.h"
-
+#include "Sensors.h""
 
 struct PIDStruct{
     //Distance
@@ -34,6 +30,8 @@ class CurrentData
   public:
     CurrentData();
     void init();
+    void calibratePitot();
+    int readPitot();
     bool verifyInterfaces(int service, int pid, int value, char *listOfOfflineInterfaces);
     void updateData(int service,int pid,int value);
 

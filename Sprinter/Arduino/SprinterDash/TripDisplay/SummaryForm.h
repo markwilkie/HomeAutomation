@@ -1,6 +1,7 @@
 #ifndef SummaryForm_h
 #define SummaryForm_h
 
+#include "FormHelpers.h"
 #include <genieArduino.h>
 
 #include "TripData.h"
@@ -14,9 +15,7 @@ class SummaryForm
     void updateDisplay();
 
   private: 
-
-    void updateField(int objNum,char *title,double value);
-    void updateField(int objNum,char *title,double value,int fieldLen);
+    StrField strField;
 
     //State
     int formID;

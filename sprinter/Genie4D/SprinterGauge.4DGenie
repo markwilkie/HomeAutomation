@@ -11,9 +11,9 @@ Options
     Multidrop                    No
     Destination                  0
     DestBank                     0
-    MainForm                     4
+    MainForm                     5
     SndBuf                       0
-    ButtonDisable                No
+    ButtonDisable                Yes
     SignedDigits                 No
     MaxString                    75
     ComPort                      0
@@ -562,7 +562,7 @@ iLedDigits
 end
 Image
     Name                         Image5
-    Alias                        Image5
+    Alias                        Odometer
     Height                       23
     Image                        odometer.jpg
     Left                         444
@@ -578,7 +578,7 @@ Image
 end
 Image
     Name                         Image7
-    Alias                        Image7
+    Alias                        TimeDrivingIcon
     Height                       32
     Image                        stopwatch.jpg
     Left                         372
@@ -610,7 +610,7 @@ Image
 end
 Image
     Name                         Image9
-    Alias                        Image9
+    Alias                        ElevationIcon
     Height                       27
     Image                        Elevation.jpg
     Left                         420
@@ -759,36 +759,9 @@ Gauge
     OnTouchPressed               ''
     OnTouchReleased              ''
 end
-MagicTouch
-    Name                         MagicTouch
-    Alias                        MagicTouch
-    Code                         MagicTouch.inc
-end
-iFont
-    Name                         IFont0
-    Alias                        IFont0
-    Bold                         No
-    CharSet                      ANSI
-    FontName                     Arial
-    Italic                       No
-    Size                         -12
-    Strikethrough                No
-    Underline                    No
-end
-iFont
-    Name                         IFont1
-    Alias                        IFont1
-    Bold                         No
-    CharSet                      ANSI
-    FontName                     Arial
-    Italic                       No
-    Size                         -12
-    Strikethrough                No
-    Underline                    No
-end
 Image
     Name                         Image10
-    Alias                        Image10
+    Alias                        WindIcon
     Height                       20
     Image                        wind-blowing-icon-9.jpg
     Left                         30
@@ -1030,9 +1003,9 @@ UserButton
 end
 UserButton
     Name                         Userbutton5
-    Alias                        StoppedStartButton
+    Alias                        StoppedToMenu
     Height                       35
-    Images                       play.png
+    Images                       menu.png
     Left                         24
     Matrix                       -1
     Momentary                    Yes
@@ -1076,7 +1049,7 @@ Strings
     Left                         270
     Strings                      99999\n
     StringsStyle                 Message
-    Top                          108
+    Top                          110
     Width                        50
     OnChanged                    ''
 end
@@ -1098,7 +1071,7 @@ Strings
     Left                         325
     Strings                      'Elevation Gain\n'
     StringsStyle                 Message
-    Top                          108
+    Top                          110
     Width                        140
     OnChanged                    ''
 end
@@ -1120,7 +1093,7 @@ Strings
     Left                         55
     Strings                      0123456789012345\n
     StringsStyle                 Message
-    Top                          4
+    Top                          7
     Width                        217
     OnChanged                    ''
 end
@@ -1142,7 +1115,7 @@ Strings
     Left                         65
     Strings                      'Driving Time\n\n'
     StringsStyle                 Message
-    Top                          35
+    Top                          38
     Width                        100
     OnChanged                    ''
 end
@@ -1164,7 +1137,7 @@ Strings
     Left                         65
     Strings                      'Elapsed Time\n'
     StringsStyle                 Message
-    Top                          60
+    Top                          62
     Width                        111
     OnChanged                    ''
 end
@@ -1186,7 +1159,7 @@ Strings
     Left                         12
     Strings                      9999\n
     StringsStyle                 Message
-    Top                          60
+    Top                          62
     Width                        40
     OnChanged                    ''
 end
@@ -1208,7 +1181,7 @@ Strings
     Left                         12
     Strings                      9999\n
     StringsStyle                 Message
-    Top                          85
+    Top                          86
     Width                        40
     OnChanged                    ''
 end
@@ -1230,7 +1203,7 @@ Strings
     Left                         65
     Strings                      Time\n\n
     StringsStyle                 Message
-    Top                          85
+    Top                          86
     Width                        38
     OnChanged                    ''
 end
@@ -1252,7 +1225,7 @@ Strings
     Left                         270
     Strings                      999\n
     StringsStyle                 Message
-    Top                          36
+    Top                          38
     Width                        50
     OnChanged                    ''
 end
@@ -1274,7 +1247,7 @@ Strings
     Left                         325
     Strings                      'Gallons Used\n\n'
     StringsStyle                 Message
-    Top                          35
+    Top                          38
     Width                        100
     OnChanged                    ''
 end
@@ -1296,7 +1269,7 @@ Strings
     Left                         270
     Strings                      99.9\n
     StringsStyle                 Message
-    Top                          60
+    Top                          62
     Width                        50
     OnChanged                    ''
 end
@@ -1318,7 +1291,7 @@ Strings
     Left                         325
     Strings                      'Average MPG\n\n'
     StringsStyle                 Message
-    Top                          60
+    Top                          62
     Width                        100
     OnChanged                    ''
 end
@@ -1340,7 +1313,7 @@ Strings
     Left                         270
     Strings                      9999\n
     StringsStyle                 Message
-    Top                          12
+    Top                          16
     Width                        50
     OnChanged                    ''
 end
@@ -1362,7 +1335,7 @@ Strings
     Left                         325
     Strings                      'Miles Travelled\n\n'
     StringsStyle                 Message
-    Top                          12
+    Top                          16
     Width                        117
     OnChanged                    ''
 end
@@ -1384,7 +1357,7 @@ Strings
     Left                         270
     Strings                      99.9\n
     StringsStyle                 Message
-    Top                          85
+    Top                          86
     Width                        50
     OnChanged                    ''
 end
@@ -1406,7 +1379,7 @@ Strings
     Left                         325
     Strings                      'Avg Moving Speed\n\n'
     StringsStyle                 Message
-    Top                          85
+    Top                          86
     Width                        143
     OnChanged                    ''
 end
@@ -1428,7 +1401,7 @@ Strings
     Left                         12
     Strings                      9999\n
     StringsStyle                 Message
-    Top                          35
+    Top                          38
     Width                        40
     OnChanged                    ''
 end
@@ -1494,7 +1467,7 @@ Strings
     Left                         105
     Strings                      99\n
     StringsStyle                 Message
-    Top                          85
+    Top                          86
     Width                        22
     OnChanged                    ''
 end
@@ -1516,7 +1489,7 @@ Strings
     Left                         130
     Strings                      '# Stopped\n\n'
     StringsStyle                 Message
-    Top                          85
+    Top                          86
     Width                        82
     OnChanged                    ''
 end
@@ -1529,7 +1502,7 @@ UserButton
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
-    Top                          4
+    Top                          9
     Width                        30
     OnChanged                    'Report Message'
 end
@@ -1538,24 +1511,24 @@ UserButton
     Alias                        CycleFormButton
     Height                       35
     Images                       reload.png
-    Left                         220
+    Left                         176
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
-    Top                          40
+    Top                          42
     Width                        35
     OnChanged                    'Report Message'
 end
 UserButton
-    Name                         Userbutton2
-    Alias                        SummaryStartButton
+    Name                         Userbutton10
+    Alias                        SummaryToMenu
     Height                       35
-    Images                       play.png
-    Left                         220
+    Images                       menu.png
+    Left                         228
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
-    Top                          84
+    Top                          42
     Width                        35
     OnChanged                    'Report Message'
 end
@@ -1839,6 +1812,19 @@ Strings
     Width                        139
     OnChanged                    ''
 end
+UserButton
+    Name                         Userbutton11
+    Alias                        StartToMenu
+    Height                       35
+    Images                       menu.png
+    Left                         12
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          68
+    Width                        35
+    OnChanged                    'Report Message'
+end
 Form
     Name                         Form4
     Alias                        Status
@@ -1894,9 +1880,306 @@ Strings
     Font.Strikethrough           No
     Font.Underline               No
     Left                         15
-    Strings                      Booting....\n
+    Strings                      Initializing....\n
     StringsStyle                 Message
     Top                          16
     Width                        168
     OnChanged                    ''
+end
+UserButton
+    Name                         Userbutton6
+    Alias                        StatusToPrimaryButton
+    Height                       35
+    Images                       home.png
+    Left                         16
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          48
+    Width                        38
+    OnChanged                    'Report Message'
+end
+UserButton
+    Name                         Userbutton7
+    Alias                        MenuButton
+    Height                       35
+    Images                       menu.png
+    Left                         64
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          48
+    Width                        35
+    OnChanged                    'Report Message'
+end
+Form
+    Name                         Form5
+    Alias                        Booting
+    Bgtype                       Image
+    Color                        BLACK
+    Image                        vanbackdrop.png
+    Source.Height                128
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 480
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+StaticText
+    Name                         Statictext0
+    Alias                        Statictext0
+    Alignment                    Left
+    AutoSize                     Yes
+    Caption                      Booting
+    Color                        BLACK
+    Font.Color                   WHITE
+    Font.Effects                 []
+    Font.Name                    'Arial Rounded MT Bold'
+    Font.Size                    16
+    Font.Style                   []
+    Height                       24
+    Left                         56
+    Top                          72
+    Transparent                  Yes
+    Width                        87
+    WordWrap                     Yes
+end
+Form
+    Name                         Form6
+    Alias                        MenuToSummary
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+UserButton
+    Name                         Userbutton9
+    Alias                        MenuToMain
+    Height                       35
+    Images                       home.png
+    Left                         16
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          20
+    Width                        38
+    OnChanged                    'Report Message'
+end
+WinButton
+    Name                         Winbutton2
+    Alias                        Winbutton2
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      Status
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         268
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          12
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton3
+    Alias                        Winbutton3
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      Pitot
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         268
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          68
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton4
+    Alias                        Winbutton4
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start New Trip'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         80
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          12
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton5
+    Alias                        Winbutton5
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start Segment'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         80
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          68
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+UserButton
+    Name                         Userbutton2
+    Alias                        ToSummary
+    Height                       35
+    Images                       nextform.png
+    Left                         16
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          68
+    Width                        35
+    OnChanged                    'Report Message'
 end

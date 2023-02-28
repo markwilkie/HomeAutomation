@@ -20,8 +20,12 @@ void TripData::resetTripData()
     data.totalStoppedSeconds=0;
     data.numberOfStops=0;
     data.lastFuelPerc=data.startFuelPerc;
+    data.stoppedFuelPerc=0;
     data.priorTotalGallonsUsed=0;
     data.totalClimb=0;
+
+    sumInstMPG=0;
+    numSamples=0;    
 
     dumpTripData();
 }
@@ -97,6 +101,7 @@ void TripData::dumpTripData()
 
 void TripData::updateTripData()
 {
+
     //Calc elevation gained
     int currentElevation=currentDataPtr->currentElevation;
     if(currentElevation>0)
@@ -112,6 +117,7 @@ void TripData::updateTripData()
     unsigned long currentSeconds = currentDataPtr->currentSeconds;
     if(!currentDataPtr->ignitionState && data.ignOffSeconds==0)
     {
+        data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;        
         data.ignOffSeconds=currentSeconds;
         data.numberOfStops++;
     }
@@ -207,12 +213,57 @@ double TripData::getFuelGallonsUsed()
     return gallonsUsed;
 }
 
+double TripData::getHeaterGallonsUsed()
+{
+    double currentFuelPerc=currentDataPtr->currentFuelPerc;
+    double gallonsUsed = FUEL_TANK_SIZE*((currentFuelPerc-data.stoppedFuelPerc)/100.0);
+
+    return gallonsUsed;
+}
+
+double TripData::getGallonsExpected()
+{
+    double currentFuelPerc=currentDataPtr->currentFuelPerc;
+    double gallonsExpected = FUEL_TANK_SIZE-(FUEL_TANK_SIZE*(currentFuelPerc/100.0));
+    return gallonsExpected;
+}
+
 double TripData::getInstantMPG()
 {
     double galPerHour=((double)currentDataPtr->currentMAF*(double)currentDataPtr->currentLoad)/1006.777948;
     double instMPG=(currentDataPtr->currentSpeed)/galPerHour;
 
+    //Add for avg calc
+    double galUsed=getFuelGallonsUsed();
+    if(instMPG<100 && lastInstMPG!=instMPG && galUsed>1)
+    {
+        lastInstMPG=instMPG;
+        sumInstMPG=sumInstMPG+(instMPG*10);
+        numSamples++;
+
+        //overflow
+        if(sumInstMPG>4294967000)
+        {
+            sumInstMPG=instMPG;
+            numSamples=1;
+        }        
+
+        //Now, let's calc a factor to make the inst more accurate over time
+        int milesTravelled=getMilesTravelled();
+        if(milesTravelled>=9)
+        {        
+            double avgMPG=(double)milesTravelled/galUsed;
+            instMPG = (avgMPG/getInstantAvgMPG())*instMPG;
+        }
+    }
+
     return instMPG;
+}
+
+double TripData::getInstantAvgMPG()
+{
+    int avg=sumInstMPG/numSamples;
+    return (double)avg/10.0;
 }
 
 double TripData::getAvgMPG()

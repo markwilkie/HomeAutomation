@@ -20,6 +20,7 @@ struct TripDataStruct{
     uint16_t numberOfStops;
 
     //Consumption
+    double_t stoppedFuelPerc;  //used to calc heater fueld consumption
     double_t startFuelPerc;
     double_t lastFuelPerc;
     double_t priorTotalGallonsUsed;
@@ -47,7 +48,10 @@ class TripData
     double getParkedTime();
     int getNumberOfStops();
     double getFuelGallonsUsed();
+    double getHeaterGallonsUsed();
+    double getGallonsExpected();
     double getInstantMPG();
+    double getInstantAvgMPG();
     double getAvgMPG();
     double getAvgMovingSpeed();
     int getMilesLeftInTank();
@@ -59,6 +63,11 @@ class TripData
     int tripIdx;
 
     TripDataStruct data;
+
+    //Used to keep a running average
+    unsigned long sumInstMPG=0;
+    int numSamples=0;
+    int lastInstMPG=0;
 };
 
 #endif
