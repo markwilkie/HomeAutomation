@@ -1912,6 +1912,28 @@ UserButton
     Width                        35
     OnChanged                    'Report Message'
 end
+Strings
+    Name                         Strings36
+    Alias                        StatusString
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         15
+    Strings                      ''
+    StringsStyle                 Message
+    Top                          92
+    Width                        168
+    OnChanged                    ''
+end
 Form
     Name                         Form5
     Alias                        Booting

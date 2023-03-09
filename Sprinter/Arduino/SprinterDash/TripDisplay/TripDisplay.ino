@@ -39,7 +39,12 @@
 // ViSi-Genie Arduino Danger Shield - https://docs.4dsystems.com.au/app-note/4D-AN-00025
 
 //defines
-#define RESETLINE 4  //Bringing D4 low resets the display
+//#define RESETLINE D6  //Bringing D6 low resets the display
+
+//Power supply values
+#define PS_PIN D7   // Note that ignition is on D4, see sensors.ino
+#define PS_STAY_ON_TIME 30  //Time to stay on after ignition is off in seconds
+unsigned long turnOffTime;
 
 //Using esp32 firebeatle where io25-->d2 and io26-->d3.  Note that io9/10 (default) conflict (probably with flash) and crash the board  
 #define RXD1 25
@@ -47,6 +52,7 @@
 
 //timing
 #define LCD_REFRESH_RATE 1000;
+#define SHUTDOWN_STARTUP_RATE 1000;  //how often we check ignition
 #define VERIFY_TIMEOUT 60000;   //How long we'll wait for everything to come online when we first start
 
 //Misc defines
@@ -57,8 +63,7 @@ Genie genie;
 int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
-unsigned long totalMessages;
-unsigned long totalCRC;
+unsigned long nextIgnRefresh=0;
 char displayBuffer[150];  //used for status form
 bool online= false;  //If true, it means every PID and sensor is online  (will list those which are not on boot)
 
@@ -83,9 +88,17 @@ StatusForm statusForm = StatusForm(&genie,STATUS_FORM,600);
 byte serialBuffer[20];
 int currentComIdx=0;
 bool msgStarted=false;
+unsigned long totalMessages;
+unsigned long totalCRC;
+double crcFailureRate;
+double lastCrcFailureRate;
 
 void setup()
 {
+  // Bring PS control pin high so that when we shut the van off, there's some time before everything shuts down
+  pinMode(PS_PIN, OUTPUT); 
+  digitalWrite(PS_PIN, 1); 
+
   //USB port serial  (used for logging)
   Serial.begin(115200);
   delay(2000);
@@ -101,10 +114,10 @@ void setup()
   // THIS IS IMPORTANT AND CAN PREVENT OUT OF SYNC ISSUES, SLOW SPEED RESPONSE ETC
   // If NOT using a 4D Arduino Adaptor, digitalWrites must be reversed as Display Reset is Active Low, and
   // the 4D Arduino Adaptors invert this signal so must be Active High.  
-  pinMode(RESETLINE, OUTPUT);  // Set D4 on Arduino to Output (4D Arduino Adaptor V2 - Display Reset)
-  digitalWrite(RESETLINE, 0);  // Reset the Display via D4
-  delay(100);
-  digitalWrite(RESETLINE, 1);  // unReset the Display via D4
+  //pinMode(RESETLINE, OUTPUT);  // Set D4 on Arduino to Output (4D Arduino Adaptor V2 - Display Reset)
+  //digitalWrite(RESETLINE, 0);  // Reset the Display
+  //delay(100);
+  //digitalWrite(RESETLINE, 1);  // unReset the Display
 
   // Let the display start up after the reset (This is important)
   // Increase to 4500 or 5000 if you have sync problems as your project gets larger. Can depent on microSD init speed.
@@ -159,6 +172,16 @@ void verifyInterfaces()
       online=currentData.verifyInterfaces(service,pid,value,displayBuffer);
       statusForm.updateText(displayBuffer);
     }
+
+    //Show current serial error rate between processors
+    if(crcFailureRate != lastCrcFailureRate)
+    {
+      lastCrcFailureRate=crcFailureRate;
+      statusForm.updateStatus(totalMessages,totalCRC,crcFailureRate);
+    }
+
+    //Take care of business
+    //handleStatupAndShutdown(); //so that stopping the engine will do something
     genie.DoEvents();   //so that the buttons will work
 
     //If someone pressed the button, time to bail
@@ -173,7 +196,7 @@ void verifyInterfaces()
     delay(10000);
   } 
 
-  formNavigator.activateForm(PRIMARY_FORM);    
+  formNavigator.activateForm(STARTING_FORM);    
 }
 
 void loop()
@@ -182,11 +205,14 @@ void loop()
   int service; int pid; int value;
   bool retVal=processIncoming(&service,&pid,&value);
 
+  //Update data from sensors
+  currentData.updateDataFromSensors();
+
   //new values to process?
   if(retVal)
   {
     //Update current data that's shared for everyone
-    currentData.updateData(service,pid,value);
+    currentData.updateDataFromPIDs(service,pid,value);
 
     //Now make sure all the trip data objects have the latest
     sinceLastStop.updateTripData();
@@ -208,15 +234,16 @@ void loop()
     }
   }
 
-  //Update main LCD, like adjust contract, switch forms, etc
-  updateLCD();
+  //Take care of business
+  updateContrast();
+  handleStatupAndShutdown();
 
   //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
   genie.DoEvents(); 
 }
 
-//These are user defined PIDs and sensors which control the main display in various ways
-void updateLCD()
+//Update Contrast of LCD
+void updateContrast()
 {
     //don't update if it's not time to
     if(millis()<nextLCDRefresh)
@@ -234,25 +261,46 @@ void updateLCD()
       genie.WriteContrast(contrast);   
       currentContrast=contrast;
     }
+}
 
-    //Go to stopped form if ignition is turned off, or to start when first turned on
+//Handle navigation and power supply status based on ignition state
+void handleStatupAndShutdown()
+{
+    //don't update if it's not time to
+    if(millis()<nextIgnRefresh)
+        return;
+
+    //Update timing
+    nextIgnRefresh=millis()+SHUTDOWN_STARTUP_RATE;
+
+    //Go to stopped form if ignition has changed, and is turned off
     bool state=currentData.ignitionState;
     if(state!=currentIgnState)
     {
       currentIgnState=state;
 
-      if(currentIgnState)
+      if(!currentIgnState)
       {
-        formNavigator.activateForm(STARTING_FORM);
-      }
-      else
-      {
+        //Save to EEPROM
         Serial.println("saving to EEPROM and activating STOPPING form");
         currentSegment.saveTripData();
         fullTrip.saveTripData();
+
+        //Set time to actually turn off
+        turnOffTime=currentData.currentSeconds+PS_STAY_ON_TIME;
+
+        //Activate stopping form
         formNavigator.activateForm(STOPPED_FORM);
       }
       return;
+    }
+
+    //If ign is Off AND it's time, shut things down
+    if(!currentData.ignitionState && currentData.currentSeconds>=turnOffTime)
+    {
+      Serial.println("Shutting things down!");
+      digitalWrite(PS_PIN, 0); 
+      while(1) {delay(1000);}
     }
 
     //If on stopped form, and our speed goes above 0, switch to main
@@ -421,10 +469,10 @@ bool processIncoming(int *service,int *pid,int *value)
       //If the percentage is high, we'll print to the screen
       totalCRC++;
 
-      double crcFailureRate=(double)totalCRC/(double)totalMessages;
-      if(crcFailureRate > .025)
+      crcFailureRate=(double)totalCRC/(double)totalMessages;
+      if(crcFailureRate >= .05)
       {
-        Serial.print("Higher rate of CRC errors than normal: ");
+        Serial.print("CRC Failure rate is high: ");
         Serial.print(totalMessages);
         Serial.print("/");
         Serial.print(totalCRC);

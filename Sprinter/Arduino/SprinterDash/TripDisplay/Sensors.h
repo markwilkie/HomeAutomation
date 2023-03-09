@@ -92,4 +92,20 @@ class IgnState
     unsigned long nextTickCount;      //when to update/refresh the gauge again
 };
 
+class LDR 
+{
+  public:
+    void init(int _refreshTicks);
+    int readLightLevel();
+    
+  private: 
+    int refreshTicks;
+
+    //Data
+    int lightLevel;
+
+    //Timing
+    unsigned long nextTickCount;      //when to update/refresh the gauge again
+};
+
 #endif

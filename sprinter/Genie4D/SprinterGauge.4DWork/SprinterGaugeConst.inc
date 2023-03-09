@@ -1,4 +1,4 @@
-// File generated 2/27/2023 2:34:27 PM
+// File generated 3/7/2023 5:26:31 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -74,7 +74,9 @@
 #constant  Strings34Size     1
 #constant  Strings35Count    1
 #constant  Strings35Size     17
-#constant  IFONT_OFFSET     36
+#constant  Strings36Count    0
+#constant  Strings36Size     1
+#constant  IFONT_OFFSET     37
 // object indexes into WIDGET pointer
 #CONST
     iIAngularMeter0
@@ -125,8 +127,8 @@
     iForm5          // offset 0x39400
     iStatictext0    // offset 0x57600
     iUserbutton9    // offset 0x25000
-    iWinbutton2     // offset 0x58800
-    iWinbutton3     // offset 0x60400
+    iWinbutton2     // offset 0x58600
+    iWinbutton3     // offset 0x60200
     iWinbutton4     // offset 0x29C00
     iWinbutton5     // offset 0x31800
     iUserbutton2    // offset 0x23600
@@ -209,6 +211,8 @@
 #constant  Strings34StartL   0x4400
 #constant  Strings35StartH   0x0
 #constant  Strings35StartL   0x4600
+#constant  Strings36StartH   0x0
+#constant  Strings36StartL   0x4800
 
 #constant  ffsEndUnits4k    0x0075  // First unused 4k Sector on Flash
 #constant  ffsEnd4kH        0x0007  // Address of first unused 4k Sector on Flash, High

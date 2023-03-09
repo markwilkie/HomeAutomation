@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include "PID.h"
-#include "LDR.h"
 #include "TestData.h"
 #include "isotp.h"
 
@@ -33,16 +32,11 @@ PID engineRPM(0x7DF,0x01,0x0C,"RPM","RPM","((256*A)+B)/4",500);
 PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A",500); 
 PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40",1000);
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100",200); 
-//PID runtime(0x7DF,0x01,0x1F,"Runtime","seconds","(256*A)+B",1000);
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A",60000);
 PID transTemp(0x7E1,0x21,0x30,"Trans Temp","C","E-50",10000);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
-//PID baraPressure(0x7DF,0x01,0x33,"Barameter","kPa","A",1000);
 PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
 PID* pidArray[]={&diagnostics,&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&fuelLevel,&distanceTrav,&transTemp,&ambientTemp};
-
-//Setup analog sensors
-LDR ldr(0x77,0x01,500);
 
 /*
 Add DTC support
@@ -158,11 +152,6 @@ void sendToMaster(unsigned int service,unsigned int pid,unsigned int value)
   Serial1.write(']');
 }
 
-void readAnalogSensors()
-{
-  sendToMaster(ldr.getService(),ldr.getPid(),ldr.readLightLevel());
-}
-
 void loop()
 {
     //Blink light
@@ -173,8 +162,6 @@ void loop()
      //Loop while in simulation mode
     while(!digitalRead(10))
     {
-        readAnalogSensors();
-
         testId=testData.GetId();
         testData.FillCanFrame(canTestFrame);
         delay(10);
@@ -198,9 +185,6 @@ void loop()
     //make sure CAN com buffers are cleared
     memset(txMsg.Buffer, (uint8_t)0, 8);
     memset(rxMsg.Buffer, (uint8_t)0, MAX_MSGBUF);    
-
-    //read sensors
-    readAnalogSensors();
 
     //Let's go through each PID we setup and get the values
     int retVal=0;

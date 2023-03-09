@@ -21,9 +21,9 @@ PIDStruct coolant = { .service=0x41, .pid=0x05, .label="Coolant\n", .online=fals
 PIDStruct trans = { .service=0x61, .pid=0x30, .label="Trans\n", .online=false }; 
 PIDStruct manPres = { .service=0x41, .pid=0x0B, .label="Man Pres\n", .online=false }; 
 PIDStruct diag = { .service=0x41, .pid=0x01, .label="Diag\n", .online=false }; 
-PIDStruct ldr = { .service=0x77, .pid=0x01, .label="LDR\n", .online=false }; 
+//PIDStruct ldr = { .service=0x77, .pid=0x01, .label="LDR\n", .online=false }; 
 
-PIDStruct* pidArray[]={&load,&distance,&fuel,&maf,&speed,&coolant,&trans,&manPres,&diag,&ldr};
+PIDStruct* pidArray[]={&load,&distance,&fuel,&maf,&speed,&coolant,&trans,&manPres,&diag};
 
 class CurrentData
 {
@@ -33,7 +33,8 @@ class CurrentData
     void calibratePitot();
     int readPitot();
     bool verifyInterfaces(int service, int pid, int value, char *listOfOfflineInterfaces);
-    void updateData(int service,int pid,int value);
+    void updateDataFromPIDs(int service,int pid,int value);
+    void updateDataFromSensors();
 
     //Data
     int currentMiles=0;
@@ -57,10 +58,9 @@ class CurrentData
     IgnState ignState;
     Barometer barometer;
     RTC rtc;
+    LDR ldr;
 
     void initConnections();
-    void updateDataFromPIDs(int service,int pid,int value);
-    void updateDataFromSensors();
 };
 
 #endif

@@ -9,6 +9,7 @@ CurrentData::CurrentData()
     ignState.init(1000);
     barometer.init(5000);
     rtc.init(1000);
+    ldr.init(1000);
 }
 
 void CurrentData::init()
@@ -80,12 +81,6 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
   return allOnline;
 }
 
-void CurrentData::updateData(int service,int pid,int value)
-{
-    updateDataFromPIDs(service,pid,value);
-    updateDataFromSensors();
-}
-
 void CurrentData::updateDataFromSensors()
 {
     //Barometer
@@ -97,6 +92,9 @@ void CurrentData::updateDataFromSensors()
 
     //Ignition state
     ignitionState=ignState.getIgnState();
+
+    //Light level
+    currentLightLevel=ldr.readLightLevel();
 }
 
 // update value if appropriate
@@ -158,10 +156,4 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
       else
         codesPresent=false;
     }
-    //Light level -- this one is "fake" and sent as a PID from a sensor on the board
-    if(service==ldr.service && pid==ldr.pid)
-    {
-        currentLightLevel=value;
-    }
-
 }

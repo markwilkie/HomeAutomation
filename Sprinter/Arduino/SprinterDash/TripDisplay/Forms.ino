@@ -3,6 +3,7 @@
 #include "genieArduino.h"
 
 #define STATUS_TITLE_STRING 35
+#define STATUS_STATUS_STRING 36
 #define STATUS_STRING 34
 
 #define HEATER_FUEL_STRING 32
@@ -124,7 +125,11 @@ void StatusForm::updateText(int value)
 
 void StatusForm::updateTitle(const char* title)
 {
-  //Update the 2 fields
   geniePtr->WriteStr(STATUS_TITLE_STRING, title);
 }
 
+void StatusForm::updateStatus(unsigned long totalMsg,unsigned long CRC,double perc)
+{
+  sprintf(fieldBuffer, "Perc: %0.2lf (%ld/%ld)",perc,totalMsg,CRC);
+  geniePtr->WriteStr(STATUS_STATUS_STRING, fieldBuffer);
+}

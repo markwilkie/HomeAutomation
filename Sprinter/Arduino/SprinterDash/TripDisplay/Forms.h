@@ -64,6 +64,7 @@ class StatusForm
 
     int getFormId();
     void updateTitle(const char* title);
+    void updateStatus(unsigned long totalMsg,unsigned long CRC,double perc);
     void updateText(const char* text);
     void updateText(int number);
 
