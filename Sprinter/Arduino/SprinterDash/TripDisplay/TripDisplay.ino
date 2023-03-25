@@ -39,7 +39,7 @@
 // ViSi-Genie Arduino Danger Shield - https://docs.4dsystems.com.au/app-note/4D-AN-00025
 
 //defines
-//#define RESETLINE D6  //Bringing D6 low resets the display
+#define LED_PIN D9  //Built in LED
 
 //Power supply values
 #define PS_PIN D7   // Note that ignition is on D4, see sensors.ino
@@ -110,10 +110,7 @@ void setup()
   Serial1.begin(200000,SERIAL_8N1, RXD1, TXD1);
   genie.Begin(Serial1);   
 
-  // Reset the Display (change D4 to D2 if you have original 4D Arduino Adaptor)
-  // THIS IS IMPORTANT AND CAN PREVENT OUT OF SYNC ISSUES, SLOW SPEED RESPONSE ETC
-  // If NOT using a 4D Arduino Adaptor, digitalWrites must be reversed as Display Reset is Active Low, and
-  // the 4D Arduino Adaptors invert this signal so must be Active High.  
+  // Display is being reset using the 'reset' pin on the processor, so it boots when the proc boots.
   //pinMode(RESETLINE, OUTPUT);  // Set D4 on Arduino to Output (4D Arduino Adaptor V2 - Display Reset)
   //digitalWrite(RESETLINE, 0);  // Reset the Display
   //delay(100);
@@ -166,6 +163,11 @@ void verifyInterfaces()
   while(!online && millis()<timeout)
   {
     displayBuffer[0]='\0';
+
+    //get latest from sensors
+    currentData.updateDataFromSensors();
+
+    //get latest from PIDs coming in
     bool retVal=processIncoming(&service,&pid,&value);
     if(retVal)
     {
@@ -180,9 +182,8 @@ void verifyInterfaces()
       statusForm.updateStatus(totalMessages,totalCRC,crcFailureRate);
     }
 
-    //Take care of business
-    //handleStatupAndShutdown(); //so that stopping the engine will do something
-    genie.DoEvents();   //so that the buttons will work
+    //so that the buttons will work
+    genie.DoEvents();   
 
     //If someone pressed the button, time to bail
     if(formNavigator.getActiveForm()!=STATUS_FORM)
@@ -253,7 +254,16 @@ void updateContrast()
     nextLCDRefresh=millis()+LCD_REFRESH_RATE;
 
     //Adjust screen based on light level
+    Serial.println(currentData.currentLightLevel);
     int contrast = map(currentData.currentLightLevel, 500, 3000, 1, 15);
+
+    //slow down how "twitchy" it is
+    if(currentContrast>contrast)
+      contrast=currentContrast-1;
+    if(currentContrast<contrast)
+      contrast=currentContrast+1;
+
+    //Check limits, then update
     if(contrast<1) contrast=1;
     if(contrast>15) contrast=15;
     if(currentContrast!=contrast)
@@ -325,6 +335,10 @@ void calibratePitot()
       int pitotSpeed=currentData.readPitot();
       statusForm.updateText(pitotSpeed);
       genie.DoEvents();   //so that the buttons will work
+
+      //If someone pressed the button, time to bail
+      if(formNavigator.getActiveForm()!=STATUS_FORM)
+        break;
     }
 }
 
@@ -388,13 +402,6 @@ void myGenieEventHandler(void)
       calibratePitot();
       break;
   }
-
-  //Did we just move from stopped form?  If so, reset data
-  if(formNavigator.getLastActiveForm()==STOPPED_FORM)
-  {
-    Serial.println("Reseting since last stop trip data");
-    sinceLastStop.resetTripData();
-  }    
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)

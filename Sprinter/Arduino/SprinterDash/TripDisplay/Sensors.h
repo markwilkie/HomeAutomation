@@ -4,6 +4,14 @@
 #include <Adafruit_MPL3115A2.h>
 #include "RTClib.h"
 
+/*
+i2c addresses
+
+barameter: 0x60
+rtc: 0x68 
+pressure: 0x28
+*/
+
 class Barometer 
 {
   public:
@@ -55,25 +63,46 @@ class RTC
     unsigned long nextTickCount;      //when to update/refresh the gauge again
 };
 
-class Pitot 
+#define PRESSURE_I2C_ADDRESS 0x28
+#define PASCAL_RANGE 1250
+#define MIN_COUNT 1638 //(0%)
+#define MAX_COUNT 14746 //(100%)
+#define AIR_DENSITY 1.204
+#define MS_2_MPH 2.23694
+
+#define I2C_OK                        1
+#define I2C_INIT                      0
+#define I2C_READ_ERROR               -1
+#define I2C_C000_ERROR               -2
+#define I2C_CONNECT_ERROR            -3
+
+
+class Pitot
 {
-  public:
-    void init(int _refreshTicks);
-    bool isOnline();    
-    void calibrate();
-    int readSpeed();
-    
-  private: 
-    int refreshTicks;
-    bool online=false;
+public:
 
-    //Data
-    float g_reference_pressure;
-    float g_air_pressure;
-    float g_airspeed_mph;
+  bool     init(int);
+  bool     isConnected();
+  uint8_t  getAddress();
 
-    //Timing
-    unsigned long nextTickCount;      //when to update/refresh the gauge again
+
+  //  returns status OK (0) or ERROR ( not 0 )
+  int      calibrate();
+  int      readSpeed();
+  int      state()        { return _state; };
+
+private:
+  int      read();
+
+  TwoWire*  _wire;
+  uint32_t _sensorCount;
+  int      _countOffset;
+  int      _pressure;
+  int      _mph;
+  
+  uint8_t  _state;
+  int refreshTicks;
+  unsigned long nextTickCount;      //when to update/refresh the gauge again
 };
 
 class IgnState 

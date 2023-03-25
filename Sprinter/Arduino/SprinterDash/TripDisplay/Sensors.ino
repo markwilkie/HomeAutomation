@@ -130,7 +130,7 @@ uint32_t RTC::getSecondsSinc2000()
 }
 
 //
-// Calculating airspeed using a pitot and MPXV7002DP
+// Calculating airspeed using a pitot and the Sensata P1J-12.5MB-AX16PA sensor
 //
 //For every 1V increase, there's an increase of 1 KPa per datasheet
 //Or, 1241 per volt on a 12bit ADC at 3.3v
@@ -143,82 +143,85 @@ uint32_t RTC::getSecondsSinc2000()
 //and...
 //MPH = Velocity*2.23694
 //
-//Put together:
-//MPH = (sqrt(2*(((ADC/1241)*1000)/1.204)))*2.23694
-//
-//or simplified to:
-//MPH = 2.83977*sqrt(ADC/Density)   - raw ADC reading and density of air in kg/m^3
-//
-//~2.5V == 0mph
-//~3.3V == 82mph
-//~3.7v == 100mph
-//
-//We could cut the voltage in half with a voltage divider.  Since we're baselining "zero", no adjustments to the calculations should be necessary.  (need to work out exactly how we're going to calibrate zero......button on display??)
-//
 //Regarding calculating air density, 3K ft only makes about 5MPH difference, so it may not be worth it.  However, we do have air pressure available so.....
 //
 
-//Pin used for analog reads
-#define PITOT_ADC_PIN A0
-#define AIR_DENSITY 1.204
-
-void Pitot::init(int _refreshTicks)
+bool Pitot::init(int _refreshTicks)
 {
   refreshTicks=_refreshTicks;
 
-  //Are we getting reasonable readings?
-  g_reference_pressure = analogRead(PITOT_ADC_PIN);  
-  if(g_reference_pressure > 100 && g_reference_pressure < 4000)
-    online=true;
-}
-
-void Pitot::calibrate()
-{
-  Serial.println("Calibrating pitot airspeed indicator");
-  
-  //Read sensor
-  g_reference_pressure = analogRead(PITOT_ADC_PIN);  
-  for (int i=1;i<=500;i++)
+  _wire = &Wire;
+  _wire->begin();
+  if (! isConnected())
   {
-    g_reference_pressure = (analogRead(PITOT_ADC_PIN))*0.25 + g_reference_pressure*0.75;
-    delay(20);
+    _state = I2C_CONNECT_ERROR;
+    return false;
   }
-  
-  g_air_pressure = g_reference_pressure;
+  _state = I2C_OK;
+  return true;
 }
 
-bool Pitot::isOnline()
+uint8_t Pitot::getAddress()
 {
-  return online;
+  return PRESSURE_I2C_ADDRESS;
 }
 
+bool Pitot::isConnected()
+{
+  _wire->beginTransmission(PRESSURE_I2C_ADDRESS);
+  return (_wire->endTransmission() == 0);
+}
+
+int Pitot::calibrate()
+{
+  //set zero point
+  if(read())
+  {
+    _countOffset=MIN_COUNT-_sensorCount;
+  }
+}
 
 int Pitot::readSpeed()
 {
-    //don't update if it's not time to
-    if(millis()<nextTickCount)
-        return g_airspeed_mph;
+  //don't update if it's not time to
+  if(millis()<nextTickCount)
+      return _mph;
+  nextTickCount=millis()+refreshTicks;
 
-    //Update timing
-    nextTickCount=millis()+refreshTicks;
+  int retVal=read();
+  if(retVal)
+  {
+    _mph = sqrt(2*(_pressure/AIR_DENSITY))*MS_2_MPH;  
+  }
+  return _mph;
+}
 
-    //Read pitot airspeed
-    g_air_pressure = analogRead(PITOT_ADC_PIN)*0.25 + g_air_pressure*0.75;
-    float pressure_diff = (g_air_pressure >= g_reference_pressure) ? (g_air_pressure - g_reference_pressure) : 0.0;  
-    g_airspeed_mph = 2.83977*sqrt(pressure_diff/AIR_DENSITY);
+int Pitot::read()
+{
+  _wire->requestFrom(PRESSURE_I2C_ADDRESS, 2);
+  if (_wire->available() != 2)
+  {
+    _state = I2C_READ_ERROR;
+    return _state;
+  }
+  int count = _wire->read() * 256;  //  hi byte
+  count    += _wire->read();        //  lo byte
+  if (count & 0xC000)
+  {
+    _state = I2C_C000_ERROR;  //  no documentation, bits may not be set?
+    return _state;
+  }
 
-    /*
-    Serial.print("Pitot: (ref,pres,diff,mph) ");
-    Serial.print(g_reference_pressure);
-    Serial.print(" ");
-    Serial.print(g_air_pressure);
-    Serial.print(" ");
-    Serial.print(pressure_diff);
-    Serial.print(" ");
-    Serial.println(g_airspeed_mph);
-    */
+  _sensorCount=count;
 
-    return g_airspeed_mph;
+  //  Min = 1638 (0%)
+  //  Max = 14746 (100%)
+  _pressure = map(count+_countOffset, MIN_COUNT, MAX_COUNT, 0, PASCAL_RANGE);
+  if(_pressure<0)
+    _pressure=0;
+
+  _state = I2C_OK;
+  return _state;
 }
 
 //
@@ -274,11 +277,14 @@ int LDR::readLightLevel()
     nextTickCount=millis()+refreshTicks;
 
     //Read LDR
+    lightLevel=0;
     for(int i=0;i<LDR_ADC_OVERSAMPLE;i++)
     {
-      lightLevel = analogRead(LDR_ADC_PIN)*0.25 + lightLevel*0.75;
+      //lightLevel = analogRead(LDR_ADC_PIN)*0.25 + lightLevel*0.75;
+      lightLevel=lightLevel+analogRead(LDR_ADC_PIN);
       delay(10);
     }
+    lightLevel = lightLevel/LDR_ADC_OVERSAMPLE;
 
     //Serial.print("LDR:  ");  Serial.println(lightLevel);
 
