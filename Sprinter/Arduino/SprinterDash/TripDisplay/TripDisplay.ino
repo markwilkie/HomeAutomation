@@ -51,7 +51,7 @@ unsigned long turnOffTime;
 #define TXD1 26
 
 //timing
-#define LCD_REFRESH_RATE 1000;
+#define LCD_REFRESH_RATE 5000;
 #define SHUTDOWN_STARTUP_RATE 1000;  //how often we check ignition
 #define VERIFY_TIMEOUT 60000;   //How long we'll wait for everything to come online when we first start
 
@@ -254,7 +254,6 @@ void updateContrast()
     nextLCDRefresh=millis()+LCD_REFRESH_RATE;
 
     //Adjust screen based on light level
-    Serial.println(currentData.currentLightLevel);
     int contrast = map(currentData.currentLightLevel, 500, 3000, 1, 15);
 
     //slow down how "twitchy" it is

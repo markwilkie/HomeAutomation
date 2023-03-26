@@ -191,8 +191,9 @@ int Pitot::readSpeed()
   int retVal=read();
   if(retVal)
   {
-    _mph = sqrt(2*(_pressure/AIR_DENSITY))*MS_2_MPH;  
+    _mph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
   }
+
   return _mph;
 }
 
@@ -216,9 +217,14 @@ int Pitot::read()
 
   //  Min = 1638 (0%)
   //  Max = 14746 (100%)
-  _pressure = map(count+_countOffset, MIN_COUNT, MAX_COUNT, 0, PASCAL_RANGE);
+  //
+  //  Mult pascal range by 10 to increase resolution
+  _pressure = map(count+_countOffset, MIN_COUNT, MAX_COUNT, 0, (PASCAL_RANGE*10));
   if(_pressure<0)
     _pressure=0;
+
+  //div by 10 to get to the actual pa number
+  _pressure=_pressure/10.0;
 
   _state = I2C_OK;
   return _state;
@@ -276,15 +282,12 @@ int LDR::readLightLevel()
     //Update timing
     nextTickCount=millis()+refreshTicks;
 
-    //Read LDR
-    lightLevel=0;
+    //Read LDR with some smoothing
     for(int i=0;i<LDR_ADC_OVERSAMPLE;i++)
     {
-      //lightLevel = analogRead(LDR_ADC_PIN)*0.25 + lightLevel*0.75;
-      lightLevel=lightLevel+analogRead(LDR_ADC_PIN);
+      lightLevel = analogRead(LDR_ADC_PIN)*0.25 + lightLevel*0.75;
       delay(10);
     }
-    lightLevel = lightLevel/LDR_ADC_OVERSAMPLE;
 
     //Serial.print("LDR:  ");  Serial.println(lightLevel);
 

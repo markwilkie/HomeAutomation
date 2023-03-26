@@ -97,7 +97,7 @@ private:
   TwoWire*  _wire;
   uint32_t _sensorCount;
   int      _countOffset;
-  int      _pressure;
+  double   _pressure;
   int      _mph;
   
   uint8_t  _state;
