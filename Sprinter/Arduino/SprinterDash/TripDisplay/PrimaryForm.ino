@@ -21,7 +21,7 @@ PrimaryForm::PrimaryForm(Genie* _geniePtr,int _formID,const char* _label,TripDat
 
     //Split bar gauges
     windSpeedGauge.init(geniePtr,3,0,3,-29,30,500);  
-    instMPG.init(geniePtr,1,2,0,20,500);     
+    instMPG.init(geniePtr,1,2,7,27,500);     
 
     //Create objects for the digit displays
     avgMPG.init(geniePtr,6,0,99,1,1100);
