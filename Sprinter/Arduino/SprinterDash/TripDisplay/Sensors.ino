@@ -174,6 +174,9 @@ bool Pitot::isConnected()
 
 int Pitot::calibrate()
 {
+
+  _countOffset=0;
+
   //set zero point
   if(read())
   {
@@ -188,11 +191,18 @@ int Pitot::readSpeed()
       return _mph;
   nextTickCount=millis()+refreshTicks;
 
+  //read sensor
   int retVal=read();
-  if(retVal)
-  {
-    _mph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
-  }
+  if(retVal<0)
+    return retVal;
+
+  //  Min = 1638 (0%)
+  //  Max = 14746 (100%)
+  //
+  //  Mult pascal range by 10 to increase resolution
+  _mph = map(_sensorCount, MIN_COUNT, MAX_COUNT, 0, MPH_RANGE);
+  if(_mph<0)
+    _mph=0;  
 
   return _mph;
 }
@@ -213,18 +223,7 @@ int Pitot::read()
     return _state;
   }
 
-  _sensorCount=count;
-
-  //  Min = 1638 (0%)
-  //  Max = 14746 (100%)
-  //
-  //  Mult pascal range by 10 to increase resolution
-  _pressure = map(count+_countOffset, MIN_COUNT, MAX_COUNT, 0, (PASCAL_RANGE*10));
-  if(_pressure<0)
-    _pressure=0;
-
-  //div by 10 to get to the actual pa number
-  _pressure=_pressure/10.0;
+  _sensorCount=count+_countOffset;
 
   _state = I2C_OK;
   return _state;
