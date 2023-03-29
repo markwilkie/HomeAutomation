@@ -24,9 +24,6 @@ void TripData::resetTripData()
     data.priorTotalGallonsUsed=0;
     data.totalClimb=0;
 
-    sumInstMPG=0;
-    numSamples=0;    
-
     dumpTripData();
 }
 
@@ -233,37 +230,7 @@ double TripData::getInstantMPG()
     double galPerHour=((double)currentDataPtr->currentMAF*(double)currentDataPtr->currentLoad)/1006.777948;
     double instMPG=(currentDataPtr->currentSpeed)/galPerHour;
 
-    //Add for avg calc
-    double galUsed=getFuelGallonsUsed();
-    if(instMPG<100 && lastInstMPG!=instMPG && galUsed>1)
-    {
-        lastInstMPG=instMPG;
-        sumInstMPG=sumInstMPG+(instMPG*10);
-        numSamples++;
-
-        //overflow
-        if(sumInstMPG>4294967000)
-        {
-            sumInstMPG=instMPG;
-            numSamples=1;
-        }        
-
-        //Now, let's calc a factor to make the inst more accurate over time
-        int milesTravelled=getMilesTravelled();
-        if(milesTravelled>=9)
-        {        
-            double avgMPG=(double)milesTravelled/galUsed;
-            instMPG = (avgMPG/getInstantAvgMPG())*instMPG;
-        }
-    }
-
     return instMPG;
-}
-
-double TripData::getInstantAvgMPG()
-{
-    int avg=sumInstMPG/numSamples;
-    return (double)avg/10.0;
 }
 
 double TripData::getAvgMPG()

@@ -51,7 +51,6 @@ class TripData
     double getHeaterGallonsUsed();
     double getGallonsExpected();
     double getInstantMPG();
-    double getInstantAvgMPG();
     double getAvgMPG();
     double getAvgMovingSpeed();
     int getMilesLeftInTank();

@@ -152,7 +152,7 @@ bool Pitot::init(int _refreshTicks)
 
   _wire = &Wire;
   _wire->begin();
-  if (! isConnected())
+  if(!isOnline())
   {
     _state = I2C_CONNECT_ERROR;
     return false;
@@ -166,7 +166,7 @@ uint8_t Pitot::getAddress()
   return PRESSURE_I2C_ADDRESS;
 }
 
-bool Pitot::isConnected()
+bool Pitot::isOnline()
 {
   _wire->beginTransmission(PRESSURE_I2C_ADDRESS);
   return (_wire->endTransmission() == 0);
@@ -200,9 +200,15 @@ int Pitot::readSpeed()
   //  Max = 14746 (100%)
   //
   //  Mult pascal range by 10 to increase resolution
-  _mph = map(_sensorCount, MIN_COUNT, MAX_COUNT, 0, MPH_RANGE);
-  if(_mph<0)
-    _mph=0;  
+  int _pressure = map(_sensorCount, MIN_COUNT, MAX_COUNT, 0, (PASCAL_RANGE*10));
+  if(_pressure<0)
+    _pressure=0;
+
+  //div by 10 to get to the actual pa number
+  _pressure=_pressure/10.0;
+
+  //Now convert to mph
+  _mph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
 
   return _mph;
 }

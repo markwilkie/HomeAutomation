@@ -67,6 +67,9 @@ class RTC
 #define MPH_RANGE 101
 #define MIN_COUNT 1638 //(0%)
 #define MAX_COUNT 14746 //(100%)
+#define PASCAL_RANGE 1250
+#define AIR_DENSITY 1.225
+#define MS_2_MPH 2.23694
 
 #define I2C_OK                        1
 #define I2C_INIT                      0
@@ -80,7 +83,7 @@ class Pitot
 public:
 
   bool     init(int);
-  bool     isConnected();
+  bool     isOnline();
   uint8_t  getAddress();
 
 

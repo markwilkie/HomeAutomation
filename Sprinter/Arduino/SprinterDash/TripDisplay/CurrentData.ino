@@ -51,6 +51,12 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
     offlineCount++;
     allOnline=false;
   }
+  if(!pitot.isOnline())
+  {
+    strcpy(buffer+strlen(buffer),"Pitot\n");
+    offlineCount++;
+    allOnline=false;
+  }
   
   //Loop through pids 
   const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
