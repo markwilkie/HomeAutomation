@@ -283,18 +283,18 @@ void handleStatupAndShutdown()
 
       if(!currentIgnState)
       {
-        //Save to EEPROM
-        Serial.println("saving to EEPROM and activating STOPPING form");
-        currentSegment.saveTripData();
-        fullTrip.saveTripData();
-
         //Set time to actually turn off
         turnOffTime=currentData.currentSeconds+PS_STAY_ON_TIME;
 
         //Now make sure all the trip data objects have the latest
         sinceLastStop.updateTripData();
         currentSegment.updateTripData();
-        fullTrip.updateTripData();            
+        fullTrip.updateTripData();           
+
+        //Save to EEPROM
+        Serial.println("saving to EEPROM and activating STOPPING form");
+        currentSegment.saveTripData();
+        fullTrip.saveTripData();
 
         //Activate stopping form
         formNavigator.activateForm(STOPPED_FORM);
