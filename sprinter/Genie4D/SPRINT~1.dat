@@ -17,8 +17,8 @@
 "Userbutton0" 5000 0002 18 10
 "Userbutton5" 6600 0002 18 48
 "Userbutton3" 7A00 0002 0C 09
-"Userbutton8" 8800 0002 B0 2A
-"Userbutton10" 6600 0002 E4 2A
+"Userbutton8" 8800 0002 D4 54
+"Userbutton10" 6600 0002 D4 2A
 "Userbutton4" 5000 0002 0C 0F
 "Winbutton0" 9C00 0002 41 0F
 "Winbutton1" 1800 0003 41 40

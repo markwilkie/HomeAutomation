@@ -13,6 +13,7 @@
 #define MILES_SINCE_STOP_STRING 4
 #define HOURS_ELAPSED_STRING 5
 #define GALLONS_EXPECTED_STRING 9
+#define AVG_MPG_STRING_1 38
 
 //
 // Starting Form
@@ -80,6 +81,7 @@ void StoppedForm::updateDisplay()
   strField.updateField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled());
   strField.updateField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime());
   strField.updateField(geniePtr,GALLONS_EXPECTED_STRING, gallonsExpected,tripSegDataPtr->getGallonsExpected());
+  strField.updateField(geniePtr,AVG_MPG_STRING_1, avgMPG,tripSegDataPtr->getAvgMPG());
 }
 
 //
@@ -132,4 +134,9 @@ void StatusForm::updateStatus(unsigned long totalMsg,unsigned long CRC,double pe
 {
   sprintf(fieldBuffer, "Perc: %0.2lf (%ld/%ld)",perc,totalMsg,CRC);
   geniePtr->WriteStr(STATUS_STATUS_STRING, fieldBuffer);
+}
+
+void StatusForm::updateStatus(const char* text)
+{
+  geniePtr->WriteStr(STATUS_STATUS_STRING, text);
 }

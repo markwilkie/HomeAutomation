@@ -52,9 +52,10 @@ class StoppedForm
     TripData *tripSegDataPtr;  
 
     //Fields
-    char gallonsExpected[2];
+    char gallonsExpected[3];
     char elapsedTime[4];
     char milesTravelled[4];
+    char avgMPG[4];
 };
 
 class StatusForm 
@@ -65,6 +66,7 @@ class StatusForm
     int getFormId();
     void updateTitle(const char* title);
     void updateStatus(unsigned long totalMsg,unsigned long CRC,double perc);
+    void updateStatus(const char* text);
     void updateText(const char* text);
     void updateText(int number);
 
@@ -79,7 +81,7 @@ class StatusForm
 
     //Display
     Genie *geniePtr;
-    char fieldBuffer[15];
+    char fieldBuffer[50];
 };
 
 #endif

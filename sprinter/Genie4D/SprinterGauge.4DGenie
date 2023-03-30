@@ -874,7 +874,7 @@ Strings
     Left                         215
     Strings                      'Gallons Expected\n'
     StringsStyle                 Message
-    Top                          85
+    Top                          65
     Width                        186
     OnChanged                    ''
 end
@@ -896,7 +896,7 @@ Strings
     Left                         215
     Strings                      'Miles Since Last Stop\n'
     StringsStyle                 Message
-    Top                          16
+    Top                          15
     Width                        260
     OnChanged                    ''
 end
@@ -918,7 +918,7 @@ Strings
     Left                         145
     Strings                      9999\n
     StringsStyle                 Message
-    Top                          16
+    Top                          15
     Width                        60
     OnChanged                    ''
 end
@@ -940,7 +940,7 @@ Strings
     Left                         145
     Strings                      9999\n
     StringsStyle                 Message
-    Top                          52
+    Top                          40
     Width                        60
     OnChanged                    ''
 end
@@ -962,7 +962,7 @@ Strings
     Left                         215
     Strings                      'Hours Elapsed\n'
     StringsStyle                 Message
-    Top                          51
+    Top                          40
     Width                        192
     OnChanged                    ''
 end
@@ -984,7 +984,7 @@ Strings
     Left                         145
     Strings                      99\n
     StringsStyle                 Message
-    Top                          86
+    Top                          65
     Width                        60
     OnChanged                    ''
 end
@@ -1013,6 +1013,50 @@ UserButton
     Top                          72
     Width                        35
     OnChanged                    'Report Message'
+end
+Strings
+    Name                         Strings37
+    Alias                        'AvgMPG Label'
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         215
+    Strings                      'Avg MPG\n'
+    StringsStyle                 Message
+    Top                          90
+    Width                        186
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings38
+    Alias                        AvgMPG1
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         145
+    Strings                      99.9\n
+    StringsStyle                 Message
+    Top                          90
+    Width                        60
+    OnChanged                    ''
 end
 Form
     Name                         Form2
@@ -1464,7 +1508,7 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         105
+    Left                         100
     Strings                      99\n
     StringsStyle                 Message
     Top                          86
@@ -1486,8 +1530,8 @@ Strings
     Font.Size                    -10
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         130
-    Strings                      '# Stopped\n\n'
+    Left                         122
+    Strings                      '# Stops\n\n'
     StringsStyle                 Message
     Top                          86
     Width                        82
@@ -1511,11 +1555,11 @@ UserButton
     Alias                        CycleFormButton
     Height                       35
     Images                       reload.png
-    Left                         176
+    Left                         212
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No
-    Top                          42
+    Top                          84
     Width                        35
     OnChanged                    'Report Message'
 end
@@ -1524,7 +1568,7 @@ UserButton
     Alias                        SummaryToMenu
     Height                       35
     Images                       menu.png
-    Left                         228
+    Left                         212
     Matrix                       -1
     Momentary                    Yes
     Stretch                      No

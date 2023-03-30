@@ -1,4 +1,4 @@
-// File generated 3/7/2023 5:26:31 PM
+// File generated 3/30/2023 11:03:21 AM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -14,6 +14,10 @@
 #constant  Strings7Size     14
 #constant  Strings9Count    1
 #constant  Strings9Size     7
+#constant  Strings37Count    1
+#constant  Strings37Size     8
+#constant  Strings38Count    1
+#constant  Strings38Size     6
 #constant  Strings10Count    1
 #constant  Strings10Size     6
 #constant  Strings11Count    1
@@ -55,7 +59,7 @@
 #constant  Strings27Count    1
 #constant  Strings27Size     3
 #constant  Strings28Count    1
-#constant  Strings28Size     10
+#constant  Strings28Size     8
 #constant  Strings8Count    1
 #constant  Strings8Size     13
 #constant  Strings29Count    1
@@ -76,7 +80,7 @@
 #constant  Strings35Size     17
 #constant  Strings36Count    0
 #constant  Strings36Size     1
-#constant  IFONT_OFFSET     37
+#constant  IFONT_OFFSET     39
 // object indexes into WIDGET pointer
 #CONST
     iIAngularMeter0
@@ -151,68 +155,72 @@
 #constant  Strings7StartL   0x800
 #constant  Strings9StartH   0x0
 #constant  Strings9StartL   0xA00
+#constant  Strings37StartH   0x0
+#constant  Strings37StartL   0xC00
+#constant  Strings38StartH   0x0
+#constant  Strings38StartL   0xE00
 #constant  Strings10StartH   0x0
-#constant  Strings10StartL   0xC00
+#constant  Strings10StartL   0x1000
 #constant  Strings11StartH   0x0
-#constant  Strings11StartL   0xE00
+#constant  Strings11StartL   0x1200
 #constant  Strings12StartH   0x0
-#constant  Strings12StartL   0x1000
+#constant  Strings12StartL   0x1400
 #constant  Strings15StartH   0x0
-#constant  Strings15StartL   0x1200
+#constant  Strings15StartL   0x1600
 #constant  Strings16StartH   0x0
-#constant  Strings16StartL   0x1400
+#constant  Strings16StartL   0x1800
 #constant  Strings18StartH   0x0
-#constant  Strings18StartL   0x1600
+#constant  Strings18StartL   0x1A00
 #constant  Strings19StartH   0x0
-#constant  Strings19StartL   0x1800
+#constant  Strings19StartL   0x1C00
 #constant  Strings20StartH   0x0
-#constant  Strings20StartL   0x1A00
+#constant  Strings20StartL   0x1E00
 #constant  Strings21StartH   0x0
-#constant  Strings21StartL   0x1C00
+#constant  Strings21StartL   0x2000
 #constant  Strings22StartH   0x0
-#constant  Strings22StartL   0x1E00
+#constant  Strings22StartL   0x2200
 #constant  Strings23StartH   0x0
-#constant  Strings23StartL   0x2000
+#constant  Strings23StartL   0x2400
 #constant  Strings24StartH   0x0
-#constant  Strings24StartL   0x2200
+#constant  Strings24StartL   0x2600
 #constant  Strings13StartH   0x0
-#constant  Strings13StartL   0x2400
+#constant  Strings13StartL   0x2800
 #constant  Strings14StartH   0x0
-#constant  Strings14StartL   0x2600
+#constant  Strings14StartL   0x2A00
 #constant  Strings25StartH   0x0
-#constant  Strings25StartL   0x2800
+#constant  Strings25StartL   0x2C00
 #constant  Strings26StartH   0x0
-#constant  Strings26StartL   0x2A00
+#constant  Strings26StartL   0x2E00
 #constant  Strings17StartH   0x0
-#constant  Strings17StartL   0x2C00
+#constant  Strings17StartL   0x3000
 #constant  Strings3StartH   0x0
-#constant  Strings3StartL   0x2E00
+#constant  Strings3StartL   0x3200
 #constant  Strings6StartH   0x0
-#constant  Strings6StartL   0x3000
+#constant  Strings6StartL   0x3400
 #constant  Strings27StartH   0x0
-#constant  Strings27StartL   0x3200
+#constant  Strings27StartL   0x3600
 #constant  Strings28StartH   0x0
-#constant  Strings28StartL   0x3400
+#constant  Strings28StartL   0x3800
 #constant  Strings8StartH   0x0
-#constant  Strings8StartL   0x3600
+#constant  Strings8StartL   0x3A00
 #constant  Strings29StartH   0x0
-#constant  Strings29StartL   0x3800
+#constant  Strings29StartL   0x3C00
 #constant  Strings30StartH   0x0
-#constant  Strings30StartL   0x3A00
+#constant  Strings30StartL   0x3E00
 #constant  Strings31StartH   0x0
-#constant  Strings31StartL   0x3C00
+#constant  Strings31StartL   0x4000
 #constant  Strings1StartH   0x0
-#constant  Strings1StartL   0x3E00
+#constant  Strings1StartL   0x4200
 #constant  Strings32StartH   0x0
-#constant  Strings32StartL   0x4000
+#constant  Strings32StartL   0x4400
 #constant  Strings33StartH   0x0
-#constant  Strings33StartL   0x4200
+#constant  Strings33StartL   0x4600
 #constant  Strings34StartH   0x0
-#constant  Strings34StartL   0x4400
+#constant  Strings34StartL   0x4800
 #constant  Strings35StartH   0x0
-#constant  Strings35StartL   0x4600
+#constant  Strings35StartL   0x4A00
 #constant  Strings36StartH   0x0
-#constant  Strings36StartL   0x4800
+#constant  Strings36StartL   0x4C00
 
 #constant  ffsEndUnits4k    0x0075  // First unused 4k Sector on Flash
 #constant  ffsEnd4kH        0x0007  // Address of first unused 4k Sector on Flash, High

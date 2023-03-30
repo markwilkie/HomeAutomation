@@ -51,9 +51,9 @@ unsigned long turnOffTime;
 #define TXD1 26
 
 //timing
-#define LCD_REFRESH_RATE 5000;
-#define SHUTDOWN_STARTUP_RATE 1000;  //how often we check ignition
-#define VERIFY_TIMEOUT 60000;   //How long we'll wait for everything to come online when we first start
+#define LCD_REFRESH_RATE 5000
+#define SHUTDOWN_STARTUP_RATE 1000  //how often we check ignition
+#define VERIFY_TIMEOUT 60000   //How long we'll wait for everything to come online when we first start
 
 //Misc defines
 #define NUMBER_OF_SUMMARY_FORMS 3
@@ -70,9 +70,9 @@ bool online= false;  //If true, it means every PID and sensor is online  (will l
 //Trip data
 int currentActiveSummaryData=0;
 CurrentData currentData=CurrentData();
-TripData sinceLastStop=TripData(&currentData,0);  //used for the primary form
-TripData currentSegment=TripData(&currentData,1);
-TripData fullTrip=TripData(&currentData,2);
+TripData sinceLastStop=TripData(&currentData,3);  //used for the primary form
+TripData currentSegment=TripData(&currentData,0);
+TripData fullTrip=TripData(&currentData,1);
 
 //Forms
 FormNavigator formNavigator;
@@ -134,9 +134,6 @@ void setup()
   Serial.println("Loading data from EEPROM");
   currentSegment.loadTripData();
   fullTrip.loadTripData();
-
-  //Calibrate Pitot
-  currentData.calibratePitot();
 
   Serial.println("Validating interfaces"); 
   verifyInterfaces();
@@ -294,6 +291,11 @@ void handleStatupAndShutdown()
         //Set time to actually turn off
         turnOffTime=currentData.currentSeconds+PS_STAY_ON_TIME;
 
+        //Now make sure all the trip data objects have the latest
+        sinceLastStop.updateTripData();
+        currentSegment.updateTripData();
+        fullTrip.updateTripData();            
+
         //Activate stopping form
         formNavigator.activateForm(STOPPED_FORM);
         stopForm.updateDisplay();
@@ -317,12 +319,22 @@ void handleStatupAndShutdown()
     }
 }
 
-void calibratePitot()
+void showPitotInfo()
 {
-    Serial.println("Calibrating Pitot");
+    Serial.println("Show pitot info");
     formNavigator.activateForm(STATUS_FORM); 
-    statusForm.updateTitle("Calibrating Pitot");
-    currentData.calibratePitot();
+
+    //Only zero pitot if speed is zero
+    if(currentData.currentSpeed==0)
+    {
+      statusForm.updateTitle("Calibrating Pitot");
+      statusForm.updateStatus("Zero'd pitot");
+      currentData.calibratePitot();
+    }
+    else
+    {
+      statusForm.updateStatus("Did NOT zero pitot");
+    }
 
     //Now read the pitot gauge until the user exits out using a button
     statusForm.updateTitle("Current Readings");
@@ -395,7 +407,7 @@ void myGenieEventHandler(void)
       verifyInterfaces();
       break;
     case ACTION_PITOT:
-      calibratePitot();
+      showPitotInfo();
       break;
   }
 }
