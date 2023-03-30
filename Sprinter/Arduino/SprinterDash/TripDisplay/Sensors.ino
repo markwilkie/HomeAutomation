@@ -229,7 +229,8 @@ int Pitot::read()
     return _state;
   }
 
-  _sensorCount=count+_countOffset;
+  //adjust for zero and smooth
+  _sensorCount=(count*0.15 + _sensorCount*0.85)  + _countOffset;
 
   _state = I2C_OK;
   return _state;

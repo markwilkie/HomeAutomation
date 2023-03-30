@@ -5,7 +5,7 @@
 CurrentData::CurrentData()
 {
     //Other sensors
-    pitot.init(200);  //update every 400 ms
+    pitot.init(200); 
     ignState.init(1000);
     barometer.init(5000);
     rtc.init(1000);
@@ -134,7 +134,7 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     if(service==speed.service && pid==speed.pid)
     {
         currentSpeed=value*0.621371;
-        currentPitotSpeed=pitot.readSpeed()-currentSpeed;
+        currentPitotSpeed=pitot.readSpeed();
         return;
     } 
     //Coolant temp
@@ -157,7 +157,7 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     //Diag - e.g. how many codes are stored
     if(service==diag.service && pid==diag.pid)
     {
-      if(value>0)
+      if(value>1)   //because of the DPF delete, there's always one stored code w/ no details.  (dpf pressure doesn't agree)
         codesPresent=true;
       else
         codesPresent=false;

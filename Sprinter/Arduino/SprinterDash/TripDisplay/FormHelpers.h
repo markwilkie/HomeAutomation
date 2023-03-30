@@ -30,10 +30,10 @@ char decFormat[]={'%','x','d','\0'};
 
 #define CYCLE_SUMMARY_FORM_BUTTON 8
 
-#define START_NEW_TRIP 4
+#define START_NEW_TRIP 0
 #define START_NEW_SEGMENT 1
 
-#define MENU_NEW_TRIP 6
+#define MENU_NEW_TRIP 4
 #define MENU_NEW_SEGMENT 5
 #define MENU_STATUS 2
 #define MENU_PITOT_CALIBRATION 3

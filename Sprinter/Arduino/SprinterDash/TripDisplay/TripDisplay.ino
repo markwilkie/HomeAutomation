@@ -223,16 +223,12 @@ void loop()
     //Update display for active forms only
     if(primaryForm.getFormId()==formNavigator.getActiveForm())
     {   
-      primaryForm.updateDisplay();  //Time to update trip display?
+      primaryForm.updateDisplay();  
     }     
     if(startForm.getFormId()==formNavigator.getActiveForm())
     {   
       startForm.updateDisplay();
     }  
-    if(stopForm.getFormId()==formNavigator.getActiveForm())
-    {   
-      stopForm.updateDisplay(); 
-    }
   }
 
   //Take care of business
@@ -300,6 +296,7 @@ void handleStatupAndShutdown()
 
         //Activate stopping form
         formNavigator.activateForm(STOPPED_FORM);
+        stopForm.updateDisplay();
       }
       return;
     }
