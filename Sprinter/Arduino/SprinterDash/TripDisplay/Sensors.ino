@@ -208,7 +208,10 @@ int Pitot::readSpeed()
   _pressure=_pressure/10.0;
 
   //Now convert to mph
-  _mph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
+  int _tempmph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
+
+  //Smooth
+  _mph = _tempmph*0.15 + _mph*0.85;
 
   return _mph;
 }
@@ -230,7 +233,7 @@ int Pitot::read()
   }
 
   //adjust for zero and smooth
-  _sensorCount=(count*0.15 + _sensorCount*0.85)  + _countOffset;
+  _sensorCount=count + _countOffset;
 
   _state = I2C_OK;
   return _state;
