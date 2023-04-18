@@ -5,7 +5,7 @@
 #include "TestData.h"
 #include "isotp.h"
 
-#define MIN_TIME_BETWEEN_REQUESTS  200
+#define MIN_TIME_BETWEEN_REQUESTS  25
 
 //Can bus interfaces
 //CANBedDual CAN0(0);
@@ -14,6 +14,7 @@ IsoTp isotp(&CAN1);
 
 //timing 
 unsigned long lastSend;
+int slowArrayIdx = 0;
 
 //Used for testing and simulation (actual dump)
 TestData testData;
@@ -23,20 +24,27 @@ unsigned char canTestFrame[30];
 //Buffers for CAN bus commms
 struct Message_t txMsg, rxMsg;
 
-//Setup PIDs
-PID diagnostics(0x7DF,0x01,0x01,"Diag","","A",10000);
+//Setup fast PIDs
 PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55",200);
-PID coolantTemp(0x7DF,0x01,0x05,"Coolant Temp","C","A-40",10000);
 PID manPressure(0x7DF,0x01,0x0B,"Manifold","kPa","A",200);
-PID engineRPM(0x7DF,0x01,0x0C,"RPM","RPM","((256*A)+B)/4",500);  
-PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A",500); 
-PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40",1000);
+PID speed(0x7DF,0x01,0x0D,"Speed","km/h","A",400); 
 PID mafFlow(0x7DF,0x01,0x10,"MAF","g/s","((256*A)+B)/100",200); 
+
+//Setup slow PIDs
+PID coolantTemp(0x7DF,0x01,0x05,"Coolant Temp","C","A-40",10000);
+PID intakeTemp(0x7DF,0x01,0x0F,"Intake Temp","C","A-40",1000);
 PID fuelLevel(0x7DF,0x01,0x2F,"Fuel","%","(100/255)*A",60000);
 PID transTemp(0x7E1,0x21,0x30,"Trans Temp","C","E-50",10000);
 PID distanceTrav(0x7DF,0x01,0x31,"Distance Travelled","km","(256*A)+B",60000);
 PID ambientTemp(0x7DF,0x01,0x46,"Ambient Temp","C","A-40",30000);
-PID* pidArray[]={&diagnostics,&engineLoad,&coolantTemp,&manPressure,&engineRPM,&speed,&intakeTemp,&mafFlow,&fuelLevel,&distanceTrav,&transTemp,&ambientTemp};
+PID diagnostics(0x7DF,0x01,0x01,"Diag","","A",10000);
+
+//Cycle through the entire fast PIDs for each slow PID
+PID* slowPidArray[]={&coolantTemp,&intakeTemp,&fuelLevel,&transTemp,&distanceTrav,&ambientTemp,&diagnostics};
+PID* fastPidArray[]={&engineLoad,&manPressure,&speed,&mafFlow};
+
+const int fastArrLen = sizeof(fastPidArray) / sizeof(fastPidArray[0]);
+const int slowArrLen = sizeof(slowPidArray) / sizeof(slowPidArray[0]);
 
 /*
 Add DTC support
@@ -100,22 +108,10 @@ void setup()
     txMsg.Buffer = (uint8_t *)calloc(8, sizeof(uint8_t));
     rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));  
 
+    Serial.println("giving the ECU a chance to wake up");
+    delay(5000);
+
     Serial.println("and we're off!");
-}
-
-//not yet used....  
-char readFromMaster()
-{
-  char retVal='0';
-  
-  if (Serial1.available())
-  {
-    retVal=Serial1.read();
-    Serial.print(retVal);
-    Serial.println();
-  }
-
-  return retVal;
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
@@ -159,95 +155,137 @@ void loop()
     delay(2);
     digitalWrite(18,LOW);
 
-     //Loop while in simulation mode
-    while(!digitalRead(10))
+    //Check for simulator mode
+    if(!digitalRead(10))
     {
-        testId=testData.GetId();
-        testData.FillCanFrame(canTestFrame);
-        delay(10);
-
-        const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
-        for(int i=0;i<arrLen && testId>0;i++)
-        {
-          if(pidArray[i]->isMatch(testId,canTestFrame))
-          {
-            unsigned int result=result=(int)pidArray[i]->getResult(canTestFrame);
-            //1 = service and 2= pid
-
-            sendToMaster(canTestFrame[0],canTestFrame[1],result);
-            Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());        
-          }
-        }
-
-        testData.NextRow(); 
+      simulatorMode();
     }
 
+    //Looping through all fast PIDs for each slow one
+    for(int i=0;i<fastArrLen;i++)
+    {
+      //Is it time to send this PID?     
+      if(millis()>fastPidArray[i]->getNextUpdateMillis())
+      {
+        //Set timing that that we're about to send
+        fastPidArray[i]->setNextUpdateMillis();
+
+        //Ask ECU for the update
+        updatePID(fastPidArray[i]);
+      }
+    }
+
+    //Processing one slow PID for each pass through the fast loop
+
+    //Is it time to send this PID?     
+    if(millis()>slowPidArray[slowArrayIdx]->getNextUpdateMillis())
+    {
+      //Set timing that that we're about to send
+      slowPidArray[slowArrayIdx]->setNextUpdateMillis();
+
+      //Ask ECU for the update
+      updatePID(slowPidArray[slowArrayIdx]);
+    }
+
+    //Start at the beginning again
+    slowArrayIdx++;
+    if(slowArrayIdx>=slowArrLen)
+      slowArrayIdx=0;
+
+}
+
+void updatePID(PID *pid)
+{
     //make sure CAN com buffers are cleared
     memset(txMsg.Buffer, (uint8_t)0, 8);
     memset(rxMsg.Buffer, (uint8_t)0, MAX_MSGBUF);    
 
     //Let's go through each PID we setup and get the values
     int retVal=0;
-    const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
-    for(int i=0;i<arrLen;i++)
+
+    //be nice by delaying at least min_time before sending
+    long timeSinceLast=millis()-lastSend;   
+    if(timeSinceLast<MIN_TIME_BETWEEN_REQUESTS)
     {
-      //Is it time to send this PID?     
-      if(millis()>pidArray[i]->getNextUpdateMillis())
+      delay(MIN_TIME_BETWEEN_REQUESTS-timeSinceLast);
+    }
+    lastSend=millis();    
+
+    //Build request for ECU's and then send it!
+    txMsg.len = 2;  //stnd size
+    txMsg.tx_id = pid->getId();
+    txMsg.rx_id = pid->getRxId();
+    txMsg.Buffer[0]=pid->getService();
+    txMsg.Buffer[1]=pid->getPID();
+    Serial.print(millis());
+    Serial.print(": Sending ");
+    Serial.println(pid->getLabel());
+    retVal=isotp.send(&txMsg); 
+
+    if(retVal)
+    {
+      Serial.println("ERROR sending");
+      return;
+    }
+    else
+    {
+      //OK, now receive the data
+      rxMsg.tx_id = pid->getId();
+      rxMsg.rx_id = pid->getRxId();
+      Serial.print(F("Receiving "));
+      Serial.println(pid->getLabel());
+      retVal=isotp.receive(&rxMsg);
+    }
+
+    //If we successfully received the data, let's parse and send it back now
+    if(retVal)
+    {
+      Serial.println("ERROR receving");
+      return;
+    }
+    else
+    {
+      isotp.print_buffer(rxMsg.rx_id, rxMsg.Buffer, rxMsg.len);        
+
+      //OK, now get the result from the buffer we just received
+      unsigned int result=(int)pid->getResult(rxMsg.Buffer);
+      
+      //1 = service and 2= pid
+      sendToMaster(rxMsg.Buffer[0],rxMsg.Buffer[1],result);
+      Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",rxMsg.Buffer[0],rxMsg.Buffer[1],pid->getLabel(),result,pid->getUnit());
+    }   
+}
+
+void simulatorMode()
+{
+  //Loop while in simulation mode
+  while(!digitalRead(10))
+  {
+      testId=testData.GetId();
+      testData.FillCanFrame(canTestFrame);
+      delay(10);
+
+      simulatorMatch(fastPidArray);
+      simulatorMatch(slowPidArray);
+
+      testData.NextRow(); 
+  }
+}
+
+void simulatorMatch(PID **pidArray)
+{
+    int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
+    for(int i=0;i<arrLen && testId>0;i++)
+    {
+      if(pidArray[i]->isMatch(testId,canTestFrame))
       {
-        //be nice by delaying at least min_time before sending
-        long timeSinceLast=millis()-lastSend;   
-        if(timeSinceLast<MIN_TIME_BETWEEN_REQUESTS)
-        {
-          delay(MIN_TIME_BETWEEN_REQUESTS-timeSinceLast);
-        }
+        unsigned int result=result=(int)pidArray[i]->getResult(canTestFrame);
+        //1 = service and 2= pid
 
-        //Set timing that that we're about to send
-        pidArray[i]->setNextUpdateMillis();
-        lastSend=millis();
-
-        //Build request for ECU's and then send it!
-        txMsg.len = 2;  //stnd size
-        txMsg.tx_id = pidArray[i]->getId();
-        txMsg.rx_id = pidArray[i]->getRxId();
-        txMsg.Buffer[0]=pidArray[i]->getService();
-        txMsg.Buffer[1]=pidArray[i]->getPID();
-        Serial.print(millis());
-        Serial.print(": Sending ");
-        Serial.println(pidArray[i]->getLabel());
-        retVal=isotp.send(&txMsg); 
-
-        if(retVal)
-        {
-          Serial.println("ERROR sending");
-        }
-        else
-        {
-          //OK, now receive the data
-          rxMsg.tx_id = pidArray[i]->getId();
-          rxMsg.rx_id = pidArray[i]->getRxId();
-          Serial.print(F("Receiving "));
-          Serial.println(pidArray[i]->getLabel());
-          retVal=isotp.receive(&rxMsg);
-        }
-
-        //If we successfully received the data, let's parse and send it back now
-        if(retVal)
-        {
-          Serial.println("ERROR receving");
-        }
-        else
-        {
-          isotp.print_buffer(rxMsg.rx_id, rxMsg.Buffer, rxMsg.len);        
-
-          //OK, now get the result from the buffer we just received
-          unsigned int result=(int)pidArray[i]->getResult(rxMsg.Buffer);
-          
-          //1 = service and 2= pid
-          sendToMaster(rxMsg.Buffer[0],rxMsg.Buffer[1],result);
-          Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",rxMsg.Buffer[0],rxMsg.Buffer[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());
-        }
+        sendToMaster(canTestFrame[0],canTestFrame[1],result);
+        Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",canTestFrame[0],canTestFrame[1],pidArray[i]->getLabel(),result,pidArray[i]->getUnit());        
       }
-    }     
+    }
 }
 
 // ENDIF
