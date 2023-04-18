@@ -24,6 +24,10 @@ unsigned char canTestFrame[30];
 //Buffers for CAN bus commms
 struct Message_t txMsg, rxMsg;
 
+//Wake up PIDs  (not sure if these work)
+PID pidsSupported(0x7DF,0x01,0x00,"PIDs Supported"," ","A",1000);
+PID wakeupPID(0x7DF,0x01,0x00,"Wakeup"," ","A",1000);
+
 //Setup fast PIDs
 PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55",200);
 PID manPressure(0x7DF,0x01,0x0B,"Manifold","kPa","A",200);
@@ -109,7 +113,12 @@ void setup()
     rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));  
 
     Serial.println("giving the ECU a chance to wake up");
-    delay(5000);
+    updatePID(&wakeupPID);
+
+    while(updatePID(&pidsSupported))
+    {
+      delay(1000);
+    }
 
     Serial.println("and we're off!");
 }
@@ -194,7 +203,7 @@ void loop()
 
 }
 
-void updatePID(PID *pid)
+int updatePID(PID *pid)
 {
     //make sure CAN com buffers are cleared
     memset(txMsg.Buffer, (uint8_t)0, 8);
@@ -225,7 +234,7 @@ void updatePID(PID *pid)
     if(retVal)
     {
       Serial.println("ERROR sending");
-      return;
+      return retVal;
     }
     else
     {
@@ -241,7 +250,7 @@ void updatePID(PID *pid)
     if(retVal)
     {
       Serial.println("ERROR receving");
-      return;
+      return retVal;
     }
     else
     {
@@ -253,7 +262,9 @@ void updatePID(PID *pid)
       //1 = service and 2= pid
       sendToMaster(rxMsg.Buffer[0],rxMsg.Buffer[1],result);
       Serial.printf("Service/Pid: 0x%02x 0x%02x -  %s: %d%s\n",rxMsg.Buffer[0],rxMsg.Buffer[1],pid->getLabel(),result,pid->getUnit());
-    }   
+    }
+
+    return 0;   
 }
 
 void simulatorMode()
