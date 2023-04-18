@@ -26,7 +26,7 @@ struct Message_t txMsg, rxMsg;
 
 //Wake up PIDs  (not sure if these work)
 PID pidsSupported(0x7DF,0x01,0x00,"PIDs Supported"," ","A",1000);
-PID wakeupPID(0x7DF,0x01,0x00,"Wakeup"," ","A",1000);
+PID wakeupPID(0x1C,0x01,0x00,"Wakeup"," ","A",1000);
 
 //Setup fast PIDs
 PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55",200);
