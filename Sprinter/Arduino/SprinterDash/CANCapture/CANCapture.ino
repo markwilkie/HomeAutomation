@@ -24,9 +24,8 @@ unsigned char canTestFrame[30];
 //Buffers for CAN bus commms
 struct Message_t txMsg, rxMsg;
 
-//Wake up PIDs  (not sure if these work)
+//Misc
 PID pidsSupported(0x7DF,0x01,0x00,"PIDs Supported"," ","A",1000);
-PID wakeupPID(0x1C,0x01,0x00,"Wakeup"," ","A",1000);
 
 //Setup fast PIDs
 PID engineLoad(0x7DF,0x01,0x04,"Load","%","A/2.55",200);
@@ -98,7 +97,8 @@ void setup()
     pinMode(18, OUTPUT);   //LED
     pinMode(10, INPUT_PULLUP);  //pull low for simulation mode
 
-    delay(10000);
+    Serial.println("Waiting 5 seconds to give things a chance to settle");
+    delay(5000);
 
     //Setup I2C to CAN transceiver
     Wire1.setSDA(6);
@@ -112,15 +112,32 @@ void setup()
     txMsg.Buffer = (uint8_t *)calloc(8, sizeof(uint8_t));
     rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));  
 
-    Serial.println("giving the ECU a chance to wake up");
-    updatePID(&wakeupPID);
+    Serial.println("Making sure we can receive each PID at least once  (if nothing is after this line, then it's hung waiting)");
+    initPIDs();
 
-    while(updatePID(&pidsSupported))
+    Serial.println("...and we're off!");
+}
+
+//Go through and get each PID at least once
+void initPIDs()
+{
+  for(int i=0;i<slowArrLen;i++)
+  {
+    //Loop until we get a valid response
+    while(updatePID(slowPidArray[i]))
     {
-      delay(1000);
+      delay(500);
     }
+  }
 
-    Serial.println("and we're off!");
+  for(int i=0;i<fastArrLen;i++)
+  {
+    //Loop until we get a valid response
+    while(updatePID(fastPidArray[i]))
+    {
+      delay(500);
+    }
+  }  
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
