@@ -7,7 +7,7 @@ CurrentData::CurrentData()
     //Other sensors
     pitot.init(200); 
     ignState.init(1000);
-    barometer.init(5000);
+    barometer.init(1000);
     rtc.init(1000);
     ldr.init(1000);
 }
