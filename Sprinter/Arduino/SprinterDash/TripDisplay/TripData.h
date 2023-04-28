@@ -63,10 +63,11 @@ class TripData
 
     TripDataStruct data;
 
-    //Used to keep a running average
+    //Used to keep a running average if instance mpg so we can calibrate on the fly
     unsigned long sumInstMPG=0;
-    int numSamples=0;
-    int lastInstMPG=0;
+    long numInstMPGSamples=0;
+    double instMPG=0;
+    double lastAvgInstMPG=0;
 };
 
 #endif

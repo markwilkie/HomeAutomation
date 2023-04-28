@@ -12,6 +12,8 @@ rtc: 0x68
 pressure: 0x28
 */
 
+#define ATMOS_READ_INTERVAL 10   //How many altitude reads are done for each atmos pressure read
+
 class Barometer 
 {
   public:
@@ -25,11 +27,9 @@ class Barometer
   private: 
     Adafruit_MPL3115A2 baro;
     int refreshTicks;
-    bool pressOnline=false;
-    bool AltOnline=false;
-    bool readingPressureNow = true;
-    bool readingStarted = false;
-    bool readingReady = false;
+    bool online=false;
+    int elevationOffset=0;
+    int currentElevReadCount=0;
 
     //Data
     int elevation;

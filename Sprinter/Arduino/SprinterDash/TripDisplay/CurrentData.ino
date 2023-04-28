@@ -7,7 +7,7 @@ CurrentData::CurrentData()
     //Other sensors
     pitot.init(200); 
     ignState.init(1000);
-    barometer.init(1000);
+    barometer.init(10000);  //It takes about 400ms to get a reading, so this is expensive
     rtc.init(1000);
     ldr.init(1000);
 }
@@ -150,9 +150,9 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     //Manifold pressure in kPa
     if(service==manPres.service && pid==manPres.pid)
     {        
-      double bara=barometer.getPressure();
+      double bara=barometer.getPressure()/10.0;  //convert from pa to kpa
       float boost=value-bara;
-      currentBoost=boost*.145;
+      currentBoost=boost*.145;  //convert from kpa to psi
     } 
     //Diag - e.g. how many codes are stored
     if(service==diag.service && pid==diag.pid)

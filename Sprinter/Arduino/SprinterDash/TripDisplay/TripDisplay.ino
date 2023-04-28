@@ -319,6 +319,24 @@ void handleStatupAndShutdown()
     }
 }
 
+void ShowDebugInfo()
+{
+    Serial.println("Show debug info");
+    formNavigator.activateForm(STATUS_FORM); 
+
+    statusForm.updateTitle("Debug Info");
+    while(1)
+    {
+      statusForm.updateText(currentData.currentSeconds);
+
+      genie.DoEvents();   //so that the buttons will work
+
+      //If someone pressed the button, time to bail
+      if(formNavigator.getActiveForm()!=STATUS_FORM)
+        break;
+    }
+}
+
 void showPitotInfo()
 {
     Serial.println("Show pitot info");
@@ -407,7 +425,8 @@ void myGenieEventHandler(void)
       verifyInterfaces();
       break;
     case ACTION_PITOT:
-      showPitotInfo();
+      //showPitotInfo();
+      ShowDebugInfo();
       break;
   }
 }

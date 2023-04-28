@@ -112,12 +112,16 @@ void TripData::updateTripData()
 
     //Calc time igntion off and the buckets that go with that
     unsigned long currentSeconds = currentDataPtr->currentSeconds;
+
+    //Store time the car was shut off
     if(!currentDataPtr->ignitionState && data.ignOffSeconds==0)
     {
         data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;        
         data.ignOffSeconds=currentSeconds;
         data.numberOfStops++;
     }
+
+    //Store time the car was started again
     if(currentDataPtr->ignitionState && data.ignOffSeconds>0)
     {
         int totalSecondsOff=currentSeconds-data.ignOffSeconds;
@@ -196,15 +200,15 @@ double TripData::getFuelGallonsUsed()
     if(currentFuelPerc<=0)
         return 0;
 
-    if(currentFuelPerc<data.lastFuelPerc)
+    if(currentFuelPerc>data.lastFuelPerc)
     {
-        double priorGallonsUsed=FUEL_TANK_SIZE*((data.lastFuelPerc-data.startFuelPerc)/100.0);
+        double priorGallonsUsed=FUEL_TANK_SIZE*((data.startFuelPerc-data.lastFuelPerc)/100.0);
         data.priorTotalGallonsUsed=data.priorTotalGallonsUsed+priorGallonsUsed;
         data.startFuelPerc=currentFuelPerc;
     }
     data.lastFuelPerc=currentFuelPerc;
 
-    double gallonsUsed = FUEL_TANK_SIZE*((currentFuelPerc-data.startFuelPerc)/100.0);
+    double gallonsUsed = FUEL_TANK_SIZE*((data.startFuelPerc-currentFuelPerc)/100.0);
     gallonsUsed=gallonsUsed+data.priorTotalGallonsUsed;
 
     return gallonsUsed;
@@ -228,7 +232,26 @@ double TripData::getGallonsExpected()
 double TripData::getInstantMPG()
 {
     double galPerHour=((double)currentDataPtr->currentMAF*(double)currentDataPtr->currentLoad)/1006.777948;
-    double instMPG=(currentDataPtr->currentSpeed)/galPerHour;
+    double currentInstMPG=(currentDataPtr->currentSpeed)/galPerHour;
+    instMPG = currentInstMPG;
+
+    //running avg so we can calibrate on the fly with some filtering
+    if(instMPG>3 && instMPG<30)
+    {
+        //Smooth
+        instMPG = currentInstMPG*0.25 + instMPG*0.75;
+
+        sumInstMPG=sumInstMPG+(instMPG*10);
+        numInstMPGSamples++;
+        lastAvgInstMPG=(sumInstMPG/numInstMPGSamples)/10.0;
+    }
+
+    //make adjustments based on avg if we're far enough along to have the data
+    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10)
+    {
+        float factor=getAvgMPG()/lastAvgInstMPG;
+        instMPG=instMPG*factor;
+    }
 
     return instMPG;
 }

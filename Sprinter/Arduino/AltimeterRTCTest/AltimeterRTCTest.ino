@@ -30,6 +30,8 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 void setup() {
   Serial.begin(115200);
   while(!Serial);
+
+  delay(10000);
   Serial.println("Adafruit_MPL3115A2 test!");
 
   if (!baro.begin()) {
@@ -38,8 +40,11 @@ void setup() {
   }
 
   // set mode before starting a conversion
-  Serial.println("Setting mode to barometer (pressure).");
-  baro.setMode(MPL3115A2_ALTIMETER);
+  //Serial.println("Setting mode to barometer (pressure).");
+  //baro.setMode(MPL3115A2_ALTIMETER);
+
+  //Setting default sea level pressure to 1013.26 hPa
+  baro.setSeaPressure(1013.26);
 
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -51,7 +56,10 @@ void setup() {
     Serial.println("RTC is NOT initialized, let's set the time!");
     // When time needs to be set on a new device, or after a power loss, the
     // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    
+    //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+    
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
@@ -99,9 +107,8 @@ void setup() {
 
 void loop() {
   // start a conversion
-  Serial.println("Starting a conversion.");
-  baro.startOneShot();
-  long currentTime=millis();
+  //Serial.println("Starting a conversion.");
+  //baro.startOneShot();
 
   Serial.println("-----------------");
 
@@ -124,19 +131,30 @@ void loop() {
 
   // do something else while waiting
   Serial.println("Counting number while waiting for baro...");
-  while (!baro.conversionComplete()) {
-    ;
-  }
+  long currentTime=millis();
+  //while (!baro.conversionComplete()) {
+  //  ;
+  //}
+
+  float pressure = baro.getPressure();
+  //float altitude = baro.getAltitude();
+  //float temperature = baro.getTemperature();
+
+  Serial.println("-----------------");
+  Serial.print("pressure = "); Serial.print(pressure); Serial.println(" hPa");
+  //Serial.print("altitude = "); Serial.print(altitude); Serial.println(" m");
+  //Serial.print("temperature = "); Serial.print(temperature); Serial.println(" C");
+  
   Serial.print("Done! Millis: "); Serial.println(millis()-currentTime);    
 
   // now get results
   //Serial.print("Pressure = ");
   //Serial.println(baro.getLastConversionResults(MPL3115A2_PRESSURE));   //not in the right mode
-  Serial.print("Temperature = ");
-  Serial.println(baro.getLastConversionResults(MPL3115A2_TEMPERATURE));
-  Serial.print("Altitude = ");
-  Serial.println(baro.getLastConversionResults(MPL3115A2_ALTITUDE)* 3.28084);
-  Serial.println();  
+  //Serial.print("Temperature = ");
+  //Serial.println(baro.getLastConversionResults(MPL3115A2_TEMPERATURE));
+  //Serial.print("Altitude = ");
+  //Serial.println(baro.getLastConversionResults(MPL3115A2_ALTITUDE)* 3.28084);
+  //Serial.println();  
 
   delay(5000);
 }

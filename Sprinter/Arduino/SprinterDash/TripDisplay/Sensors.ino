@@ -10,12 +10,17 @@ void Barometer::setup()
   if (!baro.begin()) 
   {
     Serial.println("Could not find MPL3115A2 Barometer");
+    online=false;
+  }
+  else
+  {
+    online=true;
   }
 }
 
 bool Barometer::isOnline()
 {
-  return pressOnline&&AltOnline;
+  return online;
 }
 
 void Barometer::update()
@@ -25,56 +30,33 @@ void Barometer::update()
       return;
   nextTickCount=millis()+refreshTicks;
 
-  //Is there a reading ready?
-  readingReady=baro.conversionComplete();
+  //handle interval
+  currentElevReadCount++;
 
-  //Let's check if we need to start a new read or not
-  if(!readingStarted && !readingReady)
+  //Alternate between altimeter and pressure readings because it takes almost 400ms per reading
+  if(currentElevReadCount>ATMOS_READ_INTERVAL || pressure==0)
   {
-      //Serial.println("Starting non blocking barometer read");
-      if(readingPressureNow)
-          baro.setMode(MPL3115A2_BAROMETER);
-      else
-          baro.setMode(MPL3115A2_ALTIMETER);
-
-      baro.startOneShot();
-      return;
-  }
-
-  //If we're not quite ready, then come back
-  if(readingStarted && !readingReady)
-  {
-    Serial.println("Baro not quite ready yet");
+    pressure = baro.getPressure();  //in pascals
+    currentElevReadCount=0;
     return;
-  }
-
-  //Looks like our results are ready!
-  if(readingPressureNow)
-  {
-    pressure = baro.getLastConversionResults(MPL3115A2_PRESSURE)/10.0;
-    pressOnline=true;
-    readingStarted=false;
-    readingReady=false;
-    readingPressureNow=false;
 
     //Serial.print("Pressure = ");
     //Serial.println(pressure);
   }
-  else
+
+  //Let's read elevation
+  elevation = baro.getAltitude() * 3.28084;
+  elevation = elevation + elevationOffset;
+
+  //poor man's calibration
+  if(elevation<0)
   {
-    elevation = baro.getLastConversionResults(MPL3115A2_ALTITUDE)* 3.28084;
-    AltOnline=true;
-    readingStarted=false;
-    readingReady=false;
-    readingPressureNow=true;
-
-    //Account for negative altitude
-    if(elevation<0)    
-      elevation=1;  //1 means that we'll not try and reset the values
-
-    //Serial.print("Altitude = ");
-    //Serial.println(elevation); 
+    elevationOffset=elevationOffset-elevation;
+    elevation = elevation + elevationOffset;
   }
+
+  //Serial.print("Altitude = ");
+  //Serial.println(elevation); 
 }
 
 int Barometer::getElevation()
@@ -94,8 +76,18 @@ void RTC::init(int _refreshTicks)
 
 void RTC::setup()
 {
-  if (!rtc.begin()) {
+  if (!rtc.begin()) 
+  {
     Serial.println("Couldn't find RTC");
+    online=false;
+    return;
+  }
+
+  if (! rtc.initialized() || rtc.lostPower()) 
+  {
+    Serial.println("RTC either lost power or is not initialized");
+    online=false;
+    return;
   }
 
   // When the RTC was stopped and stays connected to the battery, it has
@@ -118,13 +110,19 @@ uint32_t RTC::getSecondsSinc2000()
 
   //get current time from clock
   DateTime now = rtc.now();
-  secondsSince2000=now.secondstime();
 
-  //Mark sensor as online
-  if(secondsSince2000>0)
-    online=true;
-  else
+  //do quick sanity check
+  uint32_t currentTime=now.secondstime();
+  if(currentTime<=0 || currentTime<secondsSince2000 || (currentTime>secondsSince2000+360 && secondsSince2000>0))
+  {
+    //just ignore....
     online=false;
+  }
+  else
+  {
+    secondsSince2000=currentTime;
+    online=true;
+  }
 
   return secondsSince2000;
 }
@@ -211,7 +209,7 @@ int Pitot::readSpeed()
   int _tempmph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
 
   //Smooth
-  _mph = _tempmph*0.15 + _mph*0.85;
+  _mph = _tempmph*0.25 + _mph*0.75;
 
   return _mph;
 }
@@ -260,8 +258,13 @@ bool IgnState::getIgnState()
     //Update timing
     nextTickCount=millis()+refreshTicks;
 
-    //Read state
+    //Read state.  If off, double check
     ignState = digitalRead(IGN_PIN);
+    if(!ignState)
+    {
+      delay(2000);
+      ignState = digitalRead(IGN_PIN);
+    }
 
     //Serial.print("IGN State: ");
     //Serial.println(ignState);
