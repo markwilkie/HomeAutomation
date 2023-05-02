@@ -1,0 +1,2251 @@
+﻿Version     0.0
+Platform    pixxiLCD-39P4CT-L
+PlatRes     128x480
+Depends
+end
+Options
+    Genie
+    Speed                        200000
+    Checksum                     No
+    ResponseSize                 2
+    Multidrop                    No
+    Destination                  0
+    DestBank                     0
+    MainForm                     5
+    SndBuf                       0
+    ButtonDisable                Yes
+    SignedDigits                 No
+    MaxString                    75
+    ComPort                      0
+    ComTX1pinIdx                 0
+    ComRX1pinIdx                 0
+    FileSystem                   GCIfs
+    FlashEraseOption             Optimal
+    SPIenable                    0
+    SPIsdo                       3
+    SPIsdi                       2
+    SPIsck                       1
+    ForceProgramFlash            No
+    FlashForceLT16MB             No
+end
+Form
+    Name                         Form0
+    Alias                        MainForm
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   'Report Message'
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iAngularMeter
+    Name                         IAngularMeter0
+    Alias                        Load
+    BGcolor                      BLACK
+    BGtransparent                Yes
+    Caption                      ''
+    CaptionColor                 0xAFF5B9
+    CaptionFont                  FONT3
+    CaptionXOffset               -15
+    CaptionYOffset               -7
+    GaugeEndAngle                405
+    GaugeStartAngle              135
+    Height                       122
+    LabelColor                   WHITE
+    LabelColorFromScale          No
+    LabelCount                   4
+    LabelDiscrete                Yes
+    LabelFont                    FONT2
+    LabelOffset                  -15
+    Labels                       \n
+    Left                         165
+    Maxvalue                     100
+    MinorTicks                   15
+    Minvalue                     0
+    NeedleCentered               Yes
+    NeedleColor                  WHITESMOKE
+    NeedleLength                 40
+    NeedleOffset                 17
+    NeedlePinColor               SLATEGRAY
+    NeedlePinDotColor            RED
+    NeedlePinDotRadius           0
+    NeedlePinRadius              0
+    NeedleStyle                  RoundedRectangle
+    NeedleTail                   0
+    NeedleThickess               4
+    NeedleXpos                   20
+    NeedleYpos                   20
+    Sect1Color                   0x464646
+    Sect2Color                   0x00C6C2
+    Sect2StartingAngle           320
+    Sect3Color                   RED
+    Sect3StartingAngle           350
+    SectionStepSize              1
+    ScaleInnerRadius             55
+    ScaleOuterRadius             60
+    TickColor                    GRAY
+    TickColorFromScaleColor      No
+    TickInnerMajorLength         10
+    TickInnerMinorLength         -5
+    TickOuterMajorLength         0
+    TickOuterMinorLength         0
+    TickWidth                    2
+    Top                          9
+    TotalTicks                   30
+    Width                        140
+    OnChanged                    ''
+end
+iAngularMeter
+    Name                         IAngularMeter1
+    Alias                        WaterTemperature
+    BGcolor                      BLACK
+    BGtransparent                Yes
+    Caption                      ''
+    CaptionColor                 WHITESMOKE
+    CaptionFont                  FONT2
+    CaptionXOffset               -15
+    CaptionYOffset               0
+    GaugeEndAngle                280
+    GaugeStartAngle              65
+    Height                       90
+    LabelColor                   WHITE
+    LabelColorFromScale          No
+    LabelCount                   3
+    LabelDiscrete                Yes
+    LabelFont                    FONT2
+    LabelOffset                  -15
+    Labels                       \n
+    Left                         105
+    Maxvalue                     250
+    MinorTicks                   15
+    Minvalue                     130
+    NeedleCentered               Yes
+    NeedleColor                  WHITESMOKE
+    NeedleLength                 32
+    NeedleOffset                 17
+    NeedlePinColor               SLATEGRAY
+    NeedlePinDotColor            RED
+    NeedlePinDotRadius           0
+    NeedlePinRadius              0
+    NeedleStyle                  RoundedRectangle
+    NeedleTail                   0
+    NeedleThickess               2
+    NeedleXpos                   20
+    NeedleYpos                   20
+    Sect1Color                   0x464646
+    Sect2Color                   0x00C6C2
+    Sect2StartingAngle           183
+    Sect3Color                   RED
+    Sect3StartingAngle           227
+    SectionStepSize              1
+    ScaleInnerRadius             35
+    ScaleOuterRadius             40
+    TickColor                    GRAY
+    TickColorFromScaleColor      No
+    TickInnerMajorLength         10
+    TickInnerMinorLength         -5
+    TickOuterMajorLength         0
+    TickOuterMinorLength         0
+    TickWidth                    2
+    Top                          37
+    TotalTicks                   5
+    Width                        100
+    OnChanged                    ''
+end
+iAngularMeter
+    Name                         IAngularMeter3
+    Alias                        BoostPressure
+    BGcolor                      BLACK
+    BGtransparent                Yes
+    Caption                      ''
+    CaptionColor                 0xAFF5B9
+    CaptionFont                  FONT2
+    CaptionXOffset               -15
+    CaptionYOffset               0
+    GaugeEndAngle                450
+    GaugeStartAngle              235
+    Height                       89
+    LabelColor                   WHITE
+    LabelColorFromScale          No
+    LabelCount                   2
+    LabelDiscrete                Yes
+    LabelFont                    FONT2
+    LabelOffset                  -15
+    Labels                       \n
+    Left                         265
+    Maxvalue                     22
+    MinorTicks                   5
+    Minvalue                     0
+    NeedleCentered               Yes
+    NeedleColor                  WHITESMOKE
+    NeedleLength                 32
+    NeedleOffset                 17
+    NeedlePinColor               SLATEGRAY
+    NeedlePinDotColor            RED
+    NeedlePinDotRadius           0
+    NeedlePinRadius              0
+    NeedleStyle                  RoundedRectangle
+    NeedleTail                   0
+    NeedleThickess               2
+    NeedleXpos                   20
+    NeedleYpos                   20
+    Sect1Color                   0x464646
+    Sect2Color                   0x464646
+    Sect2StartingAngle           360
+    Sect3Color                   0x464646
+    Sect3StartingAngle           360
+    SectionStepSize              1
+    ScaleInnerRadius             35
+    ScaleOuterRadius             40
+    TickColor                    GRAY
+    TickColorFromScaleColor      No
+    TickInnerMajorLength         10
+    TickInnerMinorLength         -5
+    TickOuterMajorLength         0
+    TickOuterMinorLength         0
+    TickWidth                    2
+    Top                          5
+    TotalTicks                   4
+    Width                        95
+    OnChanged                    ''
+end
+Image
+    Name                         Image0
+    Alias                        WaterTemp
+    Height                       20
+    Image                        watertemp.png
+    Left                         140
+    Source.Height                319
+    Source.Left                  111
+    Source.Top                   39
+    Source.Width                 339
+    Top                          70
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iLedDigits
+    Name                         ILedDigits1
+    Alias                        LEDWaterTempDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         135
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          12
+    OnChanged                    IAngularMeter0Set
+end
+iLedDigits
+    Name                         ILedDigits2
+    Alias                        LEDBoostDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       2
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         296
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          102
+    OnChanged                    IAngularMeter0Set
+end
+Gauge
+    Name                         Gauge0
+    Alias                        HeadWind
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             BLACK
+    Bevel.InnerHighlight         0x8D8D8D
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            clBtnShadow
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             Lowered
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Inner
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Color                        BLACK
+    Height                       40
+    Left                         8
+    Maxvalue                     30
+    Minvalue                     0
+    Orientation                  Vertical
+    Palette1.High                YELLOW
+    Palette1.Low                 BLACK
+    Palette2.High                RED
+    Palette2.Low                 BLACK
+    Palette3.High                0x6061FF
+    Palette3.Low                 BLACK
+    Percent1                     50
+    Percent2                     100
+    Spacing                      2
+    Step                         1
+    Style                        BottomLeft
+    TickHeight                   2
+    Top                          13
+    Width                        20
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iLedDigits
+    Name                         ILedDigits3
+    Alias                        LEDwindSpeedDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       2
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         4
+    ShowDP                       No
+    Signed                       Yes
+    Size                         1
+    Spacing                      0
+    Top                          101
+    OnChanged                    ''
+end
+Image
+    Name                         Image1
+    Alias                        Boost
+    Height                       20
+    Image                        turbo-icon-1.jpg
+    Left                         309
+    Source.Height                425
+    Source.Left                  174
+    Source.Top                   191
+    Source.Width                 458
+    Top                          41
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iAngularMeter
+    Name                         IAngularMeter2
+    Alias                        TransmissionTemp
+    BGcolor                      BLACK
+    BGtransparent                Yes
+    Caption                      ''
+    CaptionColor                 WHITESMOKE
+    CaptionFont                  FONT2
+    CaptionXOffset               -15
+    CaptionYOffset               0
+    GaugeEndAngle                280
+    GaugeStartAngle              65
+    Height                       90
+    LabelColor                   WHITE
+    LabelColorFromScale          No
+    LabelCount                   3
+    LabelDiscrete                Yes
+    LabelFont                    FONT2
+    LabelOffset                  -15
+    Labels                       \n
+    Left                         41
+    Maxvalue                     250
+    MinorTicks                   15
+    Minvalue                     130
+    NeedleCentered               Yes
+    NeedleColor                  WHITESMOKE
+    NeedleLength                 32
+    NeedleOffset                 17
+    NeedlePinColor               SLATEGRAY
+    NeedlePinDotColor            RED
+    NeedlePinDotRadius           0
+    NeedlePinRadius              0
+    NeedleStyle                  RoundedRectangle
+    NeedleTail                   0
+    NeedleThickess               2
+    NeedleXpos                   20
+    NeedleYpos                   20
+    Sect1Color                   0x464646
+    Sect2Color                   0x00C6C2
+    Sect2StartingAngle           183
+    Sect3Color                   RED
+    Sect3StartingAngle           227
+    SectionStepSize              1
+    ScaleInnerRadius             35
+    ScaleOuterRadius             40
+    TickColor                    GRAY
+    TickColorFromScaleColor      No
+    TickInnerMajorLength         10
+    TickInnerMinorLength         -5
+    TickOuterMajorLength         0
+    TickOuterMinorLength         0
+    TickWidth                    2
+    Top                          37
+    TotalTicks                   5
+    Width                        100
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits4
+    Alias                        LEDTransTempDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         80
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          12
+    OnChanged                    IAngularMeter0Set
+end
+Image
+    Name                         Image3
+    Alias                        TransTemp
+    Height                       20
+    Image                        transmission-temperature-warning-light-icon-1024x654.jpg
+    Left                         80
+    Source.Height                427
+    Source.Left                  306
+    Source.Top                   96
+    Source.Width                 413
+    Top                          70
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image4
+    Alias                        LoadImage
+    Height                       25
+    Image                        load.jpg
+    Left                         223
+    Source.Height                130
+    Source.Left                  26
+    Source.Top                   31
+    Source.Width                 148
+    Top                          58
+    Width                        25
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image6
+    Alias                        AvgMPGImg
+    Height                       25
+    Image                        avg_mpg.jpg
+    Left                         420
+    Source.Height                381
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 543
+    Top                          10
+    Width                        29
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+iLedDigits
+    Name                         ILedDigits6
+    Alias                        AvgMPGdigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 1
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         370
+    ShowDP                       Yes
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          12
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits7
+    Alias                        MilesInTankDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         370
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          41
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits8
+    Alias                        ElevationDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       4
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         359
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          70
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits5
+    Alias                        TimeDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 1
+    Digits                       2
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         340
+    ShowDP                       Yes
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          101
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits9
+    Alias                        MilesDrivenDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       3
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         400
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          101
+    OnChanged                    ''
+end
+Image
+    Name                         Image5
+    Alias                        Odometer
+    Height                       23
+    Image                        odometer.jpg
+    Left                         444
+    Source.Height                67
+    Source.Left                  0
+    Source.Top                   18
+    Source.Width                 100
+    Top                          101
+    Width                        30
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image7
+    Alias                        TimeDrivingIcon
+    Height                       32
+    Image                        stopwatch.jpg
+    Left                         372
+    Source.Height                180
+    Source.Left                  63
+    Source.Top                   39
+    Source.Width                 130
+    Top                          101
+    Width                        25
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image8
+    Alias                        MilesLeft
+    Height                       28
+    Image                        milesleft.jpg
+    Left                         420
+    Source.Height                512
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 512
+    Top                          38
+    Width                        27
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image9
+    Alias                        ElevationIcon
+    Height                       27
+    Image                        Elevation.jpg
+    Left                         420
+    Source.Height                172
+    Source.Left                  12
+    Source.Top                   10
+    Source.Width                 235
+    Top                          68
+    Width                        30
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Gauge
+    Name                         Gauge1
+    Alias                        InstMPGRed
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             BLACK
+    Bevel.InnerHighlight         0x8D8D8D
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            clBtnShadow
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             Lowered
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Inner
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Color                        BLACK
+    Height                       40
+    Left                         456
+    Maxvalue                     10
+    Minvalue                     0
+    Orientation                  Vertical
+    Palette1.High                YELLOW
+    Palette1.Low                 BLACK
+    Palette2.High                0x5A5BFF
+    Palette2.Low                 BLACK
+    Palette3.High                0x5A5BFF
+    Palette3.Low                 BLACK
+    Percent1                     30
+    Percent2                     0
+    Spacing                      2
+    Step                         1
+    Style                        TopRight
+    TickHeight                   1
+    Top                          53
+    Width                        18
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Gauge
+    Name                         Gauge2
+    Alias                        InstMPGgreen
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             BLACK
+    Bevel.InnerHighlight         0x8D8D8D
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            clBtnShadow
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             Lowered
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Inner
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Color                        BLACK
+    Height                       40
+    Left                         456
+    Maxvalue                     10
+    Minvalue                     0
+    Orientation                  Vertical
+    Palette1.High                CHARTREUSE
+    Palette1.Low                 BLACK
+    Palette2.High                YELLOW
+    Palette2.Low                 BLACK
+    Palette3.High                CHARTREUSE
+    Palette3.Low                 BLACK
+    Percent1                     100
+    Percent2                     0
+    Spacing                      2
+    Step                         1
+    Style                        BottomLeft
+    TickHeight                   1
+    Top                          13
+    Width                        18
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Gauge
+    Name                         Gauge3
+    Alias                        TailWind
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             BLACK
+    Bevel.InnerHighlight         0x8D8D8D
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            clBtnShadow
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             Lowered
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Inner
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Color                        BLACK
+    Height                       40
+    Left                         8
+    Maxvalue                     30
+    Minvalue                     0
+    Orientation                  Vertical
+    Palette1.High                CHARTREUSE
+    Palette1.Low                 BLACK
+    Palette2.High                0x3EE9FB
+    Palette2.Low                 BLACK
+    Palette3.High                0x6061FF
+    Palette3.Low                 BLACK
+    Percent1                     100
+    Percent2                     0
+    Spacing                      2
+    Step                         1
+    Style                        TopRight
+    TickHeight                   2
+    Top                          53
+    Width                        20
+    OnChanged                    ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Image
+    Name                         Image10
+    Alias                        WindIcon
+    Height                       20
+    Image                        wind-blowing-icon-9.jpg
+    Left                         30
+    Source.Height                398
+    Source.Left                  82
+    Source.Top                   57
+    Source.Width                 430
+    Top                          100
+    Width                        20
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+UserButton
+    Name                         Userbutton1
+    Alias                        InfoButton
+    Height                       35
+    Images                       nextform.png
+    Left                         32
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          12
+    Width                        35
+    OnChanged                    'Report Message'
+end
+UserLed
+    Name                         Userled0
+    Alias                        DTCLed
+    Active                       No
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             clBtnFace
+    Bevel.InnerHighlight         clLime
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            0x005100
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             None
+    Bevel.Innerwidth             1
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Outer
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    Height                       12
+    Left                         225
+    OutlineColor                 BLACK
+    OutlineWidth                 0
+    PaletteEx.High1              clRed
+    PaletteEx.High2              RED
+    PaletteEx.Low1               0x000051
+    PaletteEx.Low2               BLACK
+    Top                          87
+    Width                        25
+    OnChanged                    ''
+end
+iLedDigits
+    Name                         ILedDigits0
+    Alias                        LoadDigits
+    ColorActive                  WHEAT
+    ColorInactive                0x181818
+    DecimalPlace                 0
+    Digits                       2
+    DPisComma                    No
+    Format                       Int16
+    LeadingZero                  No
+    Left                         225
+    ShowDP                       No
+    Signed                       No
+    Size                         1
+    Spacing                      0
+    Top                          101
+    OnChanged                    IAngularMeter0Set
+end
+Form
+    Name                         Form1
+    Alias                        StoppedForm
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings2
+    Alias                        GallExpLabel
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         215
+    Strings                      'Gallons Expected\n'
+    StringsStyle                 Message
+    Top                          65
+    Width                        186
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings0
+    Alias                        MilesDrivenLabel
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         215
+    Strings                      'Miles Since Last Stop\n'
+    StringsStyle                 Message
+    Top                          15
+    Width                        260
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings4
+    Alias                        MilesDriven
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         145
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          15
+    Width                        60
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings5
+    Alias                        TimeElapsed
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         145
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          40
+    Width                        60
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings7
+    Alias                        TimeElapsedLabel
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         215
+    Strings                      'Hours Elapsed\n'
+    StringsStyle                 Message
+    Top                          40
+    Width                        192
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings9
+    Alias                        GallExp
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         145
+    Strings                      99\n
+    StringsStyle                 Message
+    Top                          65
+    Width                        60
+    OnChanged                    ''
+end
+UserButton
+    Name                         Userbutton0
+    Alias                        StoppedHomeButton
+    Height                       35
+    Images                       home.png
+    Left                         24
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          16
+    Width                        38
+    OnChanged                    'Report Message'
+end
+UserButton
+    Name                         Userbutton5
+    Alias                        StoppedToMenu
+    Height                       35
+    Images                       menu.png
+    Left                         24
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          72
+    Width                        35
+    OnChanged                    'Report Message'
+end
+Strings
+    Name                         Strings37
+    Alias                        'AvgMPG Label'
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         215
+    Strings                      'Avg MPG\n'
+    StringsStyle                 Message
+    Top                          90
+    Width                        186
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings38
+    Alias                        AvgMPG1
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         145
+    Strings                      99.9\n
+    StringsStyle                 Message
+    Top                          90
+    Width                        60
+    OnChanged                    ''
+end
+Form
+    Name                         Form2
+    Alias                        SummaryForm
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   'Report Message'
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings10
+    Alias                        ElevationGain
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      99999\n
+    StringsStyle                 Message
+    Top                          110
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings11
+    Alias                        ElevationGainLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Elevation Gain\n'
+    StringsStyle                 Message
+    Top                          110
+    Width                        140
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings12
+    Alias                        SummaryTitle
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       31
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         55
+    Strings                      0123456789012345\n
+    StringsStyle                 Message
+    Top                          7
+    Width                        217
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings15
+    Alias                        TimeDrivingLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         65
+    Strings                      'Driving Time\n\n'
+    StringsStyle                 Message
+    Top                          38
+    Width                        100
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings16
+    Alias                        SumTimeElapsedLabel
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         65
+    Strings                      'Elapsed Time\n'
+    StringsStyle                 Message
+    Top                          62
+    Width                        111
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings18
+    Alias                        TimeDriving
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          62
+    Width                        40
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings19
+    Alias                        TimeStopped
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          86
+    Width                        40
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings20
+    Alias                        TimeStoppedLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         65
+    Strings                      Time\n\n
+    StringsStyle                 Message
+    Top                          86
+    Width                        38
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings21
+    Alias                        SumGalUsed
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      999\n
+    StringsStyle                 Message
+    Top                          38
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings22
+    Alias                        SumGalUnsedLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Gallons Used\n\n'
+    StringsStyle                 Message
+    Top                          38
+    Width                        100
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings23
+    Alias                        AvgMPG
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      99.9\n
+    StringsStyle                 Message
+    Top                          62
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings24
+    Alias                        AvgMPGLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Average MPG\n\n'
+    StringsStyle                 Message
+    Top                          62
+    Width                        100
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings13
+    Alias                        SumMilesTrav
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          16
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings14
+    Alias                        SumMilesTravLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Miles Travelled\n\n'
+    StringsStyle                 Message
+    Top                          16
+    Width                        117
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings25
+    Alias                        AvgMovingSpeed
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      99.9\n
+    StringsStyle                 Message
+    Top                          86
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings26
+    Alias                        AvgMovingSpdLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         325
+    Strings                      'Avg Moving Speed\n\n'
+    StringsStyle                 Message
+    Top                          86
+    Width                        143
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings17
+    Alias                        SumTimeElapsed
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          38
+    Width                        40
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings3
+    Alias                        TimeParked
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         12
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          110
+    Width                        40
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings6
+    Alias                        TimeParkedLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         65
+    Strings                      'Time Parked'
+    StringsStyle                 Message
+    Top                          110
+    Width                        106
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings27
+    Alias                        numStopped
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         100
+    Strings                      99\n
+    StringsStyle                 Message
+    Top                          86
+    Width                        22
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings28
+    Alias                        NumberStoppedLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         122
+    Strings                      '# Stops\n\n'
+    StringsStyle                 Message
+    Top                          86
+    Width                        82
+    OnChanged                    ''
+end
+UserButton
+    Name                         Userbutton3
+    Alias                        HomeButtonSummary
+    Height                       28
+    Images                       home_small.png
+    Left                         12
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          9
+    Width                        30
+    OnChanged                    'Report Message'
+end
+UserButton
+    Name                         Userbutton8
+    Alias                        CycleFormButton
+    Height                       35
+    Images                       reload.png
+    Left                         212
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          84
+    Width                        35
+    OnChanged                    'Report Message'
+end
+UserButton
+    Name                         Userbutton10
+    Alias                        SummaryToMenu
+    Height                       35
+    Images                       menu.png
+    Left                         212
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          42
+    Width                        35
+    OnChanged                    'Report Message'
+end
+Form
+    Name                         Form3
+    Alias                        StartingForm
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   'Report Message'
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings8
+    Alias                        TripMilesDrivenLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       21
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         327
+    Strings                      'Miles Driven\n'
+    StringsStyle                 Message
+    Top                          68
+    Width                        140
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings29
+    Alias                        TripMilesDriven
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          68
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings30
+    Alias                        TripElapsed
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       21
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      9999\n
+    StringsStyle                 Message
+    Top                          92
+    Width                        50
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings31
+    Alias                        TripElapsedLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       22
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         327
+    Strings                      'Time Elapsed\n'
+    StringsStyle                 Message
+    Top                          90
+    Width                        144
+    OnChanged                    ''
+end
+UserButton
+    Name                         Userbutton4
+    Alias                        StartingFormHome
+    Height                       35
+    Images                       home.png
+    Left                         12
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          15
+    Width                        38
+    OnChanged                    'Report Message'
+end
+Strings
+    Name                         Strings1
+    Alias                        HeaterFuelLbl
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       21
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         327
+    Strings                      'Heater Fuel\n'
+    StringsStyle                 Message
+    Top                          46
+    Width                        140
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings32
+    Alias                        HeaterFuel
+    Alignment                    Right
+    BGcolor                      BLACK
+    Height                       21
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -12
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         270
+    Strings                      9\n
+    StringsStyle                 Message
+    Top                          46
+    Width                        50
+    OnChanged                    ''
+end
+WinButton
+    Name                         Winbutton0
+    Alias                        StartTripButton
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start New Trip'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         65
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          15
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton1
+    Alias                        StartSegButton
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start Segment'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         65
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          64
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings33
+    Alias                        StartFormTitle
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       25
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         284
+    Strings                      'Current Trip\n'
+    StringsStyle                 Message
+    Top                          15
+    Width                        139
+    OnChanged                    ''
+end
+UserButton
+    Name                         Userbutton11
+    Alias                        StartToMenu
+    Height                       35
+    Images                       menu.png
+    Left                         12
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          68
+    Width                        35
+    OnChanged                    'Report Message'
+end
+Form
+    Name                         Form4
+    Alias                        Status
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Strings
+    Name                         Strings34
+    Alias                        StatusTextBox
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       97
+    FGcolor                      WHEAT
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         190
+    Strings                      \n
+    StringsStyle                 Book
+    Top                          15
+    Width                        279
+    OnChanged                    ''
+end
+Strings
+    Name                         Strings35
+    Alias                        StatusTitle
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         15
+    Strings                      Initializing....\n
+    StringsStyle                 Message
+    Top                          16
+    Width                        168
+    OnChanged                    ''
+end
+UserButton
+    Name                         Userbutton6
+    Alias                        StatusToPrimaryButton
+    Height                       35
+    Images                       home.png
+    Left                         16
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          48
+    Width                        38
+    OnChanged                    'Report Message'
+end
+UserButton
+    Name                         Userbutton7
+    Alias                        MenuButton
+    Height                       35
+    Images                       menu.png
+    Left                         64
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          48
+    Width                        35
+    OnChanged                    'Report Message'
+end
+Strings
+    Name                         Strings36
+    Alias                        StatusString
+    Alignment                    Left
+    BGcolor                      BLACK
+    Height                       20
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    'MS Reference Sans Serif'
+    Font.Opaque                  Yes
+    Font.Size                    -10
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         15
+    Strings                      ''
+    StringsStyle                 Message
+    Top                          92
+    Width                        168
+    OnChanged                    ''
+end
+Form
+    Name                         Form5
+    Alias                        Booting
+    Bgtype                       Image
+    Color                        BLACK
+    Image                        vanbackdrop.png
+    Source.Height                128
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 480
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+StaticText
+    Name                         Statictext0
+    Alias                        Statictext0
+    Alignment                    Left
+    AutoSize                     Yes
+    Caption                      Booting
+    Color                        BLACK
+    Font.Color                   WHITE
+    Font.Effects                 []
+    Font.Name                    'Arial Rounded MT Bold'
+    Font.Size                    16
+    Font.Style                   []
+    Height                       24
+    Left                         56
+    Top                          72
+    Transparent                  Yes
+    Width                        87
+    WordWrap                     Yes
+end
+Form
+    Name                         Form6
+    Alias                        MenuToSummary
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+UserButton
+    Name                         Userbutton9
+    Alias                        MenuToMain
+    Height                       35
+    Images                       home.png
+    Left                         16
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          20
+    Width                        38
+    OnChanged                    'Report Message'
+end
+WinButton
+    Name                         Winbutton2
+    Alias                        Winbutton2
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      Status
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         268
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          12
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton3
+    Alias                        Winbutton3
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      Pitot
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         268
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          68
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton4
+    Alias                        Winbutton4
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start New Trip'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         80
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          12
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+WinButton
+    Name                         Winbutton5
+    Alias                        Winbutton5
+    Appearance.Alignment         Center
+    Appearance.Layout            Left
+    Appearance.PictureAlignment  Right
+    Appearance.SimpleLayout      No
+    Appearance.Spacing           3
+    AutoSizeToPicture            No
+    Bevel                        Yes
+    BevelColor                   LIGHTGREY
+    Caption                      'Start Segment'
+    Color                        0x2C2C2C
+    Font.Color                   WHEAT
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   [Bold]
+    Height                       45
+    Left                         80
+    Matrix                       -1
+    Momentary                    Yes
+    Picture                      (None)
+    StatusWhenOff.BGcolor        RED
+    StatusWhenOff.Caption        ''
+    StatusWhenOff.Glow           Yes
+    StatusWhenOff.Color          WHITE
+    StatusWhenOff.Effects        []
+    StatusWhenOff.Name           Tahoma
+    StatusWhenOff.Size           8
+    StatusWhenOff.Style          []
+    StatusWhenOff.Visible        Yes
+    StatusWhenOn.BGcolor         RED
+    StatusWhenOn.Caption         ''
+    StatusWhenOn.Glow            Yes
+    StatusWhenOn.Color           WHITE
+    StatusWhenOn.Effects         []
+    StatusWhenOn.Name            Tahoma
+    StatusWhenOn.Size            8
+    StatusWhenOn.Style           []
+    StatusWhenOn.Visible         Yes
+    Top                          68
+    Width                        175
+    OnChanged                    'Report Message'
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+UserButton
+    Name                         Userbutton2
+    Alias                        ToSummary
+    Height                       35
+    Images                       nextform.png
+    Left                         16
+    Matrix                       -1
+    Momentary                    Yes
+    Stretch                      No
+    Top                          68
+    Width                        35
+    OnChanged                    'Report Message'
+end

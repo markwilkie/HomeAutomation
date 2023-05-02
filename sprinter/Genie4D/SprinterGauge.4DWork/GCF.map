@@ -1,0 +1,40 @@
+Contents                              Start(hex)    Size(dec)
+Image0                                  00000140          806
+Gauge0                                  00000466       49,608
+Image1                                  0000C62E          806
+Image3                                  0000C954          806
+Image4                                  0000CC7A        1,256
+Image6                                  0000D162        1,456
+Image5                                  0000D712        1,386
+Image7                                  0000DC7C        1,356
+Image8                                  0000E1C8        1,518
+Image9                                  0000E7B6        1,626
+Gauge1                                  0000EE10       15,848
+Gauge2                                  00012BF8       15,848
+Gauge3                                  000169E0       49,608
+Image10                                 00022BA8          806
+Userbutton1                             00022ECE        4,908
+Userled0                                000241FA        1,208
+Userbutton0                             000246B2        5,328
+Userbutton5                             00025B82        4,908
+Userbutton3                             00026EAE        3,368
+Userbutton8                             00027BD6        4,908
+Userbutton10                            00026740        4,908
+Userbutton4                             00025140        5,328
+Winbutton0                              00028F02       31,508
+Winbutton1                              00030A16       31,508
+Userbutton11                            00026740        4,908
+Userbutton6                             00025140        5,328
+Userbutton7                             00026740        4,908
+Form5                                   0003852A      122,886
+Statictext0                             00056530        3,846
+Userbutton9                             00025140        5,328
+Winbutton2                              00057436       31,508
+Winbutton3                              0005EF4A       31,508
+Winbutton4                              00029D40       31,508
+Winbutton5                              00031940       31,508
+Userbutton2                             00023740        4,908
+Font MS Reference Sans Serif-14b___A    00066A5E       16,508
+Font MS Reference Sans Serif-10b___A    0006AADA        7,588
+Font MS Reference Sans Serif-12b___A    0006C87E       13,832
+                                        0006FE86       19,968
