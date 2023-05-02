@@ -211,6 +211,9 @@ int Pitot::readSpeed()
   //Smooth
   _mph = _tempmph*0.25 + _mph*0.75;
 
+  //Add calibration
+  _mph = _mph + (_mph * .04);
+
   return _mph;
 }
 
