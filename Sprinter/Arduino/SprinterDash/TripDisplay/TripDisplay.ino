@@ -53,6 +53,7 @@ unsigned long turnOffTime;
 //timing
 #define LCD_REFRESH_RATE 5000
 #define SHUTDOWN_STARTUP_RATE 1000  //how often we check ignition
+#define CAN_VERIFY_TIMEOUT 10000   //How long we'll wait for something from the CAN controller before showing error screen
 #define VERIFY_TIMEOUT 60000   //How long we'll wait for everything to come online when we first start
 
 //Misc defines
@@ -135,8 +136,15 @@ void setup()
   currentSegment.loadTripData();
   fullTrip.loadTripData();
 
+  Serial.println("Verifying CAN connection");
+  verifyCAN();
+
   Serial.println("Validating interfaces"); 
-  verifyInterfaces();
+  bool allOnline=verifyInterfaces();
+  if(!allOnline)
+  {
+    showOfflineLinks();
+  }
 
   //Reset the data since last stop because we're booting
   Serial.println("Reseting trip data from last stop");
@@ -144,23 +152,83 @@ void setup()
 
   //Let's go!
   Serial.println("Starting now....");
+  formNavigator.activateForm(STARTING_FORM);    
 }
 
-void verifyInterfaces()
+//Verifying we're hearing from CAN bus
+bool verifyCAN()
+{
+  //read serial from canbus board
+  int service=0; int pid=0; int value=0;
+  bool CANlinkOK=false;
+  bool CANcntrOK=false;
+
+  //Set timeout for how long we'll wait before showing the error screen
+  unsigned long timeout=millis()+CAN_VERIFY_TIMEOUT;
+  unsigned long nextRefresh=0;
+  unsigned long nextUpdate=0;
+
+  //Loop until we've got a successful link  
+  while(!CANlinkOK)
+  {
+    //get latest from PIDs coming in
+    bool retVal=processIncoming(&service,&pid,&value);
+    if(retVal)
+    {
+      CANcntrOK=true;  //Ok, we're at least hearing from our canbed dual controller
+
+      //Do we have a non zero pid?
+      if(pid)
+      {
+        CANlinkOK=true;  //hooray!  we've got real data
+      }
+      else
+      {
+        nextUpdate=(millis()/1000)+value;  //Let's record when we'll get another update from the CAN controller
+      }
+    }
+
+    //Time to show the error screen?
+    if(millis()>timeout && !CANlinkOK && millis()>nextRefresh)
+    {
+      //set next form refresh
+      nextRefresh=millis()+1000;
+
+      //Switch forms if necessary
+      if(formNavigator.getActiveForm()!=STATUS_FORM)
+      {
+        formNavigator.activateForm(STATUS_FORM);
+        statusForm.updateTitle("CAN error");
+      }
+
+      //Show current CAN/ECU link state
+      displayBuffer[0]='\0';
+      if(CANcntrOK)
+      {
+        sprintf(displayBuffer, "Nothing from ECU\nNext update in %d sec", nextUpdate-(millis()/1000));
+        Serial.println(displayBuffer);
+        statusForm.updateText(displayBuffer);
+      }
+      else
+      {
+        statusForm.updateText("Connection problem\nwith CAN Cntrlr");
+      }
+    }
+  } 
+
+  return CANlinkOK;
+}
+
+//Verifying we have all sensors online and PIDs accounted for
+bool verifyInterfaces()
 {
   //read serial from canbus board
   int service=0; int pid=0; int value=0;
 
-  //Show setup form
-  formNavigator.activateForm(STATUS_FORM); 
-  statusForm.updateTitle("Validating Links");
-
-  bool online=false;
+  bool allOnline=false;
   unsigned long timeout=millis()+VERIFY_TIMEOUT;
-  while(!online && millis()<timeout)
+  while(!allOnline && millis()<timeout)
   {
-    displayBuffer[0]='\0';
-
     //get latest from sensors
     currentData.updateDataFromSensors();
 
@@ -168,33 +236,36 @@ void verifyInterfaces()
     bool retVal=processIncoming(&service,&pid,&value);
     if(retVal)
     {
-      online=currentData.verifyInterfaces(service,pid,value,displayBuffer);
-      statusForm.updateText(displayBuffer);
+      //Verify this particular PID
+      allOnline=currentData.verifyInterfaces(service,pid,value);
     }
-
-    //Show current serial error rate between processors
-    if(crcFailureRate != lastCrcFailureRate)
-    {
-      lastCrcFailureRate=crcFailureRate;
-      statusForm.updateStatus(totalMessages,totalCRC,crcFailureRate);
-    }
-
-    //so that the buttons will work
-    genie.DoEvents();   
-
-    //If someone pressed the button, time to bail
-    if(formNavigator.getActiveForm()!=STATUS_FORM)
-      return;
-  }
-
-  //Pause and give message if not all online
-  if(!online)
-  {
-    statusForm.updateTitle("Links NOT available:");
-    delay(10000);
   } 
 
-  formNavigator.activateForm(STARTING_FORM);    
+  return allOnline;
+}
+
+void showOfflineLinks()
+{
+  //Show all link that are not online
+  if(formNavigator.getActiveForm()!=STATUS_FORM)
+  {
+    formNavigator.activateForm(STATUS_FORM); 
+  }
+  statusForm.updateTitle("Links NOT available:");
+
+  //List all expected sensors/PIDs that are not yet online
+  displayBuffer[0]='\0';
+  currentData.updateStatusForm(displayBuffer);
+  statusForm.updateText(displayBuffer);
+
+  //Show current serial error rate between processors
+  if(crcFailureRate != lastCrcFailureRate)
+  {
+    lastCrcFailureRate=crcFailureRate;
+    statusForm.updateStatus(totalMessages,totalCRC,crcFailureRate);
+  }  
+
+  delay(10000); 
 }
 
 void loop()

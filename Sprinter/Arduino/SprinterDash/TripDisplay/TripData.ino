@@ -200,14 +200,28 @@ double TripData::getFuelGallonsUsed()
     if(currentFuelPerc<=0)
         return 0;
 
-    if(currentFuelPerc>data.lastFuelPerc)
-    {
-        double priorGallonsUsed=FUEL_TANK_SIZE*((data.startFuelPerc-data.lastFuelPerc)/100.0);
-        data.priorTotalGallonsUsed=data.priorTotalGallonsUsed+priorGallonsUsed;
-        data.startFuelPerc=currentFuelPerc;
-    }
-    data.lastFuelPerc=currentFuelPerc;
+    unsigned long currentSeconds=currentDataPtr->currentSeconds;
+    unsigned long fillUpSeconds=currentDataPtr->fillUpSeconds;
 
+    //Do we need to factor in fuel being added?
+    if(currentSeconds>fillUpSeconds && currentSeconds>lastFillupSeconds)
+    {
+        //Has it been long enough to stabalize?
+        if(currentSeconds>(fillUpSeconds+15))
+        {
+            lastFillupSeconds=fillUpSeconds;
+            double priorGallonsUsed=FUEL_TANK_SIZE*((data.startFuelPerc-data.lastFuelPerc)/100.0);
+            data.priorTotalGallonsUsed=data.priorTotalGallonsUsed+priorGallonsUsed;
+            data.startFuelPerc=currentFuelPerc;
+        }
+    }
+    else
+    {
+        //Make sure we always know the last fuel percentage in case we add fuel
+        data.lastFuelPerc=currentFuelPerc;
+    }
+
+    //Calc current gallons used
     double gallonsUsed = FUEL_TANK_SIZE*((data.startFuelPerc-currentFuelPerc)/100.0);
     gallonsUsed=gallonsUsed+data.priorTotalGallonsUsed;
 

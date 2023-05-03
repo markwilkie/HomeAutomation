@@ -21,7 +21,6 @@ PIDStruct coolant = { .service=0x41, .pid=0x05, .label="Coolant\n", .online=fals
 PIDStruct trans = { .service=0x61, .pid=0x30, .label="Trans\n", .online=false }; 
 PIDStruct manPres = { .service=0x41, .pid=0x0B, .label="Man Pres\n", .online=false }; 
 PIDStruct diag = { .service=0x41, .pid=0x01, .label="Diag\n", .online=false }; 
-//PIDStruct ldr = { .service=0x77, .pid=0x01, .label="LDR\n", .online=false }; 
 
 PIDStruct* pidArray[]={&load,&distance,&fuel,&maf,&speed,&coolant,&trans,&manPres,&diag};
 
@@ -32,7 +31,8 @@ class CurrentData
     void init();
     void calibratePitot();
     int readPitot();
-    bool verifyInterfaces(int service, int pid, int value, char *listOfOfflineInterfaces);
+    bool verifyInterfaces(int service, int pid, int value);
+    void updateStatusForm(char *listOfOfflineInterfaces);
     void updateDataFromPIDs(int service,int pid,int value);
     void updateDataFromSensors();
 
@@ -40,6 +40,7 @@ class CurrentData
     int currentMiles=0;
     unsigned long currentSeconds=0;
     int currentFuelPerc=0;
+    unsigned long fillUpSeconds=0;
     int currentElevation=0;
     int currentMAF=0;
     int currentSpeed=0;

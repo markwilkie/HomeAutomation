@@ -112,32 +112,39 @@ void setup()
     txMsg.Buffer = (uint8_t *)calloc(8, sizeof(uint8_t));
     rxMsg.Buffer = (uint8_t *)calloc(MAX_MSGBUF, sizeof(uint8_t));  
 
-    Serial.println("Making sure we can receive each PID at least once  (if nothing is after this line, then it's hung waiting)");
-    initPIDs();
+    Serial.println("Making sure we can talk to the ECU ok");
+    if(digitalRead(10))  //make sure we're not in debug mode
+      initECU();
 
     Serial.println("...and we're off!");
 }
 
-//Go through and get each PID at least once
-void initPIDs()
+//Make sure the ECU is online and happy
+void initECU()
 {
-  for(int i=0;i<slowArrLen;i++)
-  {
-    //Loop until we get a valid response
-    while(updatePID(slowPidArray[i]))
-    {
-      delay(500);
-    }
-  }
+  int exp=2;
+  long backoff=0;
 
-  for(int i=0;i<fastArrLen;i++)
+  while(updatePID(&pidsSupported))
   {
-    //Loop until we get a valid response
-    while(updatePID(fastPidArray[i]))
-    {
-      delay(500);
-    }
-  }  
+    //Determine delay, starting w/ 1/2 second and then backing off exponetially until approx 4 minutes between tries
+    backoff=250*pow(2,exp);
+
+    //Send error
+    sendToMaster(0,0,backoff/1000);
+    Serial.print("No response from ECU.  Seconds Delay: ");
+    Serial.println(backoff/1000);
+
+    //Waiting now
+    delay(backoff);
+
+    //increase exponential backoff until we hit 10
+    if(exp<10)
+      exp++;
+  } 
+
+  //Give quick breather to ECU
+  delay(1000);
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
@@ -293,16 +300,15 @@ void simulatorMode()
       testData.FillCanFrame(canTestFrame);
       delay(10);
 
-      simulatorMatch(fastPidArray);
-      simulatorMatch(slowPidArray);
+      simulatorMatch(fastPidArray,fastArrLen);
+      simulatorMatch(slowPidArray,slowArrLen);
 
       testData.NextRow(); 
   }
 }
 
-void simulatorMatch(PID **pidArray)
+void simulatorMatch(PID* pidArray[],int arrLen)
 {
-    int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
     for(int i=0;i<arrLen && testId>0;i++)
     {
       if(pidArray[i]->isMatch(testId,canTestFrame))

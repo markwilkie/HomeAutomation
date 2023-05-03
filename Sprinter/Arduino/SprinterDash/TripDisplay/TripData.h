@@ -63,6 +63,9 @@ class TripData
 
     TripDataStruct data;
 
+    //Keep track of fillups
+    unsigned long lastFillupSeconds=0;
+
     //Used to keep a running average if instance mpg so we can calibrate on the fly
     unsigned long sumInstMPG=0;
     long numInstMPGSamples=0;

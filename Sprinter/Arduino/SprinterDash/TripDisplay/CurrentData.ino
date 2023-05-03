@@ -29,11 +29,47 @@ int CurrentData::readPitot()
   return pitot.readSpeed();
 }
 
-bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
+void CurrentData::updateStatusForm(char *buffer)
+{
+  int offlineCount=0;
+
+  //sensors
+  if(!barometer.isOnline())
+  {
+    offlineCount++;
+    strcpy(buffer+strlen(buffer),"Barometer\n");
+  }
+  if(!rtc.isOnline())
+  {
+    offlineCount++;
+    strcpy(buffer+strlen(buffer),"RTC\n");
+  }
+  if(!pitot.isOnline())
+  {
+    offlineCount++;
+    strcpy(buffer+strlen(buffer),"Pitot\n");
+  }
+
+  //Loop through pids and list those which are still not online
+  const int arrLen = sizeof(pidArray) / sizeof(pidArray[0]);
+  for(int i=0;i<arrLen;i++)
+  {
+    if(!pidArray[i]->online)
+    {
+      //Let's be sure and not overflow
+      if(offlineCount>5)
+        return;
+
+      offlineCount++;
+      strcpy(buffer+strlen(buffer),pidArray[i]->label);
+    }
+  }
+}
+
+bool CurrentData::verifyInterfaces(int service, int pid, int value)
 {
   //Let's assume we're done and then check for exceptions
   bool allOnline=true;
-  int offlineCount=0;
 
   //Poll sensors
   updateDataFromSensors();
@@ -41,20 +77,14 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
   //check sensors
   if(!barometer.isOnline())
   {
-    strcpy(buffer+strlen(buffer),"Barometer\n");
-    offlineCount++;
     allOnline=false;
   }
   if(!rtc.isOnline())
   {
-    strcpy(buffer+strlen(buffer),"RTC\n");
-    offlineCount++;
     allOnline=false;
   }
   if(!pitot.isOnline())
   {
-    strcpy(buffer+strlen(buffer),"Pitot\n");
-    offlineCount++;
     allOnline=false;
   }
   
@@ -63,6 +93,7 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
   for(int i=0;i<arrLen;i++)
   {
 
+    //is this one we've been waiting for?
     if(service==pidArray[i]->service && pid==pidArray[i]->pid)
     {
         pidArray[i]->online=true;
@@ -70,18 +101,12 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value,char *buffer)
         //Be sure and save off the value
         updateDataFromPIDs(service,pid,value);
     }
-    else
-    {
-      if(!pidArray[i]->online)
-      {
-        allOnline=false;
-        offlineCount++;
-        if(offlineCount>5)
-          return allOnline;
 
-        strcpy(buffer+strlen(buffer),pidArray[i]->label);
-      }
-    }  
+    //check allonline flag
+    if(!pidArray[i]->online)
+    {
+      allOnline=false;
+    }
   }
 
   return allOnline;
@@ -118,9 +143,16 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
         currentMiles=value*0.621371;
         return;
     }
-    //fuel available in percentage  (30 --> 30%)
+    //fuel available in percentage  (30 --> 30%) and set fillup time
     if(service==fuel.service && pid==fuel.pid)
     {
+        //Added fuel?
+        if(value>currentFuelPerc)
+        {
+          fillUpSeconds=currentSeconds;
+        }
+
+        //Set current seconds
         currentFuelPerc=value;
         return;
     }
