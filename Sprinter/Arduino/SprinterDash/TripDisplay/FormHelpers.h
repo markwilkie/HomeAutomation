@@ -88,7 +88,7 @@ void FormNavigator::init(Genie *_geniePtr)
 
 void FormNavigator::activateForm(int formObjNumber)
 {
-    Serial.print("Activating form: "); Serial.println(formObjNumber);
+    logger.log(VERBOSE,"Activating form: %d",formObjNumber);
     lastActiveForm=currentActiveForm;
     currentActiveForm=formObjNumber;
     geniePtr->WriteObject(GENIE_OBJ_FORM,formObjNumber,0);

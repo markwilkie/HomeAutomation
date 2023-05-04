@@ -29,12 +29,14 @@ class CurrentData
   public:
     CurrentData();
     void init();
+    void setTime(unsigned long secondsToSet);
     void calibratePitot();
     int readPitot();
     bool verifyInterfaces(int service, int pid, int value);
     void updateStatusForm(char *listOfOfflineInterfaces);
     void updateDataFromPIDs(int service,int pid,int value);
     void updateDataFromSensors();
+    void dumpData();
 
     //Data
     int currentMiles=0;

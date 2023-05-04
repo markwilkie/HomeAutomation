@@ -1,4 +1,5 @@
 #include "Sensors.h"
+#include "WiFi.h"
 
 void Barometer::init(int _refreshTicks)
 {
@@ -9,12 +10,8 @@ void Barometer::setup()
 {
   if (!baro.begin()) 
   {
-    Serial.println("Could not find MPL3115A2 Barometer");
+    logger.log(ERROR,"Could not find MPL3115A2 Barometer");
     online=false;
-  }
-  else
-  {
-    online=true;
   }
 }
 
@@ -40,13 +37,13 @@ void Barometer::update()
     currentElevReadCount=0;
     return;
 
-    //Serial.print("Pressure = ");
-    //Serial.println(pressure);
+    //logger.log(VERBOSE,"Pressure: %f",pressure);
   }
 
   //Let's read elevation
   elevation = baro.getAltitude() * 3.28084;
   elevation = elevation + elevationOffset;
+  online=true;   //the fact that we're here means we're online
 
   //poor man's calibration
   if(elevation<0)
@@ -55,8 +52,7 @@ void Barometer::update()
     elevation = elevation + elevationOffset;
   }
 
-  //Serial.print("Altitude = ");
-  //Serial.println(elevation); 
+  //logger.log(VERBOSE,"Altitude: %d",elevation); 
 }
 
 int Barometer::getElevation()
@@ -78,27 +74,61 @@ void RTC::setup()
 {
   if (!rtc.begin()) 
   {
-    Serial.println("Couldn't find RTC");
+    logger.log(ERROR,"Couldn't find RTC");
     online=false;
     return;
   }
 
-  if (! rtc.initialized() || rtc.lostPower()) 
+  if (!rtc.initialized() || rtc.lostPower()) 
   {
-    Serial.println("RTC either lost power or is not initialized");
-    online=false;
-    return;
+    logger.log(ERROR,"RTC either lost power or is not initialized.");
+    adjust();
+    online=true;
   }
 
-  // When the RTC was stopped and stays connected to the battery, it has
-  // to be restarted by clearing the STOP bit. Let's do this to ensure
-  // the RTC is running.
-  rtc.start();  
+  if(!rtc.isrunning())
+  {
+    logger.log(ERROR,"RTC does not seem to be running");
+    rtc.start(); 
+  } 
 }
 
 bool RTC::isOnline()
 {
   return online;
+}
+
+void RTC::adjust()
+{
+  DateTime dateTime=DateTime();
+  adjust(dateTime);
+}
+
+void RTC::adjust(unsigned long secondsToSet)
+{
+  DateTime dateTime=DateTime(secondsToSet+SECONDS_FROM_1970_TO_2000);  //need to add because of the library
+  if(dateTime.isValid())
+  {
+    adjust(dateTime);
+  }
+  else
+  {
+    logger.log(ERROR,"Trying to set the time to something invalid: %lu",secondsToSet);
+    adjust();
+  }
+}
+
+void RTC::adjust(DateTime dateTime)
+{
+  rtc.stop();
+  delay(2000);  //let things calm down I guess
+  rtc.adjust(dateTime);
+  secondsSince2000=dateTime.secondstime();
+  logger.log(WARNING,"Setting time to: %lu seconds.  (%d/%d/%d %d:%d:%d)",dateTime.secondstime(),dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second());
+  
+  //Ok, start things back up again
+  rtc.start();
+  online=true;
 }
 
 uint32_t RTC::getSecondsSinc2000()
@@ -113,10 +143,14 @@ uint32_t RTC::getSecondsSinc2000()
 
   //do quick sanity check
   uint32_t currentTime=now.secondstime();
-  if(currentTime<=0 || currentTime<secondsSince2000 || (currentTime>secondsSince2000+360 && secondsSince2000>0))
-  {
-    //just ignore....
+  if(currentTime<=0 || currentTime<secondsSince2000 || (currentTime>secondsSince2000+3600 && secondsSince2000>0))
+  {   
+    DateTime dateTime=DateTime(currentTime+SECONDS_FROM_1970_TO_2000);
+    logger.log(ERROR,"CurrentTime is out of bounds: %lu, or %d/%d/%d %d:%d:%d. (Was %lu)  ",currentTime,dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second(),secondsSince2000);    
     online=false;
+
+    //Let's try and reset things
+    adjust(secondsSince2000);
   }
   else
   {
@@ -269,8 +303,7 @@ bool IgnState::getIgnState()
       ignState = digitalRead(IGN_PIN);
     }
 
-    //Serial.print("IGN State: ");
-    //Serial.println(ignState);
+    //logger.log(VERBOSE,"IGN State: %d",ignState);
 
     return ignState;
 }
@@ -304,7 +337,7 @@ int LDR::readLightLevel()
       delay(10);
     }
 
-    //Serial.print("LDR:  ");  Serial.println(lightLevel);
+    //logger.log(VERBOSE,"LDR:  %d",lightLevel);
 
     return lightLevel;
 }

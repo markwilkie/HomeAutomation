@@ -1,4 +1,5 @@
 #include "TripData.h"
+#include "WiFi.h"
 
 TripData::TripData(CurrentData *_currentDataPtr,int _tripIdx)
 {
@@ -30,7 +31,7 @@ void TripData::resetTripData()
 //Save data to EEPROM
 void TripData::saveTripData()
 {
-  Serial.println("Saving to EEPROM");
+  logger.log(VERBOSE,"Saving to EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
@@ -40,8 +41,7 @@ void TripData::saveTripData()
   EEPROM.put(dataSize*tripIdx, data); 
 
   // write the data to EEPROM
-  Serial.print("EEPROM Ret: ");
-  Serial.println(EEPROM.commit());
+  logger.log(VERBOSE,"EEPROM Ret: %d",EEPROM.commit());
 
   dumpTripData();
 }
@@ -49,51 +49,47 @@ void TripData::saveTripData()
 //Load data to EEPROM
 void TripData::loadTripData()
 {
-  Serial.println("Loading from EEPROM");
+  logger.log(VERBOSE,"Loading from EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
-
   // get some data from eeprom
   EEPROM.get(dataSize*tripIdx, data);
-
   EEPROM.end();
 
+  //do some error checking
+  unsigned long currentTime=currentDataPtr->currentSeconds;
+  if(currentTime < data.ignOffSeconds)
+  {
+    DateTime dateTime=DateTime(currentTime+SECONDS_FROM_1970_TO_2000);
+    logger.log(ERROR,"EEPROM is *after* current seconds: %lu, or %d/%d/%d %d:%d:%d. (EEPROM %lu)  ",currentTime,dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second(),data.ignOffSeconds);    
+
+    //Let's try and reset things 
+    currentDataPtr->setTime(data.ignOffSeconds);  
+  }
+
+  //dump
   dumpTripData()  ;
 }
 
 void TripData::dumpTripData()
 {
-    Serial.print("Data Idx: ");
-    Serial.println(tripIdx);
-    Serial.print("Start Miles: ");
-    Serial.println(data.startMiles);
-    Serial.print("Start Seconds: ");
-    Serial.println(data.startSeconds);
-    Serial.print("Start Fuel: ");
-    Serial.println(data.startFuelPerc);
-    Serial.print("Last Elev: ");
-    Serial.println(data.lastElevation);
-    Serial.print("Last Miles: ");
-    Serial.println(data.lastMiles);
-    Serial.print("Piror total Miles: ");
-    Serial.println(data.priorTotalMiles);
-    Serial.print("Ign Off Sec: ");
-    Serial.println(data.ignOffSeconds);
-    Serial.print("Parked Seconds: ");
-    Serial.println(data.totalParkedSeconds);
-    Serial.print("Stopped Seconds: ");
-    Serial.println(data.totalStoppedSeconds);
-    Serial.print("Num of Stops: ");
-    Serial.println(data.numberOfStops);
-    Serial.print("Last fuel: ");
-    Serial.println(data.lastFuelPerc);
-    Serial.print("Prior total Gall: ");
-    Serial.println(data.priorTotalGallonsUsed);
-    Serial.print("Totcal Climb: ");
-    Serial.println(data.totalClimb);
-    Serial.println("=========================");
+    logger.log(INFO,"Data Idx: %d",tripIdx);
+    logger.log(INFO,"Start Miles: %ld",data.startMiles);
+    logger.log(INFO,"Start Seconds: %lu",data.startSeconds);
+    logger.log(INFO,"Start Fuel: %f",data.startFuelPerc);
+    logger.log(INFO,"Last Elev: %ld",data.lastElevation);
+    logger.log(INFO,"Last Miles: %ld",data.lastMiles);
+    logger.log(INFO,"Piror total Miles: %ld",data.priorTotalMiles);
+    logger.log(INFO,"Ign Off Sec: %lu",data.ignOffSeconds);
+    logger.log(INFO,"Parked Seconds: %lu",data.totalParkedSeconds);
+    logger.log(INFO,"Stopped Seconds: %lu",data.totalStoppedSeconds);
+    logger.log(INFO,"Num of Stops: %d",data.numberOfStops);
+    logger.log(INFO,"Last fuel: %f",data.lastFuelPerc);
+    logger.log(INFO,"Prior total Gall: %f",data.priorTotalGallonsUsed);
+    logger.log(INFO,"Totcal Climb: %ld",data.totalClimb);
+    logger.log(INFO,"=========================");
 }
 
 void TripData::updateTripData()

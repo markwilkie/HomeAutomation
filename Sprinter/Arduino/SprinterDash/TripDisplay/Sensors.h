@@ -50,6 +50,9 @@ class RTC
     bool isOnline();
     void setup();
     uint32_t getSecondsSinc2000();
+    void adjust();
+    void adjust(unsigned long secondsSince2000);
+    void adjust(DateTime dateTime);
     
   private: 
     RTC_PCF8523 rtc;

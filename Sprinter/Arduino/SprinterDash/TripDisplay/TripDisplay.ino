@@ -3,6 +3,7 @@
 
 #include "CurrentData.h"
 #include "TripData.h"
+#include "Wifi.h"
 
 #include "FormHelpers.h"
 #include "PrimaryForm.h"
@@ -61,6 +62,7 @@ unsigned long turnOffTime;
 
 //Global objects for LCD
 Genie genie;  
+Wifi wifi;
 int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
@@ -109,7 +111,14 @@ void setup()
   
   //Used for talking to the display
   Serial1.begin(200000,SERIAL_8N1, RXD1, TXD1);
-  genie.Begin(Serial1);   
+  genie.Begin(Serial1);  
+
+  //Let's begin
+  logger.log(INFO,"=================\nBooting\n================="); 
+
+  //start wifi and http server
+  wifi.startWifi();
+  wifi.startServer();  
 
   // Display is being reset using the 'reset' pin on the processor, so it boots when the proc boots.
   //pinMode(RESETLINE, OUTPUT);  // Set D4 on Arduino to Output (4D Arduino Adaptor V2 - Display Reset)
@@ -119,7 +128,7 @@ void setup()
 
   // Let the display start up after the reset (This is important)
   // Increase to 4500 or 5000 if you have sync problems as your project gets larger. Can depent on microSD init speed.
-  Serial.println("Waiting for screen");
+  logger.log(INFO,"Waiting for screen");
   delay(5000); 
 
   //This is how we get notified when a button is pressed
@@ -127,19 +136,21 @@ void setup()
   genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
 
   //calibrate and setup sensors
-  Serial.println("Initializing sensors");
+  logger.log(INFO,"Initializing sensors");
   currentData.init();
+  currentData.updateDataFromSensors();
   delay(500);
 
   //Initialize or load data from EEPROM for each of the trip bucket objects
-  Serial.println("Loading data from EEPROM");
+  logger.log(INFO,"Loading data from EEPROM");
   currentSegment.loadTripData();
   fullTrip.loadTripData();
 
-  Serial.println("Verifying CAN connection");
+  logger.log(INFO,"Verifying CAN connection");
   verifyCAN();
 
-  Serial.println("Validating interfaces"); 
+  logger.log(INFO,"Validating interfaces"); 
+  logger.sendLogs(wifi.isConnected());
   bool allOnline=verifyInterfaces();
   if(!allOnline)
   {
@@ -147,12 +158,14 @@ void setup()
   }
 
   //Reset the data since last stop because we're booting
-  Serial.println("Reseting trip data from last stop");
+  logger.log(INFO,"Reseting trip data from last stop");
   sinceLastStop.resetTripData();  
 
   //Let's go!
-  Serial.println("Starting now....");
+  logger.log(INFO,"Starting now....");
   formNavigator.activateForm(STARTING_FORM);    
+
+  logger.sendLogs(wifi.isConnected());  
 }
 
 //Verifying we're hearing from CAN bus
@@ -188,6 +201,11 @@ bool verifyCAN()
       }
     }
 
+    //listen on web server and send logs
+    if(wifi.isConnected())
+      wifi.listen();
+    logger.sendLogs(wifi.isConnected());
+
     //Time to show the error screen?
     if(millis()>timeout && !CANlinkOK && millis()>nextRefresh)
     {
@@ -196,8 +214,8 @@ bool verifyCAN()
 
       //Switch forms if necessary
       if(formNavigator.getActiveForm()!=STATUS_FORM)
-      {
-        formNavigator.activateForm(STATUS_FORM);
+      {        
+        formNavigator.activateForm(STATUS_FORM);          
         statusForm.updateTitle("CAN error");
       }
 
@@ -205,8 +223,8 @@ bool verifyCAN()
       displayBuffer[0]='\0';
       if(CANcntrOK)
       {
-        sprintf(displayBuffer, "Nothing from ECU\nNext update in %d sec", nextUpdate-(millis()/1000));
-        Serial.println(displayBuffer);
+        sprintf(displayBuffer, "Nothing from ECU\nNext update in %lu sec", nextUpdate-(millis()/1000));
+        logger.log(ERROR,displayBuffer);
         statusForm.updateText(displayBuffer);
       }
       else
@@ -305,6 +323,10 @@ void loop()
 
   //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
   genie.DoEvents(); 
+
+  //listen on web server and send logs
+  wifi.listen();
+  logger.sendLogs(wifi.isConnected());
 }
 
 //Update Contrast of LCD
@@ -363,7 +385,8 @@ void handleStatupAndShutdown()
         fullTrip.updateTripData();           
 
         //Save to EEPROM
-        Serial.println("saving to EEPROM and activating STOPPING form");
+        logger.log(INFO,"Saving to EEPROM and activating STOPPING form");
+        logger.sendLogs(wifi.isConnected());
         currentSegment.saveTripData();
         fullTrip.saveTripData();
 
@@ -377,7 +400,8 @@ void handleStatupAndShutdown()
     //If ign is Off AND it's time, shut things down
     if(!currentData.ignitionState && currentData.currentSeconds>=turnOffTime)
     {
-      Serial.println("Shutting things down!");
+      logger.log(INFO,"Shutting things down!");
+      logger.sendLogs(wifi.isConnected());
       digitalWrite(PS_PIN, 0); 
       while(1) {delay(1000);}
     }
@@ -392,7 +416,7 @@ void handleStatupAndShutdown()
 
 void ShowDebugInfo()
 {
-    Serial.println("Show debug info");
+    logger.log(VERBOSE,"Show debug info");
     formNavigator.activateForm(STATUS_FORM); 
 
     statusForm.updateTitle("Debug Info");
@@ -410,7 +434,7 @@ void ShowDebugInfo()
 
 void showPitotInfo()
 {
-    Serial.println("Show pitot info");
+    logger.log(VERBOSE,"Show pitot info");
     formNavigator.activateForm(STATUS_FORM); 
 
     //Only zero pitot if speed is zero
@@ -444,12 +468,7 @@ void myGenieEventHandler(void)
   genieFrame event;
   genie.DequeueEvent(&event);
 
-  Serial.print("CMD: ");
-  Serial.print(event.reportObject.cmd);
-  Serial.print(" OBJ: ");
-  Serial.print(event.reportObject.object);
-  Serial.print(" IDX: ");
-  Serial.println(event.reportObject.index);
+  logger.log(VERBOSE,"CMD: %d OBJ: &d IDX: %d",event.reportObject.cmd,event.reportObject.object,event.reportObject.index);
 
   //Act on returned action
   int action=formNavigator.determineAction(&event);
@@ -463,7 +482,7 @@ void myGenieEventHandler(void)
       sinceLastStopSummaryForm.updateDisplay();
       break;
     case ACTION_CYCLE_SUMMARY:
-      Serial.println("cycling SUMMARY form");
+      logger.log(VERBOSE,"Cycling SUMMARY form");
        currentActiveSummaryData++;
       if(currentActiveSummaryData>=NUMBER_OF_SUMMARY_FORMS)
         currentActiveSummaryData=0;
@@ -482,13 +501,13 @@ void myGenieEventHandler(void)
       formNavigator.activateForm(MENU_FORM);
       break;  
     case ACTION_START_NEW_TRIP:
-      Serial.println("Start Trip button pressed!");
+      logger.log(VERBOSE,"Start Trip button pressed!");
       currentSegment.resetTripData();
       fullTrip.resetTripData();        
       formNavigator.activateForm(PRIMARY_FORM);
       break;
     case ACTION_START_NEW_SEGMENT:
-      Serial.println("Start Segment button pressed!");
+      logger.log(VERBOSE,"Start Segment button pressed!");
       currentSegment.resetTripData();     
       formNavigator.activateForm(PRIMARY_FORM);
       break;
@@ -577,12 +596,8 @@ bool processIncoming(int *service,int *pid,int *value)
       crcFailureRate=(double)totalCRC/(double)totalMessages;
       if(crcFailureRate >= .05)
       {
-        Serial.print("CRC Failure rate is high: ");
-        Serial.print(totalMessages);
-        Serial.print("/");
-        Serial.print(totalCRC);
-        Serial.print(" Failure Rate: ");
-        Serial.println(crcFailureRate);
+        logger.log(WARNING,"CRC Failure rate is high: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
+        logger.sendLogs(wifi.isConnected());
       }
 
       //Just drop it and move on
@@ -598,4 +613,27 @@ bool processIncoming(int *service,int *pid,int *value)
   }
 
   return false;  //nothing new
+}
+
+//post in response to a GET request to show which options are avaialble
+void logTripData()
+{
+  logger.log(INFO,"Since Last Stop");
+  sinceLastStop.dumpTripData();
+  logger.log(INFO,"Current Segment");
+  currentSegment.dumpTripData();
+  logger.log(INFO,"Full Trip");
+  fullTrip.dumpTripData();
+  logger.sendLogs(wifi.isConnected());
+
+  wifi.sendResponse("Done!");
+}
+
+void logCurrentData()
+{
+  logger.log(INFO,"Dumping Current Data");
+  currentData.dumpData();
+  logger.sendLogs(wifi.isConnected());
+
+  wifi.sendResponse("Done!");
 }

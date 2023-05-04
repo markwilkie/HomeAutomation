@@ -37,13 +37,6 @@ void Digits::setValue(double _value)
     if(decimal>0)
         _value=_value*(10*decimal);
     currentDigitValue=(int)_value;
-
-    //Serial.print("obj: ");
-    //Serial.print(digitsObjNum);
-    //Serial.print("  value: ");
-    //Serial.print(currentValue);    
-    //Serial.print("  digit: ");
-    //Serial.println(currentDigitValue);    
 }
 
 
