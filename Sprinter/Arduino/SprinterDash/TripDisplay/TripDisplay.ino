@@ -114,7 +114,9 @@ void setup()
   genie.Begin(Serial1);  
 
   //Let's begin
-  logger.log(INFO,"=================\nBooting\n================="); 
+  logger.log(INFO,"=================================="); 
+  logger.log(INFO,"            Booting"); 
+  logger.log(INFO,"=================================="); 
 
   //start wifi and http server
   wifi.startWifi();
@@ -400,7 +402,7 @@ void handleStatupAndShutdown()
     //If ign is Off AND it's time, shut things down
     if(!currentData.ignitionState && currentData.currentSeconds>=turnOffTime)
     {
-      logger.log(INFO,"Shutting things down!");
+      logger.log(INFO,"****  Shutting things down!");
       logger.sendLogs(wifi.isConnected());
       digitalWrite(PS_PIN, 0); 
       while(1) {delay(1000);}

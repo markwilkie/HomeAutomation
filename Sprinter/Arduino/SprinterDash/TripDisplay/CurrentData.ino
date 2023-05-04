@@ -203,18 +203,18 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
 
 void CurrentData::dumpData()
 {
-  logger.log(INFO,"Current Miles: %d",currentMiles);
-  logger.log(INFO,"Current Seconds: %lu",currentSeconds);
-  logger.log(INFO,"Current Fuel Perc: %d",currentFuelPerc);
-  logger.log(INFO,"Fill Up Seconds: %lu",fillUpSeconds);
-  logger.log(INFO,"Current Elevation: %d",currentElevation);
-  logger.log(INFO,"Current MAF: %d",currentMAF);
-  logger.log(INFO,"Current Speed: %d",currentSpeed);
-  logger.log(INFO,"Current Pitot Speed: %d",currentPitotSpeed);
-  logger.log(INFO,"Current Load: %d",currentLoad);
-  logger.log(INFO,"Current Coolant Temp: %d",currentCoolantTemp);
-  logger.log(INFO,"Current Transmission Temp: %d",currentTransmissionTemp);
-  logger.log(INFO,"Current Light Level: %d",currentLightLevel);
-  logger.log(INFO,"Codes Present Flag: %d",codesPresent);
-  logger.log(INFO,"Ignition State: %d",ignitionState);
+  logger.log(INFO,"   Current Miles: %d",currentMiles);
+  logger.log(INFO,"   Current Seconds: %lu",currentSeconds);
+  logger.log(INFO,"   Current Fuel Perc: %d",currentFuelPerc);
+  logger.log(INFO,"   Fill Up Seconds: %lu",fillUpSeconds);
+  logger.log(INFO,"   Current Elevation: %d",currentElevation);
+  logger.log(INFO,"   Current MAF: %d",currentMAF);
+  logger.log(INFO,"   Current Speed: %d",currentSpeed);
+  logger.log(INFO,"   Current Pitot Speed: %d",currentPitotSpeed);
+  logger.log(INFO,"   Current Load: %d",currentLoad);
+  logger.log(INFO,"   Current Coolant Temp: %d",currentCoolantTemp);
+  logger.log(INFO,"   Current Transmission Temp: %d",currentTransmissionTemp);
+  logger.log(INFO,"   Current Light Level: %d",currentLightLevel);
+  logger.log(INFO,"   Codes Present Flag: %d",codesPresent);
+  logger.log(INFO,"   Ignition State: %d",ignitionState);
 }

@@ -75,21 +75,20 @@ void TripData::loadTripData()
 
 void TripData::dumpTripData()
 {
-    logger.log(INFO,"Data Idx: %d",tripIdx);
-    logger.log(INFO,"Start Miles: %ld",data.startMiles);
-    logger.log(INFO,"Start Seconds: %lu",data.startSeconds);
-    logger.log(INFO,"Start Fuel: %f",data.startFuelPerc);
-    logger.log(INFO,"Last Elev: %ld",data.lastElevation);
-    logger.log(INFO,"Last Miles: %ld",data.lastMiles);
-    logger.log(INFO,"Piror total Miles: %ld",data.priorTotalMiles);
-    logger.log(INFO,"Ign Off Sec: %lu",data.ignOffSeconds);
-    logger.log(INFO,"Parked Seconds: %lu",data.totalParkedSeconds);
-    logger.log(INFO,"Stopped Seconds: %lu",data.totalStoppedSeconds);
-    logger.log(INFO,"Num of Stops: %d",data.numberOfStops);
-    logger.log(INFO,"Last fuel: %f",data.lastFuelPerc);
-    logger.log(INFO,"Prior total Gall: %f",data.priorTotalGallonsUsed);
-    logger.log(INFO,"Totcal Climb: %ld",data.totalClimb);
-    logger.log(INFO,"=========================");
+    logger.log(INFO,"Dumping TripData Idx: %d",tripIdx);
+    logger.log(INFO,"   Start Miles: %ld",data.startMiles);
+    logger.log(INFO,"   Start Seconds: %lu",data.startSeconds);
+    logger.log(INFO,"   Start Fuel: %f",data.startFuelPerc);
+    logger.log(INFO,"   Last Elev: %ld",data.lastElevation);
+    logger.log(INFO,"   Last Miles: %ld",data.lastMiles);
+    logger.log(INFO,"   Piror total Miles: %ld",data.priorTotalMiles);
+    logger.log(INFO,"   Ign Off Sec: %lu",data.ignOffSeconds);
+    logger.log(INFO,"   Parked Seconds: %lu",data.totalParkedSeconds);
+    logger.log(INFO,"   Stopped Seconds: %lu",data.totalStoppedSeconds);
+    logger.log(INFO,"   Num of Stops: %d",data.numberOfStops);
+    logger.log(INFO,"   Last fuel: %f",data.lastFuelPerc);
+    logger.log(INFO,"   Prior total Gall: %f",data.priorTotalGallonsUsed);
+    logger.log(INFO,"   Totcal Climb: %ld",data.totalClimb);
 }
 
 void TripData::updateTripData()
