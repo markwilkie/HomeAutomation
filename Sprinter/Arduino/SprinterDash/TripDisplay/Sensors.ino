@@ -183,14 +183,14 @@ bool Pitot::init(int _refreshTicks)
   refreshTicks=_refreshTicks;
 
   _wire = &Wire;
-  _wire->begin();
-  if(!isOnline())
+  if(!_wire->begin())
   {
-    _state = I2C_CONNECT_ERROR;
+    _state=I2C_CONNECT_ERROR;
     return false;
   }
-  _state = I2C_OK;
-  return true;
+
+  _state = I2C_OK;  //don't currently having a way to verify
+  return true;  
 }
 
 uint8_t Pitot::getAddress()
@@ -200,8 +200,14 @@ uint8_t Pitot::getAddress()
 
 bool Pitot::isOnline()
 {
-  _wire->beginTransmission(PRESSURE_I2C_ADDRESS);
-  return (_wire->endTransmission() == 0);
+  //this crashes esp32 for whatever reason
+  //_wire->beginTransmission(PRESSURE_I2C_ADDRESS);
+  //return (_wire->endTransmission() == 0);
+
+  if(!_state==I2C_OK)
+    return false;
+
+  return true;
 }
 
 int Pitot::calibrate()

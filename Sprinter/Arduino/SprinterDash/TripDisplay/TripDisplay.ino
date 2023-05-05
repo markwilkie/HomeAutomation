@@ -67,7 +67,7 @@ int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
 unsigned long nextIgnRefresh=0;
-char displayBuffer[150];  //used for status form
+char displayBuffer[1050];  //used for status form
 bool online= false;  //If true, it means every PID and sensor is online  (will list those which are not on boot)
 
 //Trip data
@@ -310,7 +310,7 @@ void loop()
 
     //Update display for active forms only
     if(primaryForm.getFormId()==formNavigator.getActiveForm())
-    {   
+    {
       primaryForm.updateDisplay();  
     }     
     if(startForm.getFormId()==formNavigator.getActiveForm())
@@ -574,6 +574,13 @@ bool processIncoming(int *service,int *pid,int *value)
 
     serialBuffer[currentComIdx]=data;
     currentComIdx++;
+
+    //make sure we don't overflow
+    if(currentComIdx>18)
+    {
+      Serial2.flush();
+      return false;
+    }
   }
 
   //tokenize if complete message
@@ -607,9 +614,13 @@ bool processIncoming(int *service,int *pid,int *value)
     }
 
     //copy values
+    *service=0;*pid=0;*value=0;  //reseting vars because we're only filling the first 2 bytes
     memcpy(service,serialBuffer,2);
     memcpy(pid,serialBuffer+2,2);
     memcpy(value,serialBuffer+4,2);
+
+    //clean up in case the buffer is wonky
+    Serial2.flush();
 
     return true;    
   }

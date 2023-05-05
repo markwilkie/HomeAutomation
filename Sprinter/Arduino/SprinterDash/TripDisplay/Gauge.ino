@@ -1,4 +1,5 @@
 #include "Gauge.h"
+#include "wifi.h"
 
 void Gauge::init(Genie *_geniePtr,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
 {
@@ -42,15 +43,23 @@ void Gauge::update()
     {
         //Update timing
         nextTickCount=millis()+refreshTicks;
-        lastValue=currentValue;        
+        lastValue=currentValue;                 
 
         if(angMeterObjNum>=0)
         {
-            geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);  
+            int retval=geniePtr->WriteObject(GENIE_OBJ_IANGULAR_METER, angMeterObjNum, gaugeValue);   
+            if(retval)                  
+            {
+                logger.log(ERROR,"Error writing to lcd meter.  Obj: %d Value: %d",angMeterObjNum,gaugeValue);
+            }
         }
         if(digitsObjNum>=0)
         {
-            geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue);   
+            int retval=geniePtr->WriteObject(GENIE_OBJ_ILED_DIGITS, digitsObjNum, currentValue); 
+            if(retval)                  
+            {
+                logger.log(ERROR,"Error writing to lcd digit.  Obj: %d Value: %d",digitsObjNum,currentValue);
+            }              
         }
     }
 }
