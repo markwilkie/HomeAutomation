@@ -1,35 +1,37 @@
-#include "Wifi.h"
+#include "VanWifi.h"
 
 WebServer server(80);
 Logger logger;
 
-void Wifi::startWifi()
+const uint32_t connectTimeoutMs = 10000;
+
+void VanWifi::startWifi()
 {
+  //just return if we're already connected
+  if(isConnected())
+    return;
+
   serverOnFlag=false;  //clearly, the server is not yet on
 
+  //Setup wifi
   esp_wifi_start();
   WiFi.disconnect(false);  // Reconnect the network
   WiFi.mode(WIFI_STA);    // Switch WiFi on
-  
-  //Setup wifi
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PASSWORD);
- 
-  // Wait for connection
-  int connectCount = 0;
-  logger.log(VERBOSE,"Connecting to WIFI...");  
-  while (WiFi.status() != WL_CONNECTED) 
-  {
-    connectCount++;
-    delay(1000);
-    if(connectCount>10)
-    {
-      logger.log(ERROR,"Could not connect to Wifi, restarting board  (obviously this only shows up on a serial connection)");
-      ESP.restart();
-    }
-  }
 
-  logger.log(INFO,"Connected to %s, IP: %s",SSID,WiFi.localIP().toString().c_str());
+  // Add list of wifi networks
+  wifiMulti.addAP(VANSSID, PASSWORD);
+  wifiMulti.addAP(LFPSSID, PASSWORD);
+  //WiFi.begin(SSID, PASSWORD);
+
+  //Connects to the wifi with the strongest signal
+  if(wifiMulti.run(connectTimeoutMs) == WL_CONNECTED) 
+  {
+    logger.log(INFO,"Connected to %s, IP: %s",WiFi.SSID().c_str(),WiFi.localIP().toString().c_str());
+  }  
+  else
+  {
+    logger.log(ERROR,"Could not connect to Wifi.  Moving on....");
+  }
 
   //Init OTA
   ArduinoOTA
@@ -64,7 +66,7 @@ void Wifi::startWifi()
   logger.sendLogs(isConnected());
 }
 
-void Wifi::startServer()
+void VanWifi::startServer()
 { 
   // Set server routing and then start
   setupServerRouting();
@@ -74,39 +76,49 @@ void Wifi::startServer()
   logger.log(INFO,"HTTP server started");  
 }
 
-bool Wifi::isServerOn()
+bool VanWifi::isServerOn()
 {
   return serverOnFlag;
 }
 
-bool Wifi::isConnected()
+bool VanWifi::isConnected()
 {
   return (WiFi.status() == WL_CONNECTED);
 }
 
-int Wifi::getRSSI()
+String VanWifi::getSSID()
+{
+  return WiFi.SSID();
+}
+
+String VanWifi::getIP()
+{
+  return WiFi.localIP().toString();
+}
+
+int VanWifi::getRSSI()
 {
   return WiFi.RSSI();
 }
 
-void Wifi::listen()
+void VanWifi::listen()
 {
   server.handleClient();
   ArduinoOTA.handle();
 }
 
-void Wifi::sendResponse(String page)
+void VanWifi::sendResponse(String page)
 {
   server.send(200, "text/html", page);
 }
 
-bool Wifi::isPost()
+bool VanWifi::isPost()
 {
   (server.method() == HTTP_POST);
 }
 
 // Define routing
-void Wifi::setupServerRouting() {
+void VanWifi::setupServerRouting() {
     server.on("/", HTTP_GET, []() {
         server.send(200,"text/html",
         "/current  --> dump of current data<br>/trip --> dump of sinceLastStop, currentSegment, and Trip");
@@ -120,7 +132,7 @@ void Wifi::setupServerRouting() {
     //server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
-void Wifi::sendErrorResponse(const char*errorString)
+void VanWifi::sendErrorResponse(const char*errorString)
 {
   String page=errorString;
   server.send(400,"application/text",page);
@@ -129,7 +141,7 @@ void Wifi::sendErrorResponse(const char*errorString)
 }
 
 // Manage not found URL
-void Wifi::handleNotFound() 
+void VanWifi::handleNotFound() 
 {
   String message = "File Not Found\n\n";
   message += "URI: ";

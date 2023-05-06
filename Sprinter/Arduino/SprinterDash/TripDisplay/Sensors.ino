@@ -1,5 +1,5 @@
 #include "Sensors.h"
-#include "WiFi.h"
+#include "VanWifi.h"
 
 void Barometer::init(int _refreshTicks)
 {
@@ -210,16 +210,24 @@ bool Pitot::isOnline()
   return true;
 }
 
-int Pitot::calibrate()
+//Create factor of pitot speed vs. actual speed
+double Pitot::calibrate(int actualSpeed)
 {
+  //Get calc airspeed
+  int airSpeed = calcSpeed();  
 
-  _countOffset=0;
+  //Determine factor
+  _calibrationFactor=0;
+  if(actualSpeed>0 && airSpeed>0)
+    _calibrationFactor=actualSpeed/airSpeed;
+  
+  return _calibrationFactor;
+}
 
-  //set zero point
-  if(read())
-  {
-    _countOffset=MIN_COUNT-_sensorCount;
-  }
+//Used to load calibration from EEPROM
+void Pitot::setCalibrationFactor(double _factor)
+{
+  _calibrationFactor=_factor;
 }
 
 int Pitot::readSpeed()
@@ -234,7 +242,22 @@ int Pitot::readSpeed()
   if(retVal<0)
     return retVal;
 
-  //  Min = 1638 (0%)
+  //Now convert to mph
+  int _tempmph = calcSpeed();  
+
+  //Smooth
+  _mph = _tempmph*0.25 + _mph*0.75;
+
+  //Add calibration
+  if(_calibrationFactor>0 && !isnan(_calibrationFactor))
+    _mph = _mph*_calibrationFactor;
+
+  return _mph;
+}
+
+int Pitot::calcSpeed()
+{
+    //  Min = 1638 (0%)
   //  Max = 14746 (100%)
   //
   //  Mult pascal range by 10 to increase resolution
@@ -248,13 +271,7 @@ int Pitot::readSpeed()
   //Now convert to mph
   int _tempmph = sqrt((2.0*_pressure)/AIR_DENSITY)*MS_2_MPH;  
 
-  //Smooth
-  _mph = _tempmph*0.25 + _mph*0.75;
-
-  //Add calibration
-  _mph = _mph + (_mph * .04);
-
-  return _mph;
+  return _tempmph;
 }
 
 int Pitot::read()
@@ -273,8 +290,7 @@ int Pitot::read()
     return _state;
   }
 
-  //adjust for zero and smooth
-  _sensorCount=count + _countOffset;
+  _sensorCount=count;
 
   _state = I2C_OK;
   return _state;

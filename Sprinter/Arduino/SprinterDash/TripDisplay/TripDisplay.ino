@@ -3,7 +3,7 @@
 
 #include "CurrentData.h"
 #include "TripData.h"
-#include "Wifi.h"
+#include "VanWifi.h"
 
 #include "FormHelpers.h"
 #include "PrimaryForm.h"
@@ -62,7 +62,7 @@ unsigned long turnOffTime;
 
 //Global objects for LCD
 Genie genie;  
-Wifi wifi;
+VanWifi wifi;
 int currentContrast=10;
 bool currentIgnState=false;
 unsigned long nextLCDRefresh=0;
@@ -158,6 +158,9 @@ void setup()
   {
     showOfflineLinks();
   }
+
+  //Update pitot calibration
+  currentData.setPitotCalibrationFactor(fullTrip.getPitotCalibFactor());
 
   //Reset the data since last stop because we're booting
   logger.log(INFO,"Reseting trip data from last stop");
@@ -420,15 +423,36 @@ void ShowDebugInfo()
 {
     logger.log(VERBOSE,"Show debug info");
     formNavigator.activateForm(STATUS_FORM); 
-
     statusForm.updateTitle("Debug Info");
+
+    //Try and start wifi if not already connected
+    if(!wifi.isConnected())
+    {
+      statusForm.updateText("Wifi NOT connected\nTrying to connect...");
+      wifi.startWifi();    
+    }
+
+    //check wifi connection
+    if(!wifi.isConnected())
+    {
+      statusForm.updateText("Unable to Connect...");
+      delay(5000);
+      return;
+    }
+
+    //Show url
+    String line = "SSID: "+wifi.getSSID()+"\nIP: "+wifi.getIP()+"\nDumping Logs";
+    statusForm.updateText(line.c_str());
+
+    //Output log data
+    logCurrentData();
+    logTripData();
+
+    //Wait here until user exits
     while(1)
     {
-      statusForm.updateText(currentData.currentSeconds);
-
+      delay(100);
       genie.DoEvents();   //so that the buttons will work
-
-      //If someone pressed the button, time to bail
       if(formNavigator.getActiveForm()!=STATUS_FORM)
         break;
     }
@@ -436,23 +460,15 @@ void ShowDebugInfo()
 
 void showPitotInfo()
 {
-    logger.log(VERBOSE,"Show pitot info");
     formNavigator.activateForm(STATUS_FORM); 
+    logger.log(WARNING,"Calibrating Pitot");
+    statusForm.updateTitle("Calibrating Pitot");
+    statusForm.updateStatus("Exit at any time...");
 
-    //Only zero pitot if speed is zero
-    if(currentData.currentSpeed==0)
-    {
-      statusForm.updateTitle("Calibrating Pitot");
-      statusForm.updateStatus("Zero'd pitot");
-      currentData.calibratePitot();
-    }
-    else
-    {
-      statusForm.updateStatus("Did NOT zero pitot");
-    }
+    //Calibrate
+    fullTrip.setPitotCalibFactor(currentData.calibratePitot());
 
     //Now read the pitot gauge until the user exits out using a button
-    statusForm.updateTitle("Current Readings");
     while(1)
     {
       int pitotSpeed=currentData.readPitot();
@@ -516,9 +532,11 @@ void myGenieEventHandler(void)
     case ACTION_ACTIVATE_STATUS_FORM:
       verifyInterfaces();
       break;
-    case ACTION_PITOT:
-      //showPitotInfo();
+    case ACTION_DEBUG:
       ShowDebugInfo();
+      break;      
+    case ACTION_PITOT:
+      showPitotInfo();
       break;
   }
 }
@@ -646,6 +664,7 @@ void logCurrentData()
 {
   logger.log(INFO,"Dumping Current Data");
   currentData.dumpData();
+  logger.log(INFO,"Current CRC Failures (msg/err): %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);  
   logger.sendLogs(wifi.isConnected());
 
   wifi.sendResponse("Done!");

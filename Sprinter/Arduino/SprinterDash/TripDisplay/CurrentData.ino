@@ -1,5 +1,5 @@
 #include "CurrentData.h"
-#include "Wifi.h"
+#include "VanWifi.h"
 
 
 CurrentData::CurrentData()
@@ -24,9 +24,14 @@ void CurrentData::setTime(unsigned long secondsToSet)
     rtc.adjust(secondsToSet);
 }
 
-void CurrentData::calibratePitot()
+double CurrentData::calibratePitot()
 {
-    pitot.calibrate();
+  return pitot.calibrate(currentSpeed);
+}
+
+void CurrentData::setPitotCalibrationFactor(double factor)
+{
+    pitot.setCalibrationFactor(factor);
 }
 
 int CurrentData::readPitot()

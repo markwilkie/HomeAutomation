@@ -28,6 +28,10 @@ struct TripDataStruct{
     //Elevation
     uint16_t totalClimb;
     uint16_t lastElevation;
+
+    //Calibration
+    double_t pitotCalibration;
+    double_t instMPGFactor;
 };
 
 class TripData
@@ -56,6 +60,10 @@ class TripData
     int getMilesLeftInTank();
     int getCurrentElevation();
     int getTotalClimb();
+
+    double getInstMPGFactor();
+    double getPitotCalibFactor();
+    void setPitotCalibFactor(double factor);
 
   private: 
     CurrentData *currentDataPtr;

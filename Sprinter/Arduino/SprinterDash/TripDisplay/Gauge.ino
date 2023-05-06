@@ -1,5 +1,5 @@
 #include "Gauge.h"
-#include "wifi.h"
+#include "VanWifi.h"
 
 void Gauge::init(Genie *_geniePtr,int _angMeterObjNum,int _digitsObjNum,int _min,int _max,int _refreshTicks)
 {

@@ -30,7 +30,8 @@ class CurrentData
     CurrentData();
     void init();
     void setTime(unsigned long secondsToSet);
-    void calibratePitot();
+    double calibratePitot();
+    void setPitotCalibrationFactor(double factor);
     int readPitot();
     bool verifyInterfaces(int service, int pid, int value);
     void updateStatusForm(char *listOfOfflineInterfaces);

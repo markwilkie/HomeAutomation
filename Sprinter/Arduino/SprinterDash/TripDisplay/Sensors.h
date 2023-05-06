@@ -91,17 +91,19 @@ public:
 
 
   //  returns status OK (0) or ERROR ( not 0 )
-  int      calibrate();
+  double   calibrate(int actualSpeed);
+  void     setCalibrationFactor(double factor);
   int      readSpeed();
   int      state()        { return _state; };
 
 private:
   int      read();
+  int      calcSpeed();
 
   TwoWire*  _wire;
   uint32_t _sensorCount;
-  int      _countOffset;
   int      _mph;
+  double   _calibrationFactor=0;
   
   uint8_t  _state;
   int refreshTicks;

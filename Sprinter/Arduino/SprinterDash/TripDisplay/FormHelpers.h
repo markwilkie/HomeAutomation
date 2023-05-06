@@ -35,7 +35,7 @@ char decFormat[]={'%','x','d','\0'};
 
 #define MENU_NEW_TRIP 4
 #define MENU_NEW_SEGMENT 5
-#define MENU_STATUS 2
+#define MENU_DEBUG 2
 #define MENU_PITOT_CALIBRATION 3
 
 //Actions
@@ -49,6 +49,7 @@ char decFormat[]={'%','x','d','\0'};
 #define ACTION_START_NEW_TRIP 7
 #define ACTION_START_NEW_SEGMENT 8
 #define ACTION_PITOT 9
+#define ACTION_DEBUG 11
 
 #define ACTION_CYCLE_SUMMARY 10
 
@@ -152,8 +153,8 @@ int FormNavigator::determineAction(genieFrame *event)
         case MENU_NEW_SEGMENT:
           action=ACTION_START_NEW_SEGMENT;
           break;
-        case MENU_STATUS:
-          action=ACTION_ACTIVATE_STATUS_FORM;
+        case MENU_DEBUG:
+          action=ACTION_DEBUG;
           break;
         case MENU_PITOT_CALIBRATION:
           action=ACTION_PITOT;
