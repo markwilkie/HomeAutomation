@@ -261,7 +261,7 @@ double TripData::getInstantMPG()
     }
 
     //make adjustments based on avg if we're far enough along to have the data
-    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10)
+    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10 && (currentDataPtr->currentFuelPerc<75 || data.instMPGFactor==0)) 
     {
         data.instMPGFactor=getAvgMPG()/lastAvgInstMPG;
     }
