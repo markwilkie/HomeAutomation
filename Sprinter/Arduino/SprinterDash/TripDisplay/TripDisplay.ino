@@ -2,6 +2,7 @@
 #include <genieArduino.h>
 
 #include "CurrentData.h"
+#include "PropBag.h"
 #include "TripData.h"
 #include "VanWifi.h"
 
@@ -73,6 +74,7 @@ bool online= false;  //If true, it means every PID and sensor is online  (will l
 //Trip data
 int currentActiveSummaryData=0;
 CurrentData currentData=CurrentData();
+PropBag propBag=PropBag();
 TripData sinceLastStop=TripData(&currentData,3);  //used for the primary form
 TripData currentSegment=TripData(&currentData,0);
 TripData fullTrip=TripData(&currentData,1);
@@ -135,7 +137,7 @@ void setup()
 
   //This is how we get notified when a button is pressed
   formNavigator.init(&genie);
-  genie.AttachEventHandler(myGenieEventHandler); // Attach the user function Event Handler for processing events  
+  genie.AttachEventHandler(myGenieEventHandler); // Attach the user functiotion Event Handler for processing events  
 
   //calibrate and setup sensors
   logger.log(INFO,"Initializing sensors");
@@ -143,10 +145,14 @@ void setup()
   currentData.updateDataFromSensors();
   delay(500);
 
+  //Load property bag from EEPROM
+  logger.log(INFO,"Loading prop data from EEPROM");
+  propBag.loadPropData();
+
   //Initialize or load data from EEPROM for each of the trip bucket objects
-  logger.log(INFO,"Loading data from EEPROM");
-  currentSegment.loadTripData();
-  fullTrip.loadTripData();
+  logger.log(INFO,"Loading trip data from EEPROM");
+  currentSegment.loadTripData(propBag.getPropDataSize());
+  fullTrip.loadTripData(propBag.getPropDataSize());
 
   logger.log(INFO,"Verifying CAN connection");
   verifyCAN();
@@ -160,7 +166,7 @@ void setup()
   }
 
   //Update pitot calibration
-  currentData.setPitotCalibrationFactor(fullTrip.getPitotCalibFactor());
+  currentData.setPitotCalibrationFactor(propBag.data.pitotCalibration);
 
   //Reset the data since last stop because we're booting
   logger.log(INFO,"Reseting trip data from last stop");
@@ -390,10 +396,11 @@ void handleStatupAndShutdown()
         fullTrip.updateTripData();           
 
         //Save to EEPROM
-        logger.log(INFO,"Saving to EEPROM and activating STOPPING form");
+        logger.log(INFO,"Saving trip and prop bag data to EEPROM and activating STOPPING form");
         logger.sendLogs(wifi.isConnected());
-        currentSegment.saveTripData();
-        fullTrip.saveTripData();
+        propBag.savePropData();
+        currentSegment.saveTripData(propBag.getPropDataSize());
+        fullTrip.saveTripData(propBag.getPropDataSize());
 
         //Activate stopping form
         formNavigator.activateForm(STOPPED_FORM);
@@ -462,18 +469,23 @@ void showPitotInfo()
 {
     formNavigator.activateForm(STATUS_FORM); 
     logger.log(WARNING,"Calibrating Pitot");
-    statusForm.updateTitle("Calibrating Pitot");
+    statusForm.updateTitle("Calibrated Pitot");
     statusForm.updateStatus("Exit at any time...");
 
     //Calibrate
-    fullTrip.setPitotCalibFactor(currentData.calibratePitot());
+    propBag.data.pitotCalibration=currentData.calibratePitot();
+
+    //Show what we're doing
+    String line = "Actual Speed: "+currentData.currentSpeed+"\nPitot Speed: "+currentData.readPitot().toString()+"\nFactor: "+propBag.data.pitotCalibration+toString();
 
     //Now read the pitot gauge until the user exits out using a button
     while(1)
     {
-      int pitotSpeed=currentData.readPitot();
-      statusForm.updateText(pitotSpeed);
+      String currentLine = line + "\n\n Current Speed: "+currentData.currentSpeed+"\n Current Pitot: "+currentData.readPitot();
+      statusForm.updateText(currentLine.c_str());
       genie.DoEvents();   //so that the buttons will work
+
+      delay(500);
 
       //If someone pressed the button, time to bail
       if(formNavigator.getActiveForm()!=STATUS_FORM)
@@ -521,7 +533,8 @@ void myGenieEventHandler(void)
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
       currentSegment.resetTripData();
-      fullTrip.resetTripData();        
+      fullTrip.resetTripData();    
+      propBag.resetPropData();    
       formNavigator.activateForm(PRIMARY_FORM);
       break;
     case ACTION_START_NEW_SEGMENT:

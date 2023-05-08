@@ -28,10 +28,6 @@ struct TripDataStruct{
     //Elevation
     uint16_t totalClimb;
     uint16_t lastElevation;
-
-    //Calibration
-    double_t pitotCalibration;
-    double_t instMPGFactor;
 };
 
 class TripData
@@ -41,8 +37,8 @@ class TripData
 
     void updateTripData();  //Call every loop so that calculations can be made where appropriate
     void resetTripData();   //Call when starting a new segment etc  (e.g. when ignition is turned off)
-    void saveTripData();    //Saves data to EEPROM
-    void loadTripData();
+    void saveTripData(int offset);    //Saves data to EEPROM
+    void loadTripData(int offset);
     void dumpTripData();
 
     int getMilesTravelled();
@@ -61,12 +57,9 @@ class TripData
     int getCurrentElevation();
     int getTotalClimb();
 
-    double getInstMPGFactor();
-    double getPitotCalibFactor();
-    void setPitotCalibFactor(double factor);
-
   private: 
     CurrentData *currentDataPtr;
+    PropBag *propBagPtr;
     int tripIdx;
 
     TripDataStruct data;

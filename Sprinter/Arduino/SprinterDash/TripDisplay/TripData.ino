@@ -1,14 +1,18 @@
 #include "TripData.h"
+#include "PropBag.h"
 #include "VanWifi.h"
 
-TripData::TripData(CurrentData *_currentDataPtr,int _tripIdx)
+TripData::TripData(CurrentData *_currentDataPtr,PropBag *_propBagPtr,int _tripIdx)
 {
     currentDataPtr=_currentDataPtr;
+    propBagPtr=_propBagPtr;
     tripIdx=_tripIdx;  //used to calc offset on EEPROM
 }
 
 void TripData::resetTripData()
 {
+    logger.log(INFO,"Reseting TripData Idx: %d",tripIdx);
+
     data.startMiles=currentDataPtr->currentMiles;
     data.startSeconds=currentDataPtr->currentSeconds;
     data.startFuelPerc=currentDataPtr->currentFuelPerc;
@@ -24,24 +28,19 @@ void TripData::resetTripData()
     data.stoppedFuelPerc=0;
     data.priorTotalGallonsUsed=0;
     data.totalClimb=0;
-
-    data.pitotCalibration=0;
-    data.instMPGFactor=0;
-
-    dumpTripData();
 }
 
 //Save data to EEPROM
-void TripData::saveTripData()
+void TripData::saveTripData(int offset)
 {
-  logger.log(VERBOSE,"Saving to EEPROM");
+  logger.log(VERBOSE,"Saving Trip Data to EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
 
   // put some data into eeprom
-  EEPROM.put(dataSize*tripIdx, data); 
+  EEPROM.put((dataSize*tripIdx)+offset, data); 
 
   // write the data to EEPROM
   logger.log(VERBOSE,"EEPROM Ret: %d",EEPROM.commit());
@@ -50,15 +49,15 @@ void TripData::saveTripData()
 }
 
 //Load data to EEPROM
-void TripData::loadTripData()
+void TripData::loadTripData(int offset)
 {
-  logger.log(VERBOSE,"Loading from EEPROM");
+  logger.log(VERBOSE,"Loading Trip Data from EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
   // get some data from eeprom
-  EEPROM.get(dataSize*tripIdx, data);
+  EEPROM.get((dataSize*tripIdx)+offset, data);
   EEPROM.end();
 
   //do some error checking
@@ -92,8 +91,6 @@ void TripData::dumpTripData()
     logger.log(INFO,"   Last fuel: %f",data.lastFuelPerc);
     logger.log(INFO,"   Prior total Gall: %f",data.priorTotalGallonsUsed);
     logger.log(INFO,"   Total Climb: %ld",data.totalClimb);
-    logger.log(INFO,"   Inst MPG Factor: %f",data.instMPGFactor);
-    logger.log(INFO,"   Pitot Calib: %f",data.pitotCalibration);
 }
 
 void TripData::updateTripData()
@@ -261,14 +258,14 @@ double TripData::getInstantMPG()
     }
 
     //make adjustments based on avg if we're far enough along to have the data
-    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10 && (currentDataPtr->currentFuelPerc<75 || data.instMPGFactor==0)) 
+    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10 && (currentDataPtr->currentFuelPerc<75 || propBagPtr->data.instMPGFactor==0)) 
     {
-        data.instMPGFactor=getAvgMPG()/lastAvgInstMPG;
+        propBagPtr->data.instMPGFactor=getAvgMPG()/lastAvgInstMPG;
     }
 
     //Use the current factor we have (which may be loaded from EEPORM)
-    if(data.instMPGFactor>0)
-        instMPG=instMPG*data.instMPGFactor;
+    if(propBagPtr->data.instMPGFactor>0)
+        instMPG=instMPG*propBagPtr->data.instMPGFactor;
 
     return instMPG;
 }
@@ -313,19 +310,4 @@ int TripData::getCurrentElevation()
 int TripData::getTotalClimb()
 {
     return data.totalClimb;
-}
-
-double TripData::getInstMPGFactor()
-{
-    return data.instMPGFactor;
-}
-
-double TripData::getPitotCalibFactor()
-{
-    return data.pitotCalibration;
-}
-
-void TripData::setPitotCalibFactor(double factor)
-{
-    data.pitotCalibration=factor;
 }
