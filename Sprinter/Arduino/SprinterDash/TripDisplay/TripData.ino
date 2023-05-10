@@ -24,23 +24,21 @@ void TripData::resetTripData()
     data.totalParkedSeconds=0;
     data.totalStoppedSeconds=0;
     data.numberOfStops=0;
-    data.lastFuelPerc=data.startFuelPerc;
     data.stoppedFuelPerc=0;
-    data.priorTotalGallonsUsed=0;
     data.totalClimb=0;
 }
 
 //Save data to EEPROM
 void TripData::saveTripData(int offset)
 {
-  logger.log(VERBOSE,"Saving Trip Data to EEPROM");
+  logger.log(INFO,"Saving Trip Data to EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
 
   // put some data into eeprom
-  EEPROM.put((dataSize*tripIdx)+offset, data); 
+  EEPROM.put(((dataSize+1)*tripIdx)+offset+1, data); 
 
   // write the data to EEPROM
   logger.log(VERBOSE,"EEPROM Ret: %d",EEPROM.commit());
@@ -51,13 +49,13 @@ void TripData::saveTripData(int offset)
 //Load data to EEPROM
 void TripData::loadTripData(int offset)
 {
-  logger.log(VERBOSE,"Loading Trip Data from EEPROM");
+  logger.log(INFO,"Loading Trip Data from EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
   // get some data from eeprom
-  EEPROM.get((dataSize*tripIdx)+offset, data);
+  EEPROM.get(((dataSize+1)*tripIdx)+offset+1, data);
   EEPROM.end();
 
   //do some error checking
@@ -88,8 +86,7 @@ void TripData::dumpTripData()
     logger.log(INFO,"   Parked Seconds: %lu",data.totalParkedSeconds);
     logger.log(INFO,"   Stopped Seconds: %lu",data.totalStoppedSeconds);
     logger.log(INFO,"   Num of Stops: %d",data.numberOfStops);
-    logger.log(INFO,"   Last fuel: %f",data.lastFuelPerc);
-    logger.log(INFO,"   Prior total Gall: %f",data.priorTotalGallonsUsed);
+    logger.log(INFO,"   Stopped fuel: %f",data.stoppedFuelPerc);
     logger.log(INFO,"   Total Climb: %ld",data.totalClimb);
 }
 
@@ -138,6 +135,7 @@ int TripData::getMilesTravelled()
     if(currentMiles<=0)
         return 0;
 
+    //If MIL comes on, the current miles will reset to zero.  We should catch this situation
     if(currentMiles<data.lastMiles)
     {
         data.priorTotalMiles=data.priorTotalMiles+data.lastMiles-data.startMiles;
@@ -194,33 +192,23 @@ double TripData::getParkedTime()
 double TripData::getFuelGallonsUsed()
 {
     double currentFuelPerc=currentDataPtr->currentFuelPerc;
-    if(currentFuelPerc<=0)
+    if(currentFuelPerc<0.1)
         return 0;
 
-    unsigned long currentSeconds=currentDataPtr->currentSeconds;
-    unsigned long fillUpSeconds=currentDataPtr->fillUpSeconds;
+    double priorTotalGallonsUsed=0.0;
 
-    //Do we need to factor in fuel being added?
-    if(currentSeconds>fillUpSeconds && currentSeconds>lastFillupSeconds)
+    //Did we fill up since we last stopped?
+    if(currentFuelPerc>data.stoppedFuelPerc) 
     {
-        //Has it been long enough to stabalize?
-        if(currentSeconds>(fillUpSeconds+15))
-        {
-            lastFillupSeconds=fillUpSeconds;
-            double priorGallonsUsed=FUEL_TANK_SIZE*((data.startFuelPerc-data.lastFuelPerc)/100.0);
-            data.priorTotalGallonsUsed=data.priorTotalGallonsUsed+priorGallonsUsed;
-            data.startFuelPerc=currentFuelPerc;
-        }
-    }
-    else
-    {
-        //Make sure we always know the last fuel percentage in case we add fuel
-        data.lastFuelPerc=currentFuelPerc;
+        //Calc gallons used *before* the fillup
+        priorTotalGallonsUsed=FUEL_TANK_SIZE*((data.startFuelPerc-data.stoppedFuelPerc)/100.0); 
+        data.startFuelPerc=currentFuelPerc;
+        data.stoppedFuelPerc=currentFuelPerc;
     }
 
     //Calc current gallons used
     double gallonsUsed = FUEL_TANK_SIZE*((data.startFuelPerc-currentFuelPerc)/100.0);
-    gallonsUsed=gallonsUsed+data.priorTotalGallonsUsed;
+    gallonsUsed=gallonsUsed+priorTotalGallonsUsed;
 
     return gallonsUsed;
 }
@@ -228,26 +216,26 @@ double TripData::getFuelGallonsUsed()
 double TripData::getHeaterGallonsUsed()
 {
     double currentFuelPerc=currentDataPtr->currentFuelPerc;
-    double gallonsUsed = FUEL_TANK_SIZE*((currentFuelPerc-data.stoppedFuelPerc)/100.0);
+    double gallonsUsed = FUEL_TANK_SIZE*((data.stoppedFuelPerc-currentFuelPerc)/100.0);
 
     return gallonsUsed;
 }
 
+//How many gallons would we expect to put in to fill up
 double TripData::getGallonsExpected()
 {
-    double currentFuelPerc=currentDataPtr->currentFuelPerc;
-    double gallonsExpected = FUEL_TANK_SIZE-(FUEL_TANK_SIZE*(currentFuelPerc/100.0));
+    double gallonsExpected = FUEL_TANK_SIZE-(FUEL_TANK_SIZE*(currentDataPtr->currentFuelPerc/100.0));
     return gallonsExpected;
 }
 
 double TripData::getInstantMPG()
 {
     double galPerHour=((double)currentDataPtr->currentMAF*(double)currentDataPtr->currentLoad)/1006.777948;
-    double currentInstMPG=(currentDataPtr->currentSpeed)/galPerHour;
+    double currentInstMPG=(double)(currentDataPtr->currentSpeed)/galPerHour;
     instMPG = currentInstMPG;
 
     //running avg so we can calibrate on the fly with some filtering
-    if(instMPG>3 && instMPG<30)
+    if(instMPG>3.0 && instMPG<30.0)
     {
         //Smooth
         instMPG = currentInstMPG*0.25 + instMPG*0.75;
@@ -258,13 +246,13 @@ double TripData::getInstantMPG()
     }
 
     //make adjustments based on avg if we're far enough along to have the data
-    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10 && (currentDataPtr->currentFuelPerc<75 || propBagPtr->data.instMPGFactor==0)) 
+    if(getFuelGallonsUsed()>=1.0 && getMilesTravelled()>=10 && (currentDataPtr->currentFuelPerc<75 || propBagPtr->data.instMPGFactor<0.01)) 
     {
         propBagPtr->data.instMPGFactor=getAvgMPG()/lastAvgInstMPG;
     }
 
     //Use the current factor we have (which may be loaded from EEPORM)
-    if(propBagPtr->data.instMPGFactor>0)
+    if(propBagPtr->data.instMPGFactor>0.01) 
         instMPG=instMPG*propBagPtr->data.instMPGFactor;
 
     return instMPG;
@@ -292,12 +280,12 @@ double TripData::getAvgMovingSpeed()
 int TripData::getMilesLeftInTank()
 {
     double gallonsLeft=FUEL_TANK_SIZE*((double)currentDataPtr->currentFuelPerc/100.0);
-    double milesLeft=gallonsLeft*getInstantMPG();
+    int milesLeft=gallonsLeft*getInstantMPG();
 
-    if(milesLeft>999)
-        milesLeft=999;
+    if(milesLeft>999.0)
+        milesLeft=999.0;
 
-    return (int)milesLeft;
+    return milesLeft;
 }
 
 // in feet

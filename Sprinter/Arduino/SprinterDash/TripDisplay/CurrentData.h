@@ -31,7 +31,7 @@ class CurrentData
     void init();
     void setTime(unsigned long secondsToSet);
     double calibratePitot();
-    void setPitotCalibrationFactor(double factor);
+    void setPitotCalibrationFactor(double_t factor);
     int readPitot();
     bool verifyInterfaces(int service, int pid, int value);
     void updateStatusForm(char *listOfOfflineInterfaces);
@@ -43,7 +43,6 @@ class CurrentData
     int currentMiles=0;
     unsigned long currentSeconds=0;
     int currentFuelPerc=0;
-    unsigned long fillUpSeconds=0;
     int currentElevation=0;
     int currentMAF=0;
     int currentSpeed=0;

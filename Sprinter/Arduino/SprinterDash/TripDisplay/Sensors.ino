@@ -98,27 +98,31 @@ bool RTC::isOnline()
   return online;
 }
 
-void RTC::adjust()
+uint32_t RTC::adjust()
 {
   DateTime dateTime=DateTime();
-  adjust(dateTime);
+  dateTime.secondstime();
+  secondsSince2000=adjust(dateTime);
+  return secondsSince2000;
 }
 
-void RTC::adjust(unsigned long secondsToSet)
+uint32_t RTC::adjust(unsigned long secondsToSet)
 {
   DateTime dateTime=DateTime(secondsToSet+SECONDS_FROM_1970_TO_2000);  //need to add because of the library
   if(dateTime.isValid())
   {
-    adjust(dateTime);
+    secondsSince2000=adjust(dateTime);
   }
   else
   {
     logger.log(ERROR,"Trying to set the time to something invalid: %lu",secondsToSet);
-    adjust();
+    secondsSince2000=adjust();
   }
+  
+  return secondsSince2000;
 }
 
-void RTC::adjust(DateTime dateTime)
+uint32_t RTC::adjust(DateTime dateTime)
 {
   rtc.stop();
   delay(2000);  //let things calm down I guess
@@ -129,6 +133,8 @@ void RTC::adjust(DateTime dateTime)
   //Ok, start things back up again
   rtc.start();
   online=true;
+
+  return secondsSince2000;
 }
 
 uint32_t RTC::getSecondsSinc2000()
@@ -211,7 +217,7 @@ bool Pitot::isOnline()
 }
 
 //Create factor of pitot speed vs. actual speed
-double Pitot::calibrate(int actualSpeed)
+double_t Pitot::calibrate(int actualSpeed)
 {
   //Get calc airspeed
   int airSpeed = calcSpeed();  
@@ -219,13 +225,13 @@ double Pitot::calibrate(int actualSpeed)
   //Determine factor
   _calibrationFactor=0;
   if(actualSpeed>0 && airSpeed>0)
-    _calibrationFactor=actualSpeed/airSpeed;
+    _calibrationFactor=(double_t)actualSpeed/(double_t)airSpeed;
   
   return _calibrationFactor;
 }
 
 //Used to load calibration from EEPROM
-void Pitot::setCalibrationFactor(double _factor)
+void Pitot::setCalibrationFactor(double_t _factor)
 {
   _calibrationFactor=_factor;
 }
@@ -240,7 +246,10 @@ int Pitot::readSpeed()
   //read sensor
   int retVal=read();
   if(retVal<0)
+  {
+    logger.log(ERROR,"Error reading pressure sensor (pitot)");
     return retVal;
+  }
 
   //Now convert to mph
   int _tempmph = calcSpeed();  
@@ -249,8 +258,10 @@ int Pitot::readSpeed()
   _mph = _tempmph*0.25 + _mph*0.75;
 
   //Add calibration
-  if(_calibrationFactor>0 && !isnan(_calibrationFactor))
+  if(_calibrationFactor>0.01)
+  {
     _mph = _mph*_calibrationFactor;
+  }
 
   return _mph;
 }

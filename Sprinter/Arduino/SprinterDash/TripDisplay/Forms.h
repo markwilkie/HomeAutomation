@@ -4,6 +4,24 @@
 #include "FormHelpers.h"
 #include <genieArduino.h>
 
+class BootForm 
+{
+  public:
+    BootForm(Genie* geniePtr,int formID);
+
+    int getFormId();
+    void updateDisplay(char *message,int activeForm);  
+
+  private: 
+    StrField strField;
+
+    //State
+    int formID;
+
+    //Display
+    Genie *geniePtr;      
+};
+
 class StartingForm 
 {
   public:

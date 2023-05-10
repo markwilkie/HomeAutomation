@@ -15,6 +15,33 @@
 #define GALLONS_EXPECTED_STRING 9
 #define AVG_MPG_STRING_1 38
 
+#define BOOT_STRING 39
+
+//
+// Boot Form
+//
+// Shown when car first turned on
+BootForm::BootForm(Genie* _geniePtr,int _formID)
+{
+    //Save main genie pointer
+    geniePtr=_geniePtr;
+
+    //Save context
+    formID=_formID;
+}
+
+int BootForm::getFormId()
+{
+    return formID;
+}
+
+//Update display
+void BootForm::updateDisplay(char *message,int activeForm)
+{
+  if(activeForm==formID)
+    geniePtr->WriteStr(BOOT_STRING,message);
+}
+
 //
 // Starting Form
 //

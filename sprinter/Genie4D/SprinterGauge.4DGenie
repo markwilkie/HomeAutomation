@@ -1996,24 +1996,27 @@ Form
     OnTouchPressed               ''
     OnTouchReleased              ''
 end
-StaticText
-    Name                         Statictext0
-    Alias                        Statictext0
+Strings
+    Name                         Strings39
+    Alias                        Strings39
     Alignment                    Left
-    AutoSize                     Yes
-    Caption                      Booting
-    Color                        BLACK
-    Font.Color                   WHITE
-    Font.Effects                 []
-    Font.Name                    'Arial Rounded MT Bold'
-    Font.Size                    16
-    Font.Style                   []
-    Height                       24
-    Left                         56
-    Top                          72
-    Transparent                  Yes
-    Width                        87
-    WordWrap                     Yes
+    BGcolor                      clWhite
+    Height                       23
+    FGcolor                      WHITE
+    Font.Bold                    Yes
+    Font.CharSet                 ANSI
+    Font.Italic                  No
+    Font.Name                    Tahoma
+    Font.Opaque                  No
+    Font.Size                    -14
+    Font.Strikethrough           No
+    Font.Underline               No
+    Left                         24
+    Strings                      Booting...\n
+    StringsStyle                 Message
+    Top                          40
+    Width                        435
+    OnChanged                    ''
 end
 Form
     Name                         Form6

@@ -1,4 +1,4 @@
-// File generated 5/5/2023 5:47:12 PM
+// File generated 5/8/2023 2:13:14 PM
 // Warning! This is a generated file, any manual changes will be
 // lost during the next generation.
 
@@ -80,7 +80,9 @@
 #constant  Strings35Size     17
 #constant  Strings36Count    0
 #constant  Strings36Size     1
-#constant  IFONT_OFFSET     39
+#constant  Strings39Count    1
+#constant  Strings39Size     11
+#constant  IFONT_OFFSET     40
 // object indexes into WIDGET pointer
 #CONST
     iIAngularMeter0
@@ -129,16 +131,16 @@
     iUserbutton6    // offset 0x25000
     iUserbutton7    // offset 0x26600
     iForm5          // offset 0x39400
-    iStatictext0    // offset 0x57600
     iUserbutton9    // offset 0x25000
-    iWinbutton2     // offset 0x58600
-    iWinbutton3     // offset 0x60200
+    iWinbutton2     // offset 0x57600
+    iWinbutton3     // offset 0x5F200
     iWinbutton4     // offset 0x29C00
     iWinbutton5     // offset 0x31800
     iUserbutton2    // offset 0x23600
     iFontStrings2
     iFontStrings10
     iFontStrings8
+    iFontStrings39
     iTextStrings
 #END
 
@@ -221,10 +223,12 @@
 #constant  Strings35StartL   0x4A00
 #constant  Strings36StartH   0x0
 #constant  Strings36StartL   0x4C00
+#constant  Strings39StartH   0x0
+#constant  Strings39StartL   0x4E00
 
-#constant  ffsEndUnits4k    0x0075  // First unused 4k Sector on Flash
+#constant  ffsEndUnits4k    0x0078  // First unused 4k Sector on Flash
 #constant  ffsEnd4kH        0x0007  // Address of first unused 4k Sector on Flash, High
-#constant  ffsEnd4kL        0x5000  // Address of first unused 4k Sector on Flash, Low
+#constant  ffsEnd4kL        0x8000  // Address of first unused 4k Sector on Flash, Low
 #constant  ffsEndUnits32k   0x000F  // First unused 32k Block on Flash
 #constant  ffsEnd32kH       0x0007  // Address of first unused 32k Block on Flash, High
 #constant  ffsEnd32kL       0x8000  // Address of first unused 32k Block on Flash, Low

@@ -27,14 +27,14 @@ Userbutton11                            00026740        4,908
 Userbutton6                             00025140        5,328
 Userbutton7                             00026740        4,908
 Form5                                   0003852A      122,886
-Statictext0                             00056530        3,846
 Userbutton9                             00025140        5,328
-Winbutton2                              00057436       31,508
-Winbutton3                              0005EF4A       31,508
+Winbutton2                              00056530       31,508
+Winbutton3                              0005E044       31,508
 Winbutton4                              00029D40       31,508
 Winbutton5                              00031940       31,508
 Userbutton2                             00023740        4,908
-Font MS Reference Sans Serif-14b___A    00066A5E       16,508
-Font MS Reference Sans Serif-10b___A    0006AADA        7,588
-Font MS Reference Sans Serif-12b___A    0006C87E       13,832
-                                        0006FE86       19,968
+Font MS Reference Sans Serif-14b___A    00065B58       16,508
+Font MS Reference Sans Serif-10b___A    00069BD4        7,588
+Font MS Reference Sans Serif-12b___A    0006B978       13,832
+Font Tahoma-14b___A                     0006EF80       15,839
+                                        00072D5F       20,480

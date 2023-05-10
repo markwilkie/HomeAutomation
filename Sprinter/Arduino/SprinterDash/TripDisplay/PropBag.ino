@@ -1,9 +1,9 @@
 #include "PropBag.h"
 #include "VanWifi.h"
 
-void PropBag::resetPropData()
+void PropBag::resetPropBag()
 {
-    logger.log(VERBOSE,"Resetting Prop Bag");
+    logger.log(INFO,"Resetting Prop Bag");
     data.pitotCalibration=0;
     data.instMPGFactor=0;
 }
@@ -16,14 +16,14 @@ int PropBag::getPropDataSize()
 //Save data to EEPROM
 void PropBag::savePropBag()
 {
-  logger.log(VERBOSE,"Saving Prop Bag to EEPROM");
+  logger.log(INFO,"Saving Prop Bag to EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
 
   // put some data into eeprom
-  EEPROM.put(dataSize, data); 
+  EEPROM.put(dataSize+1, data); 
 
   // write the data to EEPROM
   logger.log(VERBOSE,"EEPROM Ret: %d",EEPROM.commit());
@@ -34,13 +34,13 @@ void PropBag::savePropBag()
 //Load data to EEPROM
 void PropBag::loadPropBag()
 {
-  logger.log(VERBOSE,"Loading Prop Bag from EEPROM");
+  logger.log(INFO,"Loading Prop Bag from EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
   // get some data from eeprom
-  EEPROM.get(dataSize, data);
+  EEPROM.get(dataSize+1, data);
   EEPROM.end();
 
   //dump

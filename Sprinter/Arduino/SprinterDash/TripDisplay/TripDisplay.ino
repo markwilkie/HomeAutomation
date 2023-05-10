@@ -75,9 +75,9 @@ bool online= false;  //If true, it means every PID and sensor is online  (will l
 int currentActiveSummaryData=0;
 CurrentData currentData=CurrentData();
 PropBag propBag=PropBag();
-TripData sinceLastStop=TripData(&currentData,3);  //used for the primary form
-TripData currentSegment=TripData(&currentData,0);
-TripData fullTrip=TripData(&currentData,1);
+TripData sinceLastStop=TripData(&currentData,&propBag,3);  //used for the primary form
+TripData currentSegment=TripData(&currentData,&propBag,0);
+TripData fullTrip=TripData(&currentData,&propBag,1);
 
 //Forms
 FormNavigator formNavigator;
@@ -88,6 +88,7 @@ SummaryForm fullTripSummaryForm = SummaryForm(&genie,SUMMARY_FORM,"Full Trip",&f
 StartingForm startForm = StartingForm(&genie,STARTING_FORM,&fullTrip,1000);
 StoppedForm stopForm = StoppedForm(&genie,STOPPED_FORM,&sinceLastStop,1000);
 StatusForm statusForm = StatusForm(&genie,STATUS_FORM,600);
+BootForm bootForm = BootForm(&genie,BOOT_FORM);
 
 //Serial coms
 byte serialBuffer[20];
@@ -120,10 +121,6 @@ void setup()
   logger.log(INFO,"            Booting"); 
   logger.log(INFO,"=================================="); 
 
-  //start wifi and http server
-  wifi.startWifi();
-  wifi.startServer();  
-
   // Display is being reset using the 'reset' pin on the processor, so it boots when the proc boots.
   //pinMode(RESETLINE, OUTPUT);  // Set D4 on Arduino to Output (4D Arduino Adaptor V2 - Display Reset)
   //digitalWrite(RESETLINE, 0);  // Reset the Display
@@ -132,8 +129,12 @@ void setup()
 
   // Let the display start up after the reset (This is important)
   // Increase to 4500 or 5000 if you have sync problems as your project gets larger. Can depent on microSD init speed.
-  logger.log(INFO,"Waiting for screen");
-  delay(5000); 
+  delay(4500); 
+
+  //start wifi and http server
+  bootForm.updateDisplay("Connecting to WiFi...",formNavigator.getActiveForm());
+  wifi.startWifi();
+  wifi.startServer();  
 
   //This is how we get notified when a button is pressed
   formNavigator.init(&genie);
@@ -141,13 +142,15 @@ void setup()
 
   //calibrate and setup sensors
   logger.log(INFO,"Initializing sensors");
+  bootForm.updateDisplay("Init Sensors...",formNavigator.getActiveForm());  
   currentData.init();
   currentData.updateDataFromSensors();
   delay(500);
 
   //Load property bag from EEPROM
   logger.log(INFO,"Loading prop data from EEPROM");
-  propBag.loadPropData();
+  bootForm.updateDisplay("Loading data from EEPROM...",formNavigator.getActiveForm());
+  propBag.loadPropBag();
 
   //Initialize or load data from EEPROM for each of the trip bucket objects
   logger.log(INFO,"Loading trip data from EEPROM");
@@ -155,9 +158,11 @@ void setup()
   fullTrip.loadTripData(propBag.getPropDataSize());
 
   logger.log(INFO,"Verifying CAN connection");
+  bootForm.updateDisplay("Verifying CAN connection...",formNavigator.getActiveForm());
   verifyCAN();
 
   logger.log(INFO,"Validating interfaces"); 
+  bootForm.updateDisplay("Verifying interfaces...",formNavigator.getActiveForm());  
   logger.sendLogs(wifi.isConnected());
   bool allOnline=verifyInterfaces();
   if(!allOnline)
@@ -398,7 +403,7 @@ void handleStatupAndShutdown()
         //Save to EEPROM
         logger.log(INFO,"Saving trip and prop bag data to EEPROM and activating STOPPING form");
         logger.sendLogs(wifi.isConnected());
-        propBag.savePropData();
+        propBag.savePropBag();
         currentSegment.saveTripData(propBag.getPropDataSize());
         fullTrip.saveTripData(propBag.getPropDataSize());
 
@@ -443,19 +448,25 @@ void ShowDebugInfo()
     if(!wifi.isConnected())
     {
       statusForm.updateText("Unable to Connect...");
-      delay(5000);
-      return;
     }
 
-    //Show url
-    String line = "SSID: "+wifi.getSSID()+"\nIP: "+wifi.getIP()+"\nDumping Logs";
-    statusForm.updateText(line.c_str());
+    //Show url if connected
+    if(wifi.isConnected())
+    {    
+      String line = "SSID: "+wifi.getSSID()+"\nIP: "+wifi.getIP()+"\nDumped Logs";
+      statusForm.updateText(line.c_str());
+    }
+    else
+    {
+      statusForm.updateText("Unable to Connect.\nDumped Logs");
+    }
 
     //Output log data
     logCurrentData();
     logTripData();
 
     //Wait here until user exits
+    statusForm.updateStatus("Exit at any time...");    
     while(1)
     {
       delay(100);
@@ -467,25 +478,33 @@ void ShowDebugInfo()
 
 void showPitotInfo()
 {
-    formNavigator.activateForm(STATUS_FORM); 
     logger.log(WARNING,"Calibrating Pitot");
+    logger.sendLogs(wifi.isConnected());
+
+    formNavigator.activateForm(STATUS_FORM); 
     statusForm.updateTitle("Calibrated Pitot");
-    statusForm.updateStatus("Exit at any time...");
 
     //Calibrate
     propBag.data.pitotCalibration=currentData.calibratePitot();
+    statusForm.updateText(displayBuffer);
 
     //Show what we're doing
-    String line = "Actual Speed: "+currentData.currentSpeed+"\nPitot Speed: "+currentData.readPitot().toString()+"\nFactor: "+propBag.data.pitotCalibration+toString();
+    char calibBuffer[200];
+    sprintf(calibBuffer, "Calib Speed/Pitot: %d/%d=%f",currentData.currentSpeed,currentData.readPitot(),(double)propBag.data.pitotCalibration);
+    Serial.println(calibBuffer);
 
     //Now read the pitot gauge until the user exits out using a button
+    unsigned long nextUpdateTime=0;
+    statusForm.updateStatus("Exit at any time...");    
     while(1)
     {
-      String currentLine = line + "\n\n Current Speed: "+currentData.currentSpeed+"\n Current Pitot: "+currentData.readPitot();
-      statusForm.updateText(currentLine.c_str());
+      if(millis()>nextUpdateTime)
+      {
+        sprintf(displayBuffer, "%s\n\nCurrent Pitot Speed: %d",calibBuffer,currentData.readPitot());
+        statusForm.updateText(displayBuffer);
+        nextUpdateTime=millis()+1000;  //update every second
+      }
       genie.DoEvents();   //so that the buttons will work
-
-      delay(500);
 
       //If someone pressed the button, time to bail
       if(formNavigator.getActiveForm()!=STATUS_FORM)
@@ -532,9 +551,11 @@ void myGenieEventHandler(void)
       break;  
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
+      currentData.setTime(10);
+      sinceLastStop.resetTripData();
       currentSegment.resetTripData();
       fullTrip.resetTripData();    
-      propBag.resetPropData();    
+      propBag.resetPropBag();    
       formNavigator.activateForm(PRIMARY_FORM);
       break;
     case ACTION_START_NEW_SEGMENT:
@@ -668,6 +689,7 @@ void logTripData()
   currentSegment.dumpTripData();
   logger.log(INFO,"Full Trip");
   fullTrip.dumpTripData();
+  propBag.dumpPropBag();
   logger.sendLogs(wifi.isConnected());
 
   wifi.sendResponse("Done!");

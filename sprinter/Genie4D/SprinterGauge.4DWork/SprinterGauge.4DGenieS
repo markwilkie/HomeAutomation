@@ -6,7 +6,7 @@
 
 
 
-// generated 5/5/2023 5:47:17 PM
+// generated 5/8/2023 2:13:19 PM
 // uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
 
 
@@ -168,10 +168,10 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        35
+    nObjects        34
     nInputs         36
     nAniTimers      0
-    nStrings        39
+    nStrings        40
 #END
 
 #DATA
@@ -211,11 +211,11 @@
     word IILedDigits5 340, 101, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits9 400, 101, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
     word IILedDigits0 225, 101, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0, 16, 18, 21, 25, 27, 29
-    word FormEndIndex 16, 18, 21, 25, 27, 29, 35
+    word FormStartIndex 0, 16, 18, 21, 25, 27, 28
+    word FormEndIndex 16, 18, 21, 25, 27, 28, 34
     word iFormStartIndex 0, 14, 14, 14, 14, 14, 14
     word iFormEndIndex 14, 14, 14, 14, 14, 14, 14
-    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 44, 88, 132, 176, 220, 264, 308, 352, 396, 440, 484, -1, -1, 528, 572, 616, 660, 704, 748
+    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 44, 88, 132, 176, 220, 264, 308, 352, 396, 440, 484, -1, 528, 572, 616, 660, 704, 748
     word InternalInputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word InputData tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
                 OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -292,15 +292,15 @@
     word iStrings36  Strings36StartH, Strings36StartL, Strings36Size, 15, 92, 182, 111, WHITE, BLACK, 0, 1, 1, 4, -1-iFontStrings10
     word iStrings37  Strings37StartH, Strings37StartL, Strings37Size, 215, 90, 400, 120, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
     word iStrings38  Strings38StartH, Strings38StartL, Strings38Size, 145, 90, 204, 120, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
+    word iStrings39  Strings39StartH, Strings39StartL, Strings39Size, 24, 40, 458, 62, WHITE, 0xFFFF, 0, 0, 1, 5, -1-iFontStrings39
     word oDipSwitchs 0
     word oWinButtons 6, iWinbutton0, iWinbutton1, iWinbutton2, iWinbutton3, iWinbutton4, iWinbutton5
     word oForms 7, -1, -1, -1, -1, -1, iForm5, -1
     word oGauges 4, iGauge0, iGauge1, iGauge2, iGauge3
     word oImages 11, iImage0, iImage1, -1, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9, iImage10
-    word oStringss 39, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
-                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26, iStrings27, iStrings28, iStrings29, iStrings30, iStrings31, iStrings32, iStrings33, iStrings34, iStrings35, iStrings36, iStrings37, iStrings38
+    word oStringss 40, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
+                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26, iStrings27, iStrings28, iStrings29, iStrings30, iStrings31, iStrings32, iStrings33, iStrings34, iStrings35, iStrings36, iStrings37, iStrings38, iStrings39
     word oUserleds 1, iUserled0
-    word oStaticTexts 1, iStatictext0
     word oUserButtons 12, iUserbutton0, iUserbutton1, iUserbutton2, iUserbutton3, iUserbutton4, iUserbutton5, iUserbutton6, iUserbutton7, iUserbutton8, iUserbutton9, iUserbutton10, iUserbutton11
     word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2, IIAngularMeter3
     word oiLedDigitss 10, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3, IILedDigits4, IILedDigits5, IILedDigits6, IILedDigits7, IILedDigits8, IILedDigits9
@@ -323,7 +323,7 @@
     var vILedDigits5[WIDGET_RAM_SPACE+2] ;
     var vILedDigits9[WIDGET_RAM_SPACE+2] ;
     var vILedDigits0[WIDGET_RAM_SPACE+2] ;
-var stringsCV[39] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
+var stringsCV[40] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -710,7 +710,7 @@ func main()
     oObjects[tThermometer] := oDipSwitchs ; // dummy as no object there
     oObjects[tUserled] := oUserleds ;
     oObjects[tVideo] := oDipSwitchs ; // dummy as no object there
-    oObjects[tStaticText] := oStaticTexts ;
+    oObjects[tStaticText] := oDipSwitchs ; // dummy as no object there
     oObjects[tSounds] := oDipSwitchs ; // dummy as no object there
     oObjects[tTimer] := oDipSwitchs ; // dummy as no object there
     oObjects[tSpectrum] := oDipSwitchs ; // dummy as no object there

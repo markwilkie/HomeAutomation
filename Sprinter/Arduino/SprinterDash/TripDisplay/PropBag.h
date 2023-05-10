@@ -14,10 +14,10 @@ class PropBag
 {
   public:
     int getPropDataSize();
-    void resetPropData();   
-    void savePropData();    //Saves data to EEPROM
-    void loadPropData();
-    void dumpPropData();
+    void resetPropBag();   
+    void savePropBag();    //Saves data to EEPROM
+    void loadPropBag();
+    void dumpPropBag();
 
     PropBagStruct data;
 

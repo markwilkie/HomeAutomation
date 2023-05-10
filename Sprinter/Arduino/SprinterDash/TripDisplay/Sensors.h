@@ -50,9 +50,9 @@ class RTC
     bool isOnline();
     void setup();
     uint32_t getSecondsSinc2000();
-    void adjust();
-    void adjust(unsigned long secondsSince2000);
-    void adjust(DateTime dateTime);
+    uint32_t adjust();
+    uint32_t adjust(unsigned long secondsSince2000);
+    uint32_t adjust(DateTime dateTime);
     
   private: 
     RTC_PCF8523 rtc;
@@ -92,7 +92,7 @@ public:
 
   //  returns status OK (0) or ERROR ( not 0 )
   double   calibrate(int actualSpeed);
-  void     setCalibrationFactor(double factor);
+  void     setCalibrationFactor(double_t factor);
   int      readSpeed();
   int      state()        { return _state; };
 
@@ -103,7 +103,7 @@ private:
   TwoWire*  _wire;
   uint32_t _sensorCount;
   int      _mph;
-  double   _calibrationFactor=0;
+  double_t   _calibrationFactor=0;
   
   uint8_t  _state;
   int refreshTicks;

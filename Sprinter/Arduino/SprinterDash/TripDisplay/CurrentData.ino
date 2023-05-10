@@ -21,15 +21,15 @@ void CurrentData::init()
 
 void CurrentData::setTime(unsigned long secondsToSet)
 {
-    rtc.adjust(secondsToSet);
+    currentSeconds=rtc.adjust(secondsToSet);
 }
 
-double CurrentData::calibratePitot()
+double_t CurrentData::calibratePitot()
 {
   return pitot.calibrate(currentSpeed);
 }
 
-void CurrentData::setPitotCalibrationFactor(double factor)
+void CurrentData::setPitotCalibrationFactor(double_t factor)
 {
     pitot.setCalibrationFactor(factor);
 }
@@ -156,12 +156,6 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     //fuel available in percentage  (30 --> 30%) and set fillup time
     if(service==fuel.service && pid==fuel.pid)
     {
-        //Added fuel?
-        if(value>currentFuelPerc)
-        {
-          fillUpSeconds=currentSeconds;
-        }
-
         //Set current seconds
         currentFuelPerc=value;
         return;
@@ -211,7 +205,6 @@ void CurrentData::dumpData()
   logger.log(INFO,"   Current Miles: %d",currentMiles);
   logger.log(INFO,"   Current Seconds: %lu",currentSeconds);
   logger.log(INFO,"   Current Fuel Perc: %d",currentFuelPerc);
-  logger.log(INFO,"   Fill Up Seconds: %lu",fillUpSeconds);
   logger.log(INFO,"   Current Elevation: %d",currentElevation);
   logger.log(INFO,"   Current MAF: %d",currentMAF);
   logger.log(INFO,"   Current Speed: %d",currentSpeed);

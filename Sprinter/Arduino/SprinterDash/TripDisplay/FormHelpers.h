@@ -15,6 +15,7 @@ char decFormat[]={'%','x','d','\0'};
 #define STATUS_FORM 4
 #define BOOT_FORM 5
 #define MENU_FORM 6
+#define BOOT_FORM 7
 
 #define STOPPED_TO_PRIMARY_BUTTON 0
 #define PRIMARY_TO_SUMMARY_BUTTON 1
@@ -66,8 +67,8 @@ class FormNavigator
   private:
     Genie *geniePtr;
 
-    int currentActiveForm=0;
-    int lastActiveForm=0;
+    int currentActiveForm=BOOT_FORM;
+    int lastActiveForm=BOOT_FORM;
 };
 
 class StrField 
