@@ -19,11 +19,10 @@ void PropBag::savePropBag()
   logger.log(INFO,"Saving Prop Bag to EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
-  int dataSize=sizeof(data);
   EEPROM.begin(512);
 
-  // put some data into eeprom
-  EEPROM.put(dataSize+1, data); 
+  // put some data into eeprom in position zero
+  EEPROM.put(0, data); 
 
   // write the data to EEPROM
   logger.log(VERBOSE,"EEPROM Ret: %d",EEPROM.commit());
@@ -37,10 +36,9 @@ void PropBag::loadPropBag()
   logger.log(INFO,"Loading Prop Bag from EEPROM");
 
   // The begin() call is required to initialise the EEPROM library
-  int dataSize=sizeof(data);
   EEPROM.begin(512);
   // get some data from eeprom
-  EEPROM.get(dataSize+1, data);
+  EEPROM.get(0, data);
   EEPROM.end();
 
   //dump

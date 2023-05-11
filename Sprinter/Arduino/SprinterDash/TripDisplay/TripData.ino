@@ -37,8 +37,8 @@ void TripData::saveTripData(int offset)
   int dataSize=sizeof(data);
   EEPROM.begin(512);
 
-  // put some data into eeprom
-  EEPROM.put(((dataSize+1)*tripIdx)+offset+1, data); 
+  // put some data into eeprom.  First number is where to start writing.
+  EEPROM.put((dataSize*tripIdx)+offset, data); 
 
   // write the data to EEPROM
   logger.log(VERBOSE,"EEPROM Ret: %d",EEPROM.commit());
@@ -54,8 +54,8 @@ void TripData::loadTripData(int offset)
   // The begin() call is required to initialise the EEPROM library
   int dataSize=sizeof(data);
   EEPROM.begin(512);
-  // get some data from eeprom
-  EEPROM.get(((dataSize+1)*tripIdx)+offset+1, data);
+  // get some data from eeprom.  First number is where to start reading.
+  EEPROM.get((dataSize*tripIdx)+offset, data);
   EEPROM.end();
 
   //do some error checking

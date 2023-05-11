@@ -75,7 +75,7 @@ bool online= false;  //If true, it means every PID and sensor is online  (will l
 int currentActiveSummaryData=0;
 CurrentData currentData=CurrentData();
 PropBag propBag=PropBag();
-TripData sinceLastStop=TripData(&currentData,&propBag,3);  //used for the primary form
+TripData sinceLastStop=TripData(&currentData,&propBag,2);  //used for the primary form and not save to eeprom
 TripData currentSegment=TripData(&currentData,&propBag,0);
 TripData fullTrip=TripData(&currentData,&propBag,1);
 
