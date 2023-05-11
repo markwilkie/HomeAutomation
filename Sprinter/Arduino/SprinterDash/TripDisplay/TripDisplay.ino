@@ -157,6 +157,9 @@ void setup()
   currentSegment.loadTripData(propBag.getPropDataSize());
   fullTrip.loadTripData(propBag.getPropDataSize());
 
+  logger.log(INFO,"Telling CAN to go");
+  Serial2.write('!');
+
   logger.log(INFO,"Verifying CAN connection");
   bootForm.updateDisplay("Verifying CAN connection...",formNavigator.getActiveForm());
   verifyCAN();

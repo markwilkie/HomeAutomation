@@ -97,8 +97,12 @@ void setup()
     pinMode(18, OUTPUT);   //LED
     pinMode(10, INPUT_PULLUP);  //pull low for simulation mode
 
-    Serial.println("Waiting 5 seconds to give things a chance to settle");
-    delay(5000);
+    Serial.println("Waiting 2 seconds to give things a chance to settle");
+    delay(2000);
+
+    //Wait until we have the go-ahead from master before continuing  (blocks indefinitely)
+    Serial.println("Waiting for the go-ahead from master....");
+    while(!Serial1.available()) {}
 
     //Setup I2C to CAN transceiver
     Wire1.setSDA(6);
@@ -161,6 +165,7 @@ uint16_t checksumCalculator(uint8_t * data, uint16_t length)
    return (sum2 << 8) | sum1;
 }
 
+//Sends PID to master via serial
 void sendToMaster(unsigned int service,unsigned int pid,unsigned int value)
 {
   //buffer used for communication

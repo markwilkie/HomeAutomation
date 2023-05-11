@@ -1,0 +1,325 @@
+May 09 16:02:31 <134>1 - tripdisplay   - - - INFO: ==================================
+May 09 16:02:31 <134>1 - tripdisplay   - - - INFO:             Booting
+May 09 16:02:31 <134>1 - tripdisplay   - - - INFO: ==================================
+May 09 16:02:31 <134>1 - tripdisplay   - - - INFO: Connected to SPRINKLE, IP: 192.168.0.105
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO: HTTP server started
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO: Initializing sensors
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO: Loading prop data from EEPROM
+May 09 16:02:32 <134>1 - tripdisplay   - - - Loading Prop Bag from EEPROM
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO: Dumping PropBag
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO:    Inst MPG Factor: 0.00
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO:    Pitot Calib: 0.00
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO: Loading trip data from EEPROM
+May 09 16:02:32 <134>1 - tripdisplay   - - - Loading Trip Data from EEPROM
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 0
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 97.00
+May 09 16:02:32 <134>1 - tripdisplay   - - - INFO:    Last Elev: 158
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2420
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 2096
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 0
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 2
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: 0.00
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Total Climb: 1505
+May 09 16:02:33 <134>1 - tripdisplay   - - - Loading Trip Data from EEPROM
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 1
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 97.00
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Last Elev: 158
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2420
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 2096
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 0
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 2
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: 0.00
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO:    Total Climb: 1505
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO: Verifying CAN connection
+May 09 16:02:33 <134>1 - tripdisplay   - - - INFO: Validating interfaces
+May 09 16:02:33 <134>1 - tripdisplay   - - - WARNING: CRC Failure rate is high: 20/1  Rate: 0.05
+May 09 16:02:33 <134>1 - tripdisplay   - - - WARNING: CRC Failure rate is high: 30/2  Rate: 0.07
+May 09 16:02:33 <134>1 - tripdisplay   - - - WARNING: CRC Failure rate is high: 33/3  Rate: 0.09
+May 09 16:02:38 <134>1 - tripdisplay   - - - WARNING: CRC Failure rate is high: 40/4  Rate: 0.10
+May 09 16:02:38 <134>1 - tripdisplay   - - - WARNING: CRC Failure rate is high: 59/5  Rate: 0.08
+May 09 16:02:38 <134>1 - tripdisplay   - - - WARNING: CRC Failure rate is high: 65/6  Rate: 0.09
+May 09 16:02:42 <134>1 - tripdisplay   - - - INFO: Reseting trip data from last stop
+May 09 16:02:42 <134>1 - tripdisplay   - - - INFO: Reseting TripData Idx: 3
+May 09 16:02:42 <134>1 - tripdisplay   - - - INFO: Starting now....
+May 09 16:02:42 <134>1 - tripdisplay   - - - Activating form: 3
+May 09 16:03:24 <134>1 - tripdisplay   - - - Activating form: 0
+May 09 16:03:43 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:03:43 <134>1 - tripdisplay   - - - Activating form: 2
+May 09 16:03:56 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:03:56 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:03:56 <134>1 - tripdisplay   - - - Activating form: 0
+May 09 16:04:02 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:04:02 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:04:02 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:04:02 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:04:03 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:04:03 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:04:03 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:04:03 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:04:20 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:04:20 <134>1 - tripdisplay   - - - Activating form: 0
+May 09 16:27:48 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:27:48 <134>1 - tripdisplay   - - - Activating form: 2
+May 09 16:27:50 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:27:50 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:27:53 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:27:53 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:28:03 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:28:03 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:28:10 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:28:10 <134>1 - tripdisplay   - - - Cycling SUMMARY form
+May 09 16:28:19 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 16:28:19 <134>1 - tripdisplay   - - - Activating form: 0
+May 09 16:40:02 <134>1 - tripdisplay   - - - INFO: Saving trip and prop bag data to EEPROM and activating STOPPING form
+May 09 16:40:02 <134>1 - tripdisplay   - - - Saving Prop Bag to EEPROM
+May 09 16:40:03 <134>1 - tripdisplay   - - - EEPROM Ret: 1
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO: Dumping PropBag
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Inst MPG Factor: 0.00
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Pitot Calib: 0.00
+May 09 16:40:03 <134>1 - tripdisplay   - - - Saving Trip Data to EEPROM
+May 09 16:40:03 <134>1 - tripdisplay   - - - EEPROM Ret: 1
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 0
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Last Elev: 144
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 12434
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 16:40:03 <134>1 - tripdisplay   - - - Saving Trip Data to EEPROM
+May 09 16:40:03 <134>1 - tripdisplay   - - - EEPROM Ret: 1
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 1
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Last Elev: 144
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 12434
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 16:40:03 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 16:40:03 <134>1 - tripdisplay   - - - Activating form: 1
+May 09 16:40:33 <134>1 - tripdisplay   - - - INFO: ****  Shutting things down!
+May 09 17:25:00 <134>1 - tripdisplay   - - - INFO: ==================================
+May 09 17:25:00 <134>1 - tripdisplay   - - - INFO:             Booting
+May 09 17:25:00 <134>1 - tripdisplay   - - - INFO: ==================================
+May 09 17:25:00 <134>1 - tripdisplay   - - - INFO: Connected to SPRINKLE, IP: 192.168.0.100
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: HTTP server started
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Initializing sensors
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Loading prop data from EEPROM
+May 09 17:25:01 <134>1 - tripdisplay   - - - Loading Prop Bag from EEPROM
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Dumping PropBag
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Inst MPG Factor: 0.00
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Pitot Calib: 0.00
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Loading trip data from EEPROM
+May 09 17:25:01 <134>1 - tripdisplay   - - - Loading Trip Data from EEPROM
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 0
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Last Elev: 144
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 12434
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 17:25:01 <134>1 - tripdisplay   - - - Loading Trip Data from EEPROM
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 1
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Last Elev: 144
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 12434
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Verifying CAN connection
+May 09 17:25:01 <134>1 - tripdisplay   - - - INFO: Validating interfaces
+May 09 17:26:28 <134>1 - tripdisplay   - - - INFO: ==================================
+May 09 17:26:28 <134>1 - tripdisplay   - - - INFO:             Booting
+May 09 17:26:28 <134>1 - tripdisplay   - - - INFO: ==================================
+May 09 17:26:28 <134>1 - tripdisplay   - - - INFO: Connected to SPRINKLE, IP: 192.168.0.100
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: HTTP server started
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Initializing sensors
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Loading prop data from EEPROM
+May 09 17:26:29 <134>1 - tripdisplay   - - - Loading Prop Bag from EEPROM
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Dumping PropBag
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Inst MPG Factor: 0.00
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Pitot Calib: 0.00
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Loading trip data from EEPROM
+May 09 17:26:29 <134>1 - tripdisplay   - - - Loading Trip Data from EEPROM
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 0
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Last Elev: 144
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 12434
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 17:26:29 <134>1 - tripdisplay   - - - Loading Trip Data from EEPROM
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 1
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Last Elev: 144
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 12434
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 211
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Verifying CAN connection
+May 09 17:26:29 <134>1 - tripdisplay   - - - INFO: Validating interfaces
+May 09 17:26:38 <134>1 - tripdisplay   - - - INFO: Reseting trip data from last stop
+May 09 17:26:38 <134>1 - tripdisplay   - - - INFO: Reseting TripData Idx: 3
+May 09 17:26:38 <134>1 - tripdisplay   - - - INFO: Starting now....
+May 09 17:26:38 <134>1 - tripdisplay   - - - Activating form: 3
+May 09 17:26:42 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 17:26:42 <134>1 - tripdisplay   - - - Activating form: 6
+May 09 17:26:43 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 6
+May 09 17:26:43 <134>1 - tripdisplay   - - - Show debug info
+May 09 17:26:43 <134>1 - tripdisplay   - - - Activating form: 4
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Dumping Current Data
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Miles: 2455
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Seconds: 15236
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Fuel Perc: 92
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Fill Up Seconds: 15222
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Elevation: 17
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current MAF: 16
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Speed: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Pitot Speed: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Load: 15
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Coolant Temp: 179
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Transmission Temp: 179
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Current Light Level: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Codes Present Flag: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Ignition State: 1
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Current CRC Failures (msg/err): 290/0  Rate: 0.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Since Last Stop
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 3
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2455
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 15231
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 92.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last Elev: 17
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2455
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last fuel: 92.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: 0.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Total Climb: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Current Segment
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last Elev: 17
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 3009
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Full Trip
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 1
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last Elev: 17
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2455
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 0
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 3009
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 3
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2577
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO: Dumping PropBag
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Inst MPG Factor: 0.00
+May 09 17:26:43 <134>1 - tripdisplay   - - - INFO:    Pitot Calib: 0.00
+May 09 17:26:54 <134>1 - tripdisplay   - - - CMD: 7 OBJ: &d IDX: 33
+May 09 17:26:54 <134>1 - tripdisplay   - - - Activating form: 0
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO: Saving trip and prop bag data to EEPROM and activating STOPPING form
+May 09 17:27:03 <134>1 - tripdisplay   - - - Saving Prop Bag to EEPROM
+May 09 17:27:03 <134>1 - tripdisplay   - - - EEPROM Ret: 1
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO: Dumping PropBag
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Inst MPG Factor: 0.00
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Pitot Calib: 0.00
+May 09 17:27:03 <134>1 - tripdisplay   - - - Saving Trip Data to EEPROM
+May 09 17:27:03 <134>1 - tripdisplay   - - - EEPROM Ret: 1
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 0
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Last Elev: 18
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2450
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 3009
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 15254
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 4
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2578
+May 09 17:27:03 <134>1 - tripdisplay   - - - Saving Trip Data to EEPROM
+May 09 17:27:03 <134>1 - tripdisplay   - - - EEPROM Ret: 1
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO: Dumping TripData Idx: 1
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Start Miles: 2420
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Start Seconds: 10
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Start Fuel: 94.00
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Last Elev: 18
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Last Miles: 2455
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Piror total Miles: 0
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Ign Off Sec: 15254
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Parked Seconds: 8098
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Stopped Seconds: 3009
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Num of Stops: 4
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Last fuel: 97.00
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Prior total Gall: -3.96
+May 09 17:27:03 <134>1 - tripdisplay   - - - INFO:    Total Climb: 2578
+May 09 17:27:03 <134>1 - tripdisplay   - - - Activating form: 1
+May 09 17:27:33 <134>1 - tripdisplay   - - - INFO: ****  Shutting things down!
