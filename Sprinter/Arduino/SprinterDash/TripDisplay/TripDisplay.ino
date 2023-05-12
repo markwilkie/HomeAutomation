@@ -54,9 +54,9 @@ unsigned long turnOffTime;
 
 //timing
 #define LCD_REFRESH_RATE 5000
-#define SHUTDOWN_STARTUP_RATE 1000  //how often we check ignition
-#define CAN_VERIFY_TIMEOUT 10000   //How long we'll wait for something from the CAN controller before showing error screen
-#define VERIFY_TIMEOUT 60000   //How long we'll wait for everything to come online when we first start
+#define SHUTDOWN_STARTUP_RATE 1000 //how often we check ignition
+#define CAN_VERIFY_TIMEOUT 5000    //How long we'll wait for something from the CAN controller before showing error screen
+#define VERIFY_TIMEOUT 20000      //How long we'll wait for everything to come online at a time
 
 //Misc defines
 #define NUMBER_OF_SUMMARY_FORMS 3
@@ -157,9 +157,14 @@ void setup()
   currentSegment.loadTripData(propBag.getPropDataSize());
   fullTrip.loadTripData(propBag.getPropDataSize());
 
+  //3 x because not everything always gets through
   logger.log(INFO,"Telling CAN to go");
   Serial2.write('!');
-
+  delay(200);
+  Serial2.write('!');
+  delay(200);
+  Serial2.write('!');
+  
   logger.log(INFO,"Verifying CAN connection");
   bootForm.updateDisplay("Verifying CAN connection...",formNavigator.getActiveForm());
   verifyCAN();
@@ -169,9 +174,7 @@ void setup()
   logger.sendLogs(wifi.isConnected());
   bool allOnline=verifyInterfaces();
   if(!allOnline)
-  {
     showOfflineLinks();
-  }
 
   //Update pitot calibration
   currentData.setPitotCalibrationFactor(propBag.data.pitotCalibration);
@@ -248,7 +251,7 @@ bool verifyCAN()
       }
       else
       {
-        statusForm.updateText("Connection problem\nwith CAN Cntrlr");
+        statusForm.updateText("Connection problem\nwith CanDual board");
       }
     }
   } 
@@ -264,19 +267,20 @@ bool verifyInterfaces()
 
   bool allOnline=false;
   unsigned long timeout=millis()+VERIFY_TIMEOUT;
+
   while(!allOnline && millis()<timeout)
   {
-    //get latest from sensors
-    currentData.updateDataFromSensors();
-
     //get latest from PIDs coming in
     bool retVal=processIncoming(&service,&pid,&value);
     if(retVal)
-    {
+    {         
       //Verify this particular PID
       allOnline=currentData.verifyInterfaces(service,pid,value);
     }
-  } 
+  }
+
+  //Dump what we have
+  currentData.dumpData();
 
   return allOnline;
 }
@@ -654,6 +658,16 @@ bool processIncoming(int *service,int *pid,int *value)
     int calcdCRC=checksumCalculator(serialBuffer,6);
     if(crc!=calcdCRC)
     {
+      //diag
+      /*
+      int _service;int _pid;int _value;
+      memcpy(&_service,serialBuffer,2);
+      memcpy(&_pid,serialBuffer+2,2);
+      memcpy(&_value,serialBuffer+4,2);      
+      Serial.print("CRC ERROR: service: ");Serial.print(_service,HEX);Serial.print("/");Serial.print(_pid,HEX);Serial.print(":");Serial.print(_value);
+      Serial.print("   ---> crc/ccrc: ");Serial.print(crc);Serial.print("/");Serial.println(calcdCRC);
+      */
+      
       //If the percentage is high, we'll print to the screen
       totalCRC++;
 
@@ -673,9 +687,6 @@ bool processIncoming(int *service,int *pid,int *value)
     memcpy(service,serialBuffer,2);
     memcpy(pid,serialBuffer+2,2);
     memcpy(value,serialBuffer+4,2);
-
-    //clean up in case the buffer is wonky
-    Serial2.flush();
 
     return true;    
   }

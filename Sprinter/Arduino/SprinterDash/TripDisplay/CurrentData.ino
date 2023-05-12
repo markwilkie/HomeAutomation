@@ -110,6 +110,10 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value)
         
         //Be sure and save off the value
         updateDataFromPIDs(service,pid,value);
+
+        
+        Serial.print("service: ");Serial.print(service,HEX);Serial.print("/");Serial.print(pid,HEX);Serial.print(":");Serial.print(value);
+        Serial.print("   ---> Status: ");Serial.println(pidArray[i]->online);
     }
 
     //check allonline flag

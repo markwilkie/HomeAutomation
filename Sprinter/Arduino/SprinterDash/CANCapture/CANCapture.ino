@@ -6,6 +6,7 @@
 #include "isotp.h"
 
 #define MIN_TIME_BETWEEN_REQUESTS  25
+#define ALL_ONLINE_WAIT            10000;
 
 //Can bus interfaces
 //CANBedDual CAN0(0);
@@ -97,12 +98,15 @@ void setup()
     pinMode(18, OUTPUT);   //LED
     pinMode(10, INPUT_PULLUP);  //pull low for simulation mode
 
-    Serial.println("Waiting 2 seconds to give things a chance to settle");
-    delay(2000);
+    Serial.println("Waiting 10 seconds to give things a chance to settle");
+    delay(10000);
 
     //Wait until we have the go-ahead from master before continuing  (blocks indefinitely)
     Serial.println("Waiting for the go-ahead from master....");
-    while(!Serial1.available()) {}
+    while(Serial1.available())  //flush
+      Serial.println(Serial1.read());
+    while(!Serial1.available());
+    Serial.println("Received go-ahead from master to start sending");
 
     //Setup I2C to CAN transceiver
     Wire1.setSDA(6);
@@ -119,6 +123,13 @@ void setup()
     Serial.println("Making sure we can talk to the ECU ok");
     if(digitalRead(10))  //make sure we're not in debug mode
       initECU();
+      
+    //Send quickly 30 times to get initialized ok
+    for(int i=0;i<30;i++)
+    {
+      sendAllPids();
+      delay(500);
+    }
 
     Serial.println("...and we're off!");
 }
@@ -149,6 +160,36 @@ void initECU()
 
   //Give quick breather to ECU
   delay(1000);
+}
+
+//Send all PIDs to get things initialized
+void sendAllPids()
+{
+      //Looping through all fast PIDs for each slow one
+    for(int i=0;i<fastArrLen;i++)
+    {
+      //Set timing that that we're about to send
+      fastPidArray[i]->setNextUpdateMillis();
+
+      //Ask ECU for the update
+      updatePID(fastPidArray[i]);
+
+      //Make sure we don't overwhelm the ECU
+      delay(MIN_TIME_BETWEEN_REQUESTS*2);
+    }
+
+    //Processing slow PIDs 
+    for(int i=0;i<slowArrLen;i++)
+    {
+      //Set timing that that we're about to send
+      slowPidArray[i]->setNextUpdateMillis();
+
+      //Ask ECU for the update
+      updatePID(slowPidArray[i]);
+
+      //Make sure we don't overwhelm the ECU
+      delay(MIN_TIME_BETWEEN_REQUESTS);
+    }
 }
 
 uint16_t checksumCalculator(uint8_t * data, uint16_t length)
