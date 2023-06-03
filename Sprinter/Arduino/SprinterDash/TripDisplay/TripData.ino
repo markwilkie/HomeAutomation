@@ -90,7 +90,28 @@ void TripData::dumpTripData()
     logger.log(INFO,"   Total Climb: %ld",data.totalClimb);
 }
 
-void TripData::updateTripData()
+//Store data about when van was turned off
+void TripData::ignitionOff()
+{
+    data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;        
+    data.ignOffSeconds=currentDataPtr->currentSeconds;
+    data.numberOfStops++;
+}
+
+void TripData::ignitionOn()
+{
+    int totalSecondsOff=currentDataPtr->currentSeconds-data.ignOffSeconds;
+    if(totalSecondsOff>3600)
+        data.totalParkedSeconds=data.totalParkedSeconds+totalSecondsOff;
+    else
+        data.totalStoppedSeconds=data.totalStoppedSeconds+totalSecondsOff;
+
+    logger.log(INFO,"%d minutes since car was turned off",totalSecondsOff/60);
+    
+    data.ignOffSeconds=0;
+}
+
+void TripData::updateElevation()
 {
 
     //Calc elevation gained
@@ -102,29 +123,6 @@ void TripData::updateTripData()
             data.totalClimb=data.totalClimb+(currentElevation-data.lastElevation);
         }
         data.lastElevation=currentElevation;
-    }
-
-    //Calc time igntion off and the buckets that go with that
-    unsigned long currentSeconds = currentDataPtr->currentSeconds;
-
-    //Store time the car was shut off
-    if(!currentDataPtr->ignitionState && data.ignOffSeconds==0)
-    {
-        data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;        
-        data.ignOffSeconds=currentSeconds;
-        data.numberOfStops++;
-    }
-
-    //Store time the car was started again
-    if(currentDataPtr->ignitionState && data.ignOffSeconds>0)
-    {
-        int totalSecondsOff=currentSeconds-data.ignOffSeconds;
-        if(totalSecondsOff>3600)
-            data.totalParkedSeconds=data.totalParkedSeconds+totalSecondsOff;
-        else
-            data.totalStoppedSeconds=data.totalStoppedSeconds+totalSecondsOff;
-        
-        data.ignOffSeconds=0;
     }
 }
 

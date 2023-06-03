@@ -157,7 +157,7 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
         currentMiles=value*0.621371;
         return;
     }
-    //fuel available in percentage  (30 --> 30%) and set fillup time
+    //fuel available in percentage  (30 --> 30%) 
     if(service==fuel.service && pid==fuel.pid)
     {
         //Set current seconds

@@ -33,7 +33,9 @@ class TripData
   public:
     TripData(CurrentData *currentDataPtr,PropBag *_propBagPtr,int _tripIdx);
 
-    void updateTripData();  //Call every loop so that calculations can be made where appropriate
+    void ignitionOff(); 
+    void ignitionOn();
+    void updateElevation();  //Call every loop 
     void resetTripData();   //Call when starting a new segment etc  (e.g. when ignition is turned off)
     void saveTripData(int offset);    //Saves data to EEPROM
     void loadTripData(int offset);

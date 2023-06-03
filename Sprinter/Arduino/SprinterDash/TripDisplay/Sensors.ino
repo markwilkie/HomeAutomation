@@ -128,7 +128,7 @@ uint32_t RTC::adjust(DateTime dateTime)
   delay(2000);  //let things calm down I guess
   rtc.adjust(dateTime);
   secondsSince2000=dateTime.secondstime();
-  logger.log(WARNING,"Setting time to: %lu seconds.  (%d/%d/%d %d:%d:%d)",dateTime.secondstime(),dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second());
+  logger.log(ERROR,"Setting time to: %lu seconds.  (%d/%d/%d %d:%d:%d)",dateTime.secondstime(),dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second());
   
   //Ok, start things back up again
   rtc.start();
@@ -254,14 +254,14 @@ int Pitot::readSpeed()
   //Now convert to mph
   int _tempmph = calcSpeed();  
 
-  //Smooth
-  _mph = _tempmph*0.25 + _mph*0.75;
-
   //Add calibration
   if(_calibrationFactor>0.01)
   {
-    _mph = _mph*_calibrationFactor;
+    _tempmph *= _calibrationFactor;
   }
+
+  //Smooth
+  _mph = _tempmph*0.25 + _mph*0.75;
 
   return _mph;
 }
@@ -328,13 +328,21 @@ bool IgnState::getIgnState()
     //Update timing
     nextTickCount=millis()+refreshTicks;
 
-    //Read state.  If off, double check
-    ignState = digitalRead(IGN_PIN);
-    if(!ignState)
+    //Read state - accounting for noise
+    int ignOn=0;
+    int ignOff=0;
+    for(int i=0;i<10;i++)
     {
-      delay(2000);
-      ignState = digitalRead(IGN_PIN);
+      delay(50);
+      if(digitalRead(IGN_PIN))
+        ignOn++;
+      else
+        ignOff++;
     }
+    if(ignOn>=ignOff)
+      ignState=true;
+    else
+      ignState=false;
 
     //logger.log(VERBOSE,"IGN State: %d",ignState);
 

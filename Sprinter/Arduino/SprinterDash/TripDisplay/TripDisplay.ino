@@ -183,6 +183,10 @@ void setup()
   logger.log(INFO,"Reseting trip data from last stop");
   sinceLastStop.resetTripData();  
 
+  //Update parked and stopped time
+  currentSegment.ignitionOn();
+  fullTrip.ignitionOn();    
+
   //Let's go!
   logger.log(INFO,"Starting now....");
   formNavigator.activateForm(STARTING_FORM);    
@@ -324,10 +328,10 @@ void loop()
     //Update current data that's shared for everyone
     currentData.updateDataFromPIDs(service,pid,value);
 
-    //Now make sure all the trip data objects have the latest
-    sinceLastStop.updateTripData();
-    currentSegment.updateTripData();
-    fullTrip.updateTripData();    
+    //Update elevation
+    sinceLastStop.updateElevation();
+    currentSegment.updateElevation();
+    fullTrip.updateElevation();    
 
     //Update display for active forms only
     if(primaryForm.getFormId()==formNavigator.getActiveForm())
@@ -403,9 +407,9 @@ void handleStatupAndShutdown()
         turnOffTime=currentData.currentSeconds+PS_STAY_ON_TIME;
 
         //Now make sure all the trip data objects have the latest
-        sinceLastStop.updateTripData();
-        currentSegment.updateTripData();
-        fullTrip.updateTripData();           
+        sinceLastStop.ignitionOff();
+        currentSegment.ignitionOff();
+        fullTrip.ignitionOff();           
 
         //Save to EEPROM
         logger.log(INFO,"Saving trip and prop bag data to EEPROM and activating STOPPING form");
@@ -430,7 +434,7 @@ void handleStatupAndShutdown()
       while(1) {delay(1000);}
     }
 
-    //If on stopped form, and our speed goes above 0, switch to main
+    //If on starting form, and our speed goes above 0, switch to main
     if(formNavigator.getActiveForm()==STARTING_FORM && currentData.currentSpeed>5)
     {
       formNavigator.activateForm(PRIMARY_FORM);
@@ -674,9 +678,14 @@ bool processIncoming(int *service,int *pid,int *value)
       crcFailureRate=(double)totalCRC/(double)totalMessages;
       if(crcFailureRate >= .05)
       {
-        logger.log(WARNING,"CRC Failure rate is high: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
+        logger.log(INFO,"CRC Failure rate is over 5%: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
         logger.sendLogs(wifi.isConnected());
       }
+      if(crcFailureRate >= .30)
+      {
+        logger.log(ERROR,"CRC Failure rate is VERY high: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
+        logger.sendLogs(wifi.isConnected());
+      }      
 
       //Just drop it and move on
       return false;
