@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <genieArduino.h>
 
+#include "version.h"
 #include "CurrentData.h"
 #include "PropBag.h"
 #include "TripData.h"
@@ -476,8 +477,9 @@ void ShowDebugInfo()
     logCurrentData();
     logTripData();
 
-    //Wait here until user exits
-    statusForm.updateStatus("Exit at any time...");    
+    //Show version
+    sprintf(displayBuffer, "Version: %s",SKETCH_VERSION);
+    statusForm.updateStatus(displayBuffer);    
     while(1)
     {
       delay(100);

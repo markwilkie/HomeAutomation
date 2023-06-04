@@ -20,8 +20,8 @@ struct TripDataStruct{
     uint16_t numberOfStops;
 
     //Consumption
-    double_t stoppedFuelPerc;  //used to calc heater fueld consumption and/or fillups
-    double_t startFuelPerc;
+    uint16_t stoppedFuelPerc;  //used to calc heater fueld consumption and/or fillups
+    uint16_t startFuelPerc;
 
     //Elevation
     uint16_t totalClimb;
@@ -69,6 +69,9 @@ class TripData
     long numInstMPGSamples=0;
     double instMPG=0;
     double lastAvgInstMPG=0;
+
+    //To handle adding fuel
+    double priorTotalGallonsUsed=0.0;
 };
 
 #endif
