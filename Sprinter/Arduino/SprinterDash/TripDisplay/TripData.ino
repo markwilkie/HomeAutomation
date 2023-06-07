@@ -16,6 +16,7 @@ void TripData::resetTripData()
     data.startMiles=currentDataPtr->currentMiles;
     data.startSeconds=currentDataPtr->currentSeconds;
     data.startFuelPerc=currentDataPtr->currentFuelPerc;
+    data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;  //mostly so that fuel fill up doesn't get tripped
     data.lastElevation=currentDataPtr->currentElevation;
 
     data.lastMiles=data.startMiles;
@@ -24,7 +25,6 @@ void TripData::resetTripData()
     data.totalParkedSeconds=0;
     data.totalStoppedSeconds=0;
     data.numberOfStops=0;
-    data.stoppedFuelPerc=0;
     data.totalClimb=0;
 }
 
