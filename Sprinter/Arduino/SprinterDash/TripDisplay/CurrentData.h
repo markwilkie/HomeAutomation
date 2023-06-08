@@ -40,7 +40,7 @@ class CurrentData
     void dumpData();
 
     //Data
-    int currentMiles=0;
+    long currentMiles=0;
     unsigned long currentSeconds=0;
     int currentFuelPerc=0;
     int currentElevation=0;

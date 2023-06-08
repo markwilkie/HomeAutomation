@@ -55,7 +55,7 @@ class TripData
     double getAvgMovingSpeed();
     int getMilesLeftInTank();
     int getCurrentElevation();
-    int getTotalClimb();
+    long getTotalClimb();
 
   private: 
     CurrentData *currentDataPtr;

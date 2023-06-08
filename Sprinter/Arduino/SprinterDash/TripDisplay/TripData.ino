@@ -129,7 +129,7 @@ void TripData::updateElevation()
 // in miles
 int TripData::getMilesTravelled()
 {
-    int currentMiles=currentDataPtr->currentMiles;
+    long currentMiles=currentDataPtr->currentMiles;
     if(currentMiles<=0)
         return 0;
 
@@ -293,7 +293,7 @@ int TripData::getCurrentElevation()
 }
 
 // in feet
-int TripData::getTotalClimb()
+long TripData::getTotalClimb()
 {
     return data.totalClimb;
 }
