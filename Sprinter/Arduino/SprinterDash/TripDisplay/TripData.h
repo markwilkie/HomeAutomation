@@ -8,15 +8,15 @@
 
 struct TripDataStruct{
     //Distance
-    uint16_t startMiles;  
-    uint16_t lastMiles;
-    uint16_t priorTotalMiles;
+    uint32_t startMiles;  
+    uint32_t lastMiles;
+    uint32_t priorTotalMiles;
 
     //Timing
     uint32_t startSeconds;
     uint32_t ignOffSeconds;
-    uint16_t totalParkedSeconds;
-    uint16_t totalStoppedSeconds;
+    uint32_t totalParkedSeconds;
+    uint32_t totalStoppedSeconds;
     uint16_t numberOfStops;
 
     //Consumption
@@ -24,7 +24,7 @@ struct TripDataStruct{
     uint16_t startFuelPerc;
 
     //Elevation
-    uint16_t totalClimb;
+    uint32_t totalClimb;
     uint16_t lastElevation;
 };
 
@@ -55,7 +55,7 @@ class TripData
     double getAvgMovingSpeed();
     int getMilesLeftInTank();
     int getCurrentElevation();
-    int getTotalClimb();
+    long getTotalClimb();
 
   private: 
     CurrentData *currentDataPtr;
