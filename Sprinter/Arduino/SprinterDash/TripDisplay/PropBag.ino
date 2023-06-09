@@ -4,8 +4,8 @@
 void PropBag::resetPropBag()
 {
     logger.log(INFO,"Resetting Prop Bag");
-    data.pitotCalibration=0;
-    data.instMPGFactor=0;
+    data.pitotCalibration=PITOT_CALIB;
+    data.instMPGFactor=INST_MPG_FACTOR;
 }
 
 int PropBag::getPropDataSize()

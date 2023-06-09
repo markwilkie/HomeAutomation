@@ -103,7 +103,7 @@ private:
   TwoWire*  _wire;
   uint32_t _sensorCount;
   int      _mph;
-  double_t   _calibrationFactor=0;
+  double_t _calibrationFactor;
   
   uint8_t  _state;
   int refreshTicks;

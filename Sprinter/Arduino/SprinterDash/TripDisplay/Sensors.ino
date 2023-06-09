@@ -43,8 +43,14 @@ void Barometer::update()
   //Let's read elevation
   elevation = baro.getAltitude() * 3.28084;
   elevation = elevation + elevationOffset;
-  online=true;   //the fact that we're here means we're online
 
+  //debg info
+  if(!online && pressure!=0)
+  {
+    logger.log(INFO,"Barometer online!  Altitude: %d Pressure: %f",elevation,pressure); 
+    online=true; 
+  }
+  
   //poor man's calibration
   if(elevation<0)
   {

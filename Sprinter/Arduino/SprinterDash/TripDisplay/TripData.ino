@@ -189,14 +189,14 @@ double TripData::getParkedTime()
 // in gallons
 double TripData::getFuelGallonsUsed()
 {
-    double currentFuelPerc=currentDataPtr->currentFuelPerc;
+    int currentFuelPerc=currentDataPtr->currentFuelPerc;
     if(currentFuelPerc<1)
         return 0;
 
     //Did we fill up since we last stopped?
     if(currentFuelPerc>(data.stoppedFuelPerc+10)) 
     {
-        logger.log(INFO,"Fueled up.  Tank now at %d%",currentFuelPerc);
+        logger.log(INFO,"Fueled up.  Tank now at %d",currentFuelPerc);
 
         //Calc gallons used *before* the fillup
         priorTotalGallonsUsed=FUEL_TANK_SIZE*((double)(data.startFuelPerc-data.stoppedFuelPerc)/100.0); 
@@ -213,7 +213,7 @@ double TripData::getFuelGallonsUsed()
 
 double TripData::getHeaterGallonsUsed()
 {
-    double currentFuelPerc=currentDataPtr->currentFuelPerc;
+    int currentFuelPerc=currentDataPtr->currentFuelPerc;
     double gallonsUsed = FUEL_TANK_SIZE*((double)(data.stoppedFuelPerc-currentFuelPerc)/100.0);
 
     return gallonsUsed;
