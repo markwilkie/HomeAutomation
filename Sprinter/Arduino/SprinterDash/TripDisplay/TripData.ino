@@ -213,8 +213,14 @@ double TripData::getFuelGallonsUsed()
 
 double TripData::getHeaterGallonsUsed()
 {
-    int currentFuelPerc=currentDataPtr->currentFuelPerc;
-    double gallonsUsed = FUEL_TANK_SIZE*((double)(data.stoppedFuelPerc-currentFuelPerc)/100.0);
+    double currentFuelPerc=currentDataPtr->currentFuelPerc;
+    
+    //Make sure we didn't fill up at our stop
+    double gallonsUsed=0.0;
+    if(currentFuelPerc>data.stoppedFuelPerc) 
+    {
+        gallonsUsed = FUEL_TANK_SIZE*((double)(data.stoppedFuelPerc-currentFuelPerc)/100.0);
+    }
 
     return gallonsUsed;
 }
