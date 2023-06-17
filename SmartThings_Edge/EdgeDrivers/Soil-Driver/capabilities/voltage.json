@@ -1,0 +1,36 @@
+{
+    "id": "radioamber53161.voltage",
+    "version": 1,
+    "status": "proposed",
+    "name": "Voltage",
+    "ephemeral": false,
+    "attributes": {
+        "Capacitors": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        },
+        "VCC": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }            
+    },
+    "commands": {}
+}

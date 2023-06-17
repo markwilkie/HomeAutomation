@@ -1,0 +1,33 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Cap: {{Capacitors.value}} VCC: {{VCC.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Capacitors",
+            "displayType": "state",
+            "state": {
+                "label": "{{Capacitors.value}}"
+            }
+        },
+        {
+            "label": "VCC",
+            "displayType": "state",
+            "state": {
+                "label": "{{VCC.value}}"
+            }
+        }      
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": []
+    },
+    "id": "radioamber53161.voltage",
+    "version": 1
+}

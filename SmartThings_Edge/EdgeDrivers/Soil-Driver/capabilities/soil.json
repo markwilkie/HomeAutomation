@@ -1,0 +1,23 @@
+{
+    "id": "radioamber53161.soil",
+    "version": 1,
+    "status": "proposed",
+    "name": "Soil",
+    "ephemeral": false,
+    "attributes": {
+        "Moisture": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }                    
+    },
+    "commands": {}
+}

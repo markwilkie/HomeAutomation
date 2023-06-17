@@ -1,0 +1,5 @@
+name: 'Soil'
+packageKey: 'wilkie.soil'
+permissions:
+  discovery: {}
+  lan: {}

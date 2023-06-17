@@ -1,0 +1,26 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Fragmentation: {{Fragmentation.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Fragmentation: ",
+            "displayType": "state",
+            "state": {
+                "label": "{{Fragmentation.value}}%"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": []
+    },
+    "id": "radioamber53161.heapFragmentation",
+    "version": 1
+}

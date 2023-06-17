@@ -1,0 +1,26 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "Firmware Version: {{Version.value}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Firmware Version: ",
+            "displayType": "state",
+            "state": {
+                "label": "{{Version.value}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [],
+        "actions": []
+    },
+    "id": "radioamber53161.firmware",
+    "version": 1
+}
