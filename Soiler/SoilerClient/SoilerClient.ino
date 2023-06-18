@@ -24,7 +24,7 @@ void loop() {
 
   // send packet
   LoRa.beginPacket();
-  LoRa.print("hello ");
+  //LoRa.print("hello ");
   LoRa.print(counter);
   LoRa.endPacket();
 

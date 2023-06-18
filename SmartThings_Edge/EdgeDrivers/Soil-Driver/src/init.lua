@@ -37,11 +37,8 @@ function RefreshSoil(content)
 
   local jsondata = json.decode(content)
   globals.soil_moisture = jsondata.soil_moisture
-  globals.vcc_voltage = jsondata.vcc_voltage
-  globals.cap_voltage = jsondata.cap_voltage
+  globals.rssi = jsondata.wifi_strength
   globals.firmware_version = jsondata.firmware_version
-  globals.cpu_reset_code = jsondata.cpu_reset_code  
-  globals.cpu_reset_reason = jsondata.cpu_reset_reason
   globals.heap_fragmentation = jsondata.heap_frag
   globals.currentTime = os.date("%a %X", jsondata.current_time)
 
@@ -53,9 +50,6 @@ local function emitSoilData(driver, device)
 
   device:emit_event(soil.Moisture(globals.soil_moisture))
   device:emit_event(capabilities.signalStrength.rssi(globals.rssi))
-  device:emit_event(voltage.VCC(globals.vcc_voltage))
-  device:emit_event(cpureset.Code(globals.cpu_reset_code))
-  device:emit_event(cpureset.Reason(globals.cpu_reset_reason))  
   device:emit_event(heapfragmentation.Fragmentation(globals.heap_fragmentation))
   device:emit_event(firmware.Version(globals.firmware_version))
   device:emit_event(lastupdated.Time(globals.currentTime))
@@ -106,12 +100,10 @@ local function device_init(driver, device)
 
   -- set a default or queried state for each capability attribute
   device:emit_event(soil.Moisture(0))
-  device:emit_event(voltage.VCC(0))
   device:emit_event(heapfragmentation.Fragmentation(0))
   device:emit_event(firmware.Version("-"))  
   device:emit_event(capabilities.signalStrength.rssi(0))
-  device:emit_event(cpureset.Code(0))
-  device:emit_event(cpureset.Reason("na"))
+  device:emit_event(capabilities.signalStrength.rssi(0))
   
 
   -- Startup Server

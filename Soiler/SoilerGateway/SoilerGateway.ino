@@ -2,6 +2,7 @@
 #include <Wire.h>          
 #include <Preferences.h>
 #include <ArduinoJson.h>
+//#include <LoRa.h>
 
 #include "LoRaWan_APP.h" 
 #include "HT_SSD1306Wire.h"
@@ -70,13 +71,10 @@ void syncSettings()
     logger.log(WARNING,"Handshake mode active");
   else
     logger.log(VERBOSE,"Handshake mode NOT active");
-
-  //Send settings back
-  postSoil();
 }
 
 //refresh admin data
-void postSoil() 
+void postSoil(int moistureReading,int rssi) 
 {
   if(!hubSoilPort)
     return;
@@ -87,8 +85,8 @@ void postSoil()
   if(hubSoilPort>0)
     doc["hubSoilPort"] = hubSoilPort;
 
-  doc["soil_moisture"] = 42;
-  doc["wifi_strength"] = 9;
+  doc["soil_moisture"] = moistureReading;
+  doc["wifi_strength"] = rssi;
   doc["firmware_version"] = SKETCH_VERSION;
   doc["heap_frag"] = round2((1.0-((double)ESP.getMinFreeHeap()/(double)ESP.getFreeHeap()))*100);
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
@@ -237,7 +235,8 @@ void loop()
 
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
-    rssi=rssi;
+    if(rssi>0)  //there's a bug?? that sometimes gives positive numbers for rssi  
+      rssi=0;
     rxSize=size;
     memcpy(rxpacket, payload, size );
     rxpacket[size]='\0';
@@ -251,7 +250,7 @@ void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
     ledDisplay.display();
 
     //post soil info
-    postSoil();
+    postSoil(atoi(rxpacket),rssi);
 }
 
 //put bool named pair into flash

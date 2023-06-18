@@ -1,0 +1,5 @@
+{
+    "board": "adafruit:avr:feather32u4",
+    "port": "COM5",
+    "sketch": "SoilerClient.ino"
+}
