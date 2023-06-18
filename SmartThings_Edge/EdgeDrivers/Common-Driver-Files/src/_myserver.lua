@@ -53,6 +53,9 @@ local function handle_post(client,line)
   if url == '/rain' then
     RefreshRain(content)
   end
+  if url == '/soil' then
+    RefreshSoil(content)
+  end  
 end
 
 local function handle_get(client,line)
@@ -90,6 +93,9 @@ local function handle_get(client,line)
     if(rainPort>0) then
       settingsMsg=settingsMsg..[[,"rainPort":]]..rainPort
     end
+    if(soilPort>0) then
+      settingsMsg=settingsMsg..[[,"soilPort":]]..soilPort
+    end    
 
     --Put ESP in wifi only mode (usually for OTA updates)
     local flag="false"
@@ -174,5 +180,6 @@ return {
     RefreshWeather = RefreshWeather,
     RefreshWind = RefreshWind,
     RefreshRain = RefreshRain,
-    RefreshAdmin = RefreshAdmin
+    RefreshAdmin = RefreshAdmin,
+    RefreshSoil = RefreshSoil
   }

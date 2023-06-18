@@ -65,10 +65,16 @@ local function send_lan_command(url, method, path, body)
   local function handshakeNow(deviceName)
     local currentEpoch=os.time()-(7*60*60)
     local content = [[ {"epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..commonglobals.server_port..[[ } ]]
-    log.debug("About to Handshake:  "..content);
+
+    local nodeIP = 'http://192.168.15.143:80'
+    if deviceName == 'soil' then
+      nodeIP = 'http://192.168.15.168:80'
+    end
+
+    log.debug("About to Handshake with "..nodeIP.." with "..content)    
   
     local success, data = send_lan_command(
-      'http://192.168.15.143:80',
+      nodeIP,
       'POST',
       'handshake',
       content)

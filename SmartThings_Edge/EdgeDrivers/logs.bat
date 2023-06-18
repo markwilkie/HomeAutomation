@@ -1,1 +1,1 @@
-smartthings edge:drivers:logcat --hub-address=192.168.15.63 --log-level=INFO --token=a4e104f9-9c2a-47cc-9324-807e349b4a42 --all
+smartthings edge:drivers:logcat --hub-address=192.168.15.63 --log-level=DEBUG --token=a4e104f9-9c2a-47cc-9324-807e349b4a42 --all

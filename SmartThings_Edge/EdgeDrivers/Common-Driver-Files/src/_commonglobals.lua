@@ -6,6 +6,7 @@ adminPort = 0
 weatherPort = 0
 rainPort = 0
 windPort = 0
+soilPort = 0
 lastHeardFromESP = 0
 wifiOnly = false
 
@@ -18,6 +19,7 @@ return {
     weatherPort = weatherPort,
     rainPort = rainPort,
     windPort = windPort,
+    soilPort = soilPort,
     newDataAvailable = newDataAvailable,
     wifiOnly = wifiOnly
   }

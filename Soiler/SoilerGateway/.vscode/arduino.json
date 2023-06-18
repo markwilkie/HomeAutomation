@@ -1,0 +1,6 @@
+{
+    "configuration": "CPUFreq=240,UploadSpeed=921600,DebugLevel=none,LORAWAN_REGION=0,LoRaWanDebugLevel=0,LORAWAN_DEVEUI=0,LORAWAN_PREAMBLE_LENGTH=0",
+    "board": "Heltec-esp32:esp32:wifi_lora_32_V2",
+    "port": "COM4",
+    "sketch": "SoilerGateway.ino"
+}
