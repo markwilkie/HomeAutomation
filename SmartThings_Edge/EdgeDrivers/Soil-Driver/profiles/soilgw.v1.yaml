@@ -1,0 +1,10 @@
+name: soilgw.v1
+components:
+- id: main
+  name: "Soil GW"
+  label: "Soil GW"
+  capabilities:
+  - id: refresh
+    version: 1      
+  - id: radioamber53161.lastUpdated
+    version: 1

@@ -3,9 +3,11 @@ local socket = cosock.socket
 local log = require "log"
 local commonglobals = require "_commonglobals"
 
+--local init = require "init"
+
 local CLIENTSOCKTIMEOUT = 2
 
-local function handle_post(client,line)
+local function handle_post(driver,device,client,line)
   local err
   local content
   local content_len = 0
@@ -19,7 +21,7 @@ local function handle_post(client,line)
     line, err  = client:receive()
     --log.debug ('Received:', line)
     if err ~= nil then
-      log.error("Error on client receive: " .. err)
+      log.error(string.format("Error on client receive: %s",err))
       return
     end      
     if line:find('-Length:', 1, plaintext) ~= nil then  --get content length
@@ -32,7 +34,7 @@ local function handle_post(client,line)
   content, err = client:receive(tonumber(content_len))
   log.info ('content:', content)
   if err ~= nil then
-    log.error("Error on client receive: " .. err)
+    log.error(string.format("Error on client receive: %s",err))
     return
   end
       
@@ -53,12 +55,15 @@ local function handle_post(client,line)
   if url == '/rain' then
     RefreshRain(content)
   end
+  if url == '/soilgw' then
+    RefreshSoilGW(device,content)
+  end   
   if url == '/soil' then
-    RefreshSoil(content)
-  end  
+    RefreshSoil(device,content)
+  end 
 end
 
-local function handle_get(client,line)
+local function handle_get(driver,device,client,line)
 
   --Get URL of GET
   local url= line:match '/%a+'
@@ -104,18 +109,42 @@ local function handle_get(client,line)
     end
     settingsMsg=settingsMsg..[[,"wifionly_flag":]]..flag..[[}]]
 
-    log.info("Content: "..settingsMsg)
+    log.info(string.format("Content: %s",settingsMsg))
     client:send(settingsMsg)
     client:close()
     return
   end
 
+    --register device, and return port
+    if url == '/registerDevice' then
+      local param,value=line:match("?(%a+)=(%d+)")  --grab id that was passed in
+      local port=commonglobals[value]
+      if port == nil then
+        log.info(string.format("Now registering id %s",value))
+        port=AddNewDevice(driver,value)
+        if port == nil then
+          log.warn(string.format("No port registered for %s",value))
+          return
+        end
+        commonglobals.device_ports[value]=port
+      end
+
+      local portMsg = [[HTTP/1.1 200 OK
+  
+  {"port":]]..port..[[}]]
+      
+      log.info(string.format("Content: %s",portMsg))
+      client:send(portMsg)
+      client:close()
+      return
+    end
+
   --If we got this far, we don't recognize the request
-  log.error("Unrecognized GET request from client: "..line)
+  log.error(string.format("Unrecognized GET request from client: %s",line))
   client:close()
 end
 
-local function handleIncoming(client)
+local function handleIncoming(driver,device,client)
 
   local line, err
 
@@ -141,11 +170,11 @@ local function handleIncoming(client)
   --Make sure it's a POST or GET and grab the url
   log.debug ('Received:', line)
   if line:find('POST', 1, plaintext) ~= nil then
-    handle_post(client,line)
+    handle_post(driver,device,client,line)
     return
   end
   if line:find('GET', 1, plaintext) ~= nil then
-    handle_get(client,line)
+    handle_get(driver,device,client,line)
     return
   end
 
@@ -154,7 +183,7 @@ local function handleIncoming(client)
   client:close()
 end
 
-local function start_server(driver)
+local function start_server(driver,device)
 
     -- Startup Server
     local serversock = socket.tcp()
@@ -162,14 +191,18 @@ local function start_server(driver)
     serversock:listen()
 
     commonglobals.server_ip, commonglobals.server_port = serversock:getsockname()
-    log.info(string.format('**************************  Server started at %s:%s', commonglobals.server_ip, commonglobals.server_port))
+    log.info(string.format('**************************  Server started for %s at %s:%s', device.label,commonglobals.server_ip, commonglobals.server_port))
+
+    --Add port device list
+    log.info(string.format("Saving port %d for device_network_id: %s  (current device IS id: %s)",commonglobals.server_port,device.device_network_id,device.id))
+    device_ports[device.device_network_id]=commonglobals.server_port
 
     --Spawn thread to accept incoming connections
     cosock.spawn(function()
       while true do
         local client = serversock:accept()
-        log.debug("Accepted connection from", client:getpeername())
-        handleIncoming(client)
+        log.debug(string.format("Accepted connection from", client:getpeername()))
+        handleIncoming(driver,device,client)
       end
     end,"server loop")
     
@@ -181,5 +214,6 @@ return {
     RefreshWind = RefreshWind,
     RefreshRain = RefreshRain,
     RefreshAdmin = RefreshAdmin,
-    RefreshSoil = RefreshSoil
+    RefreshSoil = RefreshSoil,
+    RefreshSoilGW = RefreshSoilGW
   }

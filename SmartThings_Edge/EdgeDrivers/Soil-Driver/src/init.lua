@@ -2,9 +2,6 @@
 local capabilities = require "st.capabilities"
 local Driver = require "st.driver"
 local log = require "log"
-local cosock = require "cosock"
-local http = cosock.asyncify "socket.http"
-local ltn12 = require('ltn12')
 local json = require('dkjson')
 
 local commonglobals = require "_commonglobals"
@@ -16,77 +13,95 @@ local globals = require "globals"
 local lastupdated = capabilities["radioamber53161.lastUpdated"]
 local voltage = capabilities["radioamber53161.voltage"]
 local firmware = capabilities["radioamber53161.firmware"]
-local cpureset = capabilities["radioamber53161.cpuReset"]
 local heapfragmentation = capabilities["radioamber53161.heapFragmentation"]
 local soil = capabilities["radioamber53161.soil"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
 
-
 -----------------------------------------------------------------
 -- local functions
 -----------------------------------------------------------------
 
-function RefreshSoil(content)
-  log.debug("Refreshing Soil Data")
-  
-  commonglobals.lastHeardFromESP = os.time()
-  commonglobals.handshakeRequired = false
-  commonglobals.newDataAvailable = true
+function RefreshSoil(device,content)
+  log.debug("Refreshing Soil Sensor Data")
 
+  --decode
   local jsondata = json.decode(content)
-  globals.soil_moisture = jsondata.soil_moisture
-  globals.rssi = jsondata.wifi_strength
-  globals.firmware_version = jsondata.firmware_version
-  globals.heap_fragmentation = jsondata.heap_frag
-  globals.currentTime = os.date("%a %X", jsondata.current_time)
 
+  device:emit_event(soil.Moisture(jsondata.soil_moisture))
+  device:emit_event(capabilities.signalStrength.rssi(jsondata.wifi_strength))
+  device:emit_event(voltage.VCC(jsondata.vcc_voltage))
+  device:emit_event(firmware.Version(jsondata.firmware_version))
+  device:emit_event(heapfragmentation.Fragmentation(jsondata.heap_frag))
+  device:emit_event(lastupdated.Time(os.date("%a %X", jsondata.current_time)))
 end
 
--- Get latest soil updates
-local function emitSoilData(driver, device)
-  log.info("Emiting Soil Data")
+function RefreshSoilGW(device,content)
+  log.debug("Refreshing Soil GW Data")
 
-  device:emit_event(soil.Moisture(globals.soil_moisture))
-  device:emit_event(capabilities.signalStrength.rssi(globals.rssi))
-  device:emit_event(heapfragmentation.Fragmentation(globals.heap_fragmentation))
-  device:emit_event(firmware.Version(globals.firmware_version))
-  device:emit_event(lastupdated.Time(globals.currentTime))
+  --decode
+  local jsondata = json.decode(content)
 
-  return true
+  device:emit_event(lastupdated.Time(os.date("%a %X", jsondata.current_time)))
 end
 
 -------------
 -- Handlers
 ----------
 
+function AddNewDevice(driver,id)
+
+  local metadata = {
+    type = "LAN",
+    -- the DNI must be unique across your hub, using static ID here so that we
+    -- only ever have a single instance of this "device"
+    device_network_id = id,
+    label = "Soil Device #"..id,
+    profile = "soil.v1",
+    manufacturer = "Wilkie",
+    model = "v1",
+    vendor_provided_label = nil
+  }
+
+  -- tell the cloud to create a new device record, will get synced back down
+  -- and `device_added` and `device_init` callbacks will be called
+  driver:try_create_device(metadata)
+
+  --dump current device list  (properties are from the metadata passed into the create device)
+  local device_list = driver:get_devices()
+  for _, deviceInstance in ipairs(device_list) do
+    local currentDeviceId=deviceInstance.device_network_id
+    log.debug(string.format("Devices we know about: ID: %s Port: %s Label: %s Network ID: %s",deviceInstance.id,commonglobals.device_ports[currentDeviceId],deviceInstance.label,currentDeviceId))   
+  end    
+
+  if commonglobals.device_ports[id] == nil then
+    log.warn(string.format("No port saved for device id: %s",id))
+  end
+
+  --return port
+  return commonglobals.device_ports[id]
+end
+
 -- refresh handler
 local function refresh(driver, device)
-  log.debug("Calling Refresh")
+  --if we're not the gateway, then just return
+  if string.find(device.label, "Soil Device #") then   -- meaning we're hearing from the gateway
+    return true
+  end
 
-  --check if we've heard from devices lately
-  if os.time() > (commonglobals.lastHeardFromESP + 650) then
+  if os.time() > (commonglobals.lastHeardFromESP + 1000) then
     commonglobals.handshakeRequired = true
-    log.warn("Haven't heard from soil so going into handshake mode.")
+    log.warn("Haven't heard from soil GW for a while so going into handshake mode.")
   end
 
   --hand shake if needed
   if commonglobals.handshakeRequired then
-    if not myclient.handshakeNow("soil") then
+    if not myclient.handshakeNow("soil",device) then
       return false
     end
   end
 
-  --Actually update the fields on the smart app
-  if commonglobals.newDataAvailable then
-    commonglobals.newDataAvailable = false
-    if not emitSoilData(driver, device) then
-      return false
-    end
-  end
-
-  return true
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
@@ -103,11 +118,10 @@ local function device_init(driver, device)
   device:emit_event(heapfragmentation.Fragmentation(0))
   device:emit_event(firmware.Version("-"))  
   device:emit_event(capabilities.signalStrength.rssi(0))
-  device:emit_event(capabilities.signalStrength.rssi(0))
   
 
   -- Startup Server
-  myserver.start_server(driver)  
+  myserver.start_server(driver,device)  
 
   -- Refresh schedule
   device.thread:call_on_schedule(

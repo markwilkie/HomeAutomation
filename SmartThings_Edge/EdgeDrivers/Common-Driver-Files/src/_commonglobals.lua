@@ -9,6 +9,7 @@ windPort = 0
 soilPort = 0
 lastHeardFromESP = 0
 wifiOnly = false
+device_ports = {}
 
 return {
     handshakeRequired = handshakeRequired,
@@ -21,6 +22,7 @@ return {
     windPort = windPort,
     soilPort = soilPort,
     newDataAvailable = newDataAvailable,
-    wifiOnly = wifiOnly
+    wifiOnly = wifiOnly,
+    device_ports = device_ports
   }
 

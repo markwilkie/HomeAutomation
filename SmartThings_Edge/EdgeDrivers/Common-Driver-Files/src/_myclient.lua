@@ -62,16 +62,21 @@ local function send_lan_command(url, method, path, body)
   end
   
   -- handshake post
-  local function handshakeNow(deviceName)
+  local function handshakeNow(deviceName,device)
+
     local currentEpoch=os.time()-(7*60*60)
-    local content = [[ {"epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..commonglobals.server_port..[[ } ]]
+    local network_id=0
+    if device ~= nil then
+      network_id = device.device_network_id
+    end
+    local content = [[ {"network_id":"]]..network_id..[[","epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..device_ports[device.device_network_id]..[[ } ]]
 
     local nodeIP = 'http://192.168.15.143:80'
     if deviceName == 'soil' then
       nodeIP = 'http://192.168.15.168:80'
     end
 
-    log.debug("About to Handshake with "..nodeIP.." with "..content)    
+    log.debug(string.format("About to Handshake with %s containing %s",nodeIP,content))
   
     local success, data = send_lan_command(
       nodeIP,
@@ -80,7 +85,7 @@ local function send_lan_command(url, method, path, body)
       content)
   
       if(success) then
-        log.info("Successfuly handshook:  ( epoch: "..currentEpoch.." Device: "..deviceName.." IP: "..commonglobals.server_ip.." Port: "..commonglobals.server_port);
+        log.info(string.format("Successfuly handshook"))
         commonglobals.handshakeRequired=false;
       else
         log.error("Handshaking for "..deviceName.." NOT successful");

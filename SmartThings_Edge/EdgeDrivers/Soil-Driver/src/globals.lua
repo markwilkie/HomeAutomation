@@ -1,16 +1,8 @@
---admin data
+--soil data
 
-soil_moisture = nil
-currentTime = nil
-rssi = nil
-firmware_version = nil
-heap_fragmentation = nil
+gw_network_id = "wilkie.soilgw.v1"
 
 return {
-    soil_moisture = soil_moisture,
-    currentTime = currentTime, 
-    rssi = rssi,
-    firmware_version = firmware_version,
-    heap_fragmentation = heap_fragmentation
+    gw_network_id = gw_network_id
 }
 

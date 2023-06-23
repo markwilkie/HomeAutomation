@@ -105,12 +105,18 @@ int Wifi::getRSSI()
   return WiFi.RSSI();
 }
 
-void Wifi::listen(long millisToWait)
+void Wifi::listen(long secondsToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
-  logger.log(INFO,"We're now handshaking or in OTA mode - Listening on http and OTA");
+  if(secondsToWait==0)
+  {
+    server.handleClient();
+    ArduinoOTA.handle();
+    return;
+  }    
+
   unsigned long startMillis=millis();
-  while(millis()<(startMillis+millisToWait))
+  while(millis()<(startMillis+(secondsToWait*1000L)))
   {
     server.handleClient();
     ArduinoOTA.handle();
@@ -194,7 +200,6 @@ bool Wifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
     VERBOSEPRINT(" - ");
     VERBOSEPRINTLN(http.errorToString(httpResponseCode));
 
-    handshakeRequired=true;
     success=false;
   }
   
@@ -219,6 +224,18 @@ DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
   // Send HTTP GET request
   int httpResponseCode = http.GET();
 
+  //If it's connection lost, let's retry a couple of times
+  int retryCount=0;
+  while(httpResponseCode==-5 && retryCount<10) 
+  {
+    retryCount++;
+    logger.log(INFO,"Retrying (Code: %d)",httpResponseCode);
+    delay(1000);
+    http.begin(client,address);
+    httpResponseCode = http.GET();
+  }
+
+  //if we're still getting a bad response, then error out
   if (httpResponseCode<0)
   {
     ERRORPRINT("GET http Code: ");
@@ -226,7 +243,6 @@ DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
     VERBOSEPRINT(" - ");
     VERBOSEPRINTLN(http.errorToString(httpResponseCode));   
 
-    handshakeRequired=true;
     return doc;
   }
 

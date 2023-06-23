@@ -31,7 +31,6 @@ extern void blinkLED(int,int,int);
 
 extern unsigned long epoch;  //Epoch from hub
 extern char hubAddress[30];
-extern bool handshakeRequired;
 
 class Wifi 
 {

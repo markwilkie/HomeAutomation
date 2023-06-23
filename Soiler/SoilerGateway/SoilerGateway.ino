@@ -3,6 +3,7 @@
 #include <LoRa.h>    
 #include <Preferences.h>
 #include <ArduinoJson.h>
+#include <Dictionary.h>
 
 #include "SSD1306.h"    
 #include "Debug.h"
@@ -10,19 +11,18 @@
 #include "version.h"
 #include "Wifi.h"
 
-#define HTTPSERVERTIME        30                    // time blocking in server listen for handshaking while in loop
+#define HTTPSERVERTIME        0                    // time blocking in server listen for handshaking while in loop  (zero is immediate)
 
 #define BAND    915E6  //you can set band here directly,e.g. 868E6,915E6
-String packet;
 
 //Globals
 Preferences preferences;
 Wifi wifi;
 unsigned long millisAtEpoch = 0;
-bool handshakeRequired = true;
 char hubAddress[30]="";
-int hubSoilPort=0;
+int hubSoilSWPort=0;
 unsigned long epoch=0;  //Epoch from hub
+Dictionary moistureSensorPorts;
 
 SSD1306  display(0x3c, 4, 15);
 
@@ -43,73 +43,119 @@ SSD1306  display(0x3c, 4, 15);
 #define DI0     26
 #define BAND    915E6
 
-//Send a GET message to the admin driver to get epoch, wifi-only flag and so on.
-void syncSettings()
+//Send a GET message to the admin driver to get epoch
+void syncEpoch()
 {
-  if(!hubSoilPort)
+  if(!hubSoilSWPort)
     return;
 
-  DynamicJsonDocument doc = wifi.sendGetMessage("/settings",hubSoilPort);
+  //Sets handshakRequired to true if fails
+  DynamicJsonDocument doc = wifi.sendGetMessage("/epoch",hubSoilSWPort);
   epoch = doc["epoch"].as<unsigned long>();
   millisAtEpoch = millis();
 
   logger.log(INFO,"Setting Epoch to %s (%ld)",getTimeString(epoch),epoch);
-
-  if(handshakeRequired)
-    logger.log(WARNING,"Handshake mode active");
-  else
-    logger.log(VERBOSE,"Handshake mode NOT active");
 }
 
-//refresh admin data
-void postSoil(int moistureReading,int rssi) 
+//refresh soil gateway data
+void postSoilGW() 
 {
-  if(!hubSoilPort)
+  if(!hubSoilSWPort)
     return;
 
   //admin
   DynamicJsonDocument doc(512);
 
-  if(hubSoilPort>0)
-    doc["hubSoilPort"] = hubSoilPort;
+  if(hubSoilSWPort>0)
+    doc["hubSoilSWPort"] = hubSoilSWPort;
 
+  doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
+
+  //send admin data back
+  if(!wifi.sendPostMessage("/soilgw",doc,hubSoilSWPort))
+    hubSoilSWPort=0;
+
+  logger.log(VERBOSE,"Posted soil gateway data...");
+}
+
+//refresh soil sensor data
+void postSoil(int id,int moistureReading,int voltage,int rssi) 
+{
+  //Make sure gateway is online
+  if(!hubSoilSWPort)
+    return;
+
+  //Get port for the specific sensor
+  int sensorPort=moistureSensorPorts.search(String(id)).toInt();
+  if(!sensorPort)
+  {
+    bool retval=registerSensor(id);
+    if(!retval)
+      return;
+    sensorPort=moistureSensorPorts.search(String(id)).toInt();
+  }
+
+  //soil moisture sensor
+  DynamicJsonDocument doc(512);
+  doc["network_id"] = id;
   doc["soil_moisture"] = moistureReading;
+  doc["vcc_voltage"] = voltage/10;
   doc["wifi_strength"] = rssi;
   doc["firmware_version"] = SKETCH_VERSION;
   doc["heap_frag"] = round2((1.0-((double)ESP.getMinFreeHeap()/(double)ESP.getFreeHeap()))*100);
   doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
 
-  //send admin data back
-  if(!wifi.sendPostMessage("/soil",doc,hubSoilPort))
-    hubSoilPort=0;
+  //send soil data back
+  if(!wifi.sendPostMessage("/soil",doc,sensorPort))
+  {
+    //error, so let's take this sensor out
+    logger.log(WARNING,"Error posting to ensor id %d, so removing it from our list",id);
+    sensorPort=0;
+    moistureSensorPorts.remove(String(id));
+    return;
+  }
 
-  logger.log(VERBOSE,"Posted soil data...");
+  logger.log(VERBOSE,"Posted soil sensor data...");
+}
+
+bool registerSensor(int id)
+{
+  char buf[100];
+  sprintf(buf,"/registerDevice?id=%d",id);
+
+  //registers (or re-registers) sensor and gets current port
+  DynamicJsonDocument doc = wifi.sendGetMessage(buf,hubSoilSWPort);
+  int port = doc["port"].as<int>();
+  moistureSensorPorts.insert(String(id),String(port));  //adding to the dictionary
+
+  //set if unable to get valid port
+  if(port<=0)
+    logger.log(WARNING,"Unable to get sensor port");
+  else
+    logger.log(INFO,"Setting Port to %d for device id %d  (%s)",port,id,moistureSensorPorts.search(String(id)));
+
+  return port>0;
 }
 
 //The hub driver will POST ip, port, and epoch when handshaking
 void syncWithHub() 
 {
   DynamicJsonDocument doc=wifi.readContent();
-  Serial.println("in sync w/ hub");
+  Serial.println("Dumping content from syncWithHub");
   serializeJsonPretty(doc, Serial);
 
   //if (wifi.isPost())   // !! isPost stack dumps on the heltec esp32 proc
   if(1)
   {
-      Serial.println("before trying to read json doc");
       String ip = doc["hubAddress"].as<String>();
-      Serial.println(ip);
       ip.toCharArray(hubAddress, ip.length()+1);
       epoch = doc["epoch"].as<unsigned long>();
-      Serial.println(epoch);
       millisAtEpoch=millis();
 
       String deviceName = doc["deviceName"];
-      Serial.println(deviceName);
       if(deviceName.equals("soil"))
-        hubSoilPort = doc["hubPort"].as<int>();
+        hubSoilSWPort = doc["hubPort"].as<int>();
 
-      Serial.println("before logger");
       logger.log(VERBOSE,"Hub info - Device: %s, IP: %s, Port: %d, Epoch: %ld  (%s)",deviceName,ip.c_str(),doc["hubPort"].as<int>(),epoch,getTimeString(epoch));
     
       // Create the response
@@ -117,19 +163,15 @@ void syncWithHub()
       // this part can be unusefully
       DynamicJsonDocument doc(50);
       doc["status"] = "OK";   
-      Serial.println("before send");
       wifi.sendResponse(doc);
 
       //Let's see if we still need a handshake 
-      if(hubSoilPort>0)
+      if(hubSoilSWPort>0)
       {
         //Save address and ports to flash in case we reboot
-        Serial.println("before save to flash");
         putHubInfoIntoPreference();
-        handshakeRequired = false;
       }
   }
-  Serial.println("done");
 }
 
 void setup() 
@@ -170,6 +212,11 @@ void setup()
     Serial.println("LoRa Initial OK!");
     display.drawString(5,25,"LoRa Initializing OK!");
     display.display();    
+
+    //Initial sync
+    syncEpoch();
+    postSoilGW();
+    logger.sendLogs(wifi.isConnected());       
 }
 
 void initialSetup()
@@ -179,81 +226,78 @@ void initialSetup()
     blinkLED(3,250,250);
      
     //Try and load address and ports from flash
-    getHubInfoFromPreference();
-
-    //Now let's see if we still need a handshake 
-    if(hubSoilPort>0)
-    {
-      handshakeRequired = false;
-    }     
+    getHubInfoFromPreference();   
 
     //start wifi and http server
     wifi.startWifi();
-    wifi.startServer();   //No need for server because this is now a LoRa link
-
+    wifi.startServer();   //No need for server because this is now a LoRa link  
 }
 
 
 void loop()
 {
+  //Lora packet?
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) 
+      readPacket(packetSize);
 
-  //Check in w/ web server if we're in handshake mode
-  if(handshakeRequired)
+  //Check in if the hub is trying to get me
+  wifi.listen(HTTPSERVERTIME);
+
+  //Let's ping server around every 650 seconds to let them know we're alive
+  if((currentTime()-epoch) > 600)
   {
-    Serial.println("handshake mode");
-    logger.log(INFO,"In Handshake Mode...  (not listening for LoRa)"); 
-
-    //Blink because we're handshaking (2x500)
-    blinkLED(2,500,250);
-
-    //start wifi if not already on
-    if(!wifi.isConnected())
-      wifi.startWifi();
-
-    //start server and listen on it if not already started
-    if(!wifi.isServerOn())
-      wifi.startServer();
-
-    //listen for a bit
-    wifi.listen(HTTPSERVERTIME*1000);  
-  }
-  else
-  {
-    //Serial.print("listening for LoRa ");
-    int packetSize = LoRa.parsePacket();
-    //Serial.println(packetSize);
-    if (packetSize) { cbk(packetSize);  }
-    delay(10);
+    syncEpoch();
+    postSoilGW();
+    logger.sendLogs(wifi.isConnected()); 
   }
 }
 
-void cbk(int packetSize) 
+void readPacket(int packetSize) 
 {
-    // received a packets
-    Serial.print("Received packet. ");
-    display.clear();
-    display.setFont(ArialMT_Plain_16);
-    display.drawString(3, 0, "Received packet ");
-    display.display();
-    
-    // read packet
-    while (LoRa.available()) 
-    {
-      packet = LoRa.readString();
-      Serial.print(packet);
-      display.drawString(20,22, packet);
-      display.display();
-    }
+  // received a packets
+  Serial.println("Received packet");
+  display.clear();
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(3, 0, "Received packet ");
+  display.display();
 
-    // print RSSI of packet
-    Serial.print(" with RSSI ");
-    Serial.println(LoRa.packetRssi());
-    display.drawString(20, 45, "RSSI:  ");
-    display.drawString(70, 45, (String)LoRa.packetRssi());
-    display.display();
+  //make sure we're at the start of the transmission
+  while(LoRa.available() && LoRa.read() != 01) {}
+  int id=LoRa.read();
+  int perc=LoRa.read();
+  int voltage=LoRa.read();
+  int crc=LoRa.read();
+  while(LoRa.available() && LoRa.read() != 04) {}   //make sure we go to the EOT byte
 
-  //post soil info
-  postSoil(packet.toInt(),LoRa.packetRssi());
+  //Now let's clean up in case it's another message
+  while(LoRa.available()) {LoRa.read();} 
+
+  // print RSSI of packet
+  display.drawString(20,22, (String)perc);
+  display.drawString(20, 45, "RSSI:  ");
+  display.drawString(70, 45, (String)LoRa.packetRssi());
+  display.display();
+
+  //poor man's crc
+  if(crc!=(id|perc|voltage))
+  {
+    logger.log(INFO,"CRC's don't match  (id: %d perc: %d)",id,perc); 
+    logger.sendLogs(wifi.isConnected());
+    return;
+  }
+
+  //is this valid data?
+  if(id<10 || id>128 || perc<0 || perc>100 || voltage<0 || voltage>100)
+  {
+    logger.log(INFO,"Did not recognize packet at time %s",getTimeString(epoch)); 
+    logger.sendLogs(wifi.isConnected());
+    return;
+  }
+
+  //post soil info we just got
+  postSoil(id,perc,voltage,LoRa.packetRssi());
+  logger.sendLogs(wifi.isConnected());
 }
 
 //put bool named pair into flash
@@ -261,7 +305,7 @@ void putHubInfoIntoPreference()
 {
   preferences.begin("soil", false);
   preferences.putBytes("hubAddress", hubAddress,30);
-  preferences.putInt("hubSoilPort", hubSoilPort);
+  preferences.putInt("hubSoilSWPort", hubSoilSWPort);
   preferences.end();
 }
 
@@ -270,7 +314,7 @@ void getHubInfoFromPreference()
 {
   preferences.begin("soil", true);
   preferences.getBytes("hubAddress", hubAddress, 30);
-  hubSoilPort=preferences.getInt("hubSoilPort",0); 
+  hubSoilSWPort=preferences.getInt("hubSoilSWPort",0); 
   preferences.end();
 }
 
@@ -316,4 +360,18 @@ void blinkLED(int times,int onDuration,int offDuration)
     delay(offDuration);
     
   }
+}
+
+uint16_t checksumCalculator(uint8_t * data, uint16_t length)
+{
+   uint16_t curr_crc = 0x0000;
+   uint8_t sum1 = (uint8_t) curr_crc;
+   uint8_t sum2 = (uint8_t) (curr_crc >> 8);
+   int index;
+   for(index = 0; index < length; index = index+1)
+   {
+      sum1 = (sum1 + data[index]) % 255;
+      sum2 = (sum2 + sum1) % 255;
+   }
+   return (sum2 << 8) | sum1;
 }
