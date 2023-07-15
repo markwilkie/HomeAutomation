@@ -31,18 +31,22 @@ function RefreshSoil(device,content)
 
   device:emit_event(soil.Moisture(jsondata.soil_moisture))
   device:emit_event(capabilities.signalStrength.rssi(jsondata.wifi_strength))
+  device:emit_event(capabilities.signalStrength.lqi(0))
   device:emit_event(voltage.VCC(jsondata.vcc_voltage))
   device:emit_event(firmware.Version(jsondata.firmware_version))
   device:emit_event(heapfragmentation.Fragmentation(jsondata.heap_frag))
   device:emit_event(lastupdated.Time(os.date("%a %X", jsondata.current_time)))
+  device:emit_event(lastupdated.LastUpdate(jsondata.current_time))
+  device:emit_event(lastupdated.SecondsSinceUpdate(0))
 end
 
 function RefreshSoilGW(device,content)
   log.debug("Refreshing Soil GW Data")
+  
+  commonglobals.lastHeardFromESP = os.time()
 
   --decode
   local jsondata = json.decode(content)
-
   device:emit_event(lastupdated.Time(os.date("%a %X", jsondata.current_time)))
 end
 
@@ -85,8 +89,20 @@ end
 
 -- refresh handler
 local function refresh(driver, device)
-  --if we're not the gateway, then just return
-  if string.find(device.label, "Soil Device #") then   -- meaning we're hearing from the gateway
+  --if we're not the gateway, then just return after updating seconds since heard
+  log.debug(string.format("Timed driver refresh called from device: %s",device.device_network_id))
+  local id = tonumber(device.device_network_id)
+  if id==nil then   
+    id=0
+  end
+
+  -- meaning we're a device, not the gateway
+  if id>0 then  
+    local secondsSinceUpdate = device:get_latest_state('main', lastupdated.ID, 'LastUpdate')
+    if secondsSinceUpdate ~= nil then
+      secondsSinceUpdate=os.time()-secondsSinceUpdate
+      device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceUpdate))
+    end
     return true
   end
 
@@ -112,13 +128,6 @@ end
 -- this is called both when a device is added (but after `added`) and after a hub reboots.
 local function device_init(driver, device)
   log.info("[" .. device.id .. "] Initializing soil device")
-
-  -- set a default or queried state for each capability attribute
-  device:emit_event(soil.Moisture(0))
-  device:emit_event(heapfragmentation.Fragmentation(0))
-  device:emit_event(firmware.Version("-"))  
-  device:emit_event(capabilities.signalStrength.rssi(0))
-  
 
   -- Startup Server
   myserver.start_server(driver,device)  

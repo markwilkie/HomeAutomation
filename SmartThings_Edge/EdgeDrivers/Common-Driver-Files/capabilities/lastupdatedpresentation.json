@@ -15,10 +15,33 @@
             "state": {
                 "label": "{{Time.value}}"
             }
-        }
+        },
+        {
+            "label": "Last Update",
+            "displayType": "state",
+            "state": {
+                "label": "{{LastUpdate.value}}"
+            }
+        },
+        {
+            "label": "Seconds Since Update",
+            "displayType": "state",
+            "state": {
+                "label": "{{SecondsSinceUpdate.value}}"
+            }
+        }                
     ],
     "automation": {
-        "conditions": [],
+        "conditions": [
+            {
+                "label": "Seconds Since Update",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "SecondsSinceUpdate.value",
+                    "unit": "raintotal.unit"
+                }
+            }       
+        ],
         "actions": []
     },
     "id": "radioamber53161.lastUpdated",

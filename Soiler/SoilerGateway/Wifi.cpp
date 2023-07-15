@@ -209,6 +209,55 @@ bool Wifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
   return success;
 }
 
+bool Wifi::sendPutMessage(const char*fullurl,const char*token,DynamicJsonDocument doc)
+{
+  if(!isConnected())
+  {
+    WARNPRINTLN("Wifi Discconnected, reconnecting now");
+    startWifi();
+  }
+
+  bool success=true;
+  //WiFiClient client;
+  HTTPClient http;
+    
+  // Your Domain name with URL path or IP address with path
+  logger.log(VERBOSE,"PUT Address: %s",fullurl);
+  //http.begin(client,fullurl);
+  http.begin(fullurl);
+  //http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", token);
+  //http.addHeader("Host","api.rach.io");
+
+  // Send HTTP PUT request
+  String buf;
+  serializeJson(doc, buf);
+  INFOPRINT("PUT Content: ");
+  INFOPRINTLN(buf);
+  int httpResponseCode = http.PUT(buf);
+  if (httpResponseCode<0)
+  {
+    ERRORPRINT("PUT http Code: ");
+    VERBOSEPRINT(httpResponseCode);
+    VERBOSEPRINT(" - ");
+    VERBOSEPRINTLN(http.errorToString(httpResponseCode));
+
+    success=false;
+  }
+  else
+  {
+    VERBOSEPRINT("PUT http Code: ");
+    VERBOSEPRINT(httpResponseCode);
+    VERBOSEPRINT(" - ");
+    VERBOSEPRINTLN(http.errorToString(httpResponseCode));
+  }
+  
+  // Free resources
+  http.end();
+
+  return success;
+}
+
 DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
 {
   DynamicJsonDocument doc(512);

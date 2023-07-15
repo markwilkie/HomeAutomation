@@ -18,7 +18,15 @@
         }
     ],
     "automation": {
-        "conditions": [],
+        "conditions": [
+            {
+                "label": "Soil Moisture",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "Moisture.value"
+                }
+            }       
+        ],
         "actions": []
     },
     "id": "radioamber53161.soil",

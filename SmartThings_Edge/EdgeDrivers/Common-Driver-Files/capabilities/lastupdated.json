@@ -17,7 +17,47 @@
                 "required": []
             },
             "enumCommands": []
-        }      
+        },
+        "LastUpdate": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "sec"
+                        ],
+                        "default": "sec"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        },
+        "SecondsSinceUpdate": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "sec"
+                        ],
+                        "default": "sec"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }            
     },
     "commands": {}
 }

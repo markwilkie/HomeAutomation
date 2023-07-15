@@ -48,6 +48,7 @@ class Wifi
     void sendResponse(DynamicJsonDocument);
 
     bool sendPostMessage(const char*,DynamicJsonDocument,int);
+    bool sendPutMessage(const char*fullurl,const char*token,DynamicJsonDocument doc);
     DynamicJsonDocument sendGetMessage(const char*,int);
     
   private: 

@@ -24,6 +24,11 @@ int hubSoilSWPort=0;
 unsigned long epoch=0;  //Epoch from hub
 Dictionary moistureSensorPorts;
 
+//Rachio
+const char* api=
+Dictionary sensorZones;
+
+//Display
 SSD1306  display(0x3c, 4, 15);
 
 //OLED pins to ESP32 GPIOs via this connection:
@@ -55,6 +60,19 @@ void syncEpoch()
   millisAtEpoch = millis();
 
   logger.log(INFO,"Setting Epoch to %s (%ld)",getTimeString(epoch),epoch);
+}
+
+//Update soil moisture % with rachio
+void putSoilMoisture(const char*id,const char*token,double percentage) 
+{
+  //admin
+  DynamicJsonDocument doc(512);
+  doc["id"] = id;
+  doc["percent"] = percentage; 
+
+  //send admin data back
+  if(wifi.sendPutMessage("https://api.rach.io/1/public/zone/setMoisturePercent",token,doc))
+    logger.log(VERBOSE,"Updated Rachio with soil moisture data...");
 }
 
 //refresh soil gateway data
@@ -99,7 +117,7 @@ void postSoil(int id,int moistureReading,int voltage,int rssi)
   DynamicJsonDocument doc(512);
   doc["network_id"] = id;
   doc["soil_moisture"] = moistureReading;
-  doc["vcc_voltage"] = voltage/10;
+  doc["vcc_voltage"] = (float)voltage/10.0;
   doc["wifi_strength"] = rssi;
   doc["firmware_version"] = SKETCH_VERSION;
   doc["heap_frag"] = round2((1.0-((double)ESP.getMinFreeHeap()/(double)ESP.getFreeHeap()))*100);
@@ -141,8 +159,6 @@ bool registerSensor(int id)
 void syncWithHub() 
 {
   DynamicJsonDocument doc=wifi.readContent();
-  Serial.println("Dumping content from syncWithHub");
-  serializeJsonPretty(doc, Serial);
 
   //if (wifi.isPost())   // !! isPost stack dumps on the heltec esp32 proc
   if(1)
@@ -152,11 +168,12 @@ void syncWithHub()
       epoch = doc["epoch"].as<unsigned long>();
       millisAtEpoch=millis();
 
+      String deviceID = doc["network_id"];
       String deviceName = doc["deviceName"];
       if(deviceName.equals("soil"))
         hubSoilSWPort = doc["hubPort"].as<int>();
 
-      logger.log(VERBOSE,"Hub info - Device: %s, IP: %s, Port: %d, Epoch: %ld  (%s)",deviceName,ip.c_str(),doc["hubPort"].as<int>(),epoch,getTimeString(epoch));
+      logger.log(VERBOSE,"Device info from hub - Device Name/ID: %s/%s, IP: %s, Port: %d, Epoch: %ld  (%s)",deviceName,doc["network_id"].as<String>().c_str(),ip.c_str(),doc["hubPort"].as<int>(),epoch,getTimeString(epoch));
     
       // Create the response
       // To get the status of the result you can get the http status so
@@ -172,6 +189,8 @@ void syncWithHub()
         putHubInfoIntoPreference();
       }
   }
+
+  logger.sendLogs(wifi.isConnected());
 }
 
 void setup() 
@@ -197,6 +216,21 @@ void setup()
     display.flipScreenVertically();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
+
+    // Setup mapping of Rachio zones to sensors
+    //
+    // Start by looking up sensor id, then see if there are linked zones by looking up using current zone guid  (e.g. walkway is linked to brick)
+    //
+
+    // Zones w/ no sensors and are not linked
+    //   Underdeck="8afb92cc-ff42-4755-bb4d-486ef39bd59f" or zone 2
+    //   Deckpots="8190e592-eff7-4463-a4b1-453f579edbed" or zone 4
+    //
+    sensorZones.insert("15","457fe405-7582-4cdc-8672-b28f3bec4bde");  //Candy tuffs zone 1
+    sensorZones.insert("16","aff59ede-1d30-4321-bba6-a92e6c23484f");  //Flowers - by brick zone 5
+    sensorZones.insert("aff59ede-1d30-4321-bba6-a92e6c23484f","2bf30e06-c054-4791-a4ea-37ea81716ad5");  //Flowers - walkway zone 3  (linked to brick zone 5)
+    sensorZones.insert("17","5ad042e5-46e5-4c28-ac01-91107612a77f");  //Flowers - side of house zone 7
+    sensorZones.insert("19","eb2067a4-503d-4c96-b3c5-7f1d36836fef");  //Garden zone 6
 
     //Setuip LoRa
     Serial.println("LoRa Receiver"); 
@@ -290,14 +324,46 @@ void readPacket(int packetSize)
   //is this valid data?
   if(id<10 || id>128 || perc<0 || perc>100 || voltage<0 || voltage>100)
   {
-    logger.log(INFO,"Did not recognize packet at time %s",getTimeString(epoch)); 
+    logger.log(INFO,"Did not recognize packet  (id: %d, perc: %d, volt: %d, crc: %d)",id,perc,voltage,crc); 
     logger.sendLogs(wifi.isConnected());
     return;
   }
 
-  //post soil info we just got
+  //post soil info we just got to hub
   postSoil(id,perc,voltage,LoRa.packetRssi());
   logger.sendLogs(wifi.isConnected());
+
+  //post soil percentage we just got to Rachio
+  updateSoilMoisture(id,perc);
+  logger.sendLogs(wifi.isConnected());
+}
+
+void updateSoilMoisture(int sensorId,int perc)
+{
+  //First, convert perc to soil moisture  (TODO: add structure w/ min/max so this is setup-able)
+  //For now, we'll use 20/60 as min max
+  double soilPerc=(perc-20)/(60.0-20.0);  
+  if(soilPerc<0.0)
+    soilPerc=0.0;
+  if(soilPerc>1.0)
+    soilPerc=1.0;
+
+  String zoneId=sensorZones.search(String(sensorId));
+  logger.log(INFO,"Updating Zone %s for Sensor %d with %f",zoneId.c_str(),sensorId,soilPerc); 
+  if(zoneId.length()>0)
+  {
+    //update zone just returned
+    putSoilMoisture(zoneId.c_str(),api,soilPerc);
+
+    //Any linked zones?
+    zoneId=sensorZones.search(zoneId);
+    while(zoneId.length()>0)
+    {
+      logger.log(INFO,"Linked Zone %s found",zoneId.c_str());
+      putSoilMoisture(zoneId.c_str(),api,soilPerc);
+      zoneId=sensorZones.search(zoneId);
+    }
+  }
 }
 
 //put bool named pair into flash

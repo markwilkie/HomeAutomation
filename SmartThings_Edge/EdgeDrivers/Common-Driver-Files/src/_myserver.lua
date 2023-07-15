@@ -194,7 +194,7 @@ local function start_server(driver,device)
     log.info(string.format('**************************  Server started for %s at %s:%s', device.label,commonglobals.server_ip, commonglobals.server_port))
 
     --Add port device list
-    log.info(string.format("Saving port %d for device_network_id: %s  (current device IS id: %s)",commonglobals.server_port,device.device_network_id,device.id))
+    log.info(string.format("Saving port %d for device_network_id: %s",commonglobals.server_port,device.device_network_id))
     device_ports[device.device_network_id]=commonglobals.server_port
 
     --Spawn thread to accept incoming connections
