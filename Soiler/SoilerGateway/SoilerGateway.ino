@@ -9,6 +9,7 @@
 #include "Debug.h"
 #include "logger.h"
 #include "version.h"
+#include "properties.h"
 #include "Wifi.h"
 
 #define HTTPSERVERTIME        0                    // time blocking in server listen for handshaking while in loop  (zero is immediate)
@@ -25,7 +26,7 @@ unsigned long epoch=0;  //Epoch from hub
 Dictionary moistureSensorPorts;
 
 //Rachio
-const char* api=
+const char* api=RACHIO_API_KEY;
 Dictionary sensorZones;
 
 //Display
@@ -65,13 +66,23 @@ void syncEpoch()
 //Update soil moisture % with rachio
 void putSoilMoisture(const char*id,const char*token,double percentage) 
 {
-  //admin
-  DynamicJsonDocument doc(512);
-  doc["id"] = id;
-  doc["percent"] = percentage; 
+  //Manually create payload so that racio likes it
+  //{"id":"eb2067a4-503d-4c96-b3c5-7f1d36836fef","percent":1.0}
+
+  //format percentage
+  char percStr[30];
+  int percInt=percentage*100.0;
+  if(percentage<1)
+    sprintf(percStr,"0.%d",percInt);
+  else
+    sprintf(percStr,"1.0");
+
+  //Create payload
+  char buf[500];
+  sprintf(buf,"{\"id\":\"%s\",\"percent\":%s}",id,percStr);
 
   //send admin data back
-  if(wifi.sendPutMessage("https://api.rach.io/1/public/zone/setMoisturePercent",token,doc))
+  if(wifi.sendPutMessage("https://api.rach.io/1/public/zone/setMoisturePercent",token,buf))
     logger.log(VERBOSE,"Updated Rachio with soil moisture data...");
 }
 
@@ -343,9 +354,9 @@ void updateSoilMoisture(int sensorId,int perc)
   //First, convert perc to soil moisture  (TODO: add structure w/ min/max so this is setup-able)
   //For now, we'll use 20/60 as min max
   double soilPerc=(perc-20)/(60.0-20.0);  
-  if(soilPerc<0.0)
+  if(soilPerc<0)
     soilPerc=0.0;
-  if(soilPerc>1.0)
+  if(soilPerc>1) 
     soilPerc=1.0;
 
   String zoneId=sensorZones.search(String(sensorId));

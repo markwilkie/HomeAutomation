@@ -98,10 +98,10 @@ local function refresh(driver, device)
 
   -- meaning we're a device, not the gateway
   if id>0 then  
-    local secondsSinceUpdate = device:get_latest_state('main', lastupdated.ID, 'LastUpdate')
-    if secondsSinceUpdate ~= nil then
-      secondsSinceUpdate=os.time()-secondsSinceUpdate
-      device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceUpdate))
+    local lastUpdate = device:get_latest_state('main', lastupdated.ID, 'LastUpdate')
+    if lastUpdate ~= nil then
+      local currentTime=os.time()-(7*60*60)
+      device:emit_event(lastupdated.SecondsSinceUpdate(currentTime-lastUpdate))
     end
     return true
   end

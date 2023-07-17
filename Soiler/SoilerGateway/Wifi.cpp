@@ -209,7 +209,7 @@ bool Wifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
   return success;
 }
 
-bool Wifi::sendPutMessage(const char*fullurl,const char*token,DynamicJsonDocument doc)
+bool Wifi::sendPutMessage(const char*fullurl,const char*token,const char*buf)
 {
   if(!isConnected())
   {
@@ -230,8 +230,6 @@ bool Wifi::sendPutMessage(const char*fullurl,const char*token,DynamicJsonDocumen
   //http.addHeader("Host","api.rach.io");
 
   // Send HTTP PUT request
-  String buf;
-  serializeJson(doc, buf);
   INFOPRINT("PUT Content: ");
   INFOPRINTLN(buf);
   int httpResponseCode = http.PUT(buf);
