@@ -1,5 +1,12 @@
+[
 {
 "name":"John",
-"age":30,
-"cars":["Ford", "BMW", "Fiat"]
+"age":30
+},
+"name":"Mark",
+"age":31
+},
+"name":"Wilkie",
+"age":32
 }
+]
