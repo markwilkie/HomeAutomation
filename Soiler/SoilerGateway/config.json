@@ -1,0 +1,32 @@
+[
+  	{
+		"sensorid": "15",
+		"zoneid": "457fe405-7582-4cdc-8672-b28f3bec4bde",
+		"description": "Candy tuffs zone 1"
+	},
+  	{
+		"sensorid": "16",
+		"zoneid": "aff59ede-1d30-4321-bba6-a92e6c23484f",
+		"description": "Flowers - by brick zone 5"
+	},
+  	{
+		"sensorid": "aff59ede-1d30-4321-bba6-a92e6c23484f",
+		"zoneid": "2bf30e06-c054-4791-a4ea-37ea81716ad5",
+		"description": "Flowers - walkway zone 3  (linked to brick zone 5)"
+	},
+  	{
+		"sensorid": "17",
+		"zoneid": "5ad042e5-46e5-4c28-ac01-91107612a77f",
+		"description": "Flowers - side of house zone 7"
+	},
+  	{
+		"sensorid": "19",
+		"zoneid": "eb2067a4-503d-4c96-b3c5-7f1d36836fef",
+		"description": "Garden zone 6"
+	},
+  	{
+		"sensorid": "20",
+		"zoneid": "8190e592-eff7-4463-a4b1-453f579edbed",
+		"description": "Deckpots"
+	}	
+]
