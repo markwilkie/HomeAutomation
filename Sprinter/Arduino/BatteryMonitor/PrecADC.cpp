@@ -37,7 +37,16 @@ void PrecADC::begin()
 {
   //Start ADC
   ads.setGain(gain);  
-  ads.begin();  
+  if(!ads.begin())
+  {
+    Serial.print("ERROR: Unable to find ADC# ");
+    Serial.println(adcNum);
+  }
+  else
+  {
+    Serial.print("Found ADC# ");
+    Serial.println(adcNum);
+  }
 
   //Load calibration values from EEPROM 
   EEPROM_readAnything(EEPROM_PRECADC_ADDR+(adcNum*sizeof(offsetAdj)), offsetAdj);  
@@ -46,16 +55,16 @@ void PrecADC::begin()
   {
      //yup, we've got good values here, let's adjust the offset
      offset=offset+offsetAdj;
-     Serial.print("New calibrated offset: "); Serial.println(offset);
+     Serial.print("New calibrated offset based on EEPROM: "); Serial.println(offset);
   }
   else
     offsetAdj=0;  
 
   //Init time based buffers
-  for(int i=0;i<60;i++) secondBuf.push(-1L);
-  for(int i=0;i<60;i++) minuteBuf.push(-1L);
-  for(int i=0;i<24;i++) hourBuf.push(-1L);
-  for(int i=0;i<30;i++) dayBuf.push(-1L);
+  for(int i=0;i<60;i++) secondBuf.Add(-1L);
+  for(int i=0;i<60;i++) minuteBuf.Add(-1L);
+  for(int i=0;i<24;i++) hourBuf.Add(-1L);
+  for(int i=0;i<30;i++) dayBuf.Add(-1L);
 
   //Zero time tracking
   seconds=0;
@@ -94,27 +103,27 @@ void PrecADC::read()
 
 void PrecADC::add()
 {   
-  secondBuf.push(adcBuffer.getMedian());
+  secondBuf.Add(adcBuffer.getMedian());
 
   seconds++;
   if(seconds>59)  //since 59 is the 60th second, and we add the last (59th) to the second queue before promoting, we need to reset ON the 59th instead of 60th
   {
     seconds=0;
     minutes++;
-    minuteBuf.push(calcAvgFromBuffer(&secondBuf,-1));       
+    minuteBuf.Add(calcAvgFromBuffer(&secondBuf,-1));       
   }
    
   if(minutes>59)
   {
     minutes=0;
     hours++;
-    hourBuf.push(calcAvgFromBuffer(&minuteBuf,-1));     
+    hourBuf.Add(calcAvgFromBuffer(&minuteBuf,-1));     
   }
 
   if(hours>23)
   {
     hours=0;
-    dayBuf.push(calcAvgFromBuffer(&hourBuf,-1));        
+    dayBuf.Add(calcAvgFromBuffer(&hourBuf,-1));        
   }
 }
 
@@ -275,7 +284,7 @@ long PrecADC::calcMilliAmps(long raw,int numOfSamples)
 int PrecADC::getBufferCount(CircularBuffer<long> *circBuffer)
 {
   int actualCount=0;
-  for(int i=0;i<circBuffer->size();i++)
+  for(int i=0;i<circBuffer->Count();i++)
   {
     //Check for make sure it's an initialized value
     if((*circBuffer)[i]!=-1)
@@ -291,7 +300,7 @@ long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucket
 {
   long avg=0;
   int actualCount=0;
-  for(int i=0;i<circBuffer->size();i++)
+  for(int i=0;i<circBuffer->Count();i++)
   {
     //Check for make sure it's an initialized value
     if((*circBuffer)[i]!=-1)
@@ -320,7 +329,7 @@ long PrecADC::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucket
 
 long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer)
 {
-  return calcSumFromBuffer(circBuffer,circBuffer->size());
+  return calcSumFromBuffer(circBuffer,circBuffer->Count());
 }
 
 long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer,int size)
@@ -328,8 +337,8 @@ long PrecADC::calcSumFromBuffer(CircularBuffer<long> *circBuffer,int size)
   long sum=0;
 
   //start from the end of the buffer
-  int start=circBuffer->size()-1;
-  int end=circBuffer->size()-size-1;
+  int start=circBuffer->Count()-1;
+  int end=circBuffer->Count()-size-1;
     
   for(int i=start;i>end;i--)
   {

@@ -4,8 +4,10 @@
 #include <RTClib.h>
 #include <Adafruit_RGBLCDShield.h>
 #include <utility/Adafruit_MCP23017.h>
+#include <EasyTransfer.h>  //https://github.com/madsci1016/Arduino-EasyTransfer
 
 //Helpers
+#include "SerialPayload.h"
 #include "PrecADCList.h"
 #include "LcdScreens.h"
 #include "Battery.h"
@@ -14,14 +16,22 @@
 //setup
 RTC_DS3231 rtc;
 Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
+
+//current sensors
 PrecADCList precADCList = PrecADCList();
 
 //Battery
 Battery battery = Battery();
 
+//Serial protocol for coms with screen
+EasyTransfer scrSerial;
+SERIAL_PAYLOAD_STRUCTURE scrPayload;
+
+//For debugging
+#define SIMULATED_CURRENT_VALUES
+
 //Init onboard ADC buffer
 #define ADC_SAMPLE_SIZE 10
-FastRunningMedian<long,ADC_SAMPLE_SIZE,0> adcBuffer;
 
 //Thermistor (thermometer)
 #define THERMISTORPIN A1   // which analog pin to connect      
@@ -38,8 +48,17 @@ int hz;
 
 void setup() 
 {
-  Serial.begin(57600);
+  //Debug serial
+  Serial.begin(115200);
   Serial.println("Initializing...");
+
+  //Screen serial
+  Serial1.begin(115200);
+  delay(2000);
+  scrSerial.begin(details(scrPayload), &Serial1);
+
+  //Pause to catch our breath
+  delay(1000);
 
   //setup lcd
   setupLCD();
@@ -95,12 +114,15 @@ void loop()
     //Adding to the time based buffers
     precADCList.add();  
 
+    //Update screen
+    updateRemoteScreen();    
+
     //If backlight has been on long enough, turn off
     if(currentTime>(backlightOnTime+BACKLIGHT_DURATION))
       backlightOff();
 
     //Update LCD
-    printCurrentScreen();      
+    printCurrentScreen();   
 
     //Once a minute, we add/subtract the mA to the current battery charge  (only do this once)
     if(!(currentTime % 60))
@@ -118,6 +140,38 @@ void loop()
       battery.adjustAh(mAhFlow);
     }       
   }
+}
+
+void updateRemoteScreen()
+{
+  //Load data structure to send to screen
+  #ifndef SIMULATED_CURRENT_VALUES
+  updatePayload();
+  #else
+  updatePayloadDebug();
+  #endif
+
+  Serial.println(scrPayload.solarAh);
+
+  //Send data
+  scrSerial.sendData();
+}
+
+void updatePayload()
+{
+  scrPayload.stateOfCharge=battery.getSoC();
+  scrPayload.volts=battery.getVolts();
+  //scrPayload.ampHours=(double)precADCList.getCurrent()*.001;
+  scrPayload.hoursRem=battery.getHoursRemaining(precADCList.getCurrent());
+}
+
+void updatePayloadDebug()
+{
+  scrPayload.stateOfCharge=random(100);
+  scrPayload.volts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
+  scrPayload.solarAh=((double)random(150))/10.0;  // 0 --> 15.0
+  scrPayload.drawAh=((double)random(250))/10.0;
+  scrPayload.hoursRem=((double)random(99))/10.0;;
 }
 
 void printStatus()
@@ -141,7 +195,7 @@ void printStatus()
   Serial.print("Hz: "); Serial.println(hz);
   Serial.print("Current Second: "); Serial.println(currentTime);
   Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(socReset,buffer));
-  Serial.print("Uptime: "); Serial.println(buildTimeLabel(startTime,buffer)); 
+  Serial.print("Uptime: "); Serial.println(buildTimeLabel(currentTime-bootTime,buffer)); 
   Serial.print("Duty Cycle: "); Serial.println(battery.getDutyCycle(),1); 
   Serial.print("V Min: "); Serial.println(battery.getVMin(),1); 
   Serial.print("V Max: "); Serial.println(battery.getVMax(),1); 
@@ -188,14 +242,14 @@ char *buildTimeLabel(long seconds,char *buffer)
 double temperatureRead()
 {
   //Read ADC
-  adcBuffer.clear();
+  long totRead=0;  
   for(int i=0;i<ADC_SAMPLE_SIZE;i++)
   {
-    adcBuffer.addValue(analogRead(THERMISTORPIN));
+    totRead=totRead+analogRead(THERMISTORPIN);
   }  
 
   // convert the value to resistance
-  float average = 1023.0 / adcBuffer.getMedian() - 1.0;
+  float average = 1023.0 / (totRead/ADC_SAMPLE_SIZE) - 1.0;
   average = SERIESRESISTOR / average;
 
   //Use Steinhart to convert to temperature

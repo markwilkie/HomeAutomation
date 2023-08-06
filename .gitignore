@@ -62,3 +62,4 @@ Azure/WilkieHomeAutomation/WilkieHomeAutomation.sdf
 Azure/SensorWebApp/packages/*.*
 RPi/RFHub/browse.VC.db
 Soiler/SoilerGateway/properties.h
+Sprinter/Arduino/ArduinoOutput/

@@ -8,9 +8,9 @@ void Battery::begin(long _vcc,double _temperature,long rtcNow)
   vcc=_vcc;
   
   //Init time based buffers
-  for(int i=0;i<6;i++) mVMinBuf.push(-1L);
-  for(int i=0;i<20;i++) mVTenthHourBuf.push(-1L);
-  for(int i=0;i<32;i++) mVGraphBuf.push(-1L);  
+  for(int i=0;i<6;i++) mVMinBuf.Add(-1L);
+  for(int i=0;i<20;i++) mVTenthHourBuf.Add(-1L);
+  for(int i=0;i<32;i++) mVGraphBuf.Add(-1L);  
 
   //Let's start with assuming full battery
   mAhRemaining=AH*1000L;  
@@ -139,14 +139,14 @@ void Battery::readThenAdd(long rtcNow)
   if(mv>=BAT_CHARGE)
     chargeTime=rtcNow;
 
-  //Add current reading to circularbuffers
-  mVMinBuf.push(mv);
+  //Add current reading to CircularBufferlibs
+  mVMinBuf.Add(mv);
 
   minutes++;
   if(minutes>=6)
   {
     minutes=0;
-    mVTenthHourBuf.push(calcAvgFromBuffer(&mVMinBuf,-1));     
+    mVTenthHourBuf.Add(calcAvgFromBuffer(&mVMinBuf,-1));     
   }
 
   //Graphing
@@ -159,7 +159,7 @@ void Battery::readThenAdd(long rtcNow)
   {
     graphMinutes=0;
     int graphChar=getGraphEntry(mv,true);
-    mVGraphBuf.push(graphChar);     
+    mVGraphBuf.Add(graphChar);     
   }
 }
 
@@ -169,13 +169,13 @@ long Battery::getMilliVolts()
   analogRead(A0);
   
   //Read ADC
-  adcBuffer.clear();
+  long totRead=0;
   for(int i=0;i<VOLTAGE_SAMPLE_SIZE;i++)
   {
-    adcBuffer.addValue(analogRead(A0));
+    totRead=totRead+analogRead(A0);
   }
 
-  long mv=(adcBuffer.getMedian() * vcc) / 1024 ; // convert readings to mv    
+  long mv=((totRead/VOLTAGE_SAMPLE_SIZE) * vcc) / 1024 ; // convert readings to mv    
 
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
   mv = mv * 4.95;  
@@ -306,7 +306,7 @@ double Battery::getDutyCycle()
 {  
   //Figure dity cycle
   int chargeCount=0;
-  for(int i=0;i<mVTenthHourBuf.size();i++)
+  for(int i=0;i<mVTenthHourBuf.Count();i++)
   {
     //Check for make sure it's an initialized value
     if(mVTenthHourBuf[i]!=-1)
@@ -320,7 +320,7 @@ double Battery::getDutyCycle()
   } 
 
   //Calc duty cycle
-  double dutyCycle=chargeCount/mVTenthHourBuf.size(); 
+  double dutyCycle=chargeCount/mVTenthHourBuf.Count(); 
   return (dutyCycle);
 }
 
@@ -328,7 +328,7 @@ long Battery::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucket
 {
   long avg=0;
   int actualCount=0;
-  for(int i=0;i<circBuffer->size();i++)
+  for(int i=0;i<circBuffer->Count();i++)
   {
     //Check for make sure it's an initialized value
     if((*circBuffer)[i]!=-1)

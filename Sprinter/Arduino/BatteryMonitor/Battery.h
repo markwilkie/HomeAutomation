@@ -6,7 +6,7 @@
 #ifndef BATTERY_H
 #define BATTERY_H
 
-#include <CircularBuffer.h>   //https://github.com/rlogiacco/CircularBuffer
+#include "CircularBufferLib.h"   //https://github.com/luisllamasbinaburo/Arduino-CircularBuffer  
 
 class Battery {
 private:
@@ -45,7 +45,6 @@ private:
 
   //Init onboard ADC buffer
   #define VOLTAGE_SAMPLE_SIZE 10
-  FastRunningMedian<long,VOLTAGE_SAMPLE_SIZE,0> adcBuffer;  
 
   //Members
   double calcSoCbyVoltage(double temperature);

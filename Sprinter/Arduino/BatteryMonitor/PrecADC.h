@@ -6,8 +6,8 @@
 #ifndef PRECADC_H
 #define PRECADC_H
 
-#include <Adafruit_ADS1015.h>
-#include <CircularBuffer.h>   //https://github.com/rlogiacco/CircularBuffer
+#include <Adafruit_ADS1X15.h>
+#include "CircularBufferLib.h"   //https://github.com/luisllamasbinaburo/Arduino-CircularBuffer
 
 class PrecADC {
 private:
