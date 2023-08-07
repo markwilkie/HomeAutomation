@@ -2,9 +2,12 @@
 #include <SPI.h>
 #include <EasyTransfer.h>  //https://github.com/madsci1016/Arduino-EasyTransfer
 
+#include "Screen.h"
 #include "SerialPayload.h"
 #include "LinearMeter.h"
 #include "CircularMeter.h"
+
+//#define SIMULATED_VALUES
 
 //Serial protocol for coms with master arduino
 EasyTransfer scrSerial;
@@ -12,15 +15,15 @@ SERIAL_PAYLOAD_STRUCTURE scrPayload;
 
 //Screen lib
 TFT_eSPI tft = TFT_eSPI();
+LCDBackLight backLight;
 
-//Screen defines
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 240
+//Screen
+Screen screen;
 
 //Meters
 CircularMeter centerOutMeter;
 CircularMeter centerInMeter;
-LinearMeter voltageMeter;
+LinearMeter socMeter;
 LinearMeter waterMeter;
 
 void setup(void) 
@@ -33,31 +36,56 @@ void setup(void)
   scrSerial.begin(details(scrPayload), &Serial1);
 
   //Setup screen
-  tft.begin();
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK);
+  screen.init();
 
-  //Init meters
-  centerOutMeter.initMeter(tft,0,15,SCREEN_WIDTH/2,SCREEN_HEIGHT/2,90,RED2GREEN); 
-  centerInMeter.initMeter(tft,0,25,SCREEN_WIDTH/2,SCREEN_HEIGHT/2,70,GREEN2RED); 
-  voltageMeter.drawMeter(tft,"V", 10, 15, 15, 4, 1, 20, 50, 150, 36);
-  //waterMeter.drawMeter(tft,"Wtr", 0, 100, 100, 10, 3, 260, 50, 150, 36);
-  waterMeter.drawMeter(tft,"Wtr", 10, 15, 100, 10, 2, 260, 50, 150, 36);
+  //Init circular meters
+  int cx=SCREEN_WIDTH/2;
+  int cy=(SCREEN_HEIGHT/2)+10;
+  centerOutMeter.initMeter(0,20,cx,cy,90,RED2GREEN); 
+  centerInMeter.initMeter(0,20,cx,cy,70,GREEN2RED); 
+
+  //Linear meters
+  //(TFT_eSPI,label,vmin,vmax,scale,ticks,majorTicks,x,y,height,width);
+  int lx=10; int ly=60; int width=36;
+  socMeter.drawMeter("SoC", 50, 100, 100, 9, 5, lx, ly, 150, width);
+  waterMeter.drawMeter("Wtr", 0, 100, 100, 5, 3, SCREEN_WIDTH-width-lx, ly, 150, width);
 }
 
 void loop() 
 {
+  //Screen housekeeping (brightness, buttons, etc)
+  screen.houseKeeping();
+
+  //Load simulated values
+  bool simulatedValuesFlag=false;
+  #ifdef SIMULATED_VALUES
+  simulatedValuesFlag=true;
+  simulateValues();
+  delay(1000);
+  #endif
+
   //check and see if a data packet has come in. 
-  if(scrSerial.receiveData())
+  if(scrSerial.receiveData() || simulatedValuesFlag)
   {
     //update center meter
-    centerOutMeter.drawMeter(scrPayload.solarAh);
+    centerOutMeter.drawMeter(scrPayload.chargeAh);
     centerInMeter.drawMeter(scrPayload.drawAh);
+    centerInMeter.drawText("Ah",scrPayload.chargeAh-scrPayload.drawAh);
 
     //update linear meters
-    voltageMeter.updatePointer(scrPayload.volts,2,1);
-    waterMeter.updatePointer(scrPayload.volts,3,0);   //REMEMBER TO CHANGE SCALE BACK
+    socMeter.updatePointer(scrPayload.stateOfCharge,2,0);
+    waterMeter.updatePointer(scrPayload.stateOfWater,2,0);
   }
+}
+
+void simulateValues()
+{
+  scrPayload.stateOfCharge=random(50)+50;  // 50-->100
+  scrPayload.stateOfWater=random(100);
+  scrPayload.volts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
+  scrPayload.chargeAh=((double)random(150))/10.0;  // 0 --> 15.0
+  scrPayload.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
+  scrPayload.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 }
 
 

@@ -1,27 +1,26 @@
+#include <Arduino.h>
 #include <Wire.h>  
 
 //component specific includes
 #include <RTClib.h>
-#include <Adafruit_RGBLCDShield.h>
-#include <utility/Adafruit_MCP23017.h>
 #include <EasyTransfer.h>  //https://github.com/madsci1016/Arduino-EasyTransfer
 
 //Helpers
 #include "SerialPayload.h"
 #include "PrecADCList.h"
-#include "LcdScreens.h"
 #include "Battery.h"
+#include "WaterTank.h"
 #include "debug.h"
 
 //setup
 RTC_DS3231 rtc;
-Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
 
 //current sensors
 PrecADCList precADCList = PrecADCList();
 
-//Battery
+//Battery and water tank
 Battery battery = Battery();
+WaterTank waterTank = WaterTank();
 
 //Serial protocol for coms with screen
 EasyTransfer scrSerial;
@@ -60,9 +59,6 @@ void setup()
   //Pause to catch our breath
   delay(1000);
 
-  //setup lcd
-  setupLCD();
-
   //setup MEGA ADC to 2.56 for reading battery voltage
   //analogReference(INTERNAL2V56);
 
@@ -73,8 +69,9 @@ void setup()
   //Precision ADC circuit buffers
   precADCList.begin();
 
-  //Battery
+  //Battery and Water tank
   battery.begin(readVcc(),temperatureRead(),rtc.now().unixtime());
+  waterTank.init();
  
   //init vars
   bootTime = rtc.now().unixtime();
@@ -83,7 +80,6 @@ void setup()
 
   //Display
   Serial.println("Monitor Started");
-  startLCD();
   printSetupCommands();
 }
 
@@ -94,7 +90,6 @@ void loop()
   loophz++;
 
   //check serial input for setup, or lcd button presses
-  handleButtonPresses();
   readChar();
 
   //read precision ADCs 
@@ -116,13 +111,6 @@ void loop()
 
     //Update screen
     updateRemoteScreen();    
-
-    //If backlight has been on long enough, turn off
-    if(currentTime>(backlightOnTime+BACKLIGHT_DURATION))
-      backlightOff();
-
-    //Update LCD
-    printCurrentScreen();   
 
     //Once a minute, we add/subtract the mA to the current battery charge  (only do this once)
     if(!(currentTime % 60))
@@ -151,8 +139,6 @@ void updateRemoteScreen()
   updatePayloadDebug();
   #endif
 
-  Serial.println(scrPayload.solarAh);
-
   //Send data
   scrSerial.sendData();
 }
@@ -162,16 +148,18 @@ void updatePayload()
   scrPayload.stateOfCharge=battery.getSoC();
   scrPayload.volts=battery.getVolts();
   //scrPayload.ampHours=(double)precADCList.getCurrent()*.001;
-  scrPayload.hoursRem=battery.getHoursRemaining(precADCList.getCurrent());
+  scrPayload.batteryHoursRem=battery.getHoursRemaining(precADCList.getCurrent());
 }
 
 void updatePayloadDebug()
 {
-  scrPayload.stateOfCharge=random(100);
+  scrPayload.stateOfCharge=random(50)+50;  // 50-->100
+  scrPayload.stateOfWater=waterTank.readLevel(); //random(100);
   scrPayload.volts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
-  scrPayload.solarAh=((double)random(150))/10.0;  // 0 --> 15.0
-  scrPayload.drawAh=((double)random(250))/10.0;
-  scrPayload.hoursRem=((double)random(99))/10.0;;
+  scrPayload.chargeAh=((double)random(150))/10.0;  // 0 --> 15.0
+  scrPayload.drawAh=((double)random(250))/10.0;    // 0 --> 25.0
+  scrPayload.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
+  scrPayload.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 }
 
 void printStatus()

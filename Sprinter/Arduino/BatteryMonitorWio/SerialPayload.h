@@ -5,9 +5,11 @@
 
 struct SERIAL_PAYLOAD_STRUCTURE
 {
-  float_t stateOfCharge;
-  float_t volts;
-  float_t solarAh;
-  float_t drawAh;
-  float_t hoursRem;
+  float stateOfCharge;
+  float stateOfWater;
+  float volts;
+  float chargeAh;
+  float drawAh;
+  float batteryHoursRem;
+  float waterDaysRem;
 };

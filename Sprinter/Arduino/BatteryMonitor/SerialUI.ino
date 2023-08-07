@@ -9,7 +9,6 @@ void printSetupCommands()
   Serial.println("  '?' --> print this message");
   Serial.println("  'p' --> print current status");
   Serial.println("  'c', then '0-3' to calibrate a specific sensor");
-  Serial.println("  'b' --> toggles backlight");
   Serial.println("");
   
   Serial.println(" Modes:");
@@ -38,29 +37,11 @@ void readChar()
             case '?':
               printSetupCommands();
               break;
-            case 'b':
-              toggleBacklight();
-              break;
             case 'c':
               Serial.println("=====================");
               Serial.println("Type ADC number: (0-low pwr, 1-solar, 2-inverter, 3-starter)");
               mode='c';     
-              break;
-            case '<':
-              buttonPressed=LEFT;
-              break;
-            case '>':
-              buttonPressed=RIGHT;
-              break;              
-            case 'u':
-              buttonPressed=UP;
-              break;          
-            case 'd':
-              buttonPressed=DOWN;
-              break;    
-            case 's':
-              buttonPressed=SELECT;
-              break;               
+              break;            
            }
         }
         else

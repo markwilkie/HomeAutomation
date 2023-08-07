@@ -6,14 +6,16 @@
 #define TFT_GREY 0x5AEB
 
 #define POINTER_WIDTH 16
-#define POINTER_HEIGTH 20
+#define POINTER_HEIGHT 10
 #define METER_BORDER 3
-#define METER_CAP_HEIGTH 19
+#define METER_CAP_HEIGHT 19
+
+extern TFT_eSPI tft;
 
 class LinearMeter 
 {
     private:
-        TFT_eSPI tft;
+        
         int x,y;
         int vmin,vmax;
         int scale;
@@ -22,7 +24,7 @@ class LinearMeter
         int oldValue=-1;
 
     public:
-        void drawMeter(TFT_eSPI tft,char* label,int vmin, int vmax, int scale, int ticks, int majorTicks, int x, int y, int height, int width);
+        void drawMeter(char* label,int vmin, int vmax, int scale, int ticks, int majorTicks, int x, int y, int height, int width);
         void updatePointer(float value, int digits, int dec);
 };
 
