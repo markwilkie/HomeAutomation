@@ -145,10 +145,16 @@ void updateRemoteScreen()
 
 void updatePayload()
 {
+  double drawCurrent=((double)precADCList.getADC(0)->getCurrent())+((double)precADCList.getADC(2)->getCurrent());  //aux and inverter
+  double chargeCurrent=((double)precADCList.getADC(1)->getCurrent())+((double)precADCList.getADC(3)->getCurrent());  //solar and alternator
+
   scrPayload.stateOfCharge=battery.getSoC();
+  scrPayload.stateOfWater=waterTank.readLevel();
   scrPayload.volts=battery.getVolts();
-  //scrPayload.ampHours=(double)precADCList.getCurrent()*.001;
+  scrPayload.chargeAh=chargeCurrent*.001;
+  scrPayload.drawAh=drawCurrent*.001;
   scrPayload.batteryHoursRem=battery.getHoursRemaining(precADCList.getCurrent());
+  scrPayload.waterDaysRem=0;
 }
 
 void updatePayloadDebug()
