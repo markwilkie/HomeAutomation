@@ -22,6 +22,7 @@
 
 extern TFT_eSPI tft;
 extern LCDBackLight backLight;
+extern bool simulatedData;
 
 class Screen 
 {
@@ -37,6 +38,7 @@ class Screen
     public:
         void init();
         void houseKeeping();
+        void drawText(int x,int y,float value,int dec,const char *label,int fontSize);        
 };
 
 #endif
