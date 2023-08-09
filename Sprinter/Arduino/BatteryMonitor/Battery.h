@@ -58,7 +58,7 @@ public:
    void begin(long vcc,double temperature,long rtcNow); //starts stuff up and inits buffer
    void readThenAdd(long rtcNow); //reads according to sample size, then adds the result to the circular buffer
    double getVolts();
-   void calibrateVoltage(long currentMilliVolts);
+   void calibrateVoltage(float calibVolts);
    double getSoC() const { return stateOfCharge; }
    long getSoCReset() const { return socReset; }
    double getVMax() const { return vMax*.001; }

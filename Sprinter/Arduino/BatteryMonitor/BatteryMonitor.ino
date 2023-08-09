@@ -27,7 +27,7 @@ EasyTransfer scrSerial;
 SERIAL_PAYLOAD_STRUCTURE scrPayload;
 
 //For debugging
-#define SIMULATED_CURRENT_VALUES
+//#define SIMULATED_CURRENT_VALUES
 
 //Init onboard ADC buffer
 #define ADC_SAMPLE_SIZE 10
@@ -52,7 +52,7 @@ void setup()
   Serial.println("Initializing...");
 
   //Screen serial
-  Serial1.begin(921600);
+  Serial1.begin(115200);
   delay(2000);
   scrSerial.begin(details(scrPayload), &Serial1);
 
@@ -145,14 +145,14 @@ void updateRemoteScreen()
 
 void updatePayload()
 {
-  double drawCurrent=((double)precADCList.getADC(0)->getCurrent())+((double)precADCList.getADC(2)->getCurrent());  //aux and inverter
-  double chargeCurrent=((double)precADCList.getADC(1)->getCurrent())+((double)precADCList.getADC(3)->getCurrent());  //solar and alternator
+  float drawCurrent=((float)precADCList.getADC(0)->getCurrent())+((float)precADCList.getADC(2)->getCurrent());  //aux and inverter
+  float chargeCurrent=((float)precADCList.getADC(1)->getCurrent())+((float)precADCList.getADC(3)->getCurrent());  //solar and alternator
 
   scrPayload.stateOfCharge=battery.getSoC();
   scrPayload.stateOfWater=waterTank.readLevel();
   scrPayload.volts=battery.getVolts();
   scrPayload.chargeAh=chargeCurrent*.001;
-  scrPayload.drawAh=drawCurrent*.001;
+  scrPayload.drawAh=drawCurrent*-.001;
   scrPayload.batteryHoursRem=battery.getHoursRemaining(precADCList.getCurrent());
   scrPayload.waterDaysRem=0;
 }

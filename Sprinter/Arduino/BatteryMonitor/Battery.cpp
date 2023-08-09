@@ -168,7 +168,7 @@ void Battery::readThenAdd(long rtcNow)
   }
 }
 
-void Battery::calibrateVoltage(long calibMilliVolts)
+void Battery::calibrateVoltage(float calibVolts)
 {
   //Read ADC
   long totRead=0;
@@ -178,7 +178,7 @@ void Battery::calibrateVoltage(long calibMilliVolts)
   }
 
   //calibrate new factor
-  float factor=calibMilliVolts/(((totRead/VOLTAGE_SAMPLE_SIZE) * vcc) / 1024);
+  float factor=(calibVolts*1000)/(((totRead/VOLTAGE_SAMPLE_SIZE) * vcc) / 1024);
 
   //save to EEPROM
   Serial.print("Current factor: "); Serial.println(voltageCalibFactor);
@@ -204,7 +204,8 @@ long Battery::getMilliVolts()
   long mv=((totRead/VOLTAGE_SAMPLE_SIZE) * vcc) / 1024 ; // convert readings to mv    
 
   //voltage divider ratio = 5.137, r2/(r1+r2) where r1=10.33K and r2=2.497K
-  mv = mv * 4.95;  
+  //mv = mv * 4.95;  ;
+  mv = mv * voltageCalibFactor;
 
   #ifdef DEBUG
     mv = 14200;
