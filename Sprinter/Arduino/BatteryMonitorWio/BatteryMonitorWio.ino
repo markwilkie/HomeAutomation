@@ -24,6 +24,12 @@ CircularMeter centerInMeter;
 LinearMeter socMeter;
 LinearMeter waterMeter;
 
+//Dynamic text
+Text battHoursLeft;
+Text waterDaysLeft;
+Text volts;
+Text hertz;
+
 //Globals
 bool simulatedData=false;
 int loopCntr=0;
@@ -36,7 +42,7 @@ void setup(void)
     Serial.begin(115200);
 
     //Setup serial for coms with master
-    Serial1.begin(115200);
+    Serial1.begin(921600);
     scrSerial.begin(details(scrPayload), &Serial1);
 
     //Setup screen
@@ -66,16 +72,7 @@ void setup(void)
 
 void loop() 
 {
-  //Calc hz
-  loopCntr++;
-  if(millis()>(hzTimer+1000))
-  {
-    hz=loopCntr;
-    loopCntr=0;
-    hzTimer=millis();
-  }
-
-  //Screen housekeeping (brightness, buttons, etc)
+   //Screen housekeeping (brightness, buttons, etc)
   screen.houseKeeping();
 
   //Load simulated values
@@ -88,6 +85,15 @@ void loop()
   //check and see if a data packet has come in. 
   if(scrSerial.receiveData() || simulatedData)
   {
+    //Calc hz
+    loopCntr++;
+    if(millis()>(hzTimer+1000))
+    {
+      hz=loopCntr;
+      loopCntr=0;
+      hzTimer=millis();
+    }    
+
     //update center meter
     centerOutMeter.drawMeter(scrPayload.chargeAh);
     centerInMeter.drawMeter(scrPayload.drawAh);
@@ -98,10 +104,10 @@ void loop()
     waterMeter.updatePointer(scrPayload.stateOfWater,2,0);
 
     //update text values
-    screen.drawText(125,200,scrPayload.volts,1,"V",4);
-    screen.drawText(10,190,scrPayload.batteryHoursRem,1," Hrs",2);
-    screen.drawText(265,190,scrPayload.waterDaysRem,1," Dys",2);
-    screen.drawText(280,220,hz,0,"Hz",2);
+    volts.drawText(125,200,scrPayload.volts,1,"V",4);
+    battHoursLeft.drawText(10,190,scrPayload.batteryHoursRem,1," Hrs",2);
+    waterDaysLeft.drawRightText(SCREEN_WIDTH-10,190,scrPayload.waterDaysRem,1," Dys",2);
+    hertz.drawRightText(SCREEN_WIDTH-10,220,hz,0,"Hz",2);
   }
 }
 

@@ -1,11 +1,16 @@
 #include "Battery.h"
 #include "Arduino.h"
 #include "debug.h"
+#include "EEPROMAnything.h"
 
 void Battery::begin(long _vcc,double _temperature,long rtcNow)
 {
   //Set reference vcc
   vcc=_vcc;
+
+  //Grab current voltage calibration factor
+  EEPROM_readAnything(EEPROM_VOLTAGE_ADDR, voltageCalibFactor);
+  Serial.print("Current voltage calibration factor: "); Serial.println(voltageCalibFactor);  
   
   //Init time based buffers
   for(int i=0;i<6;i++) mVMinBuf.Add(-1L);
@@ -163,6 +168,27 @@ void Battery::readThenAdd(long rtcNow)
   }
 }
 
+void Battery::calibrateVoltage(long calibMilliVolts)
+{
+  //Read ADC
+  long totRead=0;
+  for(int i=0;i<VOLTAGE_SAMPLE_SIZE;i++)
+  {
+    totRead=totRead+analogRead(A0);
+  }
+
+  //calibrate new factor
+  float factor=calibMilliVolts/(((totRead/VOLTAGE_SAMPLE_SIZE) * vcc) / 1024);
+
+  //save to EEPROM
+  Serial.print("Current factor: "); Serial.println(voltageCalibFactor);
+  Serial.print("New factor: "); Serial.println(factor);
+
+  //Save to offset EEPROM
+  EEPROM_writeAnything(EEPROM_VOLTAGE_ADDR, factor);    
+  voltageCalibFactor=factor;
+}
+
 long Battery::getMilliVolts()
 {
   //Clear the ADC's throat
@@ -298,6 +324,12 @@ double Battery::getHoursRemaining(long mAflow)
   {
     hoursRemaining=(mAhRemaining/(mAflow*-1.0)); //hours to 50% charge
   }
+
+  //Normalize data
+  if(hoursRemaining<0)
+    hoursRemaining=0;
+  if(hoursRemaining>99)
+    hoursRemaining=99;
 
   return hoursRemaining;
 }

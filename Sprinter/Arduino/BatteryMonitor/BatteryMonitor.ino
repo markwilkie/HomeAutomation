@@ -52,7 +52,7 @@ void setup()
   Serial.println("Initializing...");
 
   //Screen serial
-  Serial1.begin(115200);
+  Serial1.begin(921600);
   delay(2000);
   scrSerial.begin(details(scrPayload), &Serial1);
 

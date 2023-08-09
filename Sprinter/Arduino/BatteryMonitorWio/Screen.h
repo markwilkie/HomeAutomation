@@ -37,8 +37,20 @@ class Screen
 
     public:
         void init();
-        void houseKeeping();
-        void drawText(int x,int y,float value,int dec,const char *label,int fontSize);        
+        void houseKeeping();        
+};
+
+class Text 
+{
+    private:
+        int lastX, lastY, lastLen, lastHeight;
+        bool lastRightFlag;
+
+        void drawText(int x,int y,float value,int dec,const char *label,int font,bool rightFlag);
+
+    public:
+        void drawText(int x,int y,float value,int dec,const char *label,int font);
+        void drawRightText(int x,int y,float value,int dec,const char *label,int font);
 };
 
 #endif
