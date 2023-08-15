@@ -1,4 +1,13 @@
 
+# Requirements / Components
+- V2.0.9 of the ESP32 Arduino Core  (https://github.com/espressif/arduino-esp32/releases)  V1.6 was very undstable when using I2C.
+- FireBeetle ESP32 board  (https://www.dfrobot.com/product-1590.htm)
+- Longan Canbed Dual board (https://docs.longan-labs.cc/1030019/)
+- LCD screen (I'm using SK-pixxiLCD-39P4-CTP from 4D Systems)
+- Pressure sensor for altitude and MAF.  (I'm using MPL3115A2 from Adafruit)
+- Differential pressure sensor for pitot. (I'm using P1J-12.5MB-AX16PA https://www.sensata.com/products/pressure-sensors-switches/p1j-low-pressure-sensor-125-mbar-i2c-p1j-125mb-ax16pa)
+- Real Time Clock (I'm using PCF8523 from Adafruit)
+
 # Screens
 
 #### Main Screen
@@ -61,12 +70,3 @@
 ## Paper Trails Logging
 - Current URL is https://my.papertrailapp.com/systems/tripdisplay/events to see logging events 
 - Sadly, these values are hard coded.....
-
-# Requirements / Components
-- V2.0.9 of the ESP32 Arduino Core  (https://github.com/espressif/arduino-esp32/releases)  V1.6 was very undstable when using I2C.
-- ESP32 (I'm using DF Robot's Firebeetle https://www.dfrobot.com/product-1590.html)
-- CAN bus controller (I'm using Canbed Dual from https://docs.longan-labs.cc/1030019/)
-- LCD screen (I'm using SK-pixxiLCD-39P4-CTP from 4D Systems)
-- Pressure sensor for altitude and MAF.  (I'm using MPL3115A2 from Adafruit)
-- Differential pressure sensor for pitot. (I'm using P1J-12.5MB-AX16PA https://www.sensata.com/products/pressure-sensors-switches/p1j-low-pressure-sensor-125-mbar-i2c-p1j-125mb-ax16pa)
-- Real Time Clock (I'm using PCF8523 from Adafruit)

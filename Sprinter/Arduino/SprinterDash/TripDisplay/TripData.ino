@@ -19,6 +19,7 @@ void TripData::resetTripData()
     data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;  //mostly so that fuel fill up doesn't get tripped
     data.lastElevation=currentDataPtr->currentElevation;
 
+    data.priorTotalGallonsUsed=0;
     data.lastMiles=data.startMiles;
     data.priorTotalMiles=0;
     data.ignOffSeconds=0;
@@ -87,6 +88,7 @@ void TripData::dumpTripData()
     logger.log(INFO,"   Stopped Seconds: %lu",data.totalStoppedSeconds);
     logger.log(INFO,"   Num of Stops: %d",data.numberOfStops);
     logger.log(INFO,"   Stopped fuel: %d",data.stoppedFuelPerc);
+    logger.log(INFO,"   Prior Gallons: %f",data.priorTotalGallonsUsed);
     logger.log(INFO,"   Total Climb: %ld",data.totalClimb);
 }
 
@@ -96,10 +98,14 @@ void TripData::ignitionOff()
     data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;        
     data.ignOffSeconds=currentDataPtr->currentSeconds;
     data.numberOfStops++;
+
+    updateFuelGallonsUsed();
 }
 
 void TripData::ignitionOn()
 {
+    updateFuelGallonsUsed();
+
     int totalSecondsOff=currentDataPtr->currentSeconds-data.ignOffSeconds;
     if(totalSecondsOff>3600)
         data.totalParkedSeconds=data.totalParkedSeconds+totalSecondsOff;
@@ -115,7 +121,7 @@ void TripData::updateElevation()
 {
 
     //Calc elevation gained
-    int currentElevation=currentDataPtr->currentElevation;
+    long currentElevation=currentDataPtr->currentElevation;
     if(currentElevation>0)
     {
         if(currentElevation>data.lastElevation)
@@ -186,12 +192,16 @@ double TripData::getParkedTime()
     return(hours);
 }
 
-// in gallons
-double TripData::getFuelGallonsUsed()
+void TripData::updateFuelGallonsUsed()
 {
+    //Get current fuel tank level
     int currentFuelPerc=currentDataPtr->currentFuelPerc;
     if(currentFuelPerc<1)
         return 0;
+
+    //Make sure we've got a valid start perc
+    if(data.startFuelPerc < 1)
+        data.startFuelPerc=currentFuelPerc;
 
     //Did we fill up since we last stopped?
     if(currentFuelPerc>(data.stoppedFuelPerc+10)) 
@@ -199,16 +209,21 @@ double TripData::getFuelGallonsUsed()
         logger.log(INFO,"Fueled up.  Tank now at %d",currentFuelPerc);
 
         //Calc gallons used *before* the fillup
-        priorTotalGallonsUsed=FUEL_TANK_SIZE*((double)(data.startFuelPerc-data.stoppedFuelPerc)/100.0); 
+        data.priorTotalGallonsUsed=FUEL_TANK_SIZE*((double)(data.startFuelPerc-data.stoppedFuelPerc)/100.0); 
         data.startFuelPerc=currentFuelPerc;
         data.stoppedFuelPerc=currentFuelPerc;
     }
 
     //Calc current gallons used
-    double gallonsUsed = FUEL_TANK_SIZE*((double)(data.startFuelPerc-currentFuelPerc)/100.0);
-    gallonsUsed=gallonsUsed+priorTotalGallonsUsed;
+    fuelGallonsUsed = FUEL_TANK_SIZE*((double)(data.startFuelPerc-currentFuelPerc)/100.0);
+    fuelGallonsUsed=fuelGallonsUsed+data.priorTotalGallonsUsed;
+}
 
-    return gallonsUsed;
+// in gallons
+double TripData::getFuelGallonsUsed()
+{
+    updateFuelGallonsUsed();
+    return fuelGallonsUsed;
 }
 
 double TripData::getHeaterGallonsUsed()
@@ -217,7 +232,7 @@ double TripData::getHeaterGallonsUsed()
     
     //Make sure we didn't fill up at our stop
     double gallonsUsed=0.0;
-    if(currentFuelPerc>data.stoppedFuelPerc) 
+    if(currentFuelPerc<data.stoppedFuelPerc && currentFuelPerc>0) 
     {
         gallonsUsed = FUEL_TANK_SIZE*((double)(data.stoppedFuelPerc-currentFuelPerc)/100.0);
     }

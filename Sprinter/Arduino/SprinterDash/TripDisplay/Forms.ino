@@ -108,7 +108,13 @@ void StoppedForm::updateDisplay()
   strField.updateField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled());
   strField.updateField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime());
   strField.updateField(geniePtr,GALLONS_EXPECTED_STRING, gallonsExpected,tripSegDataPtr->getGallonsExpected());
-  strField.updateField(geniePtr,AVG_MPG_STRING_1, avgMPG,tripSegDataPtr->getAvgMPG());
+
+  //If we have a valid avg mpg, show it
+  double avgMpgFlt=tripSegDataPtr->getAvgMPG();
+  if(avgMpgFlt>0 && avgMpgFlt<30)
+    strField.updateField(geniePtr,AVG_MPG_STRING_1, avgMPG,avgMpgFlt);
+  else
+    geniePtr->WriteStr(AVG_MPG_STRING_1,"---");
 }
 
 //

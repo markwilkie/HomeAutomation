@@ -22,6 +22,7 @@ struct TripDataStruct{
     //Consumption
     uint16_t stoppedFuelPerc;  //used to calc heater fueld consumption and/or fillups
     uint16_t startFuelPerc;
+    float priorTotalGallonsUsed;  //this plus current tank = total gallons used
 
     //Elevation
     uint32_t totalClimb;
@@ -36,6 +37,7 @@ class TripData
     void ignitionOff(); 
     void ignitionOn();
     void updateElevation();  //Call every loop 
+    void updateFuelGallonsUsed(); //Called by getGallonsUsed, and on startup/shutdown
     void resetTripData();   //Call when starting a new segment etc  (e.g. when ignition is turned off)
     void saveTripData(int offset);    //Saves data to EEPROM
     void loadTripData(int offset);
@@ -64,14 +66,13 @@ class TripData
 
     TripDataStruct data;
 
+    double fuelGallonsUsed;   //fuel gallons used
+
     //Used to keep a running average if instance mpg so we can calibrate on the fly
     unsigned long sumInstMPG=0;
     long numInstMPGSamples=0;
     double instMPG=0;
     double lastAvgInstMPG=0;
-
-    //To handle adding fuel
-    double priorTotalGallonsUsed=0.0;
 };
 
 #endif
