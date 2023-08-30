@@ -66,10 +66,13 @@ local function send_lan_command(url, method, path, body)
 
     local currentEpoch=os.time()-(7*60*60)
     local network_id=0
+    local content
     if device ~= nil then
       network_id = device.device_network_id
+      content = [[ {"network_id":"]]..network_id..[[","epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..device_ports[device.device_network_id]..[[ } ]]  
+    else
+      content = [[ {"network_id":"]]..network_id..[[","epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..commonglobals.server_port..[[ } ]]
     end
-    local content = [[ {"network_id":"]]..network_id..[[","epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..device_ports[device.device_network_id]..[[ } ]]
 
     local nodeIP = 'http://192.168.15.143:80'
     if deviceName == 'soil' then
