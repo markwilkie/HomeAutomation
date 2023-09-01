@@ -4,6 +4,7 @@
 //EEPROM setup values
 #define EEPROM_PRECADC_ADDR 0
 #define EEPROM_VOLTAGE_ADDR 1024
+#define EEPROM_ADCFACTOR_ADDR 2048
 
 template <class T> int EEPROM_writeAnything(int ee, const T& value)
 {

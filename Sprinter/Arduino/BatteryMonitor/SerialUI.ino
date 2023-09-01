@@ -7,7 +7,8 @@ void printSetupCommands()
   Serial.println("Commands:");
   Serial.println("  '?' --> print this message");
   Serial.println("  'p' --> print current status");
-  Serial.println("  'c', then '1-4' to calibrate a specific ADC sensor.  E.g. 'c2'   (1-low pwr, 2-solar, 3-inverter, 4-starter)");
+  Serial.println("  'z', then '0-3' to zero calibrate a specific ADC sensor.  E.g. 'c2'   (0-low pwr, 1-solar, 2-inverter, 3-starter)");
+  Serial.println("  'c', then '0-3', then current amp reading to calibrate preceded by an 'a'.  E.g. 'c0a10.6' to cal adc 0 at 10.6A");
   Serial.println("  'v', then current voltage to calibrate.  E.g. 'v12.4'");
   Serial.println("");  
 }
@@ -34,12 +35,11 @@ void readChar()
         printSetupCommands();
         break;
       }
-      case 'c':
+      case 'z':
       {
         int adcNum = Serial.parseInt();
-        if(adcNum>0 && adcNum<5)
+        if(adcNum>=0 && adcNum<=3)
         {
-          adcNum--;
           Serial.print("Calibrating ADC: ");
           Serial.println(adcNum); 
           precADCList.calibrateADC(adcNum);  
@@ -51,6 +51,29 @@ void readChar()
         }
         break;            
       }
+      case 'c':
+      {
+        int adcNum = Serial.parseInt();
+        if(adcNum>=0 && adcNum<=3)
+        {
+          Serial.read();   //reads 'a' 
+          long milliAmps = Serial.parseFloat()*1000;  
+
+          Serial.print("Calibrating ADC ");
+          Serial.print(adcNum); 
+          Serial.print(" for ");
+          Serial.print(milliAmps);
+          Serial.print("ma");
+
+          precADCList.calibrateADC(adcNum,milliAmps);  
+        }
+        else
+        {
+          Serial.print("ERROR: Invalid ADC Num: ");
+          Serial.println(adcNum);          
+        }
+        break;            
+      }      
       case 'v':
       {
         float currentVoltage = Serial.parseFloat();   
@@ -72,6 +95,12 @@ void readChar()
         break;
       }
     }
+  }
+
+  //Dump any extra chars
+  while(Serial.available())
+  {
+    Serial.println(Serial.read());
   }
 }
 
