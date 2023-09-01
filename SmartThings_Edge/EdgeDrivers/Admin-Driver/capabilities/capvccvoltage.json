@@ -1,8 +1,8 @@
 {
-    "id": "radioamber53161.voltage",
+    "id": "radioamber53161.voltages",
     "version": 1,
     "status": "proposed",
-    "name": "Voltage",
+    "name": "Voltages",
     "ephemeral": false,
     "attributes": {
         "Capacitors": {

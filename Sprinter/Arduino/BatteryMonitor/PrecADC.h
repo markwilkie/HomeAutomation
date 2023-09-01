@@ -78,6 +78,7 @@ public:
  long getLastMonthSum(); //grabs average from dayBuf 
 
  void calibrate();
+ void calibrate(long milliAmps);
  void printAvg();
  void printSum();
 };

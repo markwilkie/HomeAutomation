@@ -191,11 +191,14 @@ local function start_server(driver,device)
     serversock:listen()
 
     commonglobals.server_ip, commonglobals.server_port = serversock:getsockname()
-    log.info(string.format('**************************  Server started for %s at %s:%s', device.label,commonglobals.server_ip, commonglobals.server_port))
 
-    --Add port device list
-    log.info(string.format("Saving port %d for device_network_id: %s",commonglobals.server_port,device.device_network_id))
-    device_ports[device.device_network_id]=commonglobals.server_port
+    if device == nil then
+      log.info(string.format('**************************  Server started at %s:%s', commonglobals.server_ip, commonglobals.server_port))
+    else
+      log.info(string.format('**************************  Server started for %s at %s:%s', device.label,commonglobals.server_ip, commonglobals.server_port))
+      log.info(string.format("Saving port %d for device_network_id: %s",commonglobals.server_port,device.device_network_id))
+      device_ports[device.device_network_id]=commonglobals.server_port
+    end
 
     --Spawn thread to accept incoming connections
     cosock.spawn(function()

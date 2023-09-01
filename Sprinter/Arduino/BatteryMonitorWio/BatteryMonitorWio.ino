@@ -42,7 +42,7 @@ void setup(void)
     Serial.begin(115200);
 
     //Setup serial for coms with master
-    Serial1.begin(921600);
+    Serial1.begin(115200);
     scrSerial.begin(details(scrPayload), &Serial1);
 
     //Setup screen

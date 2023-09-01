@@ -14,7 +14,7 @@ local globals = require "globals"
 
 -- Custom Capabiities
 local lastupdated = capabilities["radioamber53161.lastUpdated"]
-local voltage = capabilities["radioamber53161.voltage"]
+local voltage = capabilities["radioamber53161.voltages"]
 local modestate = capabilities["radioamber53161.modeState"]
 local firmware = capabilities["radioamber53161.firmware"]
 local cpureset = capabilities["radioamber53161.cpuReset"]

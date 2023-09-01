@@ -48,7 +48,7 @@ void PrecADC::begin()
     Serial.println(adcNum);
   }
 
-  //Load calibration values from EEPROM 
+  //Load offset values from EEPROM 
   EEPROM_readAnything(EEPROM_PRECADC_ADDR+(adcNum*sizeof(offsetAdj)), offsetAdj);  
   Serial.print("EEPROM read for: "); Serial.print(adcNum); Serial.print("  value: "); Serial.println(offsetAdj); 
   if (offsetAdj >= (MAX_CALIBRATION*-1)  && offsetAdj <= MAX_CALIBRATION)
@@ -59,6 +59,16 @@ void PrecADC::begin()
   }
   else
     offsetAdj=0;  
+
+  //Load ADC factor values from EEPROM (otherwise use defaults)
+  float factor=0;
+  EEPROM_readAnything(EEPROM_ADCFACTOR_ADDR+(adcNum*sizeof(factor)), factor);  
+  Serial.print("EEPROM ADC factor read for: "); Serial.print(adcNum); Serial.print("  value: "); Serial.println(factor); 
+  if(factor>0 && factor<1)
+  {
+    accuracy=factor;
+    Serial.print("New calibrated factor based on EEPROM: "); Serial.println(accuracy);  
+  }
 
   //Init time based buffers
   for(int i=0;i<60;i++) secondBuf.Add(-1L);
@@ -262,6 +272,16 @@ void PrecADC::calibrate()
 
   //Save to offset EEPROM
   EEPROM_writeAnything(EEPROM_PRECADC_ADDR+(adcNum*sizeof(offsetAdj)), offsetAdj);   
+}
+
+void PrecADC::calibrate(long milliAmps)
+{
+  Serial.print("Current factor: "); Serial.println(accuracy);
+  accuracy=(((getCurrentRaw() * gainFactor) - offset)/milliAmps)*sign;
+  Serial.print("New factor: "); Serial.println(accuracy);
+
+  //Save to offset EEPROM
+  EEPROM_writeAnything(EEPROM_ADCFACTOR_ADDR+(adcNum*sizeof(accuracy)), accuracy);   
 }
 
 //

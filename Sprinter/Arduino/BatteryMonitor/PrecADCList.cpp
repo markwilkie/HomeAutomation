@@ -252,6 +252,11 @@ void PrecADCList::calibrateADC(int adcNum)
   (*adcList)[adcNum].calibrate();
 }
 
+void PrecADCList::calibrateADC(int adcNum,long milliAmps)
+{
+  (*adcList)[adcNum].calibrate(milliAmps);
+}
+
 void PrecADCList::printStatus()
 {
   Serial.println("============================");    

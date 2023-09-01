@@ -6,7 +6,7 @@ components:
   capabilities:
   - id: refresh
     version: 1
-  - id: radioamber53161.voltage
+  - id: radioamber53161.voltages
     version: 1  
   - id: radioamber53161.wifiOnly
     version: 1

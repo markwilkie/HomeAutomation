@@ -21,6 +21,7 @@ public:
  void read(); //read all buffers
  void add();  //calls add on each buffer  
  void calibrateADC(int adcNum);  //assumes no amp flow, then calibrates to zero using offset
+ void calibrateADC(int adcNum,long milliAmps);  //sets factor based on current reading from another meter
  PrecADC *getADC(int adcNum); 
 
  //Get sum of drain for the last n seconds
