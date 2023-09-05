@@ -197,7 +197,7 @@ void TripData::updateFuelGallonsUsed()
     //Get current fuel tank level
     int currentFuelPerc=currentDataPtr->currentFuelPerc;
     if(currentFuelPerc<1)
-        return 0;
+        return;
 
     //Make sure we've got a valid start perc
     if(data.startFuelPerc < 1)
