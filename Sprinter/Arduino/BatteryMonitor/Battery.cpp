@@ -3,7 +3,7 @@
 #include "debug.h"
 #include "EEPROMAnything.h"
 
-void Battery::begin(long _vcc,double _temperature,long rtcNow)
+void Battery::begin(long _vcc,long rtcNow)
 {
   //Set reference vcc
   vcc=_vcc;
@@ -21,7 +21,7 @@ void Battery::begin(long _vcc,double _temperature,long rtcNow)
   mAhRemaining=AH*1000L;  
 
   //Zero SoC
-  stateOfCharge=calcSoCbyVoltage(_temperature);
+  stateOfCharge=calcSoCbyVoltage();
   socReset=rtcNow;  //used to know how long ago the SoC was last set
 
   //Zero last float time
@@ -207,10 +207,6 @@ long Battery::getMilliVolts()
   //mv = mv * 4.95;  ;
   mv = mv * voltageCalibFactor;
 
-  #ifdef DEBUG
-    mv = 14200;
-  #endif
-
   return mv;
 }
 
@@ -219,24 +215,13 @@ double Battery::getVolts()
   return getMilliVolts()*.001;
 }
 
-void Battery::adjustSoC(long rtcNow,double temperature,long drainmah)
+void Battery::adjustSoC(long rtcNow,long drainmah)
 {
 
   /*
    * - Set SoC to 100% when float + charge duty cycle <25%  (perhaps add last hour is float, and current is float)
      - Set SoC to 100% when SoC > 100% AND 1Ah is discharged
    */
-
-   /*
-  //If soc is invalid or voltage is already below float, set it based on voltage
-  if(stateOfCharge<=0 || getMilliVolts() < BAT_FLOAT)
-  {
-    Serial.println("###  Reseting based on voltage");
-    stateOfCharge = calcSoCbyVoltage(temperature);
-    socReset=rtcNow;  //used to know how long ago the SoC was last set
-    return;
-  }
-  */
 
   //If we've discharged more than 1Ah and SoC > 100, then we'll reset
   if(drainmah<-1000 && stateOfCharge > 100)
@@ -275,32 +260,22 @@ void Battery::adjustAh(long mAhFlow)
 }
 
 //Return % state of charge based on battery level
-double Battery::calcSoCbyVoltage(double temperature)
+double Battery::calcSoCbyVoltage()
 { 
   //
-  int full=BAT_FULL; //@80deg F
+  int full=BAT_FULL; 
   int empty=BAT_EMPTY;
 
   //Get voltage
   long mv=getMilliVolts(); 
 
   //Calc increments per 1%, then percentage
-  double incr=(full-empty)/50.0;  //gives voltage per 1% in mV  ("empty" is actually 50% of the battery capacity)
-  double soc=(((mv-empty)/incr) + 50);
+  double voltRange=full-empty;
+  double soc=(mv-empty)/voltRange;
 
-  //Adjust for temperature
-  double tempPerc=TEMP_80;  //Set 80% as default
-  if(temperature>=TEMP_85 && temperature <TEMP_90)
-    tempPerc=.85;
-  if(temperature>=TEMP_90 && temperature <TEMP_95)
-    tempPerc=.90;
-  if(temperature>=TEMP_95 && temperature <TEMP_100)
-    tempPerc=.95;
-  if(temperature>=TEMP_100)
-    tempPerc=1;
 
-  //set mahremaining based on SoC percentage with temperature compensation  (this should fix itself over time)
-  mAhRemaining=(AH*((soc*tempPerc)/100.0))*1000.0;
+  //set mahremaining based on SoC percentage
+  mAhRemaining=(AH*(soc/100.0))*1000.0;
 
   return soc;
 }

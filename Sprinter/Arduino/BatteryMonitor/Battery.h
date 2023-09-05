@@ -14,11 +14,6 @@ private:
   #define BAT_FULL 13800
   #define BAT_EMPTY 11200   //BMS shutoff is ~10.4 
   #define AH 100
-  #define TEMP_80 25  //deg f for 80% capacity
-  #define TEMP_85 35
-  #define TEMP_90 45
-  #define TEMP_95 60
-  #define TEMP_100 80
   #define CHARGE_EFFICIENCY 90
 
   #define BAT_FLOAT 13800
@@ -48,14 +43,14 @@ private:
   #define VOLTAGE_SAMPLE_SIZE 10
 
   //Members
-  double calcSoCbyVoltage(double temperature);
+  double calcSoCbyVoltage();
   long getMilliVolts();
   long calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg);  
   int getGraphEntry(long mv,bool resetFlag);
    
 public:
    //members
-   void begin(long vcc,double temperature,long rtcNow); //starts stuff up and inits buffer
+   void begin(long vcc,long rtcNow); //starts stuff up and inits buffer
    void readThenAdd(long rtcNow); //reads according to sample size, then adds the result to the circular buffer
    double getVolts();
    void calibrateVoltage(float calibVolts);
@@ -65,7 +60,7 @@ public:
    double getVMin() const { return vMin*.001; } 
    long getFloatTime() const { return floatTime; } 
    long getChargeTime() const { return chargeTime; } 
-   void adjustSoC(long rtcNow,double temperature,long drainmah);
+   void adjustSoC(long rtcNow,long drainmah);
    double getHoursRemaining(long mAflow); //calculates time remaining based on given flow
    double getAmpHoursRemaining(); //based on SoC 
    void adjustAh(long mAflow);

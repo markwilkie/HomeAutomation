@@ -209,7 +209,7 @@ void TripData::updateFuelGallonsUsed()
         logger.log(INFO,"Fueled up.  Tank now at %d",currentFuelPerc);
 
         //Calc gallons used *before* the fillup
-        data.priorTotalGallonsUsed=FUEL_TANK_SIZE*((double)(data.startFuelPerc-data.stoppedFuelPerc)/100.0); 
+        data.priorTotalGallonsUsed=data.priorTotalGallonsUsed+(FUEL_TANK_SIZE*((double)(data.startFuelPerc-data.stoppedFuelPerc)/100.0)); 
         data.startFuelPerc=currentFuelPerc;
         data.stoppedFuelPerc=currentFuelPerc;
     }

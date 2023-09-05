@@ -179,6 +179,7 @@ void StrField::updateField(Genie *geniePtr,int objNum,char *field,double value,i
   if(value<0 || value>(pow(10, fieldLen)-1))
   {
     sprintf(field, "%s", "ERR");
+    logger.log(VERBOSE,"Value too large for field: Obj Num: %d v-%d, len-%d  pow=%d",objNum,(int)value,fieldLen,(pow(10, fieldLen)-1));
   }
   else
   {

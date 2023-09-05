@@ -32,13 +32,6 @@ SERIAL_PAYLOAD_STRUCTURE scrPayload;
 //Init onboard ADC buffer
 #define ADC_SAMPLE_SIZE 10
 
-//Thermistor (thermometer)
-#define THERMISTORPIN A1   // which analog pin to connect      
-#define THERMISTORNOMINAL 10000      // resistance at 25 degrees C  (NTC 104=100K and 103=10K)
-#define TEMPERATURENOMINAL 25   // temp. for nominal resistance (almost always 25 C)
-#define BCOEFFICIENT 4000 //4038 // The beta coefficient of the thermistor (usually 3000-4000)
-#define SERIESRESISTOR 9920   // the value of the 'other' resistor
-
 //General Globals
 long bootTime;
 long startTime;
@@ -70,7 +63,7 @@ void setup()
   precADCList.begin();
 
   //Battery and Water tank
-  battery.begin(readVcc(),temperatureRead(),rtc.now().unixtime());
+  battery.begin(readVcc(),rtc.now().unixtime());
   waterTank.init();
  
   //init vars
@@ -121,7 +114,7 @@ void loop()
       //Adjust SoC if appropriate
       long socReset=currentTime-battery.getSoCReset();
       long drainmah=precADCList.getDrainSum(socReset);      
-      battery.adjustSoC(rtc.now().unixtime(),temperatureRead(),drainmah);
+      battery.adjustSoC(rtc.now().unixtime(),drainmah);
 
       //Adjust Ah left on battery based on last minute mAh flow
       long mAhFlow=precADCList.getLastMinuteAvg();
@@ -181,7 +174,6 @@ void printStatus()
   Serial.print("Free Ram: "); Serial.println(freeRam());
   Serial.print("SoC: "); Serial.println(battery.getSoC());
   Serial.print("Voltage: "); Serial.println(battery.getVolts());
-  Serial.print("Temperature: "); Serial.println(temperatureRead());
   Serial.print("Ah flow: "); Serial.println(precADCList.getCurrent()*.001,3);
   Serial.print("Ah since SoC reset: "); Serial.println(precADCList.getDrainSum(socReset)*.001,3);
   Serial.print("Usable Ah left: "); Serial.println(battery.getAmpHoursRemaining());
@@ -230,37 +222,6 @@ char *buildTimeLabel(long seconds,char *buffer)
   }
 
   return buffer;
-}
-
-//Return temperature
-double temperatureRead()
-{
-  //Read ADC
-  long totRead=0;  
-  for(int i=0;i<ADC_SAMPLE_SIZE;i++)
-  {
-    totRead=totRead+analogRead(THERMISTORPIN);
-  }  
-
-  // convert the value to resistance
-  float average = 1023.0 / (totRead/ADC_SAMPLE_SIZE) - 1.0;
-  average = SERIESRESISTOR / average;
-
-  //Use Steinhart to convert to temperature
-  float steinhart;
-  steinhart = average / THERMISTORNOMINAL;     // (R/Ro)
-  steinhart = log(steinhart);                  // ln(R/Ro)
-  steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
-  steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
-  steinhart = 1.0 / steinhart;                 // Invert
-  steinhart -= 273.15;  
-  steinhart = steinhart*(9.0/5.0)+32.0; //convert to F
-
-  #ifdef DEBUG
-    steinhart = 72.1;
-  #endif
-
-  return steinhart;
 }
 
 int freeRam() 

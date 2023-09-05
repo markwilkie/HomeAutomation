@@ -19,7 +19,7 @@ void LinearMeter::drawMeter(char* label, int _vmin, int _vmax, int _scale, int _
 
     //Draw meter itself
     tft.drawRect(x, y, _width, height, TFT_GREY);
-    tft.fillRect(x + METER_BORDER, y + METER_CAP_HEIGHT, _width - (METER_BORDER*2), height - (METER_CAP_HEIGHT*2), TFT_WHITE);
+    tft.fillRect(x + METER_BORDER, y + METER_CAP_HEIGHT, width - (METER_BORDER*2), height - (METER_CAP_HEIGHT*2), TFT_WHITE);
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.drawCentreString(label, x + _width / 2, y + 2, 2);
 
@@ -55,6 +55,7 @@ void LinearMeter::updatePointer(float value, int digits, int dec)
     int dx = METER_BORDER+x;
 
     //draw value
+    tft.fillRect(x + METER_BORDER, y + height - METER_CAP_HEIGHT, width - (METER_BORDER*2), METER_CAP_HEIGHT, TFT_BLACK);  //blank out old number
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     char buf[8]; dtostrf(value, digits, dec, buf);
     tft.drawCentreString(buf, x + width / 2, y + height - 18, 2);
@@ -69,7 +70,7 @@ void LinearMeter::updatePointer(float value, int digits, int dec)
     float factor = usableHeight/(float)scale;
     int yValue = value*factor;
 
-    while (!(yValue == oldValue)) 
+    while(yValue != oldValue) 
     {
         dy = pointerStart - oldValue;   //187 + 100 - old_value;
         if (oldValue > yValue) 
