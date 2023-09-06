@@ -100,8 +100,5 @@ void readChar()
   //Dump any extra chars
   while(Serial.available())
   {
-    Serial.println(Serial.read());
   }
 }
-
-

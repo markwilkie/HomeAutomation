@@ -10,7 +10,7 @@ void Battery::begin(long _vcc,long rtcNow)
 
   //Grab current voltage calibration factor
   EEPROM_readAnything(EEPROM_VOLTAGE_ADDR, voltageCalibFactor);
-  Serial.print("Current voltage calibration factor: "); Serial.println(voltageCalibFactor);  
+  Serial.print("EEPROM voltage factor read: "); Serial.println(voltageCalibFactor);  
   
   //Init time based buffers
   for(int i=0;i<6;i++) mVMinBuf.Add(-1L);
@@ -271,7 +271,7 @@ double Battery::calcSoCbyVoltage()
 
   //Calc increments per 1%, then percentage
   double voltRange=full-empty;
-  double soc=(mv-empty)/voltRange;
+  double soc=((mv-empty)/voltRange)*100.0;
 
 
   //set mahremaining based on SoC percentage

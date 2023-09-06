@@ -50,12 +50,12 @@ void PrecADC::begin()
 
   //Load offset values from EEPROM 
   EEPROM_readAnything(EEPROM_PRECADC_ADDR+(adcNum*sizeof(offsetAdj)), offsetAdj);  
-  Serial.print("EEPROM read for: "); Serial.print(adcNum); Serial.print("  value: "); Serial.println(offsetAdj); 
+  Serial.print("EEPROM offset read for ADC #"); Serial.print(adcNum); Serial.print("  value: "); Serial.println(offsetAdj); 
   if (offsetAdj >= (MAX_CALIBRATION*-1)  && offsetAdj <= MAX_CALIBRATION)
   {
      //yup, we've got good values here, let's adjust the offset
      offset=offset+offsetAdj;
-     Serial.print("New calibrated offset based on EEPROM: "); Serial.println(offset);
+     //Serial.print("New calibrated offset based on EEPROM: "); Serial.println(offset);
   }
   else
     offsetAdj=0;  
@@ -63,11 +63,11 @@ void PrecADC::begin()
   //Load ADC factor values from EEPROM (otherwise use defaults)
   float factor=0;
   EEPROM_readAnything(EEPROM_ADCFACTOR_ADDR+(adcNum*sizeof(factor)), factor);  
-  Serial.print("EEPROM ADC factor read for: "); Serial.print(adcNum); Serial.print("  value: "); Serial.println(factor); 
+  Serial.print("EEPROM factor read for ADC #"); Serial.print(adcNum); Serial.print("  value: "); Serial.println(factor); 
   if(factor>0 && factor<1)
   {
     accuracy=factor;
-    Serial.print("New calibrated factor based on EEPROM: "); Serial.println(accuracy);  
+    //Serial.print("New calibrated factor based on EEPROM: "); Serial.println(accuracy);  
   }
 
   //Init time based buffers
@@ -402,4 +402,3 @@ void PrecADC::printSum()
   Serial.print(",");
   Serial.println(getLastMonthSum());      
 }
-

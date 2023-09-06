@@ -177,7 +177,7 @@ void printStatus()
   Serial.print("Ah flow: "); Serial.println(precADCList.getCurrent()*.001,3);
   Serial.print("Ah since SoC reset: "); Serial.println(precADCList.getDrainSum(socReset)*.001,3);
   Serial.print("Usable Ah left: "); Serial.println(battery.getAmpHoursRemaining());
-  Serial.print("Hours left to 100% or 50%: "); Serial.println(battery.getHoursRemaining(precADCList.getCurrent()));  
+  Serial.print("Hours left to full or empty: "); Serial.println(battery.getHoursRemaining(precADCList.getCurrent()));  
   Serial.print("Hz: "); Serial.println(hz);
   Serial.print("Current Second: "); Serial.println(currentTime);
   Serial.print("Since SoC reset: "); Serial.println(buildTimeLabel(socReset,buffer));

@@ -11,7 +11,7 @@
 class Battery {
 private:
   //Defines for 1x sok 100Ah LiFePO4 battery
-  #define BAT_FULL 13800
+  #define BAT_FULL 13330
   #define BAT_EMPTY 11200   //BMS shutoff is ~10.4 
   #define AH 100
   #define CHARGE_EFFICIENCY 90
