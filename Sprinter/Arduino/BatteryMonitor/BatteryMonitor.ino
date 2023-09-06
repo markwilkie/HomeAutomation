@@ -108,17 +108,17 @@ void loop()
     //Once a minute, we add/subtract the mA to the current battery charge  (only do this once)
     if(!(currentTime % 60))
     {
-      //Get voltage from battery 
+      //Get current voltage from battery, then add it to a couple of circular buffers for further averaging
       battery.readThenAdd(rtc.now().unixtime());
 
-      //Adjust SoC if appropriate
-      long socReset=currentTime-battery.getSoCReset();
-      long drainmah=precADCList.getDrainSum(socReset);      
-      battery.adjustSoC(rtc.now().unixtime(),drainmah);
+      //Reset SoC if appropriate
+      //long socReset=currentTime-battery.getSoCReset();
+      //long drainmah=precADCList.getDrainSum(socReset);    
+      long mAhFlow=precADCList.getLastMinuteAvg();  
+      battery.resetSoC(rtc.now().unixtime(),mAhFlow);
 
-      //Adjust Ah left on battery based on last minute mAh flow
-      long mAhFlow=precADCList.getLastMinuteAvg();
-      battery.adjustAh(mAhFlow);
+      //Adjust Ah left on battery based on last minute avg mAh flow      
+      battery.updateSoC(mAhFlow);
     }       
   }
 }

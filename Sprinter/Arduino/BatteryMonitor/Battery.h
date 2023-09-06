@@ -46,6 +46,7 @@ private:
   double calcSoCbyVoltage();
   long getMilliVolts();
   long calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg);  
+  long calcAvgFromBuffer(CircularBuffer<long> *circBuffer);  
   int getGraphEntry(long mv,bool resetFlag);
    
 public:
@@ -60,10 +61,10 @@ public:
    double getVMin() const { return vMin*.001; } 
    long getFloatTime() const { return floatTime; } 
    long getChargeTime() const { return chargeTime; } 
-   void adjustSoC(long rtcNow,long drainmah);
+   void resetSoC(long rtcNow,long currentmah);
    double getHoursRemaining(long mAflow); //calculates time remaining based on given flow
    double getAmpHoursRemaining(); //based on SoC 
-   void adjustAh(long mAflow);
+   void updateSoC(long mAflow);
    double getDutyCycle();  
    long getmVGraphBuf(int i) const { return mVGraphBuf[i]; } ;
 };

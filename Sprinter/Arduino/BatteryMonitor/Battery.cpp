@@ -10,7 +10,7 @@ void Battery::begin(long _vcc,long rtcNow)
 
   //Grab current voltage calibration factor
   EEPROM_readAnything(EEPROM_VOLTAGE_ADDR, voltageCalibFactor);
-  Serial.print("EEPROM voltage factor read: "); Serial.println(voltageCalibFactor);  
+  Serial.print("Current voltage calibration factor: "); Serial.println(voltageCalibFactor);  
   
   //Init time based buffers
   for(int i=0;i<6;i++) mVMinBuf.Add(-1L);
@@ -215,7 +215,7 @@ double Battery::getVolts()
   return getMilliVolts()*.001;
 }
 
-void Battery::adjustSoC(long rtcNow,long drainmah)
+void Battery::resetSoC(long rtcNow,long drainmah)
 {
 
   /*
@@ -233,11 +233,12 @@ void Battery::adjustSoC(long rtcNow,long drainmah)
     return;
   }
 
-  //Let's get duty cycle and see if should reset SoC or not
+  //Let's make sure we're not charging, check voltage, and then see if should reset SoC or not
   double dutyCycle=getDutyCycle();
-  if(dutyCycle<=.25 && getMilliVolts() < BAT_CHARGE && getMilliVolts() >= BAT_FLOAT)
+  long mvHourAvg=calcAvgFromBuffer(&mVTenthHourBuf);
+  if(dutyCycle<=.1 && mvHourAvg>=BAT_FULL && getMilliVolts()<BAT_FLOAT)
   {
-    Serial.println("###  Reseting based on duty cycle");
+    Serial.println("###  Reseting based on duty cycle/voltage");
     stateOfCharge=100;
     mAhRemaining=AH*1000L; 
     socReset=rtcNow;  //used to know how long ago the SoC was last set
@@ -246,7 +247,7 @@ void Battery::adjustSoC(long rtcNow,long drainmah)
 }
 
 //Update the number of Ah remaining on the battery based on givecurrent flow
-void Battery::adjustAh(long mAhFlow)
+void Battery::updateSoC(long mAhFlow)
 {    
     //If charge, add effeciency
     if(mAhFlow > 0)
@@ -256,7 +257,7 @@ void Battery::adjustAh(long mAhFlow)
     mAhRemaining=mAhRemaining+(mAhFlow/60L);  
 
     //Now update SoC
-    stateOfCharge=((mAhRemaining/1000.0)/AH)*100.0;
+    stateOfCharge=(mAhRemaining/AH)/10.0;
 }
 
 //Return % state of charge based on battery level
@@ -271,8 +272,7 @@ double Battery::calcSoCbyVoltage()
 
   //Calc increments per 1%, then percentage
   double voltRange=full-empty;
-  double soc=((mv-empty)/voltRange)*100.0;
-
+  double soc=(mv-empty)/voltRange;
 
   //set mahremaining based on SoC percentage
   mAhRemaining=(AH*(soc/100.0))*1000.0;
@@ -330,6 +330,11 @@ double Battery::getDutyCycle()
   //Calc duty cycle
   double dutyCycle=chargeCount/mVTenthHourBuf.Count(); 
   return (dutyCycle);
+}
+
+long Battery::calcAvgFromBuffer(CircularBuffer<long> *circBuffer)
+{
+  return calcAvgFromBuffer(circBuffer,-1);
 }
 
 long Battery::calcAvgFromBuffer(CircularBuffer<long> *circBuffer,long prevBucketAvg)
