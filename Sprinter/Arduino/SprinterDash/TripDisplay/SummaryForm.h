@@ -27,16 +27,16 @@ class SummaryForm
 
     //Fields
     char title[15];
-    char drivingTime[4];
-    char elapsedTime[4];
-    char stoppedTime[4];
-    char numberOfStops[2];
-    char parkedTime[4];
-    char milesTravelled[4];
-    char gallonsUsed[3];
-    char avgMPG[4];
-    char avgMovingSpeed[4];
-    char elevationGain[5]; 
+    char drivingTime[5];
+    char elapsedTime[5];
+    char stoppedTime[5];
+    char numberOfStops[3];
+    char parkedTime[5];
+    char milesTravelled[5];
+    char gallonsUsed[4];
+    char avgMPG[5];
+    char avgMovingSpeed[5];
+    char elevationGain[6]; 
 
     const char* errorStr = "NA";
 };

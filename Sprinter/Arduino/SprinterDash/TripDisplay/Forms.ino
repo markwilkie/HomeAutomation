@@ -71,9 +71,9 @@ void StartingForm::updateDisplay()
   nextTickCount=millis()+refreshTicks;
 
   //Update time data fields
-  strField.updateField(geniePtr,HEATER_FUEL_STRING, heaterFuel, tripSegDataPtr->getHeaterGallonsUsed());
-  strField.updateField(geniePtr,MILES_DRIVEN_STRING, elapsedTime, tripSegDataPtr->getMilesTravelled());
-  strField.updateField(geniePtr,TIME_ELAPSED_STRING, milesTravelled,tripSegDataPtr->getElapsedTime());
+  strField.updateField(geniePtr,HEATER_FUEL_STRING, heaterFuel, tripSegDataPtr->getHeaterGallonsUsed(), sizeof(heaterFuel)-1);
+  strField.updateField(geniePtr,MILES_DRIVEN_STRING, elapsedTime, tripSegDataPtr->getMilesTravelled(), sizeof(elapsedTime)-1);
+  strField.updateField(geniePtr,TIME_ELAPSED_STRING, milesTravelled,tripSegDataPtr->getElapsedTime(), sizeof(milesTravelled)-1);
 }
 
 
@@ -105,14 +105,14 @@ void StoppedForm::updateDisplay()
   nextTickCount=millis()+refreshTicks;
 
   //Update time data fields
-  strField.updateField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled());
-  strField.updateField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime());
-  strField.updateField(geniePtr,GALLONS_EXPECTED_STRING, gallonsExpected,tripSegDataPtr->getGallonsExpected());
+  strField.updateField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled(),sizeof(milesTravelled)-1);
+  strField.updateField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime(),sizeof(elapsedTime)-1);
+  strField.updateField(geniePtr,GALLONS_EXPECTED_STRING, gallonsExpected,tripSegDataPtr->getGallonsExpected(),sizeof(gallonsExpected)-1);
 
   //If we have a valid avg mpg, show it
   double avgMpgFlt=tripSegDataPtr->getAvgMPG();
   if(avgMpgFlt>0 && avgMpgFlt<30)
-    strField.updateField(geniePtr,AVG_MPG_STRING_1, avgMPG,avgMpgFlt);
+    strField.updateField(geniePtr,AVG_MPG_STRING_1, avgMPG,avgMpgFlt,sizeof(avgMPG)-1);
   else
     geniePtr->WriteStr(AVG_MPG_STRING_1,"---");
 }

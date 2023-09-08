@@ -251,7 +251,7 @@ bool verifyCAN()
       if(CANcntrOK)
       {
         sprintf(displayBuffer, "Nothing from ECU\nNext update in %lu sec", nextUpdate-(millis()/1000));
-        logger.log(ERROR,displayBuffer);
+        //logger.log(ERROR,displayBuffer);
         statusForm.updateText(displayBuffer);
       }
       else

@@ -74,7 +74,6 @@ class FormNavigator
 class StrField 
 {
   public:
-    void updateField(Genie *geniePtr,int objNum,char *title,double value);
     void updateField(Genie *geniePtr,int objNum,char *title,double value,int fieldLen);
 
   private: 
@@ -167,19 +166,13 @@ int FormNavigator::determineAction(genieFrame *event)
   return action;
 }  
 
-
-void StrField::updateField(Genie *geniePtr,int objNum,char *field,double value)
-{
-  updateField(geniePtr,objNum,field,value,sizeof(field));
-}
-
 void StrField::updateField(Genie *geniePtr,int objNum,char *field,double value,int fieldLen)
 {
   //Value in range?
   if(value<0 || value>(pow(10, fieldLen)-1))
   {
     sprintf(field, "%s", "ERR");
-    logger.log(VERBOSE,"Value too large for field: Obj Num: %d v-%d, len-%d  pow=%d",objNum,(int)value,fieldLen,(pow(10, fieldLen)-1));
+    logger.log(VERBOSE,"Value too large for field: Obj Num: %d v=%d, len=%d  pow=%ld",objNum,(int)value,fieldLen,(long)(pow(10, fieldLen)-1));
   }
   else
   {

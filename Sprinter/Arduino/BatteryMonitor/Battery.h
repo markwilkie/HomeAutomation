@@ -17,6 +17,7 @@ private:
   #define CHARGE_EFFICIENCY 90
 
   #define BAT_FLOAT 13800
+  #define SOC_RESET 14230   
   #define BAT_CHARGE 14600
 
   //properties

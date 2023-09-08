@@ -217,26 +217,10 @@ double Battery::getVolts()
 
 void Battery::resetSoC(long rtcNow,long drainmah)
 {
-
-  /*
-   * - Set SoC to 100% when float + charge duty cycle <25%  (perhaps add last hour is float, and current is float)
-     - Set SoC to 100% when SoC > 100% AND 1Ah is discharged
-   */
-
-  //If we've discharged more than 1Ah and SoC > 100, then we'll reset
-  if(drainmah<-1000 && stateOfCharge > 100)
-  {
-    Serial.println("###  Reseting based on 1Ah");
-    stateOfCharge=100;
-    mAhRemaining=AH*1000L; 
-    socReset=rtcNow;  //used to know how long ago the SoC was last set
-    return;
-  }
-
   //Let's make sure we're not charging, check voltage, and then see if should reset SoC or not
   double dutyCycle=getDutyCycle();
   long mvHourAvg=calcAvgFromBuffer(&mVTenthHourBuf);
-  if(dutyCycle<=.1 && mvHourAvg>=BAT_FULL && getMilliVolts()<BAT_FLOAT)
+  if(dutyCycle<=.1 && mvHourAvg>=SOC_RESET && getMilliVolts()<BAT_FLOAT)
   {
     Serial.println("###  Reseting based on duty cycle/voltage");
     stateOfCharge=100;
@@ -255,6 +239,8 @@ void Battery::updateSoC(long mAhFlow)
   
     //Ok, update amp hours - making sure we divide the flow by 60, as we'll do it 60 times in one hour
     mAhRemaining=mAhRemaining+(mAhFlow/60L);  
+    //if(mAhRemaining>(AH*1000))
+    //  mAhRemaining=(AH*1000);
 
     //Now update SoC
     stateOfCharge=(mAhRemaining/AH)/10.0;
@@ -272,7 +258,9 @@ double Battery::calcSoCbyVoltage()
 
   //Calc increments per 1%, then percentage
   double voltRange=full-empty;
-  double soc=(mv-empty)/voltRange;
+  double soc=((mv-empty)/voltRange)*100;
+  if(soc>100.0)
+    soc=100;
 
   //set mahremaining based on SoC percentage
   mAhRemaining=(AH*(soc/100.0))*1000.0;

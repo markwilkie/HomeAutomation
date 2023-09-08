@@ -43,9 +43,9 @@ class StartingForm
     TripData *tripSegDataPtr;  
 
     //Fields
-    char heaterFuel[2];
-    char elapsedTime[4];
-    char milesTravelled[4];
+    char heaterFuel[3];
+    char elapsedTime[5];
+    char milesTravelled[5];
 };
 
 class StoppedForm 
@@ -70,10 +70,10 @@ class StoppedForm
     TripData *tripSegDataPtr;  
 
     //Fields
-    char gallonsExpected[3];
-    char elapsedTime[4];
-    char milesTravelled[4];
-    char avgMPG[4];
+    char gallonsExpected[4];
+    char elapsedTime[5];
+    char milesTravelled[5];
+    char avgMPG[5];
 };
 
 class StatusForm 
