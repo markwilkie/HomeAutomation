@@ -74,7 +74,7 @@ void setup()
 void scanCallback(BLEDevice peripheral) 
 {
     // discovered a peripheral, print out address, local name, and advertised service
-	Serial.printf("Found device %s at %s with uuuid %s\n",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
+	Serial.printf("Found device '%s' at '%s' with uuuid '%s'\n",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
 
 	//Checking with both device handlers to see if this is something they're interested in
 	bt2Reader.scanCallback(&peripheral);
