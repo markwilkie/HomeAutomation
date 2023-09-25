@@ -15,12 +15,6 @@ const COMMANDS bt2Commands[8] = {
 };
 
 
-void setup();
-void loop();
-void scanCallback(BLEDevice);
-void connectCallback(BLEDevice);
-void disconnectCallback(BLEDevice);
-
 
 
 

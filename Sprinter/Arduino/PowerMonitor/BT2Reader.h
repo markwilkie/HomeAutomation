@@ -1,7 +1,8 @@
 #ifndef BT2_READER_H
 #define BT2_READER_H
 
-#include <ArduinoBLE.h>
+#include "BTDeviceWrapper.hpp"
+#include "ArduinoBLE.h"
 #include <array>
 
 static const uint16_t MODBUS_TABLE_A001[256] = {
@@ -43,9 +44,6 @@ static const uint16_t MODBUS_TABLE_A001[256] = {
 #define BT2READER_QUIET					0
 #define BT2READER_ERRORS_ONLY			1
 #define BT2READER_VERBOSE				2
-
-#define MAXIMUM_BT2_DEVICES				8
-#define DEFAULT_DATA_BUFFER_LENGTH		100
 
 #define RENOGY_BYTES					0
 #define RENOGY_DECIMAL					1
@@ -112,14 +110,6 @@ const RENOGY_COMMANDS renogyCommands[8] = {
 	{0x0107, 4},												// solar
 	{0x0120, 3},												// flags for charging state, error condition
 	{0xE001, 0x21}												// battery type and other settings
-};
-
-struct REGISTER_DESCRIPTION {
-	uint16_t address;
-	uint8_t bytesUsed;
-	const char * name;
-	uint8_t type;
-	float multiplier;
 };
 
 /** This table describes bms data received.  
@@ -213,36 +203,17 @@ const RENOGY_OPTIONS_TABLE renogyOptions[] {
 	{RENOGY_AUX_BATT_TYPE, 8, "Lithium Iron Phosphate" }
 };
 
-struct REGISTER_VALUE {
-	uint16_t registerAddress;
-	uint16_t value;
-	uint32_t lastUpdateMillis = 0;
-};
-
-
 class BT2Reader 
 {
 
 public:
 
-	BLEDevice bt2Device;    //ArduinoBLE connected device
-	char peripheryName[20];
-	uint8_t peripheryAddress[6];
-	boolean connected = false;
-	boolean newDataAvailable;
+	void begin(BTDeviceWrapper *btDeviceWrapper);
 
-	uint8_t dataReceived[DEFAULT_DATA_BUFFER_LENGTH];
-	int dataReceivedLength = 0;
-	boolean dataError = false;
-
-	void addTargetBT2Device(char * peerName);
-	void addTargetBT2Device(uint8_t * peerAddress);
-	void begin();
-
-	boolean notifyCallback(BLEDevice myDevice, BLECharacteristic characteristic);
-	boolean scanCallback(BLEDevice);
-	boolean connectCallback(BLEDevice);
-	void disconnectCallback(BLEDevice);
+	boolean notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic);
+	boolean scanCallback(BLEDevice *myDevice);
+	boolean connectCallback(BLEDevice *myDevice);
+	void disconnectCallback(BLEDevice *myDevice);
 	
 	REGISTER_VALUE * getRegister(uint16_t registerAddress);
 	
@@ -255,25 +226,12 @@ public:
 	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters);
 	boolean getIsNewDataAvailable();
 
+	int loggingLevel = BT2READER_VERBOSE;
 	void setLoggingLevel(int i);
 
 private:
 
-	//ArduinoBLE charateristic objects
-	BLECharacteristic txDeviceCharateristic;
-	BLECharacteristic rxDeviceCharateristic;
-
-	//Renogy services and characteristics needed
-	const char* TX_SERVICE_UUID="ffd0";
-	const char* TX_CHARACTERISTIC_UUID="ffd1";
-
-	const char* RX_SERVICE_UUID="fff0";
-	const char* RX_CHARACTERISTIC_UUID="fff1";
-
-	//const char* TX_SERVICE_UUID="0000ffD0-0000-1000-8000-00805f9b34fb"; 
-	//const char* TX_CHARACTERISTIC_UUID="0000ffD1-0000-1000-8000-00805f9b34fb";
-	//const char* RX_SERVICE_UUID="0000ffF0-0000-1000-8000-00805f9b34fb";				// Renogy service
-	//const char* RX_CHARACTERISTIC_UUID="0000ffF1-0000-1000-8000-00805f9b34fb";		// Renogy Tx and Rx service
+	BTDeviceWrapper  *btDeviceWrapper;
 
 	const char HEX_LOWER_CASE[17] = "0123456789abcdef";
 	const char HEX_UPPER_CASE[17] = "0123456789ABCDEF";
@@ -281,14 +239,7 @@ private:
 	const uint8_t BLANK_MACID[6] = {0,0,0,0,0,0};									//useful to check whether a BT2 Device slot has a valid peer Mac Address or not
 	const char * LOGGING_LEVEL_TEXT[3] = { "QUIET", "ERROR", "VERBOSE"};
 
-	REGISTER_VALUE registerValues[50];
-	int registerDescriptionSize = 0;
-	int registerValueSize = 0;
-	int registerExpected;
-	int loggingLevel = BT2READER_VERBOSE;
-	REGISTER_VALUE invalidRegister;
-
-	boolean appendRenogyPacket(BLECharacteristic characteristic);
+	boolean appendRenogyPacket(BLECharacteristic *characteristic);
 	uint16_t getProvidedModbusChecksum(uint8_t * data);
 	uint16_t getCalculatedModbusChecksum(uint8_t * data);
 	uint16_t getCalculatedModbusChecksum(uint8_t * data, int start, int end);
