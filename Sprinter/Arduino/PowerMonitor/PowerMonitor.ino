@@ -5,8 +5,8 @@
 
 #define POLL_TIME_MS	5000
 
-char *RENOGY_DEVICE_NAME = "BT-TH-66F94E1C    ";
-char *SOK_BATTERY_NAME = "SOK-AA12487";
+const char *RENOGY_DEVICE_NAME = "BT-TH-66F94E1C    ";
+const char *SOK_BATTERY_NAME = "SOK-AA12487";
 
 // Renogy Tx and Rx service
 const char* RENOGY_TX_SVC_UUID="ffd0";
@@ -53,8 +53,8 @@ void setup()
 	BLE.setEventHandler(BLEDisconnected, disconnectCallback);	
 
 	//Add our two targets
-	//renogyDeviceWrapper.init(RENOGY_DEVICE_NAME,RENOGY_TX_SVC_UUID,RENOGY_TX_CHAR_UUID,RENOGY_RX_SVC_UUID,RENOGY_RX_CHAR_UUID);
-	//sokDeviceWrapper.init(SOK_BATTERY_NAME,SOK_TX_SVC_UUID,SOK_TX_CHAR_UUID,SOK_RX_SVC_UUID,SOK_RX_CHAR_UUID);
+	renogyDeviceWrapper.init(RENOGY_DEVICE_NAME,RENOGY_TX_SVC_UUID,RENOGY_TX_CHAR_UUID,RENOGY_RX_SVC_UUID,RENOGY_RX_CHAR_UUID);
+	sokDeviceWrapper.init(SOK_BATTERY_NAME,SOK_TX_SVC_UUID,SOK_TX_CHAR_UUID,SOK_RX_SVC_UUID,SOK_RX_CHAR_UUID);
 	targetedDevices[0]=&renogyDeviceWrapper;
 	targetedDevices[1]=&sokDeviceWrapper;
 	
@@ -73,6 +73,9 @@ void setup()
  */
 void scanCallback(BLEDevice peripheral) 
 {
+    // discovered a peripheral, print out address, local name, and advertised service
+	Serial.printf("Found device %s at %s with uuuid %s\n",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
+
 	//Checking with both device handlers to see if this is something they're interested in
 	bt2Reader.scanCallback(&peripheral);
 	sokReader.scanCallback(&peripheral);

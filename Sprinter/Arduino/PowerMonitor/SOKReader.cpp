@@ -9,10 +9,7 @@ void SOKReader::begin(BTDeviceWrapper *_btDevice)
 
 void SOKReader::scanCallback(BLEDevice *peripheral) 
 {
-    // discovered a peripheral, print out address, local name, and advertised service
-	Serial.printf("Found device %s at %s with uuuid %s\n",peripheral->localName().c_str(),peripheral->address().c_str(),peripheral->advertisedServiceUuid().c_str());
-
-	if (peripheral->localName() == btDeviceWrapper->peripheryName || (memcmp(peripheral->address().c_str(),btDeviceWrapper->peripheryAddress, 6) == 0))
+	if (peripheral->localName() == btDeviceWrapper->peripheryName)
 	{
 		Serial.println("Found targeted SOK device, attempting connection");
 		peripheral->connect();

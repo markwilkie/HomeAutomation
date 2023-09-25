@@ -57,10 +57,7 @@ void BT2Reader::begin(BTDeviceWrapper *_btDevice)
 
 boolean BT2Reader::scanCallback(BLEDevice *peripheral) 
 {
-    // discovered a peripheral, print out address, local name, and advertised service
-	log("Found device %s at %s with uuuid %s\n",peripheral->localName().c_str(),peripheral->address().c_str(),peripheral->advertisedServiceUuid().c_str());
-
-	if (peripheral->localName() == btDeviceWrapper->peripheryName || (memcmp(peripheral->address().c_str(),btDeviceWrapper->peripheryAddress, 6) == 0))
+ 	if (peripheral->localName() == btDeviceWrapper->peripheryName)
 	{
 		log("Found targeted BT2 device, attempting connection\n");
 		peripheral->connect();

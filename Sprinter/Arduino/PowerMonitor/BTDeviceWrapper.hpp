@@ -50,7 +50,7 @@ class BTDeviceWrapper
 		BLECharacteristic txDeviceCharateristic;
 		BLECharacteristic rxDeviceCharateristic;
 
-		void initfoo(const char *_name,const char *_txSvcUUID,const char *_txChaUUID,const char *_rxSvcUUID,const char *_rxChaUUID);
+		void init(const char *_name,const char *_txSvcUUID,const char *_txChaUUID,const char *_rxSvcUUID,const char *_rxChaUUID);
 };
 
 #endif
