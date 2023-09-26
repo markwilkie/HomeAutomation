@@ -20,21 +20,21 @@ int BT2Reader::printRegister(uint16_t registerAddress) {
 
 	
 
-	uint16_t registerValue = btDeviceWrapper->registerValues[registerValueIndex].value;
+	uint16_t registerValue = registerValues[registerValueIndex].value;
 	uint8_t msb = (registerValue >> 8) & 0xFF;
 	uint8_t lsb = (registerValue) & 0xFF;	
 
 	const REGISTER_DESCRIPTION * rr = &registerDescription[registerDescriptionIndex];
 	Serial.print("BT2Reader:");	
-	Serial.printf("%10s: ", btDeviceWrapper->peripheryName);
+	Serial.printf("%10s: ", peripheryName);
 	Serial.printf("%35s (%04X): ", rr->name, rr->address);
 
 	switch(rr->type) {
 		case RENOGY_BYTES: 
 			{
 				for (int i = 0; i < rr->bytesUsed / 2; i++) {
-					Serial.printf("%02X ", (btDeviceWrapper->registerValues[registerValueIndex + i].value / 256) &0xFF);
-					Serial.printf("%02X ", (btDeviceWrapper->registerValues[registerValueIndex + i].value) &0xFF);
+					Serial.printf("%02X ", (registerValues[registerValueIndex + i].value / 256) &0xFF);
+					Serial.printf("%02X ", (registerValues[registerValueIndex + i].value) &0xFF);
 				}
 				break;
 			}
@@ -42,8 +42,8 @@ int BT2Reader::printRegister(uint16_t registerAddress) {
 		case RENOGY_CHARS: 
 			{
 				for (int i = 0; i < rr->bytesUsed / 2; i++) {
-					Serial.printf("%c", (char)((btDeviceWrapper->registerValues[registerValueIndex + i].value / 256) &0xFF));
-					Serial.printf("%c", (char)((btDeviceWrapper->registerValues[registerValueIndex + i].value) &0xFF));
+					Serial.printf("%c", (char)((registerValues[registerValueIndex + i].value / 256) &0xFF));
+					Serial.printf("%c", (char)((registerValues[registerValueIndex + i].value) &0xFF));
 				}
 				break;
 			}

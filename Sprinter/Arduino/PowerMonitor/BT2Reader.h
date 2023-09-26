@@ -1,7 +1,7 @@
 #ifndef BT2_READER_H
 #define BT2_READER_H
 
-#include "BTDeviceWrapper.hpp"
+#include "BTDevice.hpp"
 #include "ArduinoBLE.h"
 #include <array>
 
@@ -203,15 +203,15 @@ const RENOGY_OPTIONS_TABLE renogyOptions[] {
 	{RENOGY_AUX_BATT_TYPE, 8, "Lithium Iron Phosphate" }
 };
 
-class BT2Reader 
+class BT2Reader : public BTDevice
 {
 
 public:
 
-	void begin(BTDeviceWrapper *btDeviceWrapper);
+	BT2Reader();
 
-	boolean notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic);
-	boolean scanCallback(BLEDevice *myDevice);
+	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic);
+	void scanCallback(BLEDevice *myDevice);
 	boolean connectCallback(BLEDevice *myDevice);
 	void disconnectCallback(BLEDevice *myDevice);
 	
@@ -224,14 +224,13 @@ public:
 	void printUuid(uint8_t * data, int datalen);
 	
 	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters);
-	boolean getIsNewDataAvailable();
 
 	int loggingLevel = BT2READER_VERBOSE;
 	void setLoggingLevel(int i);
 
 private:
 
-	BTDeviceWrapper  *btDeviceWrapper;
+	BTDevice  *btDevice;
 
 	const char HEX_LOWER_CASE[17] = "0123456789abcdef";
 	const char HEX_UPPER_CASE[17] = "0123456789ABCDEF";

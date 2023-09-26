@@ -20,12 +20,21 @@ struct REGISTER_VALUE {
 	uint32_t lastUpdateMillis = 0;
 };
 
-class BTDeviceWrapper
+class BTDevice
 {
 	public:
 
+		//Virtual member functions
+		virtual void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic) = 0;
+		virtual void scanCallback(BLEDevice *myDevice) = 0;
+		virtual boolean connectCallback(BLEDevice *myDevice) = 0;
+		virtual void disconnectCallback(BLEDevice *myDevice) = 0;
+		
+		//Non Virtual member functions
+		boolean getIsNewDataAvailable();
+
+		//Context
 		BLEDevice *bleDevice;    //ArduinoBLE connected device
-		const char *peripheryName;
 		uint8_t peripheryAddress[6];
 		boolean connected = false;
 		boolean newDataAvailable;
@@ -42,15 +51,17 @@ class BTDeviceWrapper
 		int registerExpected;
 		REGISTER_VALUE invalidRegister;		
 
-		const char* txServiceUUID;
-		const char* txCharacteristicUUID;
-		const char* rxServiceUUID;
-		const char* rxCharacteristicUUID;		
-
 		BLECharacteristic txDeviceCharateristic;
 		BLECharacteristic rxDeviceCharateristic;
 
-		void init(const char *_name,const char *_txSvcUUID,const char *_txChaUUID,const char *_rxSvcUUID,const char *_rxChaUUID);
+	protected:
+
+		// SOK Tx and Rx service
+		const char* peripheryName;	
+		const char* txServiceUUID;
+		const char* txCharacteristicUUID;	
+		const char* rxServiceUUID;	
+		const char* rxCharacteristicUUID;
 };
 
 #endif

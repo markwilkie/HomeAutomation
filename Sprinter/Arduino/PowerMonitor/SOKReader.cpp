@@ -2,17 +2,21 @@
 
 extern void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic);
 
-void SOKReader::begin(BTDeviceWrapper *_btDevice) 
+SOKReader::SOKReader()
 {
-	btDeviceWrapper = _btDevice;
+	peripheryName="SOK-AA12487";
+	txServiceUUID="ffe0";
+	txCharacteristicUUID="ffe2";
+	rxServiceUUID="ffe0";
+	rxCharacteristicUUID="ffe1";	
 }
 
 void SOKReader::scanCallback(BLEDevice *peripheral) 
 {
-	if (peripheral->localName() == btDeviceWrapper->peripheryName)
+	if (peripheral->localName() == peripheryName)
 	{
 		Serial.println("Found targeted SOK device, attempting connection");
-		memcpy(btDeviceWrapper->peripheryAddress,peripheral->address().c_str(),6);
+		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
 	} 
 }
@@ -20,16 +24,16 @@ void SOKReader::scanCallback(BLEDevice *peripheral)
 
 boolean SOKReader::connectCallback(BLEDevice *myDevice) 
 {
-	Serial.printf("SOK: Discovering Tx service: %s\n",btDeviceWrapper->txServiceUUID);
-	if(myDevice->discoverService(btDeviceWrapper->txServiceUUID))
+	Serial.printf("SOK: Discovering Tx service: %s\n",txServiceUUID);
+	if(myDevice->discoverService(txServiceUUID))
 	{
-		Serial.printf("SOK Tx service %s discovered\n",btDeviceWrapper->txServiceUUID);
-		btDeviceWrapper->txDeviceCharateristic=myDevice->characteristic(btDeviceWrapper->txCharacteristicUUID);
-		if(!btDeviceWrapper->txDeviceCharateristic)
+		Serial.printf("SOK Tx service %s discovered\n",txServiceUUID);
+		txDeviceCharateristic=myDevice->characteristic(txCharacteristicUUID);
+		if(!txDeviceCharateristic)
 		{
 			Serial.printf("ERROR: SOK Tx characteristic not discovered, disconnecting\n");
 			myDevice->disconnect();
-			btDeviceWrapper->connected=false;
+			connected=false;
 			return false;
 		}
 	} 
@@ -37,26 +41,26 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice)
 	{
 		Serial.println("ERROR: SOK Tx service not discovered, disconnecting");
 		myDevice->disconnect();
-		btDeviceWrapper->connected=false;
+		connected=false;
 		return false;		
 	}
 
-	Serial.printf("SOK: Discovering Rx service: %s\n",btDeviceWrapper->rxServiceUUID);
-	Serial.println(btDeviceWrapper->txServiceUUID);
-	if(myDevice->discoverService(btDeviceWrapper->rxServiceUUID))
+	Serial.printf("SOK: Discovering Rx service: %s\n",rxServiceUUID);
+	Serial.println(txServiceUUID);
+	if(myDevice->discoverService(rxServiceUUID))
 	{
-		Serial.printf("SOK Rx service %s discovered.  Now looking for characteristic %s\n",btDeviceWrapper->rxServiceUUID,btDeviceWrapper->rxCharacteristicUUID);
-		if(btDeviceWrapper->rxDeviceCharateristic=myDevice->characteristic(btDeviceWrapper->rxCharacteristicUUID))
+		Serial.printf("SOK Rx service %s discovered.  Now looking for characteristic %s\n",rxServiceUUID,rxCharacteristicUUID);
+		if(rxDeviceCharateristic=myDevice->characteristic(rxCharacteristicUUID))
 		{
-			if(btDeviceWrapper->rxDeviceCharateristic.canSubscribe() && btDeviceWrapper->rxDeviceCharateristic.subscribe())
+			if(rxDeviceCharateristic.canSubscribe() && rxDeviceCharateristic.subscribe())
 			{
-				btDeviceWrapper->rxDeviceCharateristic.setEventHandler(BLEWritten, mainNotifyCallback);
+				rxDeviceCharateristic.setEventHandler(BLEWritten, mainNotifyCallback);
 			}
 			else
 			{
 				Serial.println("ERROR: SOK Rx characteristic not discovered or cannot be subscribed to, disconnecting");
 				myDevice->disconnect();
-				btDeviceWrapper->connected=false;
+				connected=false;
 				return false;
 			} 
 		}
@@ -65,28 +69,28 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice)
 	{
 		Serial.println("ERROR: SOK Rx service not discovered, disconnecting\n");
 		myDevice->disconnect();
-		btDeviceWrapper->connected=false;
+		connected=false;
 		return false;
 	}
 
-	btDeviceWrapper->connected=true;
-	btDeviceWrapper->bleDevice=myDevice;
+	connected=true;
+	bleDevice=myDevice;
 	Serial.println("SOK found all needed services and characteristics.");
 	return true;
 }
 
 void SOKReader::disconnectCallback(BLEDevice *myDevice) 
 {
-	btDeviceWrapper->connected=false;
-	memset(btDeviceWrapper->peripheryAddress, 0, 6);
+	connected=false;
+	memset(peripheryAddress, 0, 6);
 }
 
 void SOKReader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic) 
 {
 	int dataLen=characteristic->valueLength();
-	characteristic->readValue(btDeviceWrapper->dataReceived,dataLen);
-	btDeviceWrapper->dataReceivedLength = dataLen;
-	btDeviceWrapper->newDataAvailable=true;
+	characteristic->readValue(dataReceived,dataLen);
+	dataReceivedLength = dataLen;
+	newDataAvailable=true;
 }
 
 //Boolean is to force signed 2 compliment if true
@@ -126,15 +130,8 @@ void SOKReader::sendReadCommand()
 	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
 	Serial.println("");
 
-	btDeviceWrapper->txDeviceCharateristic.writeValue(command, 6);
-	btDeviceWrapper->dataReceivedLength = 0;
-	btDeviceWrapper->dataError = false;
-	btDeviceWrapper->newDataAvailable = false;
-}
-
-boolean SOKReader::getIsNewDataAvailable() 
-{
-	boolean isNewDataAvailable = btDeviceWrapper->newDataAvailable;
-	btDeviceWrapper->newDataAvailable = false;
-	return (isNewDataAvailable);
+	txDeviceCharateristic.writeValue(command, 6);
+	dataReceivedLength = 0;
+	dataError = false;
+	newDataAvailable = false;
 }
