@@ -19,16 +19,16 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\libraries\\Adafruit_TinyUSB_Arduino\\src\\arduino",
                 "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\tools\\CMSIS\\5.7.0\\CMSIS\\Core\\Include\\",
                 "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\tools\\CMSIS\\5.7.0\\CMSIS\\DSP\\Include\\",
                 "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\tools\\CMSIS-Atmel\\1.2.1\\CMSIS-Atmel\\CMSIS\\Device\\ATMEL\\",
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\cores\\arduino",
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\variants\\wio_terminal",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\cores\\arduino",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\variants\\wio_terminal",
                 "C:\\Users\\mawilkie\\Documents\\Arduino\\libraries\\TFT_eSPI",
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\libraries\\SPI",
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\libraries\\Adafruit_ZeroDMA",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\libraries\\SPI",
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\libraries\\Adafruit_ZeroDMA",
                 "C:\\Users\\mawilkie\\Documents\\Arduino\\libraries\\EasyTransfer",
                 "c:\\users\\mawilkie\\appdata\\local\\arduino15\\packages\\seeeduino\\tools\\arm-none-eabi-gcc\\7-2017q4\\arm-none-eabi\\include\\c++\\7.2.1",
                 "c:\\users\\mawilkie\\appdata\\local\\arduino15\\packages\\seeeduino\\tools\\arm-none-eabi-gcc\\7-2017q4\\arm-none-eabi\\include\\c++\\7.2.1\\arm-none-eabi",
@@ -38,7 +38,7 @@
                 "c:\\users\\mawilkie\\appdata\\local\\arduino15\\packages\\seeeduino\\tools\\arm-none-eabi-gcc\\7-2017q4\\arm-none-eabi\\include"
             ],
             "forcedInclude": [
-                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.4\\cores\\arduino\\Arduino.h"
+                "C:\\Users\\mawilkie\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.5\\cores\\arduino\\Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++14",

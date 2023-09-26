@@ -1,5 +1,5 @@
 #ifndef SOK_READER_H
-#define BT2_READER_H
+#define SOK_READER_H
 
 #include "BTDevice.hpp"
 #include "ArduinoBLE.h"

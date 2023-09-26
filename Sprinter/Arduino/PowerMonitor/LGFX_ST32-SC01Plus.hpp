@@ -1,15 +1,5 @@
-
-/*
-    Simple Touch Drawing sample for WT32-SC01-Plus_ESP32-S3
-    Requirements:
-    - Development board : WT32-SC01-Plus_ESP32-S3
-    - Arduino Library - Display/Touch : LovyanGFX
-    - Board selected in Arduino : ESP32S3 Dev Module
-
-*/
-
-#define LGFX_USE_V1         // set to use new version of library
-#include <LovyanGFX.hpp>    // main library
+#ifndef LGFX_H
+#define LGFX_H
 
 class LGFX : public lgfx::LGFX_Device
 {
@@ -102,27 +92,4 @@ public:
   }
 };
 
-static LGFX lcd;            // declare display variable
-
-// Variables for touch x,y
-static int32_t x,y;
-
-void setup(void)
-{
-  lcd.init();
-
-  // Setting display to landscape
-  if (lcd.width() < lcd.height()) lcd.setRotation(lcd.getRotation() ^ 1);
-
-  lcd.setCursor(0,0);
-  lcd.printf("Ready to touch & draw!");
-}
-
-void loop()
-{
-  if (lcd.getTouch(&x, &y)) {
-    lcd.fillRect(x-2, y-2, 5, 5, TFT_RED);
-    lcd.setCursor(380,0);
-    lcd.printf("Touch:(%03d,%03d)", x,y);
-  }
-}
+#endif
