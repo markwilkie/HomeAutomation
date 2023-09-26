@@ -12,6 +12,7 @@ void SOKReader::scanCallback(BLEDevice *peripheral)
 	if (peripheral->localName() == btDeviceWrapper->peripheryName)
 	{
 		Serial.println("Found targeted SOK device, attempting connection");
+		memcpy(btDeviceWrapper->peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
 	} 
 }
@@ -19,11 +20,12 @@ void SOKReader::scanCallback(BLEDevice *peripheral)
 
 boolean SOKReader::connectCallback(BLEDevice *myDevice) 
 {
+	Serial.printf("SOK: Discovering Tx service: %s\n",btDeviceWrapper->txServiceUUID);
 	if(myDevice->discoverService(btDeviceWrapper->txServiceUUID))
 	{
 		Serial.printf("SOK Tx service %s discovered\n",btDeviceWrapper->txServiceUUID);
 		btDeviceWrapper->txDeviceCharateristic=myDevice->characteristic(btDeviceWrapper->txCharacteristicUUID);
-		if(btDeviceWrapper->txDeviceCharateristic)
+		if(!btDeviceWrapper->txDeviceCharateristic)
 		{
 			Serial.printf("ERROR: SOK Tx characteristic not discovered, disconnecting\n");
 			myDevice->disconnect();
@@ -39,9 +41,11 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice)
 		return false;		
 	}
 
+	Serial.printf("SOK: Discovering Rx service: %s\n",btDeviceWrapper->rxServiceUUID);
+	Serial.println(btDeviceWrapper->txServiceUUID);
 	if(myDevice->discoverService(btDeviceWrapper->rxServiceUUID))
 	{
-		Serial.printf("SOK Rx service %s discovered\n",btDeviceWrapper->rxServiceUUID);
+		Serial.printf("SOK Rx service %s discovered.  Now looking for characteristic %s\n",btDeviceWrapper->rxServiceUUID,btDeviceWrapper->rxCharacteristicUUID);
 		if(btDeviceWrapper->rxDeviceCharateristic=myDevice->characteristic(btDeviceWrapper->rxCharacteristicUUID))
 		{
 			if(btDeviceWrapper->rxDeviceCharateristic.canSubscribe() && btDeviceWrapper->rxDeviceCharateristic.subscribe())
@@ -67,6 +71,7 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice)
 
 	btDeviceWrapper->connected=true;
 	btDeviceWrapper->bleDevice=myDevice;
+	Serial.println("SOK found all needed services and characteristics.");
 	return true;
 }
 
@@ -118,10 +123,10 @@ void SOKReader::sendReadCommand()
 	command[5] = 0xce;
 
 	Serial.print("Sending command sequence to SOK: ");
-	for (int i = 0; i < 8; i++) { Serial.printf("%02X ", command[i]); }
+	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
 	Serial.println("");
 
-	btDeviceWrapper->txDeviceCharateristic.writeValue(command, 8);
+	btDeviceWrapper->txDeviceCharateristic.writeValue(command, 6);
 	btDeviceWrapper->dataReceivedLength = 0;
 	btDeviceWrapper->dataError = false;
 	btDeviceWrapper->newDataAvailable = false;

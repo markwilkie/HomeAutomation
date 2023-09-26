@@ -32,6 +32,7 @@ SOKReader sokReader;
 
 //state
 int renogyCmdSequenceToSend=0;
+long lastCheckedTime=0;
 boolean tiktok=true;
 
 
@@ -57,7 +58,7 @@ void setup()
 	sokDeviceWrapper.init(SOK_BATTERY_NAME,SOK_TX_SVC_UUID,SOK_TX_CHAR_UUID,SOK_RX_SVC_UUID,SOK_RX_CHAR_UUID);
 	targetedDevices[0]=&renogyDeviceWrapper;
 	targetedDevices[1]=&sokDeviceWrapper;
-	
+
 	//Setup Renogy BT2
 	bt2Reader.setLoggingLevel(BT2READER_VERBOSE);
 	bt2Reader.begin(&renogyDeviceWrapper);
@@ -88,8 +89,13 @@ void scanCallback(BLEDevice peripheral)
  */ 
 void connectCallback(BLEDevice peripheral) 
 {
-	if(peripheral.localName()==RENOGY_DEVICE_NAME)
+	Serial.print("connect callback '");
+	Serial.print(peripheral.address());
+	Serial.println("'");
+
+	if(memcmp(peripheral.address().c_str(),renogyDeviceWrapper.peripheryAddress,6)==0)
 	{
+		Serial.println("renogy connect callback");
 		if (bt2Reader.connectCallback(&peripheral)) 
 		{
 			Serial.print("Connected to BT device ");
@@ -97,8 +103,9 @@ void connectCallback(BLEDevice peripheral)
 		}
 	}
 
-	if(peripheral.localName()==SOK_BATTERY_NAME)
+	if(memcmp(peripheral.address().c_str(),sokDeviceWrapper.peripheryAddress,6)==0)
 	{
+		Serial.println("SOK connect callback");
 		if (sokReader.connectCallback(&peripheral)) 
 		{
 			Serial.print("Connected to SOK device ");
@@ -122,7 +129,7 @@ void connectCallback(BLEDevice peripheral)
 
 void disconnectCallback(BLEDevice peripheral) 
 {
-	if(peripheral.localName()==RENOGY_DEVICE_NAME)
+	if(memcmp(peripheral.address().c_str(),renogyDeviceWrapper.peripheryAddress,6)==0)
 	{	
 		renogyCmdSequenceToSend=0;  //need to start at the beginning since we disconnected
 		bt2Reader.disconnectCallback(&peripheral);
@@ -131,7 +138,7 @@ void disconnectCallback(BLEDevice peripheral)
 		Serial.print(peripheral.localName());
 	}
 
-	if(peripheral.localName()==SOK_BATTERY_NAME)
+	if(memcmp(peripheral.address().c_str(),sokDeviceWrapper.peripheryAddress,6)==0)
 	{	
 		Serial.print("Disconnected SOK device: ");
 		Serial.print(peripheral.localName());
@@ -143,7 +150,7 @@ void disconnectCallback(BLEDevice peripheral)
 
 void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 {
-	if(peripheral.localName()==RENOGY_DEVICE_NAME)
+	if(memcmp(peripheral.address().c_str(),renogyDeviceWrapper.peripheryAddress,6)==0)
 	{		
 		if (bt2Reader.notifyCallback(&peripheral,&characteristic)) 
 		{
@@ -152,7 +159,7 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 		}
 	}
 
-	if(peripheral.localName()==SOK_BATTERY_NAME)
+	if(memcmp(peripheral.address().c_str(),sokDeviceWrapper.peripheryAddress,6)==0)
 	{		
 		sokReader.notifyCallback(&peripheral,&characteristic); 
 		Serial.print("Characteristic notify from ");
@@ -171,42 +178,6 @@ void handleRenogy()
 	renogyDeviceWrapper.lastCmdSent=renogyCmdSequenceToSend;
 	renogyCmdSequenceToSend++;
 	if(renogyCmdSequenceToSend>7)  renogyCmdSequenceToSend=4;
-
-	while (!bt2Reader.getIsNewDataAvailable() && (millis() - sendReadCommandTime < 5000)) 
-	{
-		BLE.poll();
-		delay(2);
-	}
-
-	if (millis() - sendReadCommandTime >= 5000) 
-	{
-		Serial.println("Timeout error; did not receive response from BT2 within 5 seconds");
-	} 
-	else 
-	{
-		Serial.printf("Received response for %d registers 0x%04X - 0x%04X in %dms: ", 
-				numberOfRegisters,
-				startRegister,
-				startRegister + numberOfRegisters - 1,
-				(millis() - sendReadCommandTime)
-		);
-		bt2Reader.printHex(renogyDeviceWrapper.dataReceived, renogyDeviceWrapper.dataReceivedLength, false);
-
-		
-		for (int i = 0; i < numberOfRegisters; i++) 
-		{
-			Serial.printf("Register 0x%04X contains %d\n",
-				startRegister + i,
-				bt2Reader.getRegister(startRegister + i)->value
-			);
-		}
-
-		for (int i = 0; i < numberOfRegisters; i++) 
-		{
-			bt2Reader.printRegister(startRegister + i);
-		}
-	}	
-
 }
 
 void readRenogyData()
@@ -247,6 +218,7 @@ void readSokData()
 	uint8_t *data=sokDeviceWrapper.dataReceived;
 	if(data[0]==0xCC && data[1]==0xF0)
 	{
+		Serial.println("================ SOK ==============");
 		int soc=sokReader.bytesToInt(data+16,1,false);
 		float volts=sokReader.bytesToInt(data+2,3,false)*.001;
 		float amps=sokReader.bytesToInt(data+5,3,true)*.001;
@@ -269,15 +241,17 @@ void loop()
 	BLE.poll();
 
 	//Time to ask for data again?
-	if (tiktok && renogyDeviceWrapper.connected && millis()>renogyDeviceWrapper.lastCheckedTime+POLL_TIME_MS) 
+	if (tiktok && renogyDeviceWrapper.connected && millis()>lastCheckedTime+POLL_TIME_MS) 
 	{
 		renogyDeviceWrapper.lastCheckedTime=millis();
+		lastCheckedTime=millis();
 		handleRenogy();
 	}
 
-	if (tiktok && sokDeviceWrapper.connected && millis()>sokDeviceWrapper.lastCheckedTime+POLL_TIME_MS) 
+	if (!tiktok && sokDeviceWrapper.connected && millis()>lastCheckedTime+POLL_TIME_MS) 
 	{
 		sokDeviceWrapper.lastCheckedTime=millis();
+		lastCheckedTime=millis();
 		handleSok();
 	}
 

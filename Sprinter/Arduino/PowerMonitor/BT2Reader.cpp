@@ -55,11 +55,12 @@ void BT2Reader::begin(BTDeviceWrapper *_btDevice)
 }
 
 
-boolean BT2Reader::scanCallback(BLEDevice *peripheral) 
+boolean BT2Reader::scanCallback(BLEDevice *peripheral)
 {
  	if (peripheral->localName() == btDeviceWrapper->peripheryName)
 	{
 		log("Found targeted BT2 device, attempting connection\n");
+		memcpy(btDeviceWrapper->peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
 		return true;
 	} 
@@ -71,28 +72,30 @@ boolean BT2Reader::scanCallback(BLEDevice *peripheral)
 
 boolean BT2Reader::connectCallback(BLEDevice *myDevice) 
 {
+	log("Discovering Tx service: %s \n",btDeviceWrapper->txServiceUUID);
 	if(myDevice->discoverService(btDeviceWrapper->txServiceUUID))
 	{
-		log("Renogy Tx service %s discovered\n",btDeviceWrapper->txServiceUUID);
+		log("Renogy Tx service %s discovered.  Now looking for charecteristic %s\n",btDeviceWrapper->txServiceUUID,btDeviceWrapper->txCharacteristicUUID);
 		btDeviceWrapper->txDeviceCharateristic=myDevice->characteristic(btDeviceWrapper->txCharacteristicUUID);
-		if(btDeviceWrapper->txDeviceCharateristic)
+		if(!btDeviceWrapper->txDeviceCharateristic)
 		{
 			logerror("Renogy Tx characteristic not discovered, disconnecting\n");
 			myDevice->disconnect();
 			btDeviceWrapper->connected=false;
-			return true;
+			return false;
 		}
 	} 
 	else 
 	{
 		logerror("Renogy Tx service not discovered, disconnecting\n");
 		myDevice->disconnect();
-		return true;
+		return false;
 	}
 
+	log("Discovering Rx service: %s \n",btDeviceWrapper->rxServiceUUID);
 	if(myDevice->discoverService(btDeviceWrapper->rxServiceUUID))
 	{
-		log("Renogy Rx service %s discovered\n",btDeviceWrapper->rxServiceUUID);
+		log("Renogy Rx service %s discovered.  Now looking for charecteristic %s\n",btDeviceWrapper->rxServiceUUID,btDeviceWrapper->rxCharacteristicUUID);
 		if(btDeviceWrapper->rxDeviceCharateristic=myDevice->characteristic(btDeviceWrapper->rxCharacteristicUUID))
 		{
 			if(btDeviceWrapper->rxDeviceCharateristic.canSubscribe() && btDeviceWrapper->rxDeviceCharateristic.subscribe())
@@ -104,7 +107,7 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice)
 				logerror("Renogy Rx characteristic not discovered or cannot be subscribed to, disconnecting\n");
 				myDevice->disconnect();
 				btDeviceWrapper->connected=false;
-				return true;
+				return false;
 			} 
 		}
 	} 
@@ -112,11 +115,12 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice)
 	{
 		logerror("Renogy Rx service not discovered, disconnecting\n");
 		myDevice->disconnect();
-		return true;
+		return false;
 	}
 
 	btDeviceWrapper->connected=true;
 	btDeviceWrapper->bleDevice=myDevice;
+	log("Found all services and characteristics.\n");
 	return true;
 }
 
