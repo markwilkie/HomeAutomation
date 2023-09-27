@@ -18,9 +18,13 @@ public:
 
 	void sendReadCommand();
 
+	int getSoc();
+	float getVolts();
+	float getAmps();
+
+private:
+
 	int bytesToInt(uint8_t *bytes, int len, boolean isSigned) ;	
 };
-
-
 
 #endif

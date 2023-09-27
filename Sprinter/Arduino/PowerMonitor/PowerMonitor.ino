@@ -70,6 +70,7 @@ void setup()
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     lcd.drawString("Sprinkle Data",80, 5, 4);
 
+	//BLE
 	Serial.println("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
 	Serial.println("-----------------------------------------------------\n");
 	if (!BLE.begin()) 
@@ -190,59 +191,9 @@ void handleRenogy()
 	if(renogyCmdSequenceToSend>7)  renogyCmdSequenceToSend=4;
 }
 
-void readRenogyData()
-{
-	int lastCmd=bt2Reader.lastCmdSent;
-	uint16_t startRegister = bt2Commands[lastCmd].startRegister;
-	uint16_t numberOfRegisters = bt2Commands[lastCmd].numberOfRegisters;
-
-	Serial.printf("Received response for %d registers 0x%04X - 0x%04X: ", 
-		numberOfRegisters,
-		startRegister,
-		startRegister + numberOfRegisters - 1);
-	bt2Reader.printHex(bt2Reader.dataReceived, bt2Reader.dataReceivedLength, false);
-
-	
-	for (int i = 0; i < numberOfRegisters; i++) 
-	{
-		Serial.printf("Register 0x%04X contains %d\n",
-			startRegister + i,
-			bt2Reader.getRegister(startRegister + i)->value
-		);
-	}
-
-	for (int i = 0; i < numberOfRegisters; i++) 
-	{
-		bt2Reader.printRegister(startRegister + i);
-	}
-}
-
 void handleSok()
 {
 	sokReader.sendReadCommand();
-}
-
-void readSokData()
-{
-	//Parse
-	uint8_t *data=sokReader.dataReceived;
-	if(data[0]==0xCC && data[1]==0xF0)
-	{
-		Serial.println("================ SOK ==============");
-		int soc=sokReader.bytesToInt(data+16,1,false);
-		float volts=sokReader.bytesToInt(data+2,3,false)*.001;
-		float amps=sokReader.bytesToInt(data+5,3,true)*.001;
-		Serial.print("SOC: ");   Serial.println(soc);
-		//lcd.setCursor(0,20);
-		//lcd.printf("SOC: %d", soc);
-		Serial.print("Volts: ");   Serial.println(volts);
-		//lcd.setCursor(0,40);
-		//lcd.printf("Volts: %f", volts);        
-		Serial.print("Amps: ");   Serial.println(amps);
-		//lcd.setCursor(0,60);
-		//lcd.printf("Amps: %f", amps);             
-	}
-	Serial.println("----------------");
 }
 
 void loop() 
@@ -254,7 +205,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		loadSimulatedValues();
+		//loadSimulatedValues();
+		loadValues();
 		updateLCD();
 	}
 
@@ -276,12 +228,7 @@ void loop()
 	//Do we have any data waiting?
 	if(bt2Reader.getIsNewDataAvailable())
 	{
-		readRenogyData();
-	}
-
-	if(sokReader.getIsNewDataAvailable())
-	{
-		readSokData();
+		bt2Reader.updateValues();
 	}
 
 	//toggle to the other device
@@ -304,6 +251,20 @@ void updateLCD()
     battHoursLeft.drawText(10,190,scrPayload.batteryHoursRem,1," Hrs",2);
     waterDaysLeft.drawRightText(lcd.width()-10,190,scrPayload.waterDaysRem,1," Dys",2);
     //hertz.drawRightText(lcd.width()-10,220,hz,0,"Hz",2);
+}
+
+void loadValues()
+{
+	scrPayload.stateOfCharge=sokReader.getSoc();
+	scrPayload.stateOfWater=random(3);
+	if(scrPayload.stateOfWater==0)  scrPayload.stateOfWater=20;
+	if(scrPayload.stateOfWater==1)  scrPayload.stateOfWater=50;
+	if(scrPayload.stateOfWater==2)  scrPayload.stateOfWater=90;
+	scrPayload.volts=sokReader.getVolts();
+	scrPayload.chargeAh=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
+	scrPayload.drawAh=sokReader.getAmps()-scrPayload.chargeAh;
+	scrPayload.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
+	scrPayload.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 }
 
 void loadSimulatedValues()

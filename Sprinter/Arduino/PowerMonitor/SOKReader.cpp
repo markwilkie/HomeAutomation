@@ -135,3 +135,21 @@ void SOKReader::sendReadCommand()
 	dataError = false;
 	newDataAvailable = false;
 }
+
+int  SOKReader::getSoc()
+{
+	return bytesToInt(dataReceived+16,1,false);
+}
+
+float SOKReader::getVolts()
+{
+	return bytesToInt(dataReceived+2,3,false)*.001;
+}
+
+float SOKReader::getAmps()
+{
+	return bytesToInt(dataReceived+5,3,true)*.001;
+}
+
+		
+		

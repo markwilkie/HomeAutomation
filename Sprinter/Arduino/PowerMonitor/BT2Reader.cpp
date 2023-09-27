@@ -187,8 +187,8 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 	return true;
 }
 
-void BT2Reader::processDataReceived() {
-
+void BT2Reader::processDataReceived() 
+{
 	int registerOffset = 0;
 	int registersProvided = dataReceived[2] / 2;
 	
@@ -230,6 +230,62 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	newDataAvailable = false;
 }
 
+void BT2Reader::updateValues()
+{
+	int numRegisters=sizeof(registerValues)/(sizeof(registerValues[0]));
+	for(int i=0;i<numRegisters;i++)
+	{
+		int registerDescriptionIndex;
+		const REGISTER_DESCRIPTION *rr;
+		REGISTER_VALUE registerValue=registerValues[i];
+		uint16_t registerAddress=registerValue.registerAddress;
+		switch(registerAddress)
+		{
+			//Alternater amps
+			case 0x0105:
+				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
+				rr = &registerDescription[registerDescriptionIndex];
+				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
+				break;
+			case 0x0108:
+				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
+				rr = &registerDescription[registerDescriptionIndex];
+				solarAmps=(float)(registerValue.value) * rr->multiplier;
+				break;				
+		}
+	}
+}
+
+float BT2Reader::getAlternaterAmps()
+{
+	return alternaterAmps;
+}
+
+float BT2Reader::getSolarAmps()
+{
+	return solarAmps;
+}
+
+void BT2Reader::dumpRenogyData()
+{
+	int lastCmd=lastCmdSent;
+	uint16_t startRegister = bt2Commands[lastCmd].startRegister;
+	uint16_t numberOfRegisters = bt2Commands[lastCmd].numberOfRegisters;
+
+	Serial.printf("Received response for %d registers 0x%04X - 0x%04X: ",numberOfRegisters,startRegister,startRegister + numberOfRegisters - 1);
+	printHex(dataReceived, dataReceivedLength, false);
+	
+	for (int i = 0; i < numberOfRegisters; i++) 
+	{
+		Serial.printf("Register 0x%04X contains %d\n",startRegister + i,getRegister(startRegister + i)->value);
+	}
+
+	for (int i = 0; i < numberOfRegisters; i++) 
+	{
+		printRegister(startRegister + i);
+	}
+}
+
 
 int BT2Reader::getRegisterValueIndex(uint16_t registerAddress) {
 	int left = 0;
@@ -264,9 +320,9 @@ int BT2Reader::getRegisterDescriptionIndex(uint16_t registerAddress) {
 
 int BT2Reader::getExpectedLength(uint8_t * data) { return data[2] + 5; }
 
-REGISTER_VALUE * BT2Reader::getRegister(uint16_t registerAddress) 
+REGISTER_VALUE *BT2Reader::getRegister(uint16_t registerAddress) 
 {
 	int registerValueIndex = getRegisterValueIndex(registerAddress);
 	if (registerValueIndex < 0) { return &invalidRegister; }
 	return (&(registerValues[registerValueIndex]));
-	}
+}

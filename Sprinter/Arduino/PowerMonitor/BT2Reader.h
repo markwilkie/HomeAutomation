@@ -203,6 +203,22 @@ const RENOGY_OPTIONS_TABLE renogyOptions[] {
 	{RENOGY_AUX_BATT_TYPE, 8, "Lithium Iron Phosphate" }
 };
 
+struct COMMANDS {
+	uint16_t startRegister;
+	uint16_t numberOfRegisters;
+};
+
+const COMMANDS bt2Commands[8] = {
+	{0x000C, 2},												// Startup; this is always the first command send on connection
+	{0x000C, 8},												// Product model
+	{0x0014, 4},												// Software, hardware version
+	{0x0018, 3},												// Serial number, unit address
+	{0x0100, 7},												// Aux batt, alternator
+	{0x0107, 4},												// solar
+	{0x0120, 3},												// flags for charging state, error condition
+	{0xE001, 0x21}												// battery type and other settings
+};
+
 class BT2Reader : public BTDevice
 {
 
@@ -214,17 +230,18 @@ public:
 	void scanCallback(BLEDevice *myDevice);
 	boolean connectCallback(BLEDevice *myDevice);
 	void disconnectCallback(BLEDevice *myDevice);
-	
-	REGISTER_VALUE * getRegister(uint16_t registerAddress);
-	
-	int printRegister(uint16_t registerAddress);
 
+	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters);
+	void updateValues();
+	float getAlternaterAmps();
+	float getSolarAmps();	
+	void dumpRenogyData();
+
+	int printRegister(uint16_t registerAddress);
 	void printHex(uint8_t * data, int datalen);
 	void printHex(uint8_t * data, int datalen, boolean reverse);
 	void printUuid(uint8_t * data, int datalen);
 	
-	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters);
-
 	int loggingLevel = BT2READER_VERBOSE;
 	void setLoggingLevel(int i);
 
@@ -238,6 +255,9 @@ private:
 	const uint8_t BLANK_MACID[6] = {0,0,0,0,0,0};									//useful to check whether a BT2 Device slot has a valid peer Mac Address or not
 	const char * LOGGING_LEVEL_TEXT[3] = { "QUIET", "ERROR", "VERBOSE"};
 
+	float alternaterAmps;
+	float solarAmps;
+
 	boolean appendRenogyPacket(BLECharacteristic *characteristic);
 	uint16_t getProvidedModbusChecksum(uint8_t * data);
 	uint16_t getCalculatedModbusChecksum(uint8_t * data);
@@ -246,6 +266,8 @@ private:
 	int getExpectedLength(uint8_t * data);
 	void processDataReceived();
 
+	REGISTER_VALUE * getRegister(uint16_t registerAddress);
+	boolean isRegisterAvailable(uint16_t registerAddress);
 	int getRegisterDescriptionIndex(uint16_t registerAddress);
 	int getRegisterValueIndex(uint16_t registerAddress);
 
