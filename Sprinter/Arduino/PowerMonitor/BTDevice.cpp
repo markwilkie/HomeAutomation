@@ -39,7 +39,7 @@ void BTDevice::updateSemaphore(BLE_SEMAPHORE* bleSemaphore, uint16_t expectedByt
 }
 
 void BTDevice::updateSemaphore(BLE_SEMAPHORE* bleSemaphore)
-	{
+{
 	//Update semaphore
 	bleSemaphore->btDevice=this;
 	bleSemaphore->waitingForConnection=true;

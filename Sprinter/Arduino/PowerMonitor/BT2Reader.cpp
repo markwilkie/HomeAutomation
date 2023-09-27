@@ -68,29 +68,21 @@ void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 		//Make sure we're not busy
 		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 		{
-			log("BLE device at address ");
-			for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
-			logprintf(" in use when a connection attempt was tried\n");
+			log("BLE device %s in use when another send attempt was tried\n",bleSemaphore->btDevice->getPerifpheryName());
 			return;
 		}
+		//Set semaphore for connect
+		updateSemaphore(bleSemaphore);
 
 		log("Found targeted BT2 device, attempting connection\n");
 		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
-
-		//Set semaphore for connect
-		updateSemaphore(bleSemaphore);
 	} 
 }
 
 
 boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
 {
-	log("Releasing connect semaphore for BLE device at address ");
-	for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
-	logprintf("\n");
-	bleSemaphore->waitingForConnection=false;
-
 	log("Discovering Tx service: %s \n",txServiceUUID);
 	if(myDevice->discoverService(txServiceUUID))
 	{
@@ -139,6 +131,10 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 
 	connected=true;
 	log("Found all services and characteristics.\n");
+
+	log("Releasing connect semaphore for BLE device %s\n",bleSemaphore->btDevice->getPerifpheryName());
+	bleSemaphore->waitingForConnection=false;
+
 	return true;
 }
 
@@ -249,9 +245,7 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	//Make sure we're clear to send
 	if(bleSemaphore->waitingForResponse)
 	{
-		log("BLE device at address ");
-		for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
-		logprintf(" in use when another send attempt was tried\n");
+		log("BLE device %s in use when another send attempt was tried\n",bleSemaphore->btDevice->getPerifpheryName());
 		return;
 	}
 
@@ -288,10 +282,7 @@ void BT2Reader::processDataReceived(BLE_SEMAPHORE* bleSemaphore)
 	//Check if we should release the semaphore
 	if(getRegisterValueIndex(bleSemaphore->expectedBytes))
 	{
-		log("Releasing semaphore for BLE device at address ");
-		for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
-		logprintf("\n");
-
+		log("Releasing response semaphore for BLE device %s\n",bleSemaphore->btDevice->getPerifpheryName());
 		bleSemaphore->waitingForResponse=false;
 	}
 	

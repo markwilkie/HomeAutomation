@@ -1,0 +1,273 @@
+15:08:48.858 -> ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery
+15:08:48.858 -> -----------------------------------------------------
+15:08:48.858 -> 
+15:08:48.999 -> BT2Reader: Setting logging level to VERBOSE
+15:08:51.021 -> About to start scanning
+15:08:51.068 -> Found device 'BT-TH-66F94E1C    ' at '60:98:66:f9:4e:1c' with uuuid 'ffd0'
+15:08:51.068 -> BT2Reader: Found targeted BT2 device, attempting connection
+15:08:51.115 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:51.303 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:51.539 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:51.586 -> Connect callback for '60:98:66:f9:4e:1c'
+15:08:51.586 -> Renogy connect callback
+15:08:51.586 -> BT2Reader: Discovering Tx service: ffd0 
+15:08:51.680 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+15:08:51.680 -> BLE busy with BT-TH-66F94E1C    
+15:08:51.821 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:51.962 -> Found device '' at '67:71:29:f3:65:7b' with uuuid 'fef3'
+15:08:52.057 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.057 -> BT2Reader: Renogy Tx service ffd0 discovered.  Now looking for charecteristic ffd1
+15:08:52.057 -> BT2Reader: Discovering Rx service: fff0 
+15:08:52.151 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.245 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.292 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+15:08:52.292 -> BLE busy with BT-TH-66F94E1C    
+15:08:52.339 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.433 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.574 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.762 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+15:08:52.762 -> BLE busy with BT-TH-66F94E1C    
+15:08:52.762 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.856 -> BT2Reader: Renogy Rx service fff0 discovered.  Now looking for charecteristic fff1
+15:08:52.903 -> BT2Reader: Found all services and characteristics.
+15:08:52.903 -> BT2Reader: Releasing connect semaphore for BLE device BT-TH-66F94E1C    
+15:08:52.903 -> Connected to BT device 60:98:66:f9:4e:1c
+15:08:52.903 -> Sending Renogy startup command
+15:08:52.903 -> BT2Reader: Sending command sequence: FF 03 00 0C 00 02 11 D6 
+15:08:52.950 -> Sending Renogy alternater command
+15:08:52.950 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:08:52.950 -> Found device '' at '04:89:a0:d4:39:e8' with uuuid ''
+15:08:52.997 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:08:52.997 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:08:52.997 -> Received response for 2 registers 0x000C - 0x000D
+15:08:52.997 -> Found device '' at '67:71:29:f3:65:7b' with uuuid 'fef3'
+15:08:53.044 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:08:53.044 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:08:53.044 -> Received response for 7 registers 0x0100 - 0x0106
+15:08:53.044 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:08:53.044 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:08:53.044 -> Solar: value=0 multiplier=0.010000 result=0.000000
+15:08:53.185 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+15:08:53.185 -> Found targeted SOK device, attempting connection
+15:08:54.031 -> Found device '' at '67:71:29:f3:65:7b' with uuuid 'fef3'
+15:08:54.219 -> Connect callback for '20:22:08:04:10:21'
+15:08:54.219 -> SOK connect callback
+15:08:54.219 -> SOK: Discovering Tx service: ffe0
+15:08:54.409 -> SOK Tx service ffe0 discovered
+15:08:54.409 -> SOK: Discovering Rx service: ffe0
+15:08:54.409 -> ffe0
+15:08:54.456 -> SOK Rx service ffe0 discovered.  Now looking for characteristic ffe1
+15:08:54.456 -> SOK found all needed services and characteristics.
+15:08:54.456 -> Releasing connect semaphore for BLE device SOK-AA12487
+15:08:54.456 -> Connected to SOK device 20:22:08:04:10:21
+15:08:54.456 -> All devices connected.  Stopping scan
+15:08:57.938 -> Sending Renogy solar command
+15:08:57.938 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:08:58.032 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:08:58.032 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:08:58.032 -> Received response for 4 registers 0x0107 - 0x010A
+15:08:58.032 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:08:58.032 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:08:58.032 -> Solar: value=27 multiplier=0.010000 result=0.270000
+15:09:02.965 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:09:03.011 -> Characteristic notify from 20:22:08:04:10:21
+15:09:03.011 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:03.057 -> Characteristic notify from 20:22:08:04:10:21
+15:09:03.057 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:07.966 -> Sending Renogy alternater command
+15:09:07.966 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:09:08.012 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:08.012 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:08.012 -> Received response for 7 registers 0x0100 - 0x0106
+15:09:08.012 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:08.012 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:08.012 -> Solar: value=27 multiplier=0.010000 result=0.270000
+15:09:12.975 -> Sending Renogy solar command
+15:09:12.975 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:09:13.022 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:13.022 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:13.022 -> Received response for 4 registers 0x0107 - 0x010A
+15:09:13.022 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:13.022 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:13.022 -> Solar: value=29 multiplier=0.010000 result=0.290000
+15:09:17.962 -> Sending Renogy alternater command
+15:09:17.962 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:09:18.009 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:18.009 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:18.009 -> Received response for 7 registers 0x0100 - 0x0106
+15:09:18.009 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:18.009 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:18.009 -> Solar: value=29 multiplier=0.010000 result=0.290000
+15:09:22.954 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:09:23.048 -> Characteristic notify from 20:22:08:04:10:21
+15:09:23.048 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:23.048 -> Characteristic notify from 20:22:08:04:10:21
+15:09:23.048 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:27.953 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:09:28.047 -> Characteristic notify from 20:22:08:04:10:21
+15:09:28.047 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:28.094 -> Characteristic notify from 20:22:08:04:10:21
+15:09:28.094 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:32.958 -> Sending Renogy solar command
+15:09:32.958 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:09:33.005 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:33.005 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:33.005 -> Received response for 4 registers 0x0107 - 0x010A
+15:09:33.005 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:33.005 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:33.005 -> Solar: value=31 multiplier=0.010000 result=0.310000
+15:09:37.950 -> Sending Renogy alternater command
+15:09:37.950 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:09:38.044 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:38.044 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:38.044 -> Received response for 7 registers 0x0100 - 0x0106
+15:09:38.044 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:38.044 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:38.044 -> Solar: value=31 multiplier=0.010000 result=0.310000
+15:09:42.983 -> Sending Renogy solar command
+15:09:42.983 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:09:43.031 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:43.031 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:43.031 -> Received response for 4 registers 0x0107 - 0x010A
+15:09:43.031 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:43.031 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:43.031 -> Solar: value=31 multiplier=0.010000 result=0.310000
+15:09:47.973 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:09:48.020 -> Characteristic notify from 20:22:08:04:10:21
+15:09:48.020 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:48.067 -> Characteristic notify from 20:22:08:04:10:21
+15:09:48.067 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:52.961 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:09:53.055 -> Characteristic notify from 20:22:08:04:10:21
+15:09:53.055 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:53.102 -> Characteristic notify from 20:22:08:04:10:21
+15:09:53.102 -> Releasing response semaphore for BLE device SOK-AA12487
+15:09:57.947 -> Sending Renogy alternater command
+15:09:57.947 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:09:58.041 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:09:58.041 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:09:58.041 -> Received response for 7 registers 0x0100 - 0x0106
+15:09:58.041 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:09:58.041 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:09:58.041 -> Solar: value=31 multiplier=0.010000 result=0.310000
+15:10:02.981 -> Sending Renogy solar command
+15:10:02.981 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:10:03.028 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:03.028 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:03.028 -> Received response for 4 registers 0x0107 - 0x010A
+15:10:03.028 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:03.028 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:03.028 -> Solar: value=33 multiplier=0.010000 result=0.330000
+15:10:07.951 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:10:08.046 -> Characteristic notify from 20:22:08:04:10:21
+15:10:08.046 -> Releasing response semaphore for BLE device SOK-AA12487
+15:10:08.092 -> Characteristic notify from 20:22:08:04:10:21
+15:10:08.092 -> Releasing response semaphore for BLE device SOK-AA12487
+15:10:12.983 -> Sending Renogy alternater command
+15:10:12.983 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:10:13.031 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:13.031 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:13.031 -> Received response for 7 registers 0x0100 - 0x0106
+15:10:13.031 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:13.031 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:13.031 -> Solar: value=33 multiplier=0.010000 result=0.330000
+15:10:17.966 -> Sending Renogy solar command
+15:10:17.966 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:10:18.013 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:18.013 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:18.013 -> Received response for 4 registers 0x0107 - 0x010A
+15:10:18.013 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:18.013 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:18.013 -> Solar: value=35 multiplier=0.010000 result=0.350000
+15:10:22.952 -> Sending Renogy alternater command
+15:10:22.952 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:10:23.046 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:23.046 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:23.046 -> Received response for 7 registers 0x0100 - 0x0106
+15:10:23.046 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:23.046 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:23.046 -> Solar: value=35 multiplier=0.010000 result=0.350000
+15:10:27.984 -> Sending Renogy solar command
+15:10:27.984 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:10:28.078 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:28.078 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:28.078 -> Received response for 4 registers 0x0107 - 0x010A
+15:10:28.078 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:28.078 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:28.078 -> Solar: value=35 multiplier=0.010000 result=0.350000
+15:10:29.256 -> Disconnected SOK device 20:22:08:04:10:21 - Starting scan again
+15:10:29.304 -> Found device '' at '0d:2b:bb:b5:1c:39' with uuuid ''
+15:10:29.350 -> Found device 'WHSCL1' at '2c:aa:8e:42:15:ef' with uuuid '636f6d2e-6a69-7561-6e2e-424653563231'
+15:10:29.539 -> Found device '' at 'd8:a3:5c:a9:e9:73' with uuuid ''
+15:10:29.680 -> Found device '' at '67:71:29:f3:65:7b' with uuuid 'fef3'
+15:10:32.979 -> Found device 'L3061Q7' at '78:9c:85:05:e4:1a' with uuuid 'fe24'
+15:10:32.979 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:10:33.169 -> Found device 'FB4626' at 'a8:48:fa:24:93:a6' with uuuid '57b40210-2528-d6bc-b043-b49af0ec06c1'
+15:10:37.984 -> Sending Renogy alternater command
+15:10:37.984 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:10:38.031 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:38.031 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:38.031 -> Received response for 7 registers 0x0100 - 0x0106
+15:10:38.031 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:38.031 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:38.031 -> Solar: value=35 multiplier=0.010000 result=0.350000
+15:10:42.976 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:10:43.541 -> Found device '' at 'f6:2f:3e:51:83:15' with uuuid 'feaf'
+15:10:44.813 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+15:10:44.813 -> Found targeted SOK device, attempting connection
+15:10:45.001 -> Connect callback for '20:22:08:04:10:21'
+15:10:45.001 -> SOK connect callback
+15:10:45.001 -> SOK: Discovering Tx service: ffe0
+15:10:45.470 -> SOK Tx service ffe0 discovered
+15:10:45.470 -> SOK: Discovering Rx service: ffe0
+15:10:45.470 -> ffe0
+15:10:45.517 -> SOK Rx service ffe0 discovered.  Now looking for characteristic ffe1
+15:10:45.564 -> SOK found all needed services and characteristics.
+15:10:45.564 -> Releasing connect semaphore for BLE device SOK-AA12487
+15:10:45.564 -> Connected to SOK device 20:22:08:04:10:21
+15:10:45.564 -> All devices connected.  Stopping scan
+15:10:47.963 -> Sending Renogy solar command
+15:10:47.963 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:10:48.056 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:48.056 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:48.056 -> Received response for 4 registers 0x0107 - 0x010A
+15:10:48.056 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:48.056 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:48.056 -> Solar: value=36 multiplier=0.010000 result=0.360000
+15:10:52.994 -> Sending Renogy alternater command
+15:10:52.994 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+15:10:53.041 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:10:53.041 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:10:53.041 -> Received response for 7 registers 0x0100 - 0x0106
+15:10:53.041 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:10:53.041 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:10:53.041 -> Solar: value=36 multiplier=0.010000 result=0.360000
+15:10:56.710 -> Disconnected SOK device 20:22:08:04:10:21 - Starting scan again
+15:10:56.757 -> Found device '' at '0d:2b:bb:b5:1c:39' with uuuid ''
+15:10:57.274 -> Found device 'L3061Q7' at '78:9c:85:05:e4:1a' with uuuid 'fe24'
+15:10:57.274 -> Found device 'FB4626' at 'a8:48:fa:24:93:a6' with uuuid '57b40210-2528-d6bc-b043-b49af0ec06c1'
+15:10:57.649 -> Found device '' at '67:71:29:f3:65:7b' with uuuid 'fef3'
+15:10:57.979 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:10:58.120 -> Found device '' at 'd8:a3:5c:a9:e9:73' with uuuid ''
+15:11:02.966 -> Sending Renogy solar command
+15:11:02.966 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+15:11:03.576 -> Found device '' at 'f6:2f:3e:51:83:15' with uuuid 'feaf'
+15:11:04.046 -> Characteristic notify from 60:98:66:f9:4e:1c
+15:11:04.046 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+15:11:04.046 -> Received response for 4 registers 0x0107 - 0x010A
+15:11:04.046 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
+15:11:04.046 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+15:11:04.046 -> Solar: value=37 multiplier=0.010000 result=0.370000
+15:11:04.423 -> Found device '' at '48:a8:18:12:19:81' with uuuid 'fe9f'
+15:11:04.611 -> Found device 'WHSCL1' at '2c:aa:8e:42:15:ef' with uuuid '636f6d2e-6a69-7561-6e2e-424653563231'
+15:11:06.116 -> Found device 'N0CGL' at 'ea:f4:50:f2:89:2f' with uuuid 'feaf'
+15:11:06.445 -> Disconnected BT2 device 60:98:66:f9:4e:1c - Starting scan again
+15:11:06.445 -> Found device '' at '0d:2b:bb:b5:1c:39' with uuuid ''
+15:11:06.492 -> Found device 'FB4626' at 'a8:48:fa:24:93:a6' with uuuid '57b40210-2528-d6bc-b043-b49af0ec06c1'
+15:11:06.720 -> Found device '' at '48:a8:18:12:19:81' with uuuid 'fe9f'
+15:11:06.814 -> Found device 'WHSCL1' at '2c:aa:8e:42:15:ef' with uuuid '636f6d2e-6a69-7561-6e2e-424653563231'
+15:11:07.238 -> Found device 'L3061Q7' at '78:9c:85:05:e4:1a' with uuuid 'fe24'
+15:11:07.425 -> Found device '' at '53:41:28:7b:da:a0' with uuuid 'fe9f'
+15:11:07.425 -> Found device 'N0CGL' at 'ea:f4:50:f2:89:2f' with uuuid 'feaf'
+15:11:07.989 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+15:11:08.036 -> Found device '' at '67:71:29:f3:65:7b' with uuuid 'fef3'

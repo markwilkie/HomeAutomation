@@ -92,7 +92,7 @@ void setup()
 	// start scanning for peripherals
 	delay(2000);
 	Serial.println("About to start scanning");	
-	BLE.scan();  //scan with dupliates
+	BLE.scan(true);  //scan with dupliates
 }
 
 /** Scan callback method.  
@@ -150,6 +150,9 @@ void connectCallback(BLEDevice peripheral)
 
 void disconnectCallback(BLEDevice peripheral) 
 {
+	bleSemaphore.waitingForConnection=false;
+	bleSemaphore.waitingForResponse=false;
+
 	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{	
 		renogyCmdSequenceToSend=0;  //need to start at the beginning since we disconnected
@@ -187,9 +190,12 @@ void loop()
 	BLE.poll();
 
 	//check for BLE timeouts - and disconnect
-	if(isTimedout)
+	if(isTimedout())
 	{
-		bleSemaphore.btDevice->getBLEDevice()->disconnect();
+		if(bleSemaphore.btDevice->getBLEDevice())
+			bleSemaphore.btDevice->getBLEDevice()->disconnect();
+		bleSemaphore.waitingForConnection=false;
+		bleSemaphore.waitingForResponse=false;
 	}
 
 	//load values
@@ -232,7 +238,7 @@ boolean isTimedout()
 {
 	boolean timedOutFlag=false;
 
-	if((bleSemaphore.startTime+BT_TIMEOUT_MS) > millis())
+	if((bleSemaphore.startTime+BT_TIMEOUT_MS) > millis()  && (bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse))
 	{
 		timedOutFlag=true;
 		if(bleSemaphore.waitingForConnection)

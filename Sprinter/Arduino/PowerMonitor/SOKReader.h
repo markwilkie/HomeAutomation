@@ -22,6 +22,7 @@ public:
 	int getSoc();
 	float getVolts();
 	float getAmps();
+	float getCapacity();
 
 private:
 
@@ -31,6 +32,7 @@ private:
 	int soc;
 	float volts;
 	float amps;
+	float capacity;
 };
 
 #endif
