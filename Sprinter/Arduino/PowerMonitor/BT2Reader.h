@@ -231,6 +231,8 @@ public:
 	boolean connectCallback(BLEDevice *myDevice);
 	void disconnectCallback(BLEDevice *myDevice);
 
+	void sendStartupCommand();
+	void sendSolarOrAlternaterCommand();
 	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters);
 	void updateValues();
 	float getAlternaterAmps();

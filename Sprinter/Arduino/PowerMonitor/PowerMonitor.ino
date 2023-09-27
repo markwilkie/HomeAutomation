@@ -118,6 +118,7 @@ void connectCallback(BLEDevice peripheral)
 		if (bt2Reader.connectCallback(&peripheral)) 
 		{
 			Serial.printf("Connected to BT device %s\n",peripheral.address().c_str());
+			bt2Reader.sendStartupCommand();
 		}
 	}
 
@@ -178,24 +179,6 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 	}	
 }
 
-void handleRenogy()
-{
-	Serial.print("----------------  Sequence: ");
-	Serial.println(renogyCmdSequenceToSend);
-	uint16_t startRegister = bt2Commands[renogyCmdSequenceToSend].startRegister;
-	uint16_t numberOfRegisters = bt2Commands[renogyCmdSequenceToSend].numberOfRegisters;
-	uint32_t sendReadCommandTime = millis();
-	bt2Reader.sendReadCommand(startRegister, numberOfRegisters);
-	bt2Reader.lastCmdSent=renogyCmdSequenceToSend;
-	renogyCmdSequenceToSend++;
-	if(renogyCmdSequenceToSend>7)  renogyCmdSequenceToSend=4;
-}
-
-void handleSok()
-{
-	sokReader.sendReadCommand();
-}
-
 void loop() 
 {
 	//required for the ArduinoBLE library
@@ -215,14 +198,14 @@ void loop()
 	{
 		bt2Reader.lastCheckedTime=millis();
 		lastCheckedTime=millis();
-		handleRenogy();
+		bt2Reader.sendSolarOrAlternaterCommand();
 	}
 
 	if (!tiktok && sokReader.connected && millis()>lastCheckedTime+POLL_TIME_MS) 
 	{
 		sokReader.lastCheckedTime=millis();
 		lastCheckedTime=millis();
-		handleSok();
+		sokReader.sendReadCommand();
 	}
 
 	//Do we have any data waiting?

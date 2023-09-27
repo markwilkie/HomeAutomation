@@ -162,6 +162,39 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 	} 
 }
 
+void BT2Reader::sendStartupCommand()
+{
+	Serial.println("Sending Renogy startup command");
+	int cmdIndex=0;
+	uint16_t startRegister = bt2Commands[cmdIndex].startRegister;
+	uint16_t numberOfRegisters = bt2Commands[cmdIndex].numberOfRegisters;
+	uint32_t sendReadCommandTime = millis();
+	sendReadCommand(startRegister, numberOfRegisters);
+	lastCmdSent=cmdIndex;
+}
+
+void BT2Reader::sendSolarOrAlternaterCommand()
+{
+	int cmdIndex=0;
+	if(lastCmdSent==4)
+	{
+		Serial.println("Sending Renogy solar command");
+		cmdIndex=5;
+	}
+	else
+	{
+		Serial.println("Sending Renogy alternater command");
+		cmdIndex=4;
+	}
+
+	uint16_t startRegister = bt2Commands[cmdIndex].startRegister;
+	uint16_t numberOfRegisters = bt2Commands[cmdIndex].numberOfRegisters;
+	uint32_t sendReadCommandTime = millis();
+	sendReadCommand(startRegister, numberOfRegisters);
+	lastCmdSent=cmdIndex;
+}
+
+
 
 /** Appends received data.  Returns false if there's potential for buffer overrun, true otherwise
  */
@@ -246,11 +279,13 @@ void BT2Reader::updateValues()
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
+				Serial.printf("Alternater: %f\n",alternaterAmps);
 				break;
 			case 0x0108:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				solarAmps=(float)(registerValue.value) * rr->multiplier;
+				Serial.printf("Solar: %f\n",solarAmps);
 				break;				
 		}
 	}

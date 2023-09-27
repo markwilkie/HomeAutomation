@@ -138,12 +138,16 @@ void SOKReader::sendReadCommand()
 
 int  SOKReader::getSoc()
 {
-	return bytesToInt(dataReceived+16,1,false);
+	float soc=bytesToInt(dataReceived+16,1,false);
+	Serial.printf("SOC: %f\n",soc);
+	return soc;
 }
 
 float SOKReader::getVolts()
 {
-	return bytesToInt(dataReceived+2,3,false)*.001;
+	float volts=bytesToInt(dataReceived+2,3,false)*.001;
+	Serial.printf("Volts: %f\n",volts);
+	return volts;
 }
 
 float SOKReader::getAmps()
