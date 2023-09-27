@@ -145,6 +145,11 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 			//printHex(device->dataReceived, device->dataReceivedLength);
 			processDataReceived();
 
+			//debug
+			uint16_t startRegister = bt2Commands[lastCmdSent].startRegister;
+			uint16_t numberOfRegisters = bt2Commands[lastCmdSent].numberOfRegisters;
+			Serial.printf("Received response for %d registers 0x%04X - 0x%04X\n",numberOfRegisters,startRegister,startRegister + numberOfRegisters - 1);
+
 			uint8_t bt2Response[21] = "main recv data[XX] [";
 			for (int i = 0; i < dataError; i+= 20) 
 			{
@@ -275,20 +280,28 @@ void BT2Reader::updateValues()
 		switch(registerAddress)
 		{
 			//Alternater amps
+			case 0x0101:
+				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
+				rr = &registerDescription[registerDescriptionIndex];
+				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
+				Serial.printf("Aux Battery: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,alternaterAmps);
+				break;
 			case 0x0105:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
-				Serial.printf("Alternater: %f\n",alternaterAmps);
+				Serial.printf("Alternater: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,alternaterAmps);
 				break;
 			case 0x0108:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				solarAmps=(float)(registerValue.value) * rr->multiplier;
-				Serial.printf("Solar: %f\n",solarAmps);
+				Serial.printf("Solar: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,solarAmps);
 				break;				
 		}
 	}
+	
+	newDataAvailable=false;
 }
 
 float BT2Reader::getAlternaterAmps()

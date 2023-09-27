@@ -213,6 +213,10 @@ void loop()
 	{
 		bt2Reader.updateValues();
 	}
+	if(sokReader.getIsNewDataAvailable())
+	{
+		sokReader.updateValues();
+	}
 
 	//toggle to the other device
 	tiktok=!tiktok;

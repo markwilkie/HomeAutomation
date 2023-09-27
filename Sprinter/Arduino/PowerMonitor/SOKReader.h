@@ -17,6 +17,7 @@ public:
 	void disconnectCallback(BLEDevice *myDevice);
 
 	void sendReadCommand();
+	void updateValues();
 
 	int getSoc();
 	float getVolts();
@@ -25,6 +26,11 @@ public:
 private:
 
 	int bytesToInt(uint8_t *bytes, int len, boolean isSigned) ;	
+
+	//variables
+	int soc;
+	float volts;
+	float amps;
 };
 
 #endif

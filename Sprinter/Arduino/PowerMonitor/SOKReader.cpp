@@ -136,23 +136,31 @@ void SOKReader::sendReadCommand()
 	newDataAvailable = false;
 }
 
+void SOKReader::updateValues()
+{
+	if(dataReceived[0]==0xCC && dataReceived[1]==0xF0)
+    {
+		soc=bytesToInt(dataReceived+16,1,false);
+		volts=bytesToInt(dataReceived+2,3,false)*.001;
+		amps=bytesToInt(dataReceived+5,3,true)*.001;
+	}
+
+	newDataAvailable=false;
+}
+
 int  SOKReader::getSoc()
 {
-	float soc=bytesToInt(dataReceived+16,1,false);
-	Serial.printf("SOC: %f\n",soc);
 	return soc;
 }
 
 float SOKReader::getVolts()
 {
-	float volts=bytesToInt(dataReceived+2,3,false)*.001;
-	Serial.printf("Volts: %f\n",volts);
 	return volts;
 }
 
 float SOKReader::getAmps()
 {
-	return bytesToInt(dataReceived+5,3,true)*.001;
+	return amps;
 }
 
 		
