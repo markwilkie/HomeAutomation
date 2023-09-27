@@ -3,8 +3,8 @@
 #include "LGFX_ST32-SC01Plus.hpp"
 #include "BT2Reader.h"
 #include "SOKReader.h"
-#include "PowerMonitor.h"
 
+#include "PowerMonitor.h"
 #include "Payload.h"
 #include "Screen.h"
 #include "LinearMeter.h"
@@ -12,6 +12,7 @@
 
 #define POLL_TIME_MS	5000
 #define SCR_UPDATE_TIME 1000
+#define BT_TIMEOUT_MS	5000
 
 //Screen lib
 LGFX lcd; 
@@ -39,6 +40,7 @@ SOKReader sokReader;
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader};
 
 //state
+BLE_SEMAPHORE bleSemaphore;
 long lastScrUpdatetime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
@@ -101,8 +103,8 @@ void scanCallback(BLEDevice peripheral)
 	Serial.printf("Found device '%s' at '%s' with uuuid '%s'\n",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
 
 	//Checking with both device handlers to see if this is something they're interested in
-	bt2Reader.scanCallback(&peripheral);
-	sokReader.scanCallback(&peripheral);
+	bt2Reader.scanCallback(&peripheral,&bleSemaphore);
+	sokReader.scanCallback(&peripheral,&bleSemaphore);
 }
 
 /** Connect callback method.  Exact order of operations is up to the user.  if bt2Reader attempted a connection
@@ -112,20 +114,20 @@ void scanCallback(BLEDevice peripheral)
 void connectCallback(BLEDevice peripheral) 
 {
 	Serial.printf("Connect callback for '%s'\n",peripheral.address().c_str());
-	if(memcmp(peripheral.address().c_str(),bt2Reader.peripheryAddress,6)==0)
+	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{
 		Serial.println("Renogy connect callback");
-		if (bt2Reader.connectCallback(&peripheral)) 
+		if (bt2Reader.connectCallback(&peripheral,&bleSemaphore)) 
 		{
 			Serial.printf("Connected to BT device %s\n",peripheral.address().c_str());
-			bt2Reader.sendStartupCommand();
+			bt2Reader.sendStartupCommand(&bleSemaphore);
 		}
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader.peripheryAddress,6)==0)
+	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
 	{
 		Serial.println("SOK connect callback");
-		if (sokReader.connectCallback(&peripheral)) 
+		if (sokReader.connectCallback(&peripheral,&bleSemaphore)) 
 		{
 			Serial.printf("Connected to SOK device %s\n",peripheral.address().c_str());	
 		}
@@ -136,7 +138,7 @@ void connectCallback(BLEDevice peripheral)
 	int numOfTargetedDevices=sizeof(targetedDevices)/(sizeof(targetedDevices[0]));
 	for(int i=0;i<numOfTargetedDevices;i++)
 	{
-		if(!targetedDevices[i]->connected)
+		if(!targetedDevices[i]->isConnected())
 			stopScanning=false;
 	}
 	if(stopScanning)
@@ -148,7 +150,7 @@ void connectCallback(BLEDevice peripheral)
 
 void disconnectCallback(BLEDevice peripheral) 
 {
-	if(memcmp(peripheral.address().c_str(),bt2Reader.peripheryAddress,6)==0)
+	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{	
 		renogyCmdSequenceToSend=0;  //need to start at the beginning since we disconnected
 		bt2Reader.disconnectCallback(&peripheral);
@@ -156,7 +158,7 @@ void disconnectCallback(BLEDevice peripheral)
 		Serial.printf("Disconnected BT2 device %s",peripheral.address().c_str());	
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader.peripheryAddress,6)==0)
+	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
 	{	
 		Serial.printf("Disconnected SOK device %s",peripheral.address().c_str());
 	}	
@@ -168,14 +170,14 @@ void disconnectCallback(BLEDevice peripheral)
 void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 {
 	Serial.printf("Characteristic notify from %s\n",peripheral.address().c_str());
-	if(memcmp(peripheral.address().c_str(),bt2Reader.peripheryAddress,6)==0)
+	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{		
-		bt2Reader.notifyCallback(&peripheral,&characteristic);
+		bt2Reader.notifyCallback(&peripheral,&characteristic,&bleSemaphore);
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader.peripheryAddress,6)==0)
+	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
 	{		
-		sokReader.notifyCallback(&peripheral,&characteristic); 
+		sokReader.notifyCallback(&peripheral,&characteristic,&bleSemaphore); 
 	}	
 }
 
@@ -183,6 +185,12 @@ void loop()
 {
 	//required for the ArduinoBLE library
 	BLE.poll();
+
+	//check for BLE timeouts - and disconnect
+	if(isTimedout)
+	{
+		bleSemaphore.btDevice->getBLEDevice()->disconnect();
+	}
 
 	//load values
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
@@ -194,18 +202,16 @@ void loop()
 	}
 
 	//Time to ask for data again?
-	if (tiktok && bt2Reader.connected && millis()>lastCheckedTime+POLL_TIME_MS) 
+	if (tiktok && bt2Reader.isConnected() && millis()>lastCheckedTime+POLL_TIME_MS) 
 	{
-		bt2Reader.lastCheckedTime=millis();
 		lastCheckedTime=millis();
-		bt2Reader.sendSolarOrAlternaterCommand();
+		bt2Reader.sendSolarOrAlternaterCommand(&bleSemaphore);
 	}
 
-	if (!tiktok && sokReader.connected && millis()>lastCheckedTime+POLL_TIME_MS) 
+	if (!tiktok && sokReader.isConnected() && millis()>lastCheckedTime+POLL_TIME_MS) 
 	{
-		sokReader.lastCheckedTime=millis();
 		lastCheckedTime=millis();
-		sokReader.sendReadCommand();
+		sokReader.sendReadCommand(&bleSemaphore);
 	}
 
 	//Do we have any data waiting?
@@ -220,6 +226,30 @@ void loop()
 
 	//toggle to the other device
 	tiktok=!tiktok;
+}
+
+boolean isTimedout()
+{
+	boolean timedOutFlag=false;
+
+	if((bleSemaphore.startTime+BT_TIMEOUT_MS) > millis())
+	{
+		timedOutFlag=true;
+		if(bleSemaphore.waitingForConnection)
+		{
+			Serial.printf("ERROR: Timed out waiting for connection to %s\n",bleSemaphore.btDevice->getPerifpheryName());
+		}
+		else if(bleSemaphore.waitingForResponse)
+		{
+			Serial.printf("ERROR: Timed out waiting for response from %s\n",bleSemaphore.btDevice->getPerifpheryName());
+		}
+		else
+		{
+			Serial.println("ERROR: Timed out for an unknown reason");
+		}
+	}
+
+	return timedOutFlag;
 }
 
 void updateLCD()

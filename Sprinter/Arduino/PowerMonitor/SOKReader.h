@@ -11,12 +11,12 @@ public:
 
 	SOKReader();
 
-	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic);
-	void scanCallback(BLEDevice *myDevice);
-	boolean connectCallback(BLEDevice *myDevice);
+	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
+	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphor);
+	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphor);
 	void disconnectCallback(BLEDevice *myDevice);
 
-	void sendReadCommand();
+	void sendReadCommand(BLE_SEMAPHORE* bleSemaphor);
 	void updateValues();
 
 	int getSoc();

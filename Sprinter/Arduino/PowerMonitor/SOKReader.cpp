@@ -11,19 +11,39 @@ SOKReader::SOKReader()
 	rxCharacteristicUUID="ffe1";	
 }
 
-void SOKReader::scanCallback(BLEDevice *peripheral) 
+void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore) 
 {
 	if (peripheral->localName() == peripheryName)
 	{
+		//Set device
+		bleDevice=peripheral;
+
+		//Make sure we're not busy
+		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
+		{
+			Serial.print("BLE device at address ");
+			for (int i=0;i<6;i++) { Serial.printf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+			Serial.println(" in use when a connection attempt was tried");
+			return;
+		}
+
 		Serial.println("Found targeted SOK device, attempting connection");
 		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
+
+		//Set semaphore for connect
+		updateSemaphore(bleSemaphore);		
 	} 
 }
 
 
-boolean SOKReader::connectCallback(BLEDevice *myDevice) 
+boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
 {
+	Serial.print("Releasing connect semaphore for BLE device at address ");
+	for (int i=0;i<6;i++) { Serial.printf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+	Serial.println("");
+	bleSemaphore->waitingForConnection=false;
+
 	Serial.printf("SOK: Discovering Tx service: %s\n",txServiceUUID);
 	if(myDevice->discoverService(txServiceUUID))
 	{
@@ -74,7 +94,6 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice)
 	}
 
 	connected=true;
-	bleDevice=myDevice;
 	Serial.println("SOK found all needed services and characteristics.");
 	return true;
 }
@@ -85,12 +104,22 @@ void SOKReader::disconnectCallback(BLEDevice *myDevice)
 	memset(peripheryAddress, 0, 6);
 }
 
-void SOKReader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic) 
+void SOKReader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE *bleSemaphore) 
 {
 	int dataLen=characteristic->valueLength();
 	characteristic->readValue(dataReceived,dataLen);
 	dataReceivedLength = dataLen;
 	newDataAvailable=true;
+
+	//Release semaphore?
+	if(bleSemaphore->expectedBytes == dataReceived[0] | (dataReceived[1]<<8))
+	{
+		Serial.print("Releasing semaphore for BLE device at address ");
+		for (int i=0;i<6;i++) { Serial.printf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+		Serial.println("");
+
+		bleSemaphore->waitingForResponse=false;
+	}	
 }
 
 //Boolean is to force signed 2 compliment if true
@@ -116,8 +145,17 @@ int SOKReader::bytesToInt(uint8_t *bytes, int len, boolean isSigned)
 }
 
 
-void SOKReader::sendReadCommand() 
+void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore) 
 {
+	//Make sure we're clear to send
+	if(bleSemaphore->waitingForResponse)
+	{
+		Serial.print("BLE device at address ");
+		for (int i=0;i<6;i++) { Serial.printf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+		Serial.println(" in use when another send attempt was tried\n");
+		return;
+	}
+
 	uint8_t command[6];
 	command[0] = 0xee;
 	command[1] = 0xc1;
@@ -134,6 +172,10 @@ void SOKReader::sendReadCommand()
 	dataReceivedLength = 0;
 	dataError = false;
 	newDataAvailable = false;
+
+	//Update semaphore
+	uint16_t expectedBytes=0xCC | (0xF0 << 8);
+	updateSemaphore(bleSemaphore,expectedBytes);		
 }
 
 void SOKReader::updateValues()

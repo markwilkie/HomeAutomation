@@ -226,14 +226,14 @@ public:
 
 	BT2Reader();
 
-	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic);
-	void scanCallback(BLEDevice *myDevice);
-	boolean connectCallback(BLEDevice *myDevice);
+	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphore);
+	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
+	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore);
 	void disconnectCallback(BLEDevice *myDevice);
 
-	void sendStartupCommand();
-	void sendSolarOrAlternaterCommand();
-	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters);
+	void sendStartupCommand(BLE_SEMAPHORE* bleSemaphore);
+	void sendSolarOrAlternaterCommand(BLE_SEMAPHORE* bleSemaphore);
+	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters,BLE_SEMAPHORE* bleSemaphore);
 	void updateValues();
 	float getAlternaterAmps();
 	float getSolarAmps();	
@@ -266,7 +266,7 @@ private:
 	uint16_t getCalculatedModbusChecksum(uint8_t * data, int start, int end);
 	boolean getIsReceivedDataValid(uint8_t * data);
 	int getExpectedLength(uint8_t * data);
-	void processDataReceived();
+	void processDataReceived(BLE_SEMAPHORE* bleSemaphore);
 
 	REGISTER_VALUE * getRegister(uint16_t registerAddress);
 	boolean isRegisterAvailable(uint16_t registerAddress);

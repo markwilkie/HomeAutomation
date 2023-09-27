@@ -58,19 +58,39 @@ BT2Reader::BT2Reader()
 }
 
 
-void BT2Reader::scanCallback(BLEDevice *peripheral)
+void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 {
  	if (peripheral->localName() == peripheryName)
 	{
+		//Set device
+		bleDevice=peripheral;
+
+		//Make sure we're not busy
+		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
+		{
+			log("BLE device at address ");
+			for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+			logprintf(" in use when a connection attempt was tried\n");
+			return;
+		}
+
 		log("Found targeted BT2 device, attempting connection\n");
 		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
+
+		//Set semaphore for connect
+		updateSemaphore(bleSemaphore);
 	} 
 }
 
 
-boolean BT2Reader::connectCallback(BLEDevice *myDevice) 
+boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
 {
+	log("Releasing connect semaphore for BLE device at address ");
+	for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+	logprintf("\n");
+	bleSemaphore->waitingForConnection=false;
+
 	log("Discovering Tx service: %s \n",txServiceUUID);
 	if(myDevice->discoverService(txServiceUUID))
 	{
@@ -118,7 +138,6 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice)
 	}
 
 	connected=true;
-	bleDevice=myDevice;
 	log("Found all services and characteristics.\n");
 	return true;
 }
@@ -129,7 +148,7 @@ void BT2Reader::disconnectCallback(BLEDevice *myDevice)
 	memset(peripheryAddress, 0, 6);
 }
 
-void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic) 
+void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphore) 
 {
 	if (dataError) { return; }									// don't append anything if there's already an error
 
@@ -143,7 +162,7 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 			//Serial.printf("Complete datagram of %d bytes, %d registers (%d packets) received:\n", 
 			//	device->dataReceivedLength, device->dataReceived[2], device->dataReceivedLength % 20 + 1);
 			//printHex(device->dataReceived, device->dataReceivedLength);
-			processDataReceived();
+			processDataReceived(bleSemaphore);
 
 			//debug
 			uint16_t startRegister = bt2Commands[lastCmdSent].startRegister;
@@ -167,18 +186,18 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 	} 
 }
 
-void BT2Reader::sendStartupCommand()
+void BT2Reader::sendStartupCommand(BLE_SEMAPHORE* bleSemaphore)
 {
 	Serial.println("Sending Renogy startup command");
 	int cmdIndex=0;
 	uint16_t startRegister = bt2Commands[cmdIndex].startRegister;
 	uint16_t numberOfRegisters = bt2Commands[cmdIndex].numberOfRegisters;
 	uint32_t sendReadCommandTime = millis();
-	sendReadCommand(startRegister, numberOfRegisters);
+	sendReadCommand(startRegister, numberOfRegisters, bleSemaphore);
 	lastCmdSent=cmdIndex;
 }
 
-void BT2Reader::sendSolarOrAlternaterCommand()
+void BT2Reader::sendSolarOrAlternaterCommand(BLE_SEMAPHORE* bleSemaphore)
 {
 	int cmdIndex=0;
 	if(lastCmdSent==4)
@@ -195,7 +214,7 @@ void BT2Reader::sendSolarOrAlternaterCommand()
 	uint16_t startRegister = bt2Commands[cmdIndex].startRegister;
 	uint16_t numberOfRegisters = bt2Commands[cmdIndex].numberOfRegisters;
 	uint32_t sendReadCommandTime = millis();
-	sendReadCommand(startRegister, numberOfRegisters);
+	sendReadCommand(startRegister, numberOfRegisters, bleSemaphore);
 	lastCmdSent=cmdIndex;
 }
 
@@ -225,27 +244,17 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 	return true;
 }
 
-void BT2Reader::processDataReceived() 
+void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters,BLE_SEMAPHORE* bleSemaphore) 
 {
-	int registerOffset = 0;
-	int registersProvided = dataReceived[2] / 2;
-	
-	while (registerOffset < registersProvided) {
-		int registerIndex = getRegisterValueIndex(registerExpected + registerOffset);
-		if (registerIndex >= 0) {
-			uint8_t msb = dataReceived[registerOffset * 2 + 3];
-			uint8_t lsb = dataReceived[registerOffset * 2 + 4];
-			registerValues[registerIndex].value = msb * 256 + lsb;
-			registerValues[registerIndex].lastUpdateMillis = millis();
-		}
-		registerOffset++;
-	}	
-	newDataAvailable = true;
-}
+	//Make sure we're clear to send
+	if(bleSemaphore->waitingForResponse)
+	{
+		log("BLE device at address ");
+		for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+		logprintf(" in use when another send attempt was tried\n");
+		return;
+	}
 
-
-void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters) 
-{
 	uint8_t command[20];
 	command[0] = 0xFF;
 	command[1] = 0x03;
@@ -266,6 +275,37 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	dataReceivedLength = 0;
 	dataError = false;
 	newDataAvailable = false;
+
+	//Update semaphore
+	updateSemaphore(bleSemaphore,startRegister);		
+}
+
+void BT2Reader::processDataReceived(BLE_SEMAPHORE* bleSemaphore) 
+{
+	int registerOffset = 0;
+	int registersProvided = dataReceived[2] / 2;
+
+	//Check if we should release the semaphore
+	if(getRegisterValueIndex(bleSemaphore->expectedBytes))
+	{
+		log("Releasing semaphore for BLE device at address ");
+		for (int i=0;i<6;i++) { logprintf("%02X ",bleSemaphore->btDevice->getPeripheryAddress()[i]); }
+		logprintf("\n");
+
+		bleSemaphore->waitingForResponse=false;
+	}
+	
+	while (registerOffset < registersProvided) {
+		int registerIndex = getRegisterValueIndex(registerExpected + registerOffset);
+		if (registerIndex >= 0) {
+			uint8_t msb = dataReceived[registerOffset * 2 + 3];
+			uint8_t lsb = dataReceived[registerOffset * 2 + 4];
+			registerValues[registerIndex].value = msb * 256 + lsb;
+			registerValues[registerIndex].lastUpdateMillis = millis();
+		}
+		registerOffset++;
+	}	
+	newDataAvailable = true;
 }
 
 void BT2Reader::updateValues()

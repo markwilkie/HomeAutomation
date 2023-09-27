@@ -2,6 +2,7 @@
 #define DEVICE_WRAPPER_H
 
 #include "ArduinoBLE.h"
+#include "PowerMonitor.h"
 
 #define DEFAULT_DATA_BUFFER_LENGTH		100
 #define MAX_REGISTER_VALUES		50
@@ -25,20 +26,28 @@ class BTDevice
 	public:
 
 		//Virtual member functions
-		virtual void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic) = 0;
-		virtual void scanCallback(BLEDevice *myDevice) = 0;
-		virtual boolean connectCallback(BLEDevice *myDevice) = 0;
+		virtual void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) = 0;
+		virtual boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) = 0;
+		virtual void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphore) = 0;
 		virtual void disconnectCallback(BLEDevice *myDevice) = 0;
 		
 		//Non Virtual member functions
 		boolean getIsNewDataAvailable();
+		const char *getPerifpheryName();
+		uint8_t *getPeripheryAddress();
+		BLEDevice *getBLEDevice();
+		boolean isConnected();
+
+	protected:
+
+		void updateSemaphore(BLE_SEMAPHORE*,uint16_t expectedBytes);  //for command/responses
+		void updateSemaphore(BLE_SEMAPHORE*);  //for connections
 
 		//Context
 		BLEDevice *bleDevice;    //ArduinoBLE connected device
 		uint8_t peripheryAddress[6];
 		boolean connected = false;
 		boolean newDataAvailable;
-		long lastCheckedTime;
 		int lastCmdSent;
 
 		uint8_t dataReceived[DEFAULT_DATA_BUFFER_LENGTH];
@@ -53,8 +62,6 @@ class BTDevice
 
 		BLECharacteristic txDeviceCharateristic;
 		BLECharacteristic rxDeviceCharateristic;
-
-	protected:
 
 		// SOK Tx and Rx service
 		const char* peripheryName;	
