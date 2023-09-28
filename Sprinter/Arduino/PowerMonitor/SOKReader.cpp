@@ -150,11 +150,13 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 
 	uint8_t command[6];
 	command[0] = 0xee;
-	command[1] = 0xc1;
+	//command[1] = 0xc1;
+	command[1] = 0xc2;
 	command[2] = 0x00;
 	command[3] = 0x00;
 	command[4] = 0x00;
-	command[5] = 0xce;
+	//command[5] = 0xce;
+	command[5] = 0x46;
 
 	Serial.print("Sending command sequence to SOK: ");
 	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
