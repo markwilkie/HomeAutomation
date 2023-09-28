@@ -328,7 +328,13 @@ void BT2Reader::updateValues()
 				rr = &registerDescription[registerDescriptionIndex];
 				solarAmps=(float)(registerValue.value) * rr->multiplier;
 				Serial.printf("Solar: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,solarAmps);
-				break;				
+				break;
+			case 0x0111:
+				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
+				rr = &registerDescription[registerDescriptionIndex];
+				float ampHours=(float)(registerValue.value) * rr->multiplier;
+				Serial.printf("Today AH: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,ampHours);
+				break;			
 		}
 	}
 	

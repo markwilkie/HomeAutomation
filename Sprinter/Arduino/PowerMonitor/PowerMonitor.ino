@@ -10,8 +10,8 @@
 #include "LinearMeter.h"
 #include "CircularMeter.h"
 
-#define POLL_TIME_MS	5000
-#define SCR_UPDATE_TIME 1000
+#define POLL_TIME_MS	500
+#define SCR_UPDATE_TIME 200
 #define BT_TIMEOUT_MS	5000
 
 //Screen lib
@@ -44,8 +44,10 @@ BLE_SEMAPHORE bleSemaphore;
 long lastScrUpdatetime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
+long hertzTime=0;
+int hertzCount=0;
+int currentHz=0;
 boolean tiktok=true;
-
 
 void setup() 
 {
@@ -70,7 +72,7 @@ void setup()
 
     //Static labels
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-    lcd.drawString("Sprinkle Data",80, 5, 4);
+    lcd.drawString("Sprinkle Data",(lcd.width()/2)-(lcd.textWidth("Sprinkle Data")), 5, 4);
 
 	//BLE
 	Serial.println("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
@@ -205,6 +207,13 @@ void loop()
 		//loadSimulatedValues();
 		loadValues();
 		updateLCD();
+
+
+		//gist:  https://gist.github.com/lovyan03/e6e21d4e65919cec34eae403e099876c
+		//touch test  (-1 when no touch.  size/id are always 0)
+		//lgfx::v1::touch_point_t tp;
+		//lcd.getTouch(&tp);
+		//Serial.printf("\nx: %d y:%d s:%d i:%d\n\n",tp.x,tp.y,tp.size,tp.id)		;
 	}
 
 	//Time to ask for data again?
@@ -228,10 +237,21 @@ void loop()
 	if(sokReader.getIsNewDataAvailable())
 	{
 		sokReader.updateValues();
+
+		//should only calculate once per cycle
+		hertzCount++;
 	}
 
 	//toggle to the other device
 	tiktok=!tiktok;
+
+	//calc hertz
+	if(millis()>hertzTime+1000)
+	{
+		currentHz=hertzCount/60;
+		hertzTime=millis();
+		hertzCount=0;
+	}
 }
 
 boolean isTimedout()
@@ -270,23 +290,28 @@ void updateLCD()
     waterMeter.updatePointer(scrPayload.stateOfWater,2,0);
 
     //update text values
-    volts.drawText(125,200,scrPayload.volts,1,"V",4);
+	lcd.setTextFont(4);
+    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),238,scrPayload.volts,1,"V",4);
     battHoursLeft.drawText(10,190,scrPayload.batteryHoursRem,1," Hrs",2);
     waterDaysLeft.drawRightText(lcd.width()-10,190,scrPayload.waterDaysRem,1," Dys",2);
-    //hertz.drawRightText(lcd.width()-10,220,hz,0,"Hz",2);
+    hertz.drawRightText(lcd.width()-10,220,currentHz,0,"Hz",2);
 }
 
 void loadValues()
 {
 	scrPayload.stateOfCharge=sokReader.getSoc();
+	scrPayload.volts=sokReader.getVolts();
+	scrPayload.chargeAh=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
+	scrPayload.drawAh=(sokReader.getAmps()*-1)-scrPayload.chargeAh;
+	if(sokReader.getAmps()<0)
+		scrPayload.batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
+	else
+	scrPayload.batteryHoursRem=999;
+
 	scrPayload.stateOfWater=random(3);
 	if(scrPayload.stateOfWater==0)  scrPayload.stateOfWater=20;
 	if(scrPayload.stateOfWater==1)  scrPayload.stateOfWater=50;
 	if(scrPayload.stateOfWater==2)  scrPayload.stateOfWater=90;
-	scrPayload.volts=sokReader.getVolts();
-	scrPayload.chargeAh=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
-	scrPayload.drawAh=sokReader.getAmps()-scrPayload.chargeAh;
-	scrPayload.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
 	scrPayload.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 }
 

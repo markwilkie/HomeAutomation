@@ -178,7 +178,19 @@ void SOKReader::updateValues()
 		volts=bytesToInt(dataReceived+2,3,false)*.001;
 		amps=bytesToInt(dataReceived+5,3,true)*.001;
 		capacity=bytesToInt(dataReceived+11,3,true)*.001;
+
+		//test
+		Serial.printf("Loop:  (cycles?): %d\n",bytesToInt(dataReceived+14,2,false));
+		Serial.printf("Mos1:  (C MOS?): %02x %02x\n",dataReceived[4],dataReceived[5]);
+		Serial.printf("Mos2:  (D MOS?): %02x %02x\n",dataReceived[6],dataReceived[7]);
 	}
+
+	if(dataReceived[0]==0xCC && dataReceived[1]==0xF3)
+    {
+		Serial.printf("isHoting: %02x %02x\n",dataReceived[16],dataReceived[17]);
+		Serial.printf("StatesShow: %02x %02x\n",dataReceived[18],dataReceived[19]);
+		Serial.printf("junhengStates: %02x %02x\n",dataReceived[20],dataReceived[21]);
+	}	
 
 	newDataAvailable=false;
 }
