@@ -248,7 +248,6 @@ void loop()
 	//calc hertz
 	if(millis()>hertzTime+1000)
 	{
-		currentHz=hertzCount/60;
 		hertzTime=millis();
 		hertzCount=0;
 	}
@@ -294,7 +293,7 @@ void updateLCD()
     volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),238,scrPayload.volts,1,"V",4);
     battHoursLeft.drawText(10,190,scrPayload.batteryHoursRem,1," Hrs",2);
     waterDaysLeft.drawRightText(lcd.width()-10,190,scrPayload.waterDaysRem,1," Dys",2);
-    hertz.drawRightText(lcd.width()-10,220,currentHz,0,"Hz",2);
+    hertz.drawRightText(lcd.width()-10,220,hertzCount,0,"Hz",2);
 }
 
 void loadValues()
