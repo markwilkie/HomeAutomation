@@ -1,843 +1,1841 @@
-15:34:09.787 -> ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery
-15:34:09.787 -> -----------------------------------------------------
-15:34:09.787 -> 
-15:34:09.882 -> BT2Reader: Setting logging level to VERBOSE
-15:34:11.903 -> About to start scanning
-15:34:11.903 -> Hz: 0
-15:34:11.903 -> Found device 'BT-TH-66F94E1C    ' at '60:98:66:f9:4e:1c' with uuuid 'ffd0'
-15:34:11.903 -> BT2Reader: Found targeted BT2 device, attempting connection
-15:34:12.045 -> Connect callback for '60:98:66:f9:4e:1c'
-15:34:12.045 -> Renogy connect callback
-15:34:12.045 -> BT2Reader: Discovering Tx service: ffd0 
-15:34:12.140 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:12.187 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.187 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.282 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:12.329 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.329 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.376 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:12.424 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.424 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.471 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:12.519 -> BT2Reader: Renogy Tx service ffd0 discovered.  Now looking for charecteristic ffd1
-15:34:12.519 -> BT2Reader: Discovering Rx service: fff0 
-15:34:12.566 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:12.613 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.613 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.755 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.755 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.755 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:12.849 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.849 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.849 -> Found device '' at '65:24:2c:32:d5:ed' with uuuid 'fef3'
-15:34:12.944 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:12.944 -> BLE busy with BT-TH-66F94E1C    
-15:34:12.991 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:13.039 -> Found device '' at 'd8:a3:5c:a9:e9:73' with uuuid ''
-15:34:13.086 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:13.181 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:13.181 -> BLE busy with BT-TH-66F94E1C    
-15:34:13.371 -> BT2Reader: Renogy Rx service fff0 discovered.  Now looking for charecteristic fff1
-15:34:13.371 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:13.371 -> BLE busy with BT-TH-66F94E1C    
-15:34:13.371 -> BT2Reader: Found all services and characteristics.
-15:34:13.371 -> BT2Reader: Releasing connect semaphore for BLE device BT-TH-66F94E1C    
-15:34:13.371 -> Connected to BT device 60:98:66:f9:4e:1c
-15:34:13.371 -> Sending Renogy startup command
-15:34:13.371 -> BT2Reader: Sending command sequence: FF 03 00 0C 00 02 11 D6 
-15:34:13.418 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:13.465 -> Hz: 0
-15:34:13.465 -> Sending Renogy alternater command
-15:34:13.465 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:13.465 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:13.465 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:13.465 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:13.465 -> Aux Battery: value=21058 multiplier=0.100000 result=2105.800049
-15:34:13.465 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:13.465 -> Solar: value=0 multiplier=0.010000 result=0.000000
-15:34:13.465 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:13.513 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:13.513 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:13.513 -> BT2Reader: Buffer overrun receiving data
-15:34:13.607 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:13.607 -> Found targeted SOK device, attempting connection
-15:34:14.032 -> Found device '' at '0c:90:27:74:dd:2b' with uuuid ''
-15:34:14.126 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
-15:34:14.126 -> BLE busy with SOK-AA12487
-15:34:14.316 -> Connect callback for '20:22:08:04:10:21'
-15:34:14.316 -> SOK connect callback
-15:34:14.316 -> SOK: Discovering Tx service: ffe0
-15:34:14.552 -> SOK Tx service ffe0 discovered
-15:34:14.552 -> SOK: Discovering Rx service: ffe0
-15:34:14.552 -> ffe0
-15:34:14.552 -> SOK Rx service ffe0 discovered.  Now looking for characteristic ffe1
-15:34:14.599 -> SOK found all needed services and characteristics.
-15:34:14.599 -> Releasing connect semaphore for BLE device SOK-AA12487
-15:34:14.599 -> Connected to SOK device 20:22:08:04:10:21
-15:34:14.599 -> All devices connected.  Stopping scan
-15:34:14.599 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:14.599 -> Hz: 0
-15:34:14.693 -> Characteristic notify from 20:22:08:04:10:21
-15:34:14.693 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:14.693 -> Loop:  (cycles?): 5
-15:34:14.693 -> Mos1:  (C MOS?): 00 7d
-15:34:14.693 -> Mos2:  (D MOS?): 03 00
-15:34:14.693 -> Characteristic notify from 20:22:08:04:10:21
-15:34:14.693 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:14.693 -> isHoting: 00 00
-15:34:14.693 -> StatesShow: 00 5f
-15:34:14.693 -> junhengStates: 00 00
-15:34:14.741 -> Characteristic notify from 20:22:08:04:10:21
-15:34:14.741 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:15.118 -> Sending Renogy solar command
-15:34:15.118 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:15.213 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:15.213 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:15.213 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:15.213 -> Aux Battery: value=21058 multiplier=0.100000 result=2105.800049
-15:34:15.213 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:15.213 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:15.213 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:15.640 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:15.640 -> Hz: 3
-15:34:15.687 -> Characteristic notify from 20:22:08:04:10:21
-15:34:15.687 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:15.687 -> Loop:  (cycles?): 5
-15:34:15.687 -> Mos1:  (C MOS?): 00 7d
-15:34:15.687 -> Mos2:  (D MOS?): 03 00
-15:34:15.734 -> Characteristic notify from 20:22:08:04:10:21
-15:34:15.734 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:15.734 -> isHoting: 00 00
-15:34:15.734 -> StatesShow: 00 5f
-15:34:15.734 -> junhengStates: 00 00
-15:34:15.782 -> Characteristic notify from 20:22:08:04:10:21
-15:34:15.782 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:16.114 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:16.208 -> Characteristic notify from 20:22:08:04:10:21
-15:34:16.208 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:16.208 -> Loop:  (cycles?): 5
-15:34:16.208 -> Mos1:  (C MOS?): 00 7d
-15:34:16.208 -> Mos2:  (D MOS?): 03 00
-15:34:16.259 -> Characteristic notify from 20:22:08:04:10:21
-15:34:16.259 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:16.259 -> isHoting: 00 00
-15:34:16.259 -> StatesShow: 00 5f
-15:34:16.259 -> junhengStates: 00 00
-15:34:16.259 -> Characteristic notify from 20:22:08:04:10:21
-15:34:16.259 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:16.636 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:16.636 -> Hz: 6
-15:34:16.682 -> Characteristic notify from 20:22:08:04:10:21
-15:34:16.682 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:16.682 -> Loop:  (cycles?): 5
-15:34:16.682 -> Mos1:  (C MOS?): 00 7d
-15:34:16.682 -> Mos2:  (D MOS?): 03 00
-15:34:16.730 -> Characteristic notify from 20:22:08:04:10:21
-15:34:16.730 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:16.730 -> isHoting: 00 00
-15:34:16.730 -> StatesShow: 00 5f
-15:34:16.730 -> junhengStates: 00 00
-15:34:16.730 -> Characteristic notify from 20:22:08:04:10:21
-15:34:16.730 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:17.107 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:17.202 -> Characteristic notify from 20:22:08:04:10:21
-15:34:17.202 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:17.202 -> Loop:  (cycles?): 5
-15:34:17.202 -> Mos1:  (C MOS?): 00 7d
-15:34:17.202 -> Mos2:  (D MOS?): 03 00
-15:34:17.249 -> Characteristic notify from 20:22:08:04:10:21
-15:34:17.249 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:17.249 -> isHoting: 00 00
-15:34:17.249 -> StatesShow: 00 5f
-15:34:17.249 -> junhengStates: 00 00
-15:34:17.249 -> Characteristic notify from 20:22:08:04:10:21
-15:34:17.249 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:17.629 -> Sending Renogy alternater command
-15:34:17.629 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:17.629 -> Hz: 6
-15:34:17.676 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:17.724 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:17.724 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:17.724 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:17.724 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:17.724 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:17.724 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:18.148 -> Sending Renogy solar command
-15:34:18.148 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:18.195 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:18.195 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:18.195 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:18.195 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:18.195 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:18.195 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:18.195 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:18.621 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:18.668 -> Hz: 0
-15:34:18.716 -> Characteristic notify from 20:22:08:04:10:21
-15:34:18.716 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:18.716 -> Loop:  (cycles?): 5
-15:34:18.716 -> Mos1:  (C MOS?): 00 7d
-15:34:18.716 -> Mos2:  (D MOS?): 03 00
-15:34:18.716 -> Characteristic notify from 20:22:08:04:10:21
-15:34:18.716 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:18.716 -> isHoting: 00 00
-15:34:18.716 -> StatesShow: 00 5f
-15:34:18.716 -> junhengStates: 00 00
-15:34:18.763 -> Characteristic notify from 20:22:08:04:10:21
-15:34:18.763 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:19.141 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:19.188 -> Characteristic notify from 20:22:08:04:10:21
-15:34:19.188 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:19.188 -> Loop:  (cycles?): 5
-15:34:19.188 -> Mos1:  (C MOS?): 00 7d
-15:34:19.188 -> Mos2:  (D MOS?): 03 00
-15:34:19.236 -> Characteristic notify from 20:22:08:04:10:21
-15:34:19.236 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:19.236 -> isHoting: 00 00
-15:34:19.236 -> StatesShow: 00 5f
-15:34:19.236 -> junhengStates: 00 00
-15:34:19.236 -> Characteristic notify from 20:22:08:04:10:21
-15:34:19.236 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:19.664 -> Sending Renogy alternater command
-15:34:19.664 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:19.664 -> Hz: 6
-15:34:19.711 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:19.711 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:19.711 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:19.711 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:19.711 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:19.711 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:19.711 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:20.139 -> Sending Renogy solar command
-15:34:20.139 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:20.186 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:20.186 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:20.186 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:20.186 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:20.186 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:20.186 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:20.186 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:20.661 -> Sending Renogy alternater command
-15:34:20.661 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:20.661 -> Hz: 0
-15:34:20.708 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:20.708 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:20.708 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:20.708 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:20.708 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:20.708 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:20.708 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:21.134 -> Sending Renogy solar command
-15:34:21.134 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:21.229 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:21.229 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:21.229 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:21.229 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:21.229 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:21.229 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:21.229 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:21.655 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:21.655 -> Hz: 0
-15:34:21.702 -> Characteristic notify from 20:22:08:04:10:21
-15:34:21.702 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:21.750 -> Loop:  (cycles?): 5
-15:34:21.750 -> Mos1:  (C MOS?): 00 7d
-15:34:21.750 -> Mos2:  (D MOS?): 03 00
-15:34:21.750 -> Characteristic notify from 20:22:08:04:10:21
-15:34:21.750 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:21.750 -> isHoting: 00 00
-15:34:21.750 -> StatesShow: 00 5f
-15:34:21.750 -> junhengStates: 00 00
-15:34:21.797 -> Characteristic notify from 20:22:08:04:10:21
-15:34:21.797 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:22.176 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:22.270 -> Characteristic notify from 20:22:08:04:10:21
-15:34:22.270 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:22.270 -> Characteristic notify from 20:22:08:04:10:21
-15:34:22.270 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:22.270 -> isHoting: 00 00
-15:34:22.270 -> StatesShow: 00 5f
-15:34:22.270 -> junhengStates: 00 00
-15:34:22.270 -> Characteristic notify from 20:22:08:04:10:21
-15:34:22.270 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:22.650 -> Sending Renogy alternater command
-15:34:22.650 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:22.650 -> Hz: 5
-15:34:22.745 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:22.745 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:22.745 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:22.745 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:22.745 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:22.745 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:22.745 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:23.173 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:23.220 -> Characteristic notify from 20:22:08:04:10:21
-15:34:23.220 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:23.220 -> Loop:  (cycles?): 5
-15:34:23.220 -> Mos1:  (C MOS?): 00 7d
-15:34:23.220 -> Mos2:  (D MOS?): 03 00
-15:34:23.267 -> Characteristic notify from 20:22:08:04:10:21
-15:34:23.267 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:23.267 -> isHoting: 00 00
-15:34:23.267 -> StatesShow: 00 5f
-15:34:23.267 -> junhengStates: 00 00
-15:34:23.267 -> Characteristic notify from 20:22:08:04:10:21
-15:34:23.267 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:23.648 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:23.696 -> Hz: 3
-15:34:23.744 -> Characteristic notify from 20:22:08:04:10:21
-15:34:23.744 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:23.744 -> Loop:  (cycles?): 5
-15:34:23.744 -> Mos1:  (C MOS?): 00 7d
-15:34:23.744 -> Mos2:  (D MOS?): 03 00
-15:34:23.744 -> Characteristic notify from 20:22:08:04:10:21
-15:34:23.744 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:23.744 -> isHoting: 00 00
-15:34:23.744 -> StatesShow: 00 5f
-15:34:23.744 -> junhengStates: 00 00
-15:34:23.791 -> Characteristic notify from 20:22:08:04:10:21
-15:34:23.791 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:24.172 -> Sending Renogy solar command
-15:34:24.172 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:24.220 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:24.220 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:24.220 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:24.220 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:24.220 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:24.220 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:24.220 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:24.647 -> Sending Renogy alternater command
-15:34:24.647 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:24.694 -> Hz: 3
-15:34:24.741 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:24.741 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:24.741 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:24.741 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:24.741 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:24.741 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:24.741 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:25.168 -> Sending Renogy solar command
-15:34:25.168 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:25.215 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:25.215 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:25.215 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:25.215 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:25.215 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:25.215 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:25.215 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:25.687 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:25.687 -> Hz: 0
-15:34:25.782 -> Characteristic notify from 20:22:08:04:10:21
-15:34:25.782 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:25.782 -> Loop:  (cycles?): 5
-15:34:25.782 -> Mos1:  (C MOS?): 00 7d
-15:34:25.782 -> Mos2:  (D MOS?): 03 00
-15:34:25.782 -> Characteristic notify from 20:22:08:04:10:21
-15:34:25.782 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:25.782 -> isHoting: 00 00
-15:34:25.782 -> StatesShow: 00 5f
-15:34:25.782 -> junhengStates: 00 00
-15:34:25.829 -> Characteristic notify from 20:22:08:04:10:21
-15:34:25.829 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:26.160 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:26.254 -> Characteristic notify from 20:22:08:04:10:21
-15:34:26.254 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:26.254 -> Loop:  (cycles?): 5
-15:34:26.254 -> Mos1:  (C MOS?): 00 7d
-15:34:26.254 -> Mos2:  (D MOS?): 03 00
-15:34:26.254 -> Characteristic notify from 20:22:08:04:10:21
-15:34:26.254 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:26.254 -> isHoting: 00 00
-15:34:26.254 -> StatesShow: 00 5f
-15:34:26.254 -> junhengStates: 00 00
-15:34:26.301 -> Characteristic notify from 20:22:08:04:10:21
-15:34:26.301 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:26.679 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:26.679 -> Hz: 6
-15:34:26.727 -> Characteristic notify from 20:22:08:04:10:21
-15:34:26.727 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:26.727 -> Loop:  (cycles?): 5
-15:34:26.727 -> Mos1:  (C MOS?): 00 7d
-15:34:26.727 -> Mos2:  (D MOS?): 03 00
-15:34:26.774 -> Characteristic notify from 20:22:08:04:10:21
-15:34:26.774 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:26.774 -> isHoting: 00 00
-15:34:26.774 -> StatesShow: 00 5f
-15:34:26.774 -> junhengStates: 00 00
-15:34:26.821 -> Characteristic notify from 20:22:08:04:10:21
-15:34:26.821 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:27.199 -> Sending Renogy alternater command
-15:34:27.199 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:27.247 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:27.247 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:27.247 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:27.247 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:27.247 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:27.247 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:27.247 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:27.674 -> Sending Renogy solar command
-15:34:27.674 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:27.721 -> Hz: 3
-15:34:27.721 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:27.721 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:27.721 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:27.721 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:27.721 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:27.721 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:27.721 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:28.194 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:28.241 -> Characteristic notify from 20:22:08:04:10:21
-15:34:28.241 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:28.241 -> Loop:  (cycles?): 5
-15:34:28.241 -> Mos1:  (C MOS?): 00 7d
-15:34:28.241 -> Mos2:  (D MOS?): 03 00
-15:34:28.288 -> Characteristic notify from 20:22:08:04:10:21
-15:34:28.288 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:28.288 -> isHoting: 00 00
-15:34:28.288 -> StatesShow: 00 5f
-15:34:28.288 -> junhengStates: 00 00
-15:34:28.288 -> Characteristic notify from 20:22:08:04:10:21
-15:34:28.288 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:28.714 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:28.714 -> Hz: 3
-15:34:28.760 -> Characteristic notify from 20:22:08:04:10:21
-15:34:28.760 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:28.760 -> Loop:  (cycles?): 5
-15:34:28.760 -> Mos1:  (C MOS?): 00 7d
-15:34:28.760 -> Mos2:  (D MOS?): 03 00
-15:34:28.808 -> Characteristic notify from 20:22:08:04:10:21
-15:34:28.808 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:28.808 -> isHoting: 00 00
-15:34:28.808 -> StatesShow: 00 5f
-15:34:28.808 -> junhengStates: 00 00
-15:34:28.808 -> Characteristic notify from 20:22:08:04:10:21
-15:34:28.808 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:29.186 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:29.282 -> Characteristic notify from 20:22:08:04:10:21
-15:34:29.282 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:29.282 -> Loop:  (cycles?): 5
-15:34:29.282 -> Mos1:  (C MOS?): 00 7d
-15:34:29.282 -> Mos2:  (D MOS?): 03 00
-15:34:29.282 -> Characteristic notify from 20:22:08:04:10:21
-15:34:29.282 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:29.282 -> isHoting: 00 00
-15:34:29.282 -> StatesShow: 00 5f
-15:34:29.282 -> junhengStates: 00 00
-15:34:29.329 -> Characteristic notify from 20:22:08:04:10:21
-15:34:29.329 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:29.708 -> Sending Renogy alternater command
-15:34:29.708 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:29.708 -> Hz: 6
-15:34:29.755 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:29.755 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:29.755 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:29.755 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:29.755 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:29.755 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:29.755 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:30.180 -> Sending Renogy solar command
-15:34:30.180 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:30.227 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:30.227 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:30.274 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:30.274 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:30.274 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:30.274 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:30.274 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:30.701 -> Sending Renogy alternater command
-15:34:30.701 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:30.701 -> Hz: 0
-15:34:30.748 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:30.748 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:30.748 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:30.748 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:30.748 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:30.748 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:30.748 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:31.220 -> Sending Renogy solar command
-15:34:31.220 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:31.267 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:31.267 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:31.267 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:31.267 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:31.267 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:31.267 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:31.267 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:31.692 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:31.692 -> Hz: 0
-15:34:31.786 -> Characteristic notify from 20:22:08:04:10:21
-15:34:31.786 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:31.786 -> Loop:  (cycles?): 5
-15:34:31.786 -> Mos1:  (C MOS?): 00 7d
-15:34:31.786 -> Mos2:  (D MOS?): 03 00
-15:34:31.786 -> Characteristic notify from 20:22:08:04:10:21
-15:34:31.786 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:31.786 -> isHoting: 00 00
-15:34:31.786 -> StatesShow: 00 5f
-15:34:31.786 -> junhengStates: 00 00
-15:34:31.834 -> Characteristic notify from 20:22:08:04:10:21
-15:34:31.834 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:32.212 -> Sending Renogy alternater command
-15:34:32.212 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:32.260 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:32.260 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:32.260 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:32.260 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:32.260 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:32.260 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:32.260 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:32.733 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:32.733 -> Hz: 3
-15:34:32.780 -> Characteristic notify from 20:22:08:04:10:21
-15:34:32.780 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:32.780 -> Loop:  (cycles?): 5
-15:34:32.780 -> Mos1:  (C MOS?): 00 7d
-15:34:32.780 -> Mos2:  (D MOS?): 03 00
-15:34:32.828 -> Characteristic notify from 20:22:08:04:10:21
-15:34:32.828 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:32.828 -> isHoting: 00 00
-15:34:32.828 -> StatesShow: 00 5f
-15:34:32.828 -> junhengStates: 00 00
-15:34:32.828 -> Characteristic notify from 20:22:08:04:10:21
-15:34:32.828 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:33.205 -> Sending Renogy solar command
-15:34:33.205 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:33.253 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:33.253 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:33.253 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:33.253 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:33.253 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:33.253 -> Solar: value=29 multiplier=0.010000 result=0.290000
-15:34:33.253 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:33.727 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:33.727 -> Hz: 3
-15:34:33.774 -> Characteristic notify from 20:22:08:04:10:21
-15:34:33.774 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:33.774 -> Loop:  (cycles?): 5
-15:34:33.774 -> Mos1:  (C MOS?): 00 7d
-15:34:33.774 -> Mos2:  (D MOS?): 03 00
-15:34:33.821 -> Characteristic notify from 20:22:08:04:10:21
-15:34:33.821 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:33.821 -> isHoting: 00 00
-15:34:33.821 -> StatesShow: 00 5f
-15:34:33.821 -> junhengStates: 00 00
-15:34:33.869 -> Characteristic notify from 20:22:08:04:10:21
-15:34:33.869 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:34.202 -> Sending Renogy alternater command
-15:34:34.202 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:34.296 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:34.296 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:34.296 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:34.296 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:34.296 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:34.296 -> Solar: value=29 multiplier=0.010000 result=0.290000
-15:34:34.296 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:34.722 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:34.722 -> Hz: 3
-15:34:34.769 -> Characteristic notify from 20:22:08:04:10:21
-15:34:34.769 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:34.769 -> Loop:  (cycles?): 5
-15:34:34.769 -> Mos1:  (C MOS?): 00 7d
-15:34:34.769 -> Mos2:  (D MOS?): 03 00
-15:34:34.816 -> Characteristic notify from 20:22:08:04:10:21
-15:34:34.816 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:34.816 -> isHoting: 00 00
-15:34:34.816 -> StatesShow: 00 5f
-15:34:34.816 -> junhengStates: 00 00
-15:34:34.816 -> Characteristic notify from 20:22:08:04:10:21
-15:34:34.816 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:35.241 -> Sending Renogy solar command
-15:34:35.241 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:35.288 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:35.288 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:35.288 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:35.288 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:35.288 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:35.288 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:35.288 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:35.713 -> Sending Renogy alternater command
-15:34:35.713 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:35.760 -> Hz: 3
-15:34:35.807 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:35.807 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:35.807 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:35.807 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:35.807 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:35.807 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:35.807 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:36.231 -> Sending Renogy solar command
-15:34:36.231 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:36.279 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:36.279 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:36.279 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:36.279 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:36.279 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:36.279 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:36.279 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:36.751 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:36.751 -> Hz: 0
-15:34:36.798 -> Characteristic notify from 20:22:08:04:10:21
-15:34:36.798 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:36.798 -> Loop:  (cycles?): 5
-15:34:36.798 -> Mos1:  (C MOS?): 00 7d
-15:34:36.798 -> Mos2:  (D MOS?): 03 00
-15:34:36.846 -> Characteristic notify from 20:22:08:04:10:21
-15:34:36.846 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:36.846 -> isHoting: 00 00
-15:34:36.846 -> StatesShow: 00 5f
-15:34:36.846 -> junhengStates: 00 00
-15:34:36.846 -> Characteristic notify from 20:22:08:04:10:21
-15:34:36.846 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:37.224 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:37.318 -> Characteristic notify from 20:22:08:04:10:21
-15:34:37.318 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:37.318 -> Loop:  (cycles?): 5
-15:34:37.318 -> Mos1:  (C MOS?): 00 7d
-15:34:37.318 -> Mos2:  (D MOS?): 03 00
-15:34:37.318 -> Characteristic notify from 20:22:08:04:10:21
-15:34:37.318 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:37.318 -> isHoting: 00 00
-15:34:37.318 -> StatesShow: 00 5f
-15:34:37.318 -> junhengStates: 00 00
-15:34:37.366 -> Characteristic notify from 20:22:08:04:10:21
-15:34:37.366 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:37.744 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:37.744 -> Hz: 6
-15:34:37.838 -> Characteristic notify from 20:22:08:04:10:21
-15:34:37.838 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:37.838 -> Loop:  (cycles?): 5
-15:34:37.838 -> Mos1:  (C MOS?): 00 7d
-15:34:37.838 -> Mos2:  (D MOS?): 03 00
-15:34:37.838 -> Characteristic notify from 20:22:08:04:10:21
-15:34:37.838 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:37.838 -> isHoting: 00 00
-15:34:37.838 -> StatesShow: 00 5f
-15:34:37.838 -> junhengStates: 00 00
-15:34:37.885 -> Characteristic notify from 20:22:08:04:10:21
-15:34:37.885 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:38.215 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:38.310 -> Characteristic notify from 20:22:08:04:10:21
-15:34:38.310 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:38.310 -> Loop:  (cycles?): 5
-15:34:38.310 -> Mos1:  (C MOS?): 00 7d
-15:34:38.310 -> Mos2:  (D MOS?): 03 00
-15:34:38.358 -> Characteristic notify from 20:22:08:04:10:21
-15:34:38.358 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:38.358 -> isHoting: 00 00
-15:34:38.358 -> StatesShow: 00 5f
-15:34:38.358 -> junhengStates: 00 00
-15:34:38.358 -> Characteristic notify from 20:22:08:04:10:21
-15:34:38.358 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:38.736 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:38.736 -> Hz: 6
-15:34:38.831 -> Characteristic notify from 20:22:08:04:10:21
-15:34:38.831 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:38.831 -> Loop:  (cycles?): 5
-15:34:38.831 -> Mos1:  (C MOS?): 00 7d
-15:34:38.831 -> Mos2:  (D MOS?): 03 00
-15:34:38.831 -> Characteristic notify from 20:22:08:04:10:21
-15:34:38.831 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:38.831 -> isHoting: 00 00
-15:34:38.831 -> StatesShow: 00 5f
-15:34:38.831 -> junhengStates: 00 00
-15:34:38.879 -> Characteristic notify from 20:22:08:04:10:21
-15:34:38.879 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:39.258 -> Sending Renogy alternater command
-15:34:39.258 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:39.305 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:39.305 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:39.305 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:39.305 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:39.305 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:39.305 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:39.305 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:39.730 -> Sending Renogy solar command
-15:34:39.730 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:39.777 -> Hz: 3
-15:34:39.823 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:39.823 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:39.823 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:39.823 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:39.823 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:39.823 -> Solar: value=29 multiplier=0.010000 result=0.290000
-15:34:39.823 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:40.248 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:40.296 -> Characteristic notify from 20:22:08:04:10:21
-15:34:40.296 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:40.296 -> Loop:  (cycles?): 5
-15:34:40.296 -> Mos1:  (C MOS?): 00 7d
-15:34:40.296 -> Mos2:  (D MOS?): 03 00
-15:34:40.343 -> Characteristic notify from 20:22:08:04:10:21
-15:34:40.343 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:40.343 -> isHoting: 00 00
-15:34:40.343 -> StatesShow: 00 5f
-15:34:40.343 -> junhengStates: 00 00
-15:34:40.343 -> Characteristic notify from 20:22:08:04:10:21
-15:34:40.343 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:40.756 -> Sending Renogy alternater command
-15:34:40.756 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:40.756 -> Hz: 3
-15:34:40.803 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:40.803 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:40.803 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:40.803 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:40.803 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:40.803 -> Solar: value=29 multiplier=0.010000 result=0.290000
-15:34:40.803 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:41.228 -> Sending Renogy solar command
-15:34:41.228 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:41.323 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:41.323 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:41.323 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:41.323 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:41.323 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:41.323 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:41.323 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:41.748 -> Sending Renogy alternater command
-15:34:41.748 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:41.748 -> Hz: 0
-15:34:41.844 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:41.844 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:41.844 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:41.844 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:41.844 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:41.844 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:41.844 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:42.268 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:42.316 -> Characteristic notify from 20:22:08:04:10:21
-15:34:42.316 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:42.316 -> Loop:  (cycles?): 5
-15:34:42.316 -> Mos1:  (C MOS?): 00 7d
-15:34:42.316 -> Mos2:  (D MOS?): 03 00
-15:34:42.363 -> Characteristic notify from 20:22:08:04:10:21
-15:34:42.363 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:42.363 -> isHoting: 00 00
-15:34:42.363 -> StatesShow: 00 5f
-15:34:42.363 -> junhengStates: 00 00
-15:34:42.363 -> Characteristic notify from 20:22:08:04:10:21
-15:34:42.363 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:42.741 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:42.789 -> Hz: 3
-15:34:42.836 -> Characteristic notify from 20:22:08:04:10:21
-15:34:42.836 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:42.836 -> Loop:  (cycles?): 5
-15:34:42.836 -> Mos1:  (C MOS?): 00 7d
-15:34:42.836 -> Mos2:  (D MOS?): 03 00
-15:34:42.836 -> Characteristic notify from 20:22:08:04:10:21
-15:34:42.836 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:42.836 -> isHoting: 00 00
-15:34:42.836 -> StatesShow: 00 5f
-15:34:42.836 -> junhengStates: 00 00
-15:34:42.884 -> Characteristic notify from 20:22:08:04:10:21
-15:34:42.884 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:43.263 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:43.356 -> Characteristic notify from 20:22:08:04:10:21
-15:34:43.356 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:43.356 -> Loop:  (cycles?): 5
-15:34:43.356 -> Mos1:  (C MOS?): 00 7d
-15:34:43.356 -> Mos2:  (D MOS?): 03 00
-15:34:43.356 -> Characteristic notify from 20:22:08:04:10:21
-15:34:43.356 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:43.356 -> isHoting: 00 00
-15:34:43.356 -> StatesShow: 00 5f
-15:34:43.356 -> junhengStates: 00 00
-15:34:43.404 -> Characteristic notify from 20:22:08:04:10:21
-15:34:43.404 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:43.783 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:43.783 -> Hz: 6
-15:34:43.830 -> Characteristic notify from 20:22:08:04:10:21
-15:34:43.830 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:43.830 -> Loop:  (cycles?): 5
-15:34:43.830 -> Mos1:  (C MOS?): 00 7d
-15:34:43.830 -> Mos2:  (D MOS?): 03 00
-15:34:43.878 -> Characteristic notify from 20:22:08:04:10:21
-15:34:43.878 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:43.878 -> isHoting: 00 00
-15:34:43.878 -> StatesShow: 00 5f
-15:34:43.878 -> junhengStates: 00 00
-15:34:43.878 -> Characteristic notify from 20:22:08:04:10:21
-15:34:43.878 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:44.257 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:44.305 -> Characteristic notify from 20:22:08:04:10:21
-15:34:44.305 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:44.305 -> Loop:  (cycles?): 5
-15:34:44.305 -> Mos1:  (C MOS?): 00 7d
-15:34:44.305 -> Mos2:  (D MOS?): 03 00
-15:34:44.352 -> Characteristic notify from 20:22:08:04:10:21
-15:34:44.352 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:44.352 -> isHoting: 00 00
-15:34:44.352 -> StatesShow: 00 5f
-15:34:44.352 -> junhengStates: 00 00
-15:34:44.352 -> Characteristic notify from 20:22:08:04:10:21
-15:34:44.352 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:44.780 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:44.780 -> Hz: 6
-15:34:44.827 -> Characteristic notify from 20:22:08:04:10:21
-15:34:44.827 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:44.827 -> Loop:  (cycles?): 5
-15:34:44.827 -> Mos1:  (C MOS?): 00 7d
-15:34:44.827 -> Mos2:  (D MOS?): 03 00
-15:34:44.875 -> Characteristic notify from 20:22:08:04:10:21
-15:34:44.875 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:44.875 -> isHoting: 00 00
-15:34:44.875 -> StatesShow: 00 5f
-15:34:44.875 -> junhengStates: 00 00
-15:34:44.875 -> Characteristic notify from 20:22:08:04:10:21
-15:34:44.875 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:45.253 -> Sending Renogy solar command
-15:34:45.253 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:45.347 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:45.347 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:45.347 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:45.347 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:45.347 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:45.347 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:45.347 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:45.772 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:45.772 -> Hz: 3
-15:34:45.819 -> Characteristic notify from 20:22:08:04:10:21
-15:34:45.819 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:45.819 -> Loop:  (cycles?): 5
-15:34:45.819 -> Mos1:  (C MOS?): 00 7d
-15:34:45.819 -> Mos2:  (D MOS?): 03 00
-15:34:45.867 -> Characteristic notify from 20:22:08:04:10:21
-15:34:45.867 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:45.867 -> isHoting: 00 00
-15:34:45.867 -> StatesShow: 00 5f
-15:34:45.867 -> junhengStates: 00 00
-15:34:45.867 -> Characteristic notify from 20:22:08:04:10:21
-15:34:45.867 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:46.292 -> Sending Renogy alternater command
-15:34:46.292 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
-15:34:46.339 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:46.339 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:46.339 -> Received response for 7 registers 0x0100 - 0x0106
-15:34:46.339 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:46.339 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:46.339 -> Solar: value=31 multiplier=0.010000 result=0.310000
-15:34:46.339 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:46.767 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:46.767 -> Hz: 3
-15:34:46.861 -> Characteristic notify from 20:22:08:04:10:21
-15:34:46.861 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:46.861 -> Loop:  (cycles?): 5
-15:34:46.861 -> Mos1:  (C MOS?): 00 7d
-15:34:46.861 -> Mos2:  (D MOS?): 03 00
-15:34:46.861 -> Characteristic notify from 20:22:08:04:10:21
-15:34:46.861 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:46.861 -> isHoting: 00 00
-15:34:46.861 -> StatesShow: 00 5f
-15:34:46.861 -> junhengStates: 00 00
-15:34:46.908 -> Characteristic notify from 20:22:08:04:10:21
-15:34:46.908 -> Releasing response semaphore for BLE device SOK-AA12487
-15:34:47.287 -> Sending Renogy solar command
-15:34:47.287 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
-15:34:47.334 -> Characteristic notify from 60:98:66:f9:4e:1c
-15:34:47.334 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
-15:34:47.334 -> Received response for 4 registers 0x0107 - 0x010A
-15:34:47.334 -> Aux Battery: value=131 multiplier=0.100000 result=13.100000
-15:34:47.334 -> Alternater: value=0 multiplier=0.010000 result=0.000000
-15:34:47.334 -> Solar: value=30 multiplier=0.010000 result=0.300000
-15:34:47.334 -> Today AH: value=0 multiplier=1.000000 result=0.000000
-15:34:47.807 -> Sending command sequence to SOK: EE C2 00 00 00 46 
-15:34:47.807 -> Hz: 3
+17:21:22.119 -> ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery
+17:21:22.119 -> -----------------------------------------------------
+17:21:22.119 -> 
+17:21:22.262 -> BT2Reader: Setting logging level to VERBOSE
+17:21:24.252 -> About to start scanning
+17:21:24.252 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:24.252 -> Found device 'BT-TH-66F94E1C    ' at '60:98:66:f9:4e:1c' with uuuid 'ffd0'
+17:21:24.252 -> BT2Reader: Found targeted BT2 device, attempting connection
+17:21:24.299 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:24.299 -> BLE busy with BT-TH-66F94E1C    
+17:21:24.347 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:24.395 -> Connect callback for '60:98:66:f9:4e:1c'
+17:21:24.395 -> Renogy connect callback
+17:21:24.395 -> BT2Reader: Discovering Tx service: ffd0 
+17:21:24.442 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:24.442 -> BLE busy with BT-TH-66F94E1C    
+17:21:24.489 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:24.537 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:24.537 -> BLE busy with BT-TH-66F94E1C    
+17:21:24.679 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:24.773 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:24.868 -> BT2Reader: Renogy Tx service ffd0 discovered.  Now looking for charecteristic ffd1
+17:21:24.868 -> BT2Reader: Discovering Rx service: fff0 
+17:21:24.868 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:24.963 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:24.963 -> BLE busy with BT-TH-66F94E1C    
+17:21:24.963 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:25.009 -> Found device '' at '14:13:0b:14:bd:35' with uuuid ''
+17:21:25.056 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:25.056 -> BLE busy with BT-TH-66F94E1C    
+17:21:25.104 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:25.151 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:25.151 -> BLE busy with BT-TH-66F94E1C    
+17:21:25.485 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:25.485 -> BLE busy with BT-TH-66F94E1C    
+17:21:25.532 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:25.626 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:25.673 -> BT2Reader: Renogy Rx service fff0 discovered.  Now looking for charecteristic fff1
+17:21:25.721 -> BT2Reader: Found all services and characteristics.
+17:21:25.721 -> BT2Reader: Releasing connect semaphore for BLE device BT-TH-66F94E1C    
+17:21:25.721 -> Connected to BT device 60:98:66:f9:4e:1c
+17:21:25.721 -> Sending Renogy startup command
+17:21:25.721 -> BT2Reader: Sending command sequence: FF 03 00 0C 00 02 11 D6 
+17:21:25.768 -> Sending Renogy alternater command
+17:21:25.768 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:25.768 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:25.768 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:25.768 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:25.768 -> Aux Battery: value=21058 multiplier=0.100000 result=2105.800049
+17:21:25.768 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:25.768 -> Solar: value=0 multiplier=0.010000 result=0.000000
+17:21:25.768 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:25.816 -> Found device 'SOK-AA12487' at '20:22:08:04:10:21' with uuuid 'fff0'
+17:21:25.816 -> Found targeted SOK device, attempting connection
+17:21:25.816 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:25.816 -> BT2Reader: Buffer overrun receiving data
+17:21:25.911 -> Connect callback for '20:22:08:04:10:21'
+17:21:25.911 -> SOK connect callback
+17:21:25.911 -> SOK: Discovering Tx service: ffe0
+17:21:25.958 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:26.052 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:26.147 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:26.243 -> SOK Tx service ffe0 discovered
+17:21:26.243 -> SOK: Discovering Rx service: ffe0
+17:21:26.243 -> ffe0
+17:21:26.243 -> SOK Rx service ffe0 discovered.  Now looking for characteristic ffe1
+17:21:26.290 -> Found device '' at '21:8a:bf:a9:43:d7' with uuuid ''
+17:21:26.290 -> SOK found all needed services and characteristics.
+17:21:26.290 -> Releasing connect semaphore for BLE device SOK-AA12487
+17:21:26.290 -> Connected to SOK device 20:22:08:04:10:21
+17:21:26.290 -> All devices connected.  Stopping scan
+17:21:26.290 -> Sending Renogy solar command
+17:21:26.290 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:26.385 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:26.385 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:26.385 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:26.385 -> Aux Battery: value=21058 multiplier=0.100000 result=2105.800049
+17:21:26.385 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:26.385 -> Solar: value=17 multiplier=0.010000 result=0.170000
+17:21:26.385 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:26.810 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:26.905 -> Characteristic notify from 20:22:08:04:10:21
+17:21:26.905 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:26.905 -> Loop:  (cycles?): 5
+17:21:26.905 -> Characteristic notify from 20:22:08:04:10:21
+17:21:26.905 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:26.905 -> heating: 0
+17:21:26.952 -> Characteristic notify from 20:22:08:04:10:21
+17:21:26.952 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:27.331 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:27.379 -> Characteristic notify from 20:22:08:04:10:21
+17:21:27.379 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:27.379 -> Loop:  (cycles?): 5
+17:21:27.379 -> Characteristic notify from 20:22:08:04:10:21
+17:21:27.379 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:27.379 -> C MOS: 1
+17:21:27.379 -> D MOS: 1
+17:21:27.805 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:27.899 -> Characteristic notify from 20:22:08:04:10:21
+17:21:27.899 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:27.899 -> Loop:  (cycles?): 5
+17:21:27.899 -> Characteristic notify from 20:22:08:04:10:21
+17:21:27.899 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:27.899 -> heating: 0
+17:21:27.947 -> Characteristic notify from 20:22:08:04:10:21
+17:21:27.947 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:28.324 -> Sending Renogy alternater command
+17:21:28.324 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:28.372 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:28.372 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:28.372 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:28.372 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:28.372 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:28.372 -> Solar: value=17 multiplier=0.010000 result=0.170000
+17:21:28.372 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:28.846 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:28.894 -> Characteristic notify from 20:22:08:04:10:21
+17:21:28.894 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:28.894 -> Loop:  (cycles?): 5
+17:21:28.942 -> Characteristic notify from 20:22:08:04:10:21
+17:21:28.942 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:28.942 -> C MOS: 1
+17:21:28.942 -> D MOS: 1
+17:21:29.320 -> Sending Renogy solar command
+17:21:29.320 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:29.367 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:29.367 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:29.367 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:29.367 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:29.367 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:29.367 -> Solar: value=17 multiplier=0.010000 result=0.170000
+17:21:29.367 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:29.839 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:29.934 -> Characteristic notify from 20:22:08:04:10:21
+17:21:29.934 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:29.934 -> Loop:  (cycles?): 5
+17:21:29.934 -> Characteristic notify from 20:22:08:04:10:21
+17:21:29.934 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:29.934 -> heating: 0
+17:21:29.981 -> Characteristic notify from 20:22:08:04:10:21
+17:21:29.981 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:30.312 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:30.407 -> Characteristic notify from 20:22:08:04:10:21
+17:21:30.407 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:30.407 -> Loop:  (cycles?): 5
+17:21:30.407 -> Characteristic notify from 20:22:08:04:10:21
+17:21:30.407 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:30.407 -> C MOS: 1
+17:21:30.407 -> D MOS: 1
+17:21:30.835 -> Sending Renogy alternater command
+17:21:30.835 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:30.882 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:30.882 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:30.882 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:30.882 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:30.882 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:30.882 -> Solar: value=17 multiplier=0.010000 result=0.170000
+17:21:30.882 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:31.357 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:31.405 -> Characteristic notify from 20:22:08:04:10:21
+17:21:31.405 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:31.405 -> Loop:  (cycles?): 5
+17:21:31.452 -> Characteristic notify from 20:22:08:04:10:21
+17:21:31.452 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:31.452 -> heating: 0
+17:21:31.452 -> Characteristic notify from 20:22:08:04:10:21
+17:21:31.452 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:31.832 -> Sending Renogy solar command
+17:21:31.832 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:31.880 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:31.880 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:31.880 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:31.880 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:31.880 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:31.880 -> Solar: value=18 multiplier=0.010000 result=0.180000
+17:21:31.880 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:32.355 -> Sending Renogy alternater command
+17:21:32.355 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:32.402 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:32.402 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:32.402 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:32.402 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:32.402 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:32.402 -> Solar: value=18 multiplier=0.010000 result=0.180000
+17:21:32.402 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:32.828 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:32.923 -> Characteristic notify from 20:22:08:04:10:21
+17:21:32.923 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:32.923 -> Loop:  (cycles?): 5
+17:21:32.971 -> Characteristic notify from 20:22:08:04:10:21
+17:21:32.971 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:32.971 -> C MOS: 1
+17:21:32.971 -> D MOS: 1
+17:21:33.351 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:33.398 -> Characteristic notify from 20:22:08:04:10:21
+17:21:33.398 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:33.398 -> Loop:  (cycles?): 5
+17:21:33.446 -> Characteristic notify from 20:22:08:04:10:21
+17:21:33.446 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:33.446 -> heating: 0
+17:21:33.446 -> Characteristic notify from 20:22:08:04:10:21
+17:21:33.446 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:33.824 -> Sending Renogy solar command
+17:21:33.824 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:33.919 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:33.919 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:33.919 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:33.919 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:33.919 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:33.919 -> Solar: value=18 multiplier=0.010000 result=0.180000
+17:21:33.919 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:34.343 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:34.438 -> Characteristic notify from 20:22:08:04:10:21
+17:21:34.438 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:34.438 -> Loop:  (cycles?): 5
+17:21:34.438 -> Characteristic notify from 20:22:08:04:10:21
+17:21:34.438 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:34.438 -> C MOS: 1
+17:21:34.438 -> D MOS: 1
+17:21:34.865 -> Sending Renogy alternater command
+17:21:34.865 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:34.913 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:34.913 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:34.913 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:34.913 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:34.913 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:34.913 -> Solar: value=18 multiplier=0.010000 result=0.180000
+17:21:34.913 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:35.339 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:35.433 -> Characteristic notify from 20:22:08:04:10:21
+17:21:35.433 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:35.433 -> Loop:  (cycles?): 5
+17:21:35.433 -> Characteristic notify from 20:22:08:04:10:21
+17:21:35.433 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:35.433 -> heating: 0
+17:21:35.481 -> Characteristic notify from 20:22:08:04:10:21
+17:21:35.481 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:35.859 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:35.954 -> Characteristic notify from 20:22:08:04:10:21
+17:21:35.954 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:35.954 -> Loop:  (cycles?): 5
+17:21:35.954 -> Characteristic notify from 20:22:08:04:10:21
+17:21:36.002 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:36.002 -> C MOS: 1
+17:21:36.002 -> D MOS: 1
+17:21:36.380 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:36.428 -> Characteristic notify from 20:22:08:04:10:21
+17:21:36.428 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:36.428 -> Loop:  (cycles?): 5
+17:21:36.476 -> Characteristic notify from 20:22:08:04:10:21
+17:21:36.476 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:36.476 -> heating: 0
+17:21:36.476 -> Characteristic notify from 20:22:08:04:10:21
+17:21:36.476 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:36.854 -> Sending Renogy solar command
+17:21:36.854 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:36.901 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:36.901 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:36.901 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:36.901 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:36.901 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:36.901 -> Solar: value=18 multiplier=0.010000 result=0.180000
+17:21:36.901 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:37.375 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:37.470 -> Characteristic notify from 20:22:08:04:10:21
+17:21:37.470 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:37.470 -> Loop:  (cycles?): 5
+17:21:37.470 -> Characteristic notify from 20:22:08:04:10:21
+17:21:37.470 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:37.470 -> C MOS: 1
+17:21:37.470 -> D MOS: 1
+17:21:37.882 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:37.929 -> Characteristic notify from 20:22:08:04:10:21
+17:21:37.929 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:37.929 -> Loop:  (cycles?): 5
+17:21:37.977 -> Characteristic notify from 20:22:08:04:10:21
+17:21:37.977 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:37.977 -> heating: 0
+17:21:37.977 -> Characteristic notify from 20:22:08:04:10:21
+17:21:37.977 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:38.357 -> Sending Renogy alternater command
+17:21:38.357 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:38.453 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:38.453 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:38.453 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:38.453 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:38.453 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:38.453 -> Solar: value=18 multiplier=0.010000 result=0.180000
+17:21:38.453 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:38.879 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:38.926 -> Characteristic notify from 20:22:08:04:10:21
+17:21:38.926 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:38.926 -> Loop:  (cycles?): 5
+17:21:38.973 -> Characteristic notify from 20:22:08:04:10:21
+17:21:38.973 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:38.973 -> C MOS: 1
+17:21:38.973 -> D MOS: 1
+17:21:39.352 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:39.447 -> Characteristic notify from 20:22:08:04:10:21
+17:21:39.447 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:39.447 -> Loop:  (cycles?): 5
+17:21:39.494 -> Characteristic notify from 20:22:08:04:10:21
+17:21:39.494 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:39.494 -> heating: 0
+17:21:39.494 -> Characteristic notify from 20:22:08:04:10:21
+17:21:39.494 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:39.872 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:39.919 -> Characteristic notify from 20:22:08:04:10:21
+17:21:39.919 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:39.919 -> Loop:  (cycles?): 5
+17:21:39.966 -> Characteristic notify from 20:22:08:04:10:21
+17:21:39.966 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:39.966 -> C MOS: 1
+17:21:39.966 -> D MOS: 1
+17:21:40.394 -> Sending Renogy solar command
+17:21:40.394 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:40.442 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:40.442 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:40.442 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:40.442 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:40.442 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:40.442 -> Solar: value=19 multiplier=0.010000 result=0.190000
+17:21:40.442 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:40.869 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:40.964 -> Characteristic notify from 20:22:08:04:10:21
+17:21:40.964 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:40.964 -> Loop:  (cycles?): 5
+17:21:40.964 -> Characteristic notify from 20:22:08:04:10:21
+17:21:40.964 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:40.964 -> heating: 0
+17:21:41.011 -> Characteristic notify from 20:22:08:04:10:21
+17:21:41.011 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:41.390 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:41.436 -> Characteristic notify from 20:22:08:04:10:21
+17:21:41.436 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:41.436 -> Loop:  (cycles?): 5
+17:21:41.484 -> Characteristic notify from 20:22:08:04:10:21
+17:21:41.484 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:41.484 -> C MOS: 1
+17:21:41.484 -> D MOS: 1
+17:21:41.863 -> Sending Renogy alternater command
+17:21:41.911 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:41.958 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:41.958 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:41.958 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:41.958 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:41.958 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:41.958 -> Solar: value=19 multiplier=0.010000 result=0.190000
+17:21:41.958 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:42.383 -> Sending Renogy solar command
+17:21:42.383 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:42.430 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:42.430 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:42.430 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:42.430 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:42.430 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:42.430 -> Solar: value=19 multiplier=0.010000 result=0.190000
+17:21:42.430 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:42.903 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:42.998 -> Characteristic notify from 20:22:08:04:10:21
+17:21:42.998 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:42.998 -> Loop:  (cycles?): 5
+17:21:42.998 -> Characteristic notify from 20:22:08:04:10:21
+17:21:42.998 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:42.998 -> heating: 0
+17:21:43.045 -> Characteristic notify from 20:22:08:04:10:21
+17:21:43.045 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:43.374 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:43.468 -> Characteristic notify from 20:22:08:04:10:21
+17:21:43.468 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:43.468 -> Loop:  (cycles?): 5
+17:21:43.516 -> Characteristic notify from 20:22:08:04:10:21
+17:21:43.516 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:43.516 -> C MOS: 1
+17:21:43.516 -> D MOS: 1
+17:21:43.894 -> Sending Renogy alternater command
+17:21:43.894 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:43.941 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:43.941 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:43.941 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:43.941 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:43.941 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:43.941 -> Solar: value=19 multiplier=0.010000 result=0.190000
+17:21:43.941 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:44.414 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:44.461 -> Characteristic notify from 20:22:08:04:10:21
+17:21:44.461 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:44.461 -> Loop:  (cycles?): 5
+17:21:44.508 -> Characteristic notify from 20:22:08:04:10:21
+17:21:44.508 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:44.508 -> heating: 0
+17:21:44.508 -> Characteristic notify from 20:22:08:04:10:21
+17:21:44.508 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:44.888 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:44.982 -> Characteristic notify from 20:22:08:04:10:21
+17:21:44.982 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:44.982 -> Loop:  (cycles?): 5
+17:21:45.029 -> Characteristic notify from 20:22:08:04:10:21
+17:21:45.029 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:45.029 -> C MOS: 1
+17:21:45.029 -> D MOS: 1
+17:21:45.406 -> Sending Renogy solar command
+17:21:45.406 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:45.454 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:45.454 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:45.454 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:45.454 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:45.454 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:45.454 -> Solar: value=20 multiplier=0.010000 result=0.200000
+17:21:45.454 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:45.927 -> Sending Renogy alternater command
+17:21:45.927 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:45.974 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:45.974 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:45.974 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:45.974 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:45.974 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:45.974 -> Solar: value=20 multiplier=0.010000 result=0.200000
+17:21:45.974 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:46.400 -> Sending Renogy solar command
+17:21:46.400 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:46.448 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:46.448 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:46.448 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:46.448 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:46.448 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:46.448 -> Solar: value=20 multiplier=0.010000 result=0.200000
+17:21:46.448 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:46.922 -> Sending Renogy alternater command
+17:21:46.922 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:46.970 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:46.970 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:46.970 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:46.970 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:46.970 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:46.970 -> Solar: value=20 multiplier=0.010000 result=0.200000
+17:21:46.970 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:47.396 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:47.491 -> Characteristic notify from 20:22:08:04:10:21
+17:21:47.491 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:47.491 -> Loop:  (cycles?): 5
+17:21:47.491 -> Characteristic notify from 20:22:08:04:10:21
+17:21:47.491 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:47.491 -> heating: 0
+17:21:47.538 -> Characteristic notify from 20:22:08:04:10:21
+17:21:47.538 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:47.917 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:48.013 -> Characteristic notify from 20:22:08:04:10:21
+17:21:48.013 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:48.013 -> Loop:  (cycles?): 5
+17:21:48.013 -> Characteristic notify from 20:22:08:04:10:21
+17:21:48.013 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:48.013 -> C MOS: 1
+17:21:48.013 -> D MOS: 1
+17:21:48.439 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:48.487 -> Characteristic notify from 20:22:08:04:10:21
+17:21:48.487 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:48.487 -> Loop:  (cycles?): 5
+17:21:48.534 -> Characteristic notify from 20:22:08:04:10:21
+17:21:48.534 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:48.534 -> heating: 0
+17:21:48.534 -> Characteristic notify from 20:22:08:04:10:21
+17:21:48.534 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:48.913 -> Sending Renogy solar command
+17:21:48.913 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:48.961 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:48.961 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:48.961 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:48.961 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:48.961 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:48.961 -> Solar: value=20 multiplier=0.010000 result=0.200000
+17:21:48.961 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:49.434 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:49.481 -> Characteristic notify from 20:22:08:04:10:21
+17:21:49.481 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:49.481 -> Loop:  (cycles?): 5
+17:21:49.529 -> Characteristic notify from 20:22:08:04:10:21
+17:21:49.529 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:49.529 -> C MOS: 1
+17:21:49.529 -> D MOS: 1
+17:21:49.908 -> Sending Renogy alternater command
+17:21:49.908 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:50.004 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:50.004 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:50.004 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:50.004 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:50.004 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:50.004 -> Solar: value=20 multiplier=0.010000 result=0.200000
+17:21:50.004 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:50.429 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:50.476 -> Characteristic notify from 20:22:08:04:10:21
+17:21:50.476 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:50.476 -> Loop:  (cycles?): 5
+17:21:50.524 -> Characteristic notify from 20:22:08:04:10:21
+17:21:50.524 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:50.524 -> heating: 0
+17:21:50.571 -> Characteristic notify from 20:22:08:04:10:21
+17:21:50.571 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:50.949 -> Sending Renogy solar command
+17:21:50.949 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:50.997 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:50.997 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:50.997 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:50.997 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:50.997 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:50.997 -> Solar: value=22 multiplier=0.010000 result=0.220000
+17:21:50.997 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:51.421 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:51.517 -> Characteristic notify from 20:22:08:04:10:21
+17:21:51.517 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:51.517 -> Loop:  (cycles?): 5
+17:21:51.517 -> Characteristic notify from 20:22:08:04:10:21
+17:21:51.517 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:51.517 -> C MOS: 1
+17:21:51.517 -> D MOS: 1
+17:21:51.945 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:52.040 -> Characteristic notify from 20:22:08:04:10:21
+17:21:52.040 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:52.040 -> Loop:  (cycles?): 5
+17:21:52.040 -> Characteristic notify from 20:22:08:04:10:21
+17:21:52.040 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:52.040 -> heating: 0
+17:21:52.040 -> Characteristic notify from 20:22:08:04:10:21
+17:21:52.040 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:52.418 -> Sending Renogy alternater command
+17:21:52.418 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:52.514 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:52.514 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:52.514 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:52.514 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:52.514 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:52.514 -> Solar: value=22 multiplier=0.010000 result=0.220000
+17:21:52.514 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:52.925 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:53.020 -> Characteristic notify from 20:22:08:04:10:21
+17:21:53.020 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:53.020 -> Loop:  (cycles?): 5
+17:21:53.067 -> Characteristic notify from 20:22:08:04:10:21
+17:21:53.067 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:53.067 -> C MOS: 1
+17:21:53.067 -> D MOS: 1
+17:21:53.445 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:53.539 -> Characteristic notify from 20:22:08:04:10:21
+17:21:53.539 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:53.539 -> Loop:  (cycles?): 5
+17:21:53.539 -> Characteristic notify from 20:22:08:04:10:21
+17:21:53.539 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:53.539 -> heating: 0
+17:21:53.586 -> Characteristic notify from 20:22:08:04:10:21
+17:21:53.586 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:53.964 -> Sending Renogy solar command
+17:21:53.964 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:54.012 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:54.012 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:54.012 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:54.012 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:54.012 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:54.012 -> Solar: value=21 multiplier=0.010000 result=0.210000
+17:21:54.012 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:54.438 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:54.533 -> Characteristic notify from 20:22:08:04:10:21
+17:21:54.533 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:54.533 -> Loop:  (cycles?): 5
+17:21:54.533 -> Characteristic notify from 20:22:08:04:10:21
+17:21:54.533 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:54.533 -> C MOS: 1
+17:21:54.533 -> D MOS: 1
+17:21:54.957 -> Sending Renogy alternater command
+17:21:54.957 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:21:55.004 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:55.004 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:55.004 -> Received response for 7 registers 0x0100 - 0x0106
+17:21:55.004 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:55.004 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:55.004 -> Solar: value=21 multiplier=0.010000 result=0.210000
+17:21:55.004 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:55.463 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:55.511 -> Characteristic notify from 20:22:08:04:10:21
+17:21:55.511 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:55.511 -> Loop:  (cycles?): 5
+17:21:55.557 -> Characteristic notify from 20:22:08:04:10:21
+17:21:55.557 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:55.557 -> heating: 0
+17:21:55.557 -> Characteristic notify from 20:22:08:04:10:21
+17:21:55.557 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:55.936 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:56.077 -> Characteristic notify from 20:22:08:04:10:21
+17:21:56.077 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:56.077 -> Loop:  (cycles?): 5
+17:21:56.077 -> Characteristic notify from 20:22:08:04:10:21
+17:21:56.077 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:56.077 -> C MOS: 1
+17:21:56.077 -> D MOS: 1
+17:21:56.455 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:56.549 -> Characteristic notify from 20:22:08:04:10:21
+17:21:56.549 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:56.549 -> Loop:  (cycles?): 5
+17:21:56.549 -> Characteristic notify from 20:22:08:04:10:21
+17:21:56.549 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:56.549 -> heating: 0
+17:21:56.597 -> Characteristic notify from 20:22:08:04:10:21
+17:21:56.597 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:56.973 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:57.021 -> Characteristic notify from 20:22:08:04:10:21
+17:21:57.021 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:57.021 -> Loop:  (cycles?): 5
+17:21:57.068 -> Characteristic notify from 20:22:08:04:10:21
+17:21:57.068 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:57.068 -> C MOS: 1
+17:21:57.068 -> D MOS: 1
+17:21:57.445 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:57.540 -> Characteristic notify from 20:22:08:04:10:21
+17:21:57.540 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:57.540 -> Loop:  (cycles?): 5
+17:21:57.540 -> Characteristic notify from 20:22:08:04:10:21
+17:21:57.587 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:57.587 -> heating: 0
+17:21:57.587 -> Characteristic notify from 20:22:08:04:10:21
+17:21:57.587 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:57.965 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:58.059 -> Characteristic notify from 20:22:08:04:10:21
+17:21:58.059 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:58.059 -> Loop:  (cycles?): 5
+17:21:58.059 -> Characteristic notify from 20:22:08:04:10:21
+17:21:58.059 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:58.059 -> C MOS: 1
+17:21:58.059 -> D MOS: 1
+17:21:58.485 -> Sending Renogy solar command
+17:21:58.485 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:21:58.532 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:21:58.532 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:21:58.532 -> Received response for 4 registers 0x0107 - 0x010A
+17:21:58.532 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:21:58.532 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:21:58.532 -> Solar: value=21 multiplier=0.010000 result=0.210000
+17:21:58.532 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:21:58.958 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:21:59.100 -> Characteristic notify from 20:22:08:04:10:21
+17:21:59.100 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:59.100 -> Loop:  (cycles?): 5
+17:21:59.100 -> Characteristic notify from 20:22:08:04:10:21
+17:21:59.100 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:59.100 -> heating: 0
+17:21:59.100 -> Characteristic notify from 20:22:08:04:10:21
+17:21:59.100 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:59.478 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:21:59.572 -> Characteristic notify from 20:22:08:04:10:21
+17:21:59.572 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:59.572 -> Loop:  (cycles?): 5
+17:21:59.572 -> Characteristic notify from 20:22:08:04:10:21
+17:21:59.572 -> Releasing response semaphore for BLE device SOK-AA12487
+17:21:59.572 -> C MOS: 1
+17:21:59.572 -> D MOS: 1
+17:21:59.998 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:00.046 -> Characteristic notify from 20:22:08:04:10:21
+17:22:00.046 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:00.046 -> Loop:  (cycles?): 5
+17:22:00.093 -> Characteristic notify from 20:22:08:04:10:21
+17:22:00.093 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:00.093 -> heating: 0
+17:22:00.093 -> Characteristic notify from 20:22:08:04:10:21
+17:22:00.093 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:00.474 -> Sending Renogy alternater command
+17:22:00.474 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:00.569 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:00.569 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:00.569 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:00.569 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:00.569 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:00.569 -> Solar: value=21 multiplier=0.010000 result=0.210000
+17:22:00.569 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:00.998 -> Sending Renogy solar command
+17:22:00.998 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:01.045 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:01.045 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:01.045 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:01.045 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:01.045 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:01.045 -> Solar: value=22 multiplier=0.010000 result=0.220000
+17:22:01.045 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:01.474 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:01.569 -> Characteristic notify from 20:22:08:04:10:21
+17:22:01.569 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:01.569 -> Loop:  (cycles?): 5
+17:22:01.569 -> Characteristic notify from 20:22:08:04:10:21
+17:22:01.569 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:01.569 -> C MOS: 1
+17:22:01.569 -> D MOS: 1
+17:22:01.996 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:02.044 -> Characteristic notify from 20:22:08:04:10:21
+17:22:02.044 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:02.044 -> Loop:  (cycles?): 5
+17:22:02.090 -> Characteristic notify from 20:22:08:04:10:21
+17:22:02.090 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:02.090 -> heating: 0
+17:22:02.090 -> Characteristic notify from 20:22:08:04:10:21
+17:22:02.090 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:02.470 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:02.565 -> Characteristic notify from 20:22:08:04:10:21
+17:22:02.565 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:02.565 -> Loop:  (cycles?): 5
+17:22:02.565 -> Characteristic notify from 20:22:08:04:10:21
+17:22:02.565 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:02.565 -> C MOS: 1
+17:22:02.565 -> D MOS: 1
+17:22:02.996 -> Sending Renogy alternater command
+17:22:02.996 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:03.040 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:03.040 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:03.040 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:03.040 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:03.040 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:03.040 -> Solar: value=22 multiplier=0.010000 result=0.220000
+17:22:03.040 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:03.515 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:03.562 -> Characteristic notify from 20:22:08:04:10:21
+17:22:03.562 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:03.562 -> Loop:  (cycles?): 5
+17:22:03.610 -> Characteristic notify from 20:22:08:04:10:21
+17:22:03.610 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:03.610 -> heating: 0
+17:22:03.610 -> Characteristic notify from 20:22:08:04:10:21
+17:22:03.610 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:03.992 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:04.086 -> Characteristic notify from 20:22:08:04:10:21
+17:22:04.086 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:04.086 -> Loop:  (cycles?): 5
+17:22:04.086 -> Characteristic notify from 20:22:08:04:10:21
+17:22:04.086 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:04.086 -> C MOS: 1
+17:22:04.086 -> D MOS: 1
+17:22:04.499 -> Sending Renogy solar command
+17:22:04.499 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:04.545 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:04.545 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:04.545 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:04.545 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:04.545 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:04.545 -> Solar: value=22 multiplier=0.010000 result=0.220000
+17:22:04.545 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:05.021 -> Sending Renogy alternater command
+17:22:05.021 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:05.068 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:05.068 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:05.068 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:05.068 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:05.068 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:05.068 -> Solar: value=22 multiplier=0.010000 result=0.220000
+17:22:05.068 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:05.495 -> Sending Renogy solar command
+17:22:05.495 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:05.542 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:05.542 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:05.542 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:05.542 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:05.542 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:05.542 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:05.542 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:06.017 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:06.065 -> Characteristic notify from 20:22:08:04:10:21
+17:22:06.065 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:06.065 -> Loop:  (cycles?): 5
+17:22:06.112 -> Characteristic notify from 20:22:08:04:10:21
+17:22:06.112 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:06.112 -> heating: 0
+17:22:06.159 -> Characteristic notify from 20:22:08:04:10:21
+17:22:06.159 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:06.492 -> Sending command sequence to SOK: EE C4 00 00 00 4F 
+17:22:06.587 -> Characteristic notify from 20:22:08:04:10:21
+17:22:06.587 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:06.587 -> Protection: 0
+17:22:07.015 -> Sending Renogy alternater command
+17:22:07.015 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:07.062 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:07.062 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:07.062 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:07.062 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:07.062 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:07.062 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:07.062 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:07.536 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:07.583 -> Characteristic notify from 20:22:08:04:10:21
+17:22:07.583 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:07.583 -> Loop:  (cycles?): 5
+17:22:07.631 -> Characteristic notify from 20:22:08:04:10:21
+17:22:07.631 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:07.631 -> heating: 0
+17:22:07.631 -> Characteristic notify from 20:22:08:04:10:21
+17:22:07.631 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:08.010 -> Sending Renogy solar command
+17:22:08.010 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:08.057 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:08.057 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:08.057 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:08.057 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:08.057 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:08.057 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:08.057 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:08.532 -> Sending Renogy alternater command
+17:22:08.532 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:08.579 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:08.579 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:08.579 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:08.579 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:08.579 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:08.579 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:08.579 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:09.007 -> Sending Renogy solar command
+17:22:09.007 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:09.102 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:09.102 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:09.102 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:09.102 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:09.102 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:09.102 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:09.102 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:09.530 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:09.625 -> Characteristic notify from 20:22:08:04:10:21
+17:22:09.625 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:09.625 -> Loop:  (cycles?): 5
+17:22:09.625 -> Characteristic notify from 20:22:08:04:10:21
+17:22:09.625 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:09.625 -> C MOS: 1
+17:22:09.625 -> D MOS: 1
+17:22:10.052 -> Sending Renogy alternater command
+17:22:10.052 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:10.098 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:10.098 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:10.098 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:10.098 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:10.098 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:10.098 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:10.098 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:10.525 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:10.620 -> Characteristic notify from 20:22:08:04:10:21
+17:22:10.620 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:10.620 -> Loop:  (cycles?): 5
+17:22:10.620 -> Characteristic notify from 20:22:08:04:10:21
+17:22:10.620 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:10.620 -> heating: 0
+17:22:10.668 -> Characteristic notify from 20:22:08:04:10:21
+17:22:10.668 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:11.049 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:11.143 -> Characteristic notify from 20:22:08:04:10:21
+17:22:11.143 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:11.143 -> Loop:  (cycles?): 5
+17:22:11.143 -> Characteristic notify from 20:22:08:04:10:21
+17:22:11.143 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:11.143 -> C MOS: 1
+17:22:11.143 -> D MOS: 1
+17:22:11.526 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:11.620 -> Characteristic notify from 20:22:08:04:10:21
+17:22:11.620 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:11.620 -> Loop:  (cycles?): 5
+17:22:11.668 -> Characteristic notify from 20:22:08:04:10:21
+17:22:11.668 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:11.668 -> heating: 0
+17:22:11.668 -> Characteristic notify from 20:22:08:04:10:21
+17:22:11.668 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:12.047 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:12.143 -> Characteristic notify from 20:22:08:04:10:21
+17:22:12.143 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:12.143 -> Loop:  (cycles?): 5
+17:22:12.143 -> Characteristic notify from 20:22:08:04:10:21
+17:22:12.143 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:12.143 -> C MOS: 1
+17:22:12.143 -> D MOS: 1
+17:22:12.526 -> Sending Renogy solar command
+17:22:12.526 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:12.618 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:12.618 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:12.618 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:12.618 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:12.618 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:12.618 -> Solar: value=25 multiplier=0.010000 result=0.250000
+17:22:12.618 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:13.045 -> Sending Renogy alternater command
+17:22:13.045 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:13.092 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:13.092 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:13.092 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:13.092 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:13.092 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:13.092 -> Solar: value=25 multiplier=0.010000 result=0.250000
+17:22:13.092 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:13.565 -> Sending Renogy solar command
+17:22:13.565 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:13.613 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:13.613 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:13.613 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:13.613 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:13.613 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:13.613 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:13.613 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:14.037 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:14.085 -> Characteristic notify from 20:22:08:04:10:21
+17:22:14.132 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:14.132 -> Loop:  (cycles?): 5
+17:22:14.132 -> Characteristic notify from 20:22:08:04:10:21
+17:22:14.132 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:14.132 -> heating: 0
+17:22:14.179 -> Characteristic notify from 20:22:08:04:10:21
+17:22:14.179 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:14.558 -> Sending Renogy alternater command
+17:22:14.558 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:14.606 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:14.606 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:14.606 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:14.606 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:14.606 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:14.606 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:14.606 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:15.031 -> Sending Renogy solar command
+17:22:15.031 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:15.126 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:15.126 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:15.126 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:15.126 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:15.126 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:15.126 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:15.126 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:15.551 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:15.645 -> Characteristic notify from 20:22:08:04:10:21
+17:22:15.645 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:15.645 -> Loop:  (cycles?): 5
+17:22:15.645 -> Characteristic notify from 20:22:08:04:10:21
+17:22:15.645 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:15.645 -> C MOS: 1
+17:22:15.645 -> D MOS: 1
+17:22:16.070 -> Sending Renogy alternater command
+17:22:16.070 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:16.118 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:16.118 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:16.118 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:16.118 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:16.118 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:16.118 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:16.118 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:16.545 -> Sending Renogy solar command
+17:22:16.545 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:16.640 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:16.640 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:16.640 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:16.640 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:16.640 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:16.640 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:16.640 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:17.065 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:17.160 -> Characteristic notify from 20:22:08:04:10:21
+17:22:17.160 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:17.160 -> Loop:  (cycles?): 5
+17:22:17.160 -> Characteristic notify from 20:22:08:04:10:21
+17:22:17.160 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:17.160 -> heating: 0
+17:22:17.160 -> Characteristic notify from 20:22:08:04:10:21
+17:22:17.160 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:17.586 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:17.633 -> Characteristic notify from 20:22:08:04:10:21
+17:22:17.633 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:17.633 -> Loop:  (cycles?): 5
+17:22:17.681 -> Characteristic notify from 20:22:08:04:10:21
+17:22:17.681 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:17.681 -> C MOS: 1
+17:22:17.681 -> D MOS: 1
+17:22:18.058 -> Sending Renogy alternater command
+17:22:18.058 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:18.153 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:18.153 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:18.153 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:18.153 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:18.153 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:18.153 -> Solar: value=24 multiplier=0.010000 result=0.240000
+17:22:18.153 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:18.581 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:18.628 -> Characteristic notify from 20:22:08:04:10:21
+17:22:18.628 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:18.628 -> Loop:  (cycles?): 5
+17:22:18.676 -> Characteristic notify from 20:22:08:04:10:21
+17:22:18.676 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:18.676 -> heating: 0
+17:22:18.676 -> Characteristic notify from 20:22:08:04:10:21
+17:22:18.676 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:19.055 -> Sending Renogy solar command
+17:22:19.055 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:19.149 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:19.149 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:19.149 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:19.149 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:19.149 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:19.149 -> Solar: value=25 multiplier=0.010000 result=0.250000
+17:22:19.149 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:19.578 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:19.673 -> Characteristic notify from 20:22:08:04:10:21
+17:22:19.673 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:19.673 -> Loop:  (cycles?): 5
+17:22:19.673 -> Characteristic notify from 20:22:08:04:10:21
+17:22:19.673 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:19.673 -> C MOS: 1
+17:22:19.673 -> D MOS: 1
+17:22:20.098 -> Sending Renogy alternater command
+17:22:20.098 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:20.146 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:20.146 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:20.146 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:20.146 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:20.146 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:20.146 -> Solar: value=25 multiplier=0.010000 result=0.250000
+17:22:20.146 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:20.573 -> Sending Renogy solar command
+17:22:20.573 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:20.620 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:20.620 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:20.620 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:20.620 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:20.620 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:20.620 -> Solar: value=25 multiplier=0.010000 result=0.250000
+17:22:20.620 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:21.094 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:21.189 -> Characteristic notify from 20:22:08:04:10:21
+17:22:21.189 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:21.189 -> Loop:  (cycles?): 5
+17:22:21.189 -> Characteristic notify from 20:22:08:04:10:21
+17:22:21.189 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:21.189 -> heating: 0
+17:22:21.237 -> Characteristic notify from 20:22:08:04:10:21
+17:22:21.237 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:21.569 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:21.663 -> Characteristic notify from 20:22:08:04:10:21
+17:22:21.663 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:21.663 -> Loop:  (cycles?): 5
+17:22:21.663 -> Characteristic notify from 20:22:08:04:10:21
+17:22:21.663 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:21.663 -> C MOS: 1
+17:22:21.663 -> D MOS: 1
+17:22:22.092 -> Sending Renogy alternater command
+17:22:22.092 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:22.139 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:22.139 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:22.139 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:22.139 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:22.139 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:22.139 -> Solar: value=25 multiplier=0.010000 result=0.250000
+17:22:22.139 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:22.611 -> Sending Renogy solar command
+17:22:22.611 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:22.659 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:22.659 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:22.659 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:22.659 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:22.659 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:22.659 -> Solar: value=26 multiplier=0.010000 result=0.260000
+17:22:22.659 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:23.083 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:23.130 -> Characteristic notify from 20:22:08:04:10:21
+17:22:23.130 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:23.130 -> Loop:  (cycles?): 5
+17:22:23.177 -> Characteristic notify from 20:22:08:04:10:21
+17:22:23.177 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:23.177 -> heating: 0
+17:22:23.177 -> Characteristic notify from 20:22:08:04:10:21
+17:22:23.177 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:23.603 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:23.697 -> Characteristic notify from 20:22:08:04:10:21
+17:22:23.697 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:23.697 -> Loop:  (cycles?): 5
+17:22:23.697 -> Characteristic notify from 20:22:08:04:10:21
+17:22:23.697 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:23.697 -> C MOS: 1
+17:22:23.697 -> D MOS: 1
+17:22:24.075 -> Sending Renogy alternater command
+17:22:24.122 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:24.169 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:24.169 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:24.169 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:24.169 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:24.169 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:24.169 -> Solar: value=26 multiplier=0.010000 result=0.260000
+17:22:24.169 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:24.596 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:24.691 -> Characteristic notify from 20:22:08:04:10:21
+17:22:24.691 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:24.691 -> Loop:  (cycles?): 5
+17:22:24.691 -> Characteristic notify from 20:22:08:04:10:21
+17:22:24.691 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:24.691 -> heating: 0
+17:22:24.738 -> Characteristic notify from 20:22:08:04:10:21
+17:22:24.738 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:25.115 -> Sending Renogy solar command
+17:22:25.115 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:25.163 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:25.163 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:25.163 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:25.163 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:25.163 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:25.163 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:25.163 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:25.587 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:25.681 -> Characteristic notify from 20:22:08:04:10:21
+17:22:25.681 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:25.681 -> Loop:  (cycles?): 5
+17:22:25.681 -> Characteristic notify from 20:22:08:04:10:21
+17:22:25.681 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:25.681 -> C MOS: 1
+17:22:25.681 -> D MOS: 1
+17:22:26.109 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:26.204 -> Characteristic notify from 20:22:08:04:10:21
+17:22:26.204 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:26.204 -> Loop:  (cycles?): 5
+17:22:26.204 -> Characteristic notify from 20:22:08:04:10:21
+17:22:26.204 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:26.204 -> heating: 0
+17:22:26.250 -> Characteristic notify from 20:22:08:04:10:21
+17:22:26.250 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:26.629 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:26.723 -> Characteristic notify from 20:22:08:04:10:21
+17:22:26.723 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:26.723 -> Loop:  (cycles?): 5
+17:22:26.723 -> Characteristic notify from 20:22:08:04:10:21
+17:22:26.723 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:26.723 -> C MOS: 1
+17:22:26.723 -> D MOS: 1
+17:22:27.101 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:27.196 -> Characteristic notify from 20:22:08:04:10:21
+17:22:27.196 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:27.196 -> Loop:  (cycles?): 5
+17:22:27.196 -> Characteristic notify from 20:22:08:04:10:21
+17:22:27.196 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:27.196 -> heating: 0
+17:22:27.244 -> Characteristic notify from 20:22:08:04:10:21
+17:22:27.244 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:27.622 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:27.716 -> Characteristic notify from 20:22:08:04:10:21
+17:22:27.716 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:27.716 -> Loop:  (cycles?): 5
+17:22:27.716 -> Characteristic notify from 20:22:08:04:10:21
+17:22:27.716 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:27.716 -> C MOS: 1
+17:22:27.716 -> D MOS: 1
+17:22:28.094 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:28.189 -> Characteristic notify from 20:22:08:04:10:21
+17:22:28.189 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:28.189 -> Loop:  (cycles?): 5
+17:22:28.236 -> Characteristic notify from 20:22:08:04:10:21
+17:22:28.236 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:28.236 -> heating: 0
+17:22:28.236 -> Characteristic notify from 20:22:08:04:10:21
+17:22:28.236 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:28.614 -> Sending Renogy alternater command
+17:22:28.614 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:28.709 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:28.709 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:28.709 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:28.709 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:28.709 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:28.709 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:28.709 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:29.135 -> Sending Renogy solar command
+17:22:29.135 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:29.184 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:29.184 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:29.184 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:29.184 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:29.184 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:29.184 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:29.184 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:29.610 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:29.705 -> Characteristic notify from 20:22:08:04:10:21
+17:22:29.705 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:29.705 -> Loop:  (cycles?): 5
+17:22:29.752 -> Characteristic notify from 20:22:08:04:10:21
+17:22:29.752 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:29.752 -> C MOS: 1
+17:22:29.752 -> D MOS: 1
+17:22:30.131 -> Sending Renogy alternater command
+17:22:30.131 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:30.179 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:30.179 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:30.179 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:30.179 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:30.179 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:30.179 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:30.179 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:30.607 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:30.701 -> Characteristic notify from 20:22:08:04:10:21
+17:22:30.701 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:30.701 -> Loop:  (cycles?): 5
+17:22:30.748 -> Characteristic notify from 20:22:08:04:10:21
+17:22:30.748 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:30.748 -> heating: 0
+17:22:30.748 -> Characteristic notify from 20:22:08:04:10:21
+17:22:30.748 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:31.126 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:31.220 -> Characteristic notify from 20:22:08:04:10:21
+17:22:31.220 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:31.220 -> Loop:  (cycles?): 5
+17:22:31.220 -> Characteristic notify from 20:22:08:04:10:21
+17:22:31.220 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:31.220 -> C MOS: 1
+17:22:31.220 -> D MOS: 1
+17:22:31.645 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:31.740 -> Characteristic notify from 20:22:08:04:10:21
+17:22:31.740 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:31.740 -> Loop:  (cycles?): 5
+17:22:31.740 -> Characteristic notify from 20:22:08:04:10:21
+17:22:31.740 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:31.740 -> heating: 0
+17:22:31.740 -> Characteristic notify from 20:22:08:04:10:21
+17:22:31.740 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:32.119 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:32.261 -> Characteristic notify from 20:22:08:04:10:21
+17:22:32.261 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:32.261 -> Loop:  (cycles?): 5
+17:22:32.261 -> Characteristic notify from 20:22:08:04:10:21
+17:22:32.261 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:32.261 -> C MOS: 1
+17:22:32.261 -> D MOS: 1
+17:22:32.639 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:32.734 -> Characteristic notify from 20:22:08:04:10:21
+17:22:32.734 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:32.734 -> Loop:  (cycles?): 5
+17:22:32.782 -> Characteristic notify from 20:22:08:04:10:21
+17:22:32.782 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:32.782 -> heating: 0
+17:22:32.782 -> Characteristic notify from 20:22:08:04:10:21
+17:22:32.782 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:33.159 -> Sending Renogy solar command
+17:22:33.159 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:33.206 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:33.206 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:33.206 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:33.206 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:33.206 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:33.206 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:33.206 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:33.629 -> Sending Renogy alternater command
+17:22:33.629 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:33.723 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:33.723 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:33.723 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:33.723 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:33.723 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:33.723 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:33.723 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:34.140 -> Sending Renogy solar command
+17:22:34.140 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:34.188 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:34.188 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:34.188 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:34.188 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:34.188 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:34.188 -> Solar: value=28 multiplier=0.010000 result=0.280000
+17:22:34.188 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:34.664 -> Sending Renogy alternater command
+17:22:34.664 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:34.712 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:34.712 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:34.712 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:34.712 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:34.712 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:34.712 -> Solar: value=28 multiplier=0.010000 result=0.280000
+17:22:34.712 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:35.138 -> Sending Renogy solar command
+17:22:35.138 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:35.232 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:35.232 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:35.232 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:35.232 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:35.232 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:35.232 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:35.232 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:35.658 -> Sending Renogy alternater command
+17:22:35.658 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:35.711 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:35.711 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:35.711 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:35.711 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:35.753 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:35.753 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:35.753 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:36.180 -> Sending Renogy solar command
+17:22:36.180 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:36.228 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:36.228 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:36.228 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:36.228 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:36.228 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:36.228 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:36.228 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:36.654 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:36.701 -> Characteristic notify from 20:22:08:04:10:21
+17:22:36.701 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:36.701 -> Loop:  (cycles?): 5
+17:22:36.749 -> Characteristic notify from 20:22:08:04:10:21
+17:22:36.749 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:36.749 -> C MOS: 1
+17:22:36.749 -> D MOS: 1
+17:22:37.175 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:37.222 -> Characteristic notify from 20:22:08:04:10:21
+17:22:37.222 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:37.222 -> Loop:  (cycles?): 5
+17:22:37.270 -> Characteristic notify from 20:22:08:04:10:21
+17:22:37.270 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:37.270 -> heating: 0
+17:22:37.270 -> Characteristic notify from 20:22:08:04:10:21
+17:22:37.270 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:37.671 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:37.753 -> Characteristic notify from 20:22:08:04:10:21
+17:22:37.753 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:37.753 -> Loop:  (cycles?): 5
+17:22:37.787 -> Characteristic notify from 20:22:08:04:10:21
+17:22:37.787 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:37.787 -> C MOS: 1
+17:22:37.787 -> D MOS: 1
+17:22:38.166 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:38.250 -> Characteristic notify from 20:22:08:04:10:21
+17:22:38.250 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:38.250 -> Loop:  (cycles?): 5
+17:22:38.298 -> Characteristic notify from 20:22:08:04:10:21
+17:22:38.298 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:38.298 -> heating: 0
+17:22:38.298 -> Characteristic notify from 20:22:08:04:10:21
+17:22:38.298 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:38.678 -> Sending Renogy alternater command
+17:22:38.678 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:38.726 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:38.726 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:38.726 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:38.726 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:38.726 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:38.726 -> Solar: value=27 multiplier=0.010000 result=0.270000
+17:22:38.726 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:39.152 -> Sending Renogy solar command
+17:22:39.152 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:39.247 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:39.247 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:39.247 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:39.247 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:39.247 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:39.247 -> Solar: value=28 multiplier=0.010000 result=0.280000
+17:22:39.247 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:39.675 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:39.770 -> Characteristic notify from 20:22:08:04:10:21
+17:22:39.770 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:39.770 -> Loop:  (cycles?): 5
+17:22:39.770 -> Characteristic notify from 20:22:08:04:10:21
+17:22:39.770 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:39.770 -> C MOS: 1
+17:22:39.770 -> D MOS: 1
+17:22:40.197 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:40.292 -> Characteristic notify from 20:22:08:04:10:21
+17:22:40.292 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:40.292 -> Loop:  (cycles?): 5
+17:22:40.292 -> Characteristic notify from 20:22:08:04:10:21
+17:22:40.292 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:40.292 -> heating: 0
+17:22:40.292 -> Characteristic notify from 20:22:08:04:10:21
+17:22:40.292 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:40.673 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:40.769 -> Characteristic notify from 20:22:08:04:10:21
+17:22:40.769 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:40.769 -> Loop:  (cycles?): 5
+17:22:40.769 -> Characteristic notify from 20:22:08:04:10:21
+17:22:40.769 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:40.769 -> C MOS: 1
+17:22:40.769 -> D MOS: 1
+17:22:41.194 -> Sending Renogy alternater command
+17:22:41.194 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:41.241 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:41.241 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:41.241 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:41.241 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:41.241 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:41.241 -> Solar: value=28 multiplier=0.010000 result=0.280000
+17:22:41.241 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:41.667 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:41.762 -> Characteristic notify from 20:22:08:04:10:21
+17:22:41.762 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:41.762 -> Loop:  (cycles?): 5
+17:22:41.762 -> Characteristic notify from 20:22:08:04:10:21
+17:22:41.762 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:41.762 -> heating: 0
+17:22:41.809 -> Characteristic notify from 20:22:08:04:10:21
+17:22:41.809 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:42.189 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:42.284 -> Characteristic notify from 20:22:08:04:10:21
+17:22:42.284 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:42.284 -> Loop:  (cycles?): 5
+17:22:42.284 -> Characteristic notify from 20:22:08:04:10:21
+17:22:42.284 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:42.284 -> C MOS: 1
+17:22:42.284 -> D MOS: 1
+17:22:42.709 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:42.756 -> Characteristic notify from 20:22:08:04:10:21
+17:22:42.756 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:42.756 -> Loop:  (cycles?): 5
+17:22:42.803 -> Characteristic notify from 20:22:08:04:10:21
+17:22:42.803 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:42.803 -> heating: 0
+17:22:42.803 -> Characteristic notify from 20:22:08:04:10:21
+17:22:42.803 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:43.181 -> Sending Renogy solar command
+17:22:43.181 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:43.228 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:43.228 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:43.228 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:43.228 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:43.228 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:43.228 -> Solar: value=29 multiplier=0.010000 result=0.290000
+17:22:43.228 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:43.702 -> Sending Renogy alternater command
+17:22:43.702 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:43.749 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:43.749 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:43.749 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:43.749 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:43.749 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:43.749 -> Solar: value=29 multiplier=0.010000 result=0.290000
+17:22:43.749 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:44.203 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:44.287 -> Characteristic notify from 20:22:08:04:10:21
+17:22:44.287 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:44.287 -> Loop:  (cycles?): 5
+17:22:44.335 -> Characteristic notify from 20:22:08:04:10:21
+17:22:44.335 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:44.335 -> C MOS: 1
+17:22:44.335 -> D MOS: 1
+17:22:44.712 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:44.759 -> Characteristic notify from 20:22:08:04:10:21
+17:22:44.759 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:44.759 -> Loop:  (cycles?): 5
+17:22:44.806 -> Characteristic notify from 20:22:08:04:10:21
+17:22:44.806 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:44.806 -> heating: 0
+17:22:44.806 -> Characteristic notify from 20:22:08:04:10:21
+17:22:44.806 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:45.184 -> Sending Renogy solar command
+17:22:45.184 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:45.278 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:45.278 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:45.278 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:45.278 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:45.278 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:45.278 -> Solar: value=29 multiplier=0.010000 result=0.290000
+17:22:45.278 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:45.703 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:45.797 -> Characteristic notify from 20:22:08:04:10:21
+17:22:45.797 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:45.797 -> Loop:  (cycles?): 5
+17:22:45.797 -> Characteristic notify from 20:22:08:04:10:21
+17:22:45.797 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:45.797 -> C MOS: 1
+17:22:45.797 -> D MOS: 1
+17:22:46.221 -> Sending Renogy alternater command
+17:22:46.221 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:46.268 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:46.268 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:46.268 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:46.268 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:46.268 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:46.268 -> Solar: value=29 multiplier=0.010000 result=0.290000
+17:22:46.268 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:46.731 -> Sending Renogy solar command
+17:22:46.731 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:46.778 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:46.778 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:46.778 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:46.778 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:46.778 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:46.778 -> Solar: value=29 multiplier=0.010000 result=0.290000
+17:22:46.778 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:47.190 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:47.333 -> Characteristic notify from 20:22:08:04:10:21
+17:22:47.333 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:47.333 -> Loop:  (cycles?): 5
+17:22:47.333 -> Characteristic notify from 20:22:08:04:10:21
+17:22:47.333 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:47.333 -> heating: 0
+17:22:47.333 -> Characteristic notify from 20:22:08:04:10:21
+17:22:47.333 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:47.710 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:47.804 -> Characteristic notify from 20:22:08:04:10:21
+17:22:47.804 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:47.804 -> Loop:  (cycles?): 5
+17:22:47.804 -> Characteristic notify from 20:22:08:04:10:21
+17:22:47.804 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:47.804 -> C MOS: 1
+17:22:47.804 -> D MOS: 1
+17:22:48.222 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:48.305 -> Characteristic notify from 20:22:08:04:10:21
+17:22:48.305 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:48.305 -> Loop:  (cycles?): 5
+17:22:48.345 -> Characteristic notify from 20:22:08:04:10:21
+17:22:48.345 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:48.345 -> heating: 0
+17:22:48.345 -> Characteristic notify from 20:22:08:04:10:21
+17:22:48.345 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:48.721 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:48.806 -> Characteristic notify from 20:22:08:04:10:21
+17:22:48.806 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:48.806 -> Loop:  (cycles?): 5
+17:22:48.806 -> Characteristic notify from 20:22:08:04:10:21
+17:22:48.806 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:48.806 -> C MOS: 1
+17:22:48.806 -> D MOS: 1
+17:22:49.221 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:49.289 -> Characteristic notify from 20:22:08:04:10:21
+17:22:49.289 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:49.289 -> Loop:  (cycles?): 5
+17:22:49.323 -> Characteristic notify from 20:22:08:04:10:21
+17:22:49.323 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:49.323 -> heating: 0
+17:22:49.323 -> Characteristic notify from 20:22:08:04:10:21
+17:22:49.323 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:49.704 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:49.805 -> Characteristic notify from 20:22:08:04:10:21
+17:22:49.805 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:49.805 -> Loop:  (cycles?): 5
+17:22:49.840 -> Characteristic notify from 20:22:08:04:10:21
+17:22:49.840 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:49.840 -> C MOS: 1
+17:22:49.840 -> D MOS: 1
+17:22:50.226 -> Sending Renogy alternater command
+17:22:50.226 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:50.292 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:50.292 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:50.292 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:50.292 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:50.292 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:50.292 -> Solar: value=29 multiplier=0.010000 result=0.290000
+17:22:50.292 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:50.716 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:50.801 -> Characteristic notify from 20:22:08:04:10:21
+17:22:50.801 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:50.801 -> Loop:  (cycles?): 5
+17:22:50.847 -> Characteristic notify from 20:22:08:04:10:21
+17:22:50.847 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:50.847 -> heating: 0
+17:22:50.847 -> Characteristic notify from 20:22:08:04:10:21
+17:22:50.847 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:51.258 -> Sending command sequence to SOK: EE C4 00 00 00 4F 
+17:22:51.345 -> Characteristic notify from 20:22:08:04:10:21
+17:22:51.345 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:51.345 -> Protection: 0
+17:22:51.719 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:51.813 -> Characteristic notify from 20:22:08:04:10:21
+17:22:51.813 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:51.813 -> Loop:  (cycles?): 5
+17:22:51.813 -> Characteristic notify from 20:22:08:04:10:21
+17:22:51.813 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:51.813 -> heating: 0
+17:22:51.860 -> Characteristic notify from 20:22:08:04:10:21
+17:22:51.860 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:52.235 -> Sending Renogy solar command
+17:22:52.235 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:52.283 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:52.283 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:52.283 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:52.283 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:52.283 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:52.283 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:22:52.283 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:52.752 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:52.800 -> Characteristic notify from 20:22:08:04:10:21
+17:22:52.800 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:52.800 -> Loop:  (cycles?): 5
+17:22:52.847 -> Characteristic notify from 20:22:08:04:10:21
+17:22:52.847 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:52.847 -> C MOS: 1
+17:22:52.847 -> D MOS: 1
+17:22:53.256 -> Sending Renogy alternater command
+17:22:53.256 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:53.299 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:53.299 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:53.299 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:53.299 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:53.299 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:53.299 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:22:53.299 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:53.733 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:53.817 -> Characteristic notify from 20:22:08:04:10:21
+17:22:53.817 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:53.817 -> Loop:  (cycles?): 5
+17:22:53.817 -> Characteristic notify from 20:22:08:04:10:21
+17:22:53.817 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:53.817 -> heating: 0
+17:22:53.854 -> Characteristic notify from 20:22:08:04:10:21
+17:22:53.854 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:54.226 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:54.344 -> Characteristic notify from 20:22:08:04:10:21
+17:22:54.344 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:54.344 -> Loop:  (cycles?): 5
+17:22:54.387 -> Characteristic notify from 20:22:08:04:10:21
+17:22:54.387 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:54.387 -> C MOS: 1
+17:22:54.387 -> D MOS: 1
+17:22:54.758 -> Sending Renogy solar command
+17:22:54.758 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:54.797 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:54.797 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:54.797 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:54.797 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:54.797 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:54.797 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:22:54.797 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:55.241 -> Sending Renogy alternater command
+17:22:55.241 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:55.333 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:55.333 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:55.333 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:55.333 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:55.333 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:55.333 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:22:55.333 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:55.770 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:55.818 -> Characteristic notify from 20:22:08:04:10:21
+17:22:55.818 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:55.818 -> Loop:  (cycles?): 5
+17:22:55.818 -> Characteristic notify from 20:22:08:04:10:21
+17:22:55.818 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:55.818 -> heating: 0
+17:22:55.865 -> Characteristic notify from 20:22:08:04:10:21
+17:22:55.865 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:56.268 -> Sending Renogy solar command
+17:22:56.268 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:56.315 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:56.315 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:56.315 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:56.315 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:56.315 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:56.315 -> Solar: value=30 multiplier=0.010000 result=0.300000
+17:22:56.315 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:56.741 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:56.823 -> Characteristic notify from 20:22:08:04:10:21
+17:22:56.823 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:56.823 -> Loop:  (cycles?): 5
+17:22:56.869 -> Characteristic notify from 20:22:08:04:10:21
+17:22:56.869 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:56.869 -> C MOS: 1
+17:22:56.869 -> D MOS: 1
+17:22:57.248 -> Sending Renogy alternater command
+17:22:57.248 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:57.343 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:57.343 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:57.343 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:57.343 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:57.343 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:57.343 -> Solar: value=30 multiplier=0.010000 result=0.300000
+17:22:57.343 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:57.765 -> Sending Renogy solar command
+17:22:57.765 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:22:57.812 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:57.812 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:57.812 -> Received response for 4 registers 0x0107 - 0x010A
+17:22:57.812 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:57.812 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:57.812 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:22:57.812 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:22:58.283 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:58.378 -> Characteristic notify from 20:22:08:04:10:21
+17:22:58.378 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:58.378 -> Loop:  (cycles?): 5
+17:22:58.378 -> Characteristic notify from 20:22:08:04:10:21
+17:22:58.378 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:58.378 -> heating: 0
+17:22:58.425 -> Characteristic notify from 20:22:08:04:10:21
+17:22:58.425 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:58.775 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:22:58.843 -> Characteristic notify from 20:22:08:04:10:21
+17:22:58.843 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:58.843 -> Loop:  (cycles?): 5
+17:22:58.881 -> Characteristic notify from 20:22:08:04:10:21
+17:22:58.881 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:58.881 -> C MOS: 1
+17:22:58.881 -> D MOS: 1
+17:22:59.271 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:22:59.366 -> Characteristic notify from 20:22:08:04:10:21
+17:22:59.366 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:59.366 -> Loop:  (cycles?): 5
+17:22:59.366 -> Characteristic notify from 20:22:08:04:10:21
+17:22:59.366 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:59.366 -> heating: 0
+17:22:59.412 -> Characteristic notify from 20:22:08:04:10:21
+17:22:59.412 -> Releasing response semaphore for BLE device SOK-AA12487
+17:22:59.772 -> Sending Renogy alternater command
+17:22:59.772 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:22:59.819 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:22:59.819 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:22:59.819 -> Received response for 7 registers 0x0100 - 0x0106
+17:22:59.819 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:22:59.819 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:22:59.819 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:22:59.819 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:00.274 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:23:00.369 -> Characteristic notify from 20:22:08:04:10:21
+17:23:00.369 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:00.369 -> Loop:  (cycles?): 5
+17:23:00.369 -> Characteristic notify from 20:22:08:04:10:21
+17:23:00.369 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:00.369 -> C MOS: 1
+17:23:00.369 -> D MOS: 1
+17:23:00.787 -> Sending Renogy solar command
+17:23:00.787 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:23:00.823 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:00.823 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:00.823 -> Received response for 4 registers 0x0107 - 0x010A
+17:23:00.823 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:00.823 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:00.823 -> Solar: value=32 multiplier=0.010000 result=0.320000
+17:23:00.823 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:01.285 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:23:01.373 -> Characteristic notify from 20:22:08:04:10:21
+17:23:01.373 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:01.373 -> Loop:  (cycles?): 5
+17:23:01.373 -> Characteristic notify from 20:22:08:04:10:21
+17:23:01.373 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:01.373 -> heating: 0
+17:23:01.420 -> Characteristic notify from 20:22:08:04:10:21
+17:23:01.420 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:01.800 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:23:01.846 -> Characteristic notify from 20:22:08:04:10:21
+17:23:01.846 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:01.846 -> Loop:  (cycles?): 5
+17:23:01.890 -> Characteristic notify from 20:22:08:04:10:21
+17:23:01.890 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:01.890 -> C MOS: 1
+17:23:01.890 -> D MOS: 1
+17:23:02.314 -> Sending Renogy alternater command
+17:23:02.314 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:23:02.348 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:02.348 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:02.348 -> Received response for 7 registers 0x0100 - 0x0106
+17:23:02.348 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:02.348 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:02.348 -> Solar: value=32 multiplier=0.010000 result=0.320000
+17:23:02.348 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:02.788 -> Sending Renogy solar command
+17:23:02.788 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:23:02.836 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:02.836 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:02.836 -> Received response for 4 registers 0x0107 - 0x010A
+17:23:02.836 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:02.836 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:02.836 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:23:02.836 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:03.271 -> Sending Renogy alternater command
+17:23:03.271 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:23:03.361 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:03.361 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:03.361 -> Received response for 7 registers 0x0100 - 0x0106
+17:23:03.361 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:03.361 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:03.361 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:23:03.361 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:03.777 -> Sending Renogy solar command
+17:23:03.777 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:23:03.870 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:03.870 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:03.870 -> Received response for 4 registers 0x0107 - 0x010A
+17:23:03.870 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:03.870 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:03.870 -> Solar: value=32 multiplier=0.010000 result=0.320000
+17:23:03.870 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:04.309 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:23:04.355 -> Characteristic notify from 20:22:08:04:10:21
+17:23:04.355 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:04.355 -> Loop:  (cycles?): 5
+17:23:04.401 -> Characteristic notify from 20:22:08:04:10:21
+17:23:04.401 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:04.401 -> heating: 0
+17:23:04.401 -> Characteristic notify from 20:22:08:04:10:21
+17:23:04.401 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:04.788 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:23:04.863 -> Characteristic notify from 20:22:08:04:10:21
+17:23:04.863 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:04.863 -> Loop:  (cycles?): 5
+17:23:04.906 -> Characteristic notify from 20:22:08:04:10:21
+17:23:04.906 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:04.906 -> C MOS: 1
+17:23:04.906 -> D MOS: 1
+17:23:05.295 -> Sending Renogy alternater command
+17:23:05.295 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:23:05.393 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:05.393 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:05.393 -> Received response for 7 registers 0x0100 - 0x0106
+17:23:05.393 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:05.393 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:05.393 -> Solar: value=32 multiplier=0.010000 result=0.320000
+17:23:05.393 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:05.821 -> Sending Renogy solar command
+17:23:05.821 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:23:05.868 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:05.868 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:05.868 -> Received response for 4 registers 0x0107 - 0x010A
+17:23:05.868 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:05.868 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:05.868 -> Solar: value=33 multiplier=0.010000 result=0.330000
+17:23:05.868 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:06.319 -> Sending Renogy alternater command
+17:23:06.319 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:23:06.368 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:06.368 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:06.368 -> Received response for 7 registers 0x0100 - 0x0106
+17:23:06.368 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:06.368 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:06.368 -> Solar: value=33 multiplier=0.010000 result=0.330000
+17:23:06.368 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:06.796 -> Sending command sequence to SOK: EE C2 00 00 00 46 
+17:23:06.892 -> Characteristic notify from 20:22:08:04:10:21
+17:23:06.892 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:06.892 -> Loop:  (cycles?): 5
+17:23:06.892 -> Characteristic notify from 20:22:08:04:10:21
+17:23:06.892 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:06.892 -> heating: 0
+17:23:06.940 -> Characteristic notify from 20:22:08:04:10:21
+17:23:06.940 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:07.295 -> Sending command sequence to SOK: EE C1 00 00 00 CE 
+17:23:07.376 -> Characteristic notify from 20:22:08:04:10:21
+17:23:07.376 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:07.376 -> Loop:  (cycles?): 5
+17:23:07.412 -> Characteristic notify from 20:22:08:04:10:21
+17:23:07.412 -> Releasing response semaphore for BLE device SOK-AA12487
+17:23:07.412 -> C MOS: 1
+17:23:07.412 -> D MOS: 1
+17:23:07.824 -> Sending Renogy solar command
+17:23:07.824 -> BT2Reader: Sending command sequence: FF 03 01 07 00 04 E1 EA 
+17:23:07.872 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:07.872 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:07.872 -> Received response for 4 registers 0x0107 - 0x010A
+17:23:07.872 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:07.872 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:07.872 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:23:07.872 -> Today AH: value=0 multiplier=1.000000 result=0.000000
+17:23:08.300 -> Sending Renogy alternater command
+17:23:08.300 -> BT2Reader: Sending command sequence: FF 03 01 00 00 07 10 2A 
+17:23:08.396 -> Characteristic notify from 60:98:66:f9:4e:1c
+17:23:08.396 -> BT2Reader: Releasing response semaphore for BLE device BT-TH-66F94E1C    
+17:23:08.396 -> Received response for 7 registers 0x0100 - 0x0106
+17:23:08.396 -> Aux Battery: value=130 multiplier=0.100000 result=13.000000
+17:23:08.396 -> Alternater: value=0 multiplier=0.010000 result=0.000000
+17:23:08.396 -> Solar: value=31 multiplier=0.010000 result=0.310000
+17:23:08.396 -> Today AH: value=0 multiplier=1.000000 result=0.000000

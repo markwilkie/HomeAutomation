@@ -59,7 +59,6 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	}
 
 	Serial.printf("SOK: Discovering Rx service: %s\n",rxServiceUUID);
-	Serial.println(txServiceUUID);
 	if(myDevice->discoverService(rxServiceUUID))
 	{
 		Serial.printf("SOK Rx service %s discovered.  Now looking for characteristic %s\n",rxServiceUUID,rxCharacteristicUUID);
@@ -155,13 +154,14 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	command[4] = 0x00;
 
 	//Send xC1 or xC2 every other time
+	sendCommandCounter++;
 	if(sendCommandCounter%2 && sendCommandCounter<PROTECTION_COUNT)
 	{
 		//Gets base data plus heating and balancing
 		command[1] = 0xc2;
 		command[5] = 0x46;
 	}
-	else if(!sendCommandCounter%2 && sendCommandCounter<PROTECTION_COUNT)
+	else if(!(sendCommandCounter%2) && sendCommandCounter<PROTECTION_COUNT)
 	{
 		//Gets base data plus CMOS and DMOS
 		command[1] = 0xc1;
