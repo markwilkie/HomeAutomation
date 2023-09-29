@@ -335,3 +335,31 @@ void Wifi::handleNotFound()
 
   logger.log(ERROR,"404 - %s",message.c_str());
 }
+
+DynamicJsonDocument Wifi::readJsonFile(char* url)
+{
+  DynamicJsonDocument doc(2048);
+  HTTPClient http;
+  
+  if(http.begin(url)) 
+  {
+    int httpCode = http.GET();
+    
+    if (httpCode > 0) 
+    {
+      // file found at server
+      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) 
+      {
+        String payload = http.getString();
+        deserializeJson(doc, payload);               
+      }
+    } 
+    else 
+    {
+      logger.log(ERROR,"File GET failed. Error: %s\n", http.errorToString(httpCode).c_str());
+    }
+    
+    http.end();
+    return doc;
+  }
+}

@@ -150,13 +150,31 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 
 	uint8_t command[6];
 	command[0] = 0xee;
-	//command[1] = 0xc1;
-	command[1] = 0xc2;
 	command[2] = 0x00;
 	command[3] = 0x00;
 	command[4] = 0x00;
-	//command[5] = 0xce;
-	command[5] = 0x46;
+
+	//Send xC1 or xC2 every other time
+	if(sendCommandCounter%2 && sendCommandCounter<PROTECTION_COUNT)
+	{
+		//Gets base data plus heating and balancing
+		command[1] = 0xc2;
+		command[5] = 0x46;
+	}
+	else if(!sendCommandCounter%2 && sendCommandCounter<PROTECTION_COUNT)
+	{
+		//Gets base data plus CMOS and DMOS
+		command[1] = 0xc1;
+		command[5] = 0xce;
+	}
+	else
+	{
+		//Get protection info
+		command[1] = 0xc4;
+		command[5] = 0x4f;
+
+		sendCommandCounter=0;
+	}
 
 	Serial.print("Sending command sequence to SOK: ");
 	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
@@ -181,30 +199,38 @@ void SOKReader::updateValues()
 		volts=bytesToInt(dataReceived+2,3,false)*.001;
 		amps=bytesToInt(dataReceived+5,3,true)*.001;
 		capacity=bytesToInt(dataReceived+11,3,true)*.001;
+		cycles=bytesToInt(dataReceived+14,2,false);
 
-		//test
-		Serial.printf("Loop:  (cycles?): %d\n",bytesToInt(dataReceived+14,2,false));
+		//debug
+		Serial.printf("Loop:  (cycles?): %d\n",cycles);
 	}
 
 	//Trigger by C1
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF2)
 	{	
-		Serial.printf("Mos1:  (C MOS?): %02x\n",dataReceived[2]);
-		Serial.printf("Mos2:  (D MOS?): %02x\n",dataReceived[3]);
+		cmosFlag=dataReceived[2];
+		dmosFlag=dataReceived[3];
+		Serial.printf("C MOS: %d\n",cmosFlag);
+		Serial.printf("D MOS: %d\n",dmosFlag);
 	}
 
 	//Triggered by C2
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF3)
     {
-		Serial.printf("heating: %02x\n",dataReceived[8]);
-		Serial.printf("????: %02x\n",dataReceived[9]);   //is enabled normally, prob not useful
-		Serial.printf("balancing: %02x\n",dataReceived[10]);  //I don't care
+		heatingFlag=dataReceived[8];
+		Serial.printf("heating: %d\n",heatingFlag);
 	}	
 
 	//Triggered by C4
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF9)
     {
-		//protection state is here me thinks.  better to use
+		//check protection state
+		protectedFlag=false;
+		for(int i=2;i<17;i++)
+		{
+			protectedFlag=protectedFlag|dataReceived[i];
+		}
+		Serial.printf("Protection: %d\n",protectedFlag);
 	}	
 
 	newDataAvailable=false;

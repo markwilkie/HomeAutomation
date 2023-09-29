@@ -16,10 +16,9 @@ extern Logger logger;
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
 
-
-//Wifi
 #define SSID "WILKIE-LFP"
 #define PASSWORD "4777ne178"
+
 
 //declared in main ino program
 extern void getSettings();
@@ -46,6 +45,7 @@ class Wifi
     void listen(long);
     DynamicJsonDocument readContent();
     void sendResponse(DynamicJsonDocument);
+    DynamicJsonDocument readJsonFile(char*);
 
     bool sendPostMessage(const char*,DynamicJsonDocument,int);
     bool sendPutMessage(const char*fullurl,const char*token,const char*buf);

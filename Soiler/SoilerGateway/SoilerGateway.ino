@@ -236,12 +236,20 @@ void setup()
     // Zones w/ no sensors and are not linked
     //   Underdeck="8afb92cc-ff42-4755-bb4d-486ef39bd59f" or zone 2
     //
-    sensorZones.insert("15","457fe405-7582-4cdc-8672-b28f3bec4bde");  //Candy tuffs zone 1
-    sensorZones.insert("16","aff59ede-1d30-4321-bba6-a92e6c23484f");  //Flowers - by brick zone 5
-    sensorZones.insert("aff59ede-1d30-4321-bba6-a92e6c23484f","2bf30e06-c054-4791-a4ea-37ea81716ad5");  //Flowers - walkway zone 3  (linked to brick zone 5)
-    sensorZones.insert("17","5ad042e5-46e5-4c28-ac01-91107612a77f");  //Flowers - side of house zone 7
-    sensorZones.insert("19","eb2067a4-503d-4c96-b3c5-7f1d36836fef");  //Garden zone 6
-    sensorZones.insert("20","8190e592-eff7-4463-a4b1-453f579edbed");  //Deckpots
+    DynamicJsonDocument doc = wifi.readJsonFile(CONFIG_URL);
+    JsonArray array = doc.as<JsonArray>();
+    for(JsonVariant v : array) 
+    {
+      sensorZones.insert(v["sensorid"].as<String>(),v["zoneid"].as<String>());
+      logger.log(INFO,"Mapping sensor %s to zone %s",v["sensorid"].as<String>().c_str(),v["zoneid"].as<String>().c_str());
+    } 
+
+    //sensorZones.insert("15","457fe405-7582-4cdc-8672-b28f3bec4bde");  //Candy tuffs zone 1
+    //sensorZones.insert("16","aff59ede-1d30-4321-bba6-a92e6c23484f");  //Flowers - by brick zone 5
+    //sensorZones.insert("aff59ede-1d30-4321-bba6-a92e6c23484f","2bf30e06-c054-4791-a4ea-37ea81716ad5");  //Flowers - walkway zone 3  (linked to brick zone 5)
+    //sensorZones.insert("17","5ad042e5-46e5-4c28-ac01-91107612a77f");  //Flowers - side of house zone 7
+    //sensorZones.insert("19","eb2067a4-503d-4c96-b3c5-7f1d36836fef");  //Garden zone 6
+    //sensorZones.insert("20","8190e592-eff7-4463-a4b1-453f579edbed");  //Deckpots
 
     //Setuip LoRa
     Serial.println("LoRa Receiver"); 

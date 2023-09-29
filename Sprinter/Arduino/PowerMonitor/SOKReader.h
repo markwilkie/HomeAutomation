@@ -4,6 +4,8 @@
 #include "BTDevice.hpp"
 #include "ArduinoBLE.h"
 
+#define PROTECTION_COUNT 50
+
 class SOKReader : public BTDevice
 {
 
@@ -23,16 +25,28 @@ public:
 	float getVolts();
 	float getAmps();
 	float getCapacity();
+	int getCycles();
+	boolean isDMOS();
+	boolean isCMOS();
+	boolean isProtected();
+	boolean isHeating();
 
 private:
 
 	int bytesToInt(uint8_t *bytes, int len, boolean isSigned) ;	
+
+	int sendCommandCounter=0;
 
 	//variables
 	int soc;
 	float volts;
 	float amps;
 	float capacity;
+	int cycles;
+	boolean dmosFlag;
+	boolean cmosFlag;
+	boolean protectedFlag;
+	boolean heatingFlag;
 };
 
 #endif
