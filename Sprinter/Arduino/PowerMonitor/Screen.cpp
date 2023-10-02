@@ -33,23 +33,57 @@ void Screen::setBrightness(int level)
 //
 ////////////////
 
-void Text::drawText(int x,int y,float value,int dec,const char*label,int font)
+void Text::drawText(int x,int y,float value,int dec,const char*label,int font,int color)
 {
-    drawText(x,y,value,dec,label,font,false);
+    drawText(x,y,value,dec,label,font,color,TFT_BLACK,false,false);
 }
 
-void Text::drawRightText(int x,int y,float value,int dec,const char*label,int font)
+void Text::drawRightText(int x,int y,float value,int dec,const char*label,int font,int color)
 {
-    drawText(x,y,value,dec,label,font,true);
+    drawText(x,y,value,dec,label,font,color,TFT_BLACK,true,false);
 }
 
-void Text::drawText(int x,int y,float value,int dec,const char*label,int font,bool rightFlag)
+void Text::drawCenterText(int x,int y,float value,int dec,const char*label,int font,int color)
 {
-    //Blank out last text
-    if(lastRightFlag)
-        lcd.fillRect(lastX-lastLen,lastY,lastX,lastHeight,TFT_BLACK);
-    else
-        lcd.fillRect(lastX,lastY,lastLen,lastHeight,TFT_BLACK);
+    drawText(x,y,value,dec,label,font,color,TFT_BLACK,false,true);
+}
+
+void Text::drawBitmapTextBottom(BitmapConfig *bmCfg,int offset,float value,int dec,const char*label,int font,int color)
+{
+    int x=bmCfg->x+(bmCfg->width/2);
+    int y=bmCfg->y+bmCfg->height+offset;
+    drawText(x,y,value,dec,label,font,color,TFT_BLACK,false,true);
+}
+
+void Text::drawBitmapTextTop(BitmapConfig *bmCfg,int offset,float value,int dec,const char*label,int font,int color)
+{
+    int x=bmCfg->x+(bmCfg->width/2);
+    int y=bmCfg->y-offset;
+    drawText(x,y,value,dec,label,font,color,TFT_BLACK,false,true);
+}
+
+void Text::drawBitmapTextCenter(BitmapConfig *bmCfg,float value,int dec,const char*label,int font,int color,int bgColor)
+{
+    int x=bmCfg->x + (bmCfg->width/2);
+    int y=bmCfg->y + (bmCfg->height/2);
+    drawText(x,y,value,dec,label,font,color,bgColor,false,true);
+}
+
+void Text::drawText(int x,int y,float value,int dec,const char*label,int font,int color,int bgColor,bool rightFlag,bool centerFlag)
+{
+    lcd.setTextFont(font);
+    lcd.setTextSize(1);
+
+    //Blank out last text (if we've got a background color)
+    if(bgColor>=0)
+    {
+        if(lastRightFlag)
+            lcd.fillRect(lastX-lastLen,lastY,lastX,lastHeight,bgColor);
+        else if(lastCenterFlag)
+            lcd.fillRect(lastX-(lastLen/2),lastY,lastLen,lastHeight,bgColor);
+        else 
+            lcd.fillRect(lastX,lastY,lastLen,lastHeight,bgColor);
+    }
 
     //round value and get it into a string
     char buf[20]; 
@@ -71,14 +105,17 @@ void Text::drawText(int x,int y,float value,int dec,const char*label,int font,bo
     int textWidth=lcd.textWidth(buf);
     int textHeight=lcd.fontHeight(font);
 
+    //Ok print text
+    lcd.setTextColor(color);
+    if(rightFlag)
+        lcd.drawRightString(buf, x, y, font);
+    else if(centerFlag)
+        lcd.drawCenterString(buf, x, y, font);
+    else
+        lcd.drawString(buf, x, y, font);    
+
     //Set last
     lastX=x; lastY=y; lastLen=textWidth; lastHeight=textHeight;
     lastRightFlag=rightFlag;
-
-    //Ok print text
-    lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-    if(rightFlag)
-        lcd.drawRightString(buf, x, y, font);
-    else
-        lcd.drawString(buf, x, y, font);
+    lastCenterFlag=centerFlag;            
 }

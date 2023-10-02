@@ -147,6 +147,12 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 		return;
 	}
 
+	//Commands I'm aware of
+	//ee c1 000000 ce
+	//ee c0 000000 41
+	//ee c2 000000 46
+	//ee c4 000000 4f
+
 	uint8_t command[6];
 	command[0] = 0xee;
 	command[2] = 0x00;
@@ -210,15 +216,12 @@ void SOKReader::updateValues()
 	{	
 		cmosFlag=dataReceived[2];
 		dmosFlag=dataReceived[3];
-		Serial.printf("C MOS: %d\n",cmosFlag);
-		Serial.printf("D MOS: %d\n",dmosFlag);
 	}
 
 	//Triggered by C2
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF3)
     {
 		heatingFlag=dataReceived[8];
-		Serial.printf("heating: %d\n",heatingFlag);
 	}	
 
 	//Triggered by C4
@@ -230,7 +233,6 @@ void SOKReader::updateValues()
 		{
 			protectedFlag=protectedFlag|dataReceived[i];
 		}
-		Serial.printf("Protection: %d\n",protectedFlag);
 	}	
 
 	newDataAvailable=false;
@@ -256,5 +258,29 @@ float SOKReader::getCapacity()
 	return capacity;
 }
 
+int SOKReader::getCycles() 
+{
+	return cycles;
+}
+
+boolean SOKReader::isDMOS() 
+{
+	return dmosFlag;
+}
+
+boolean SOKReader::isCMOS() 
+{
+	return cmosFlag;
+}
+
+boolean SOKReader::isProtected() 
+{
+	return protectedFlag;
+}
+
+boolean SOKReader::isHeating() 
+{
+	return heatingFlag;
+}
 		
 		

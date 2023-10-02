@@ -7,11 +7,11 @@
 #include "PowerMonitor.h"
 #include "Payload.h"
 #include "Screen.h"
-#include "LinearMeter.h"
+#include "BitmapMeter.h"
 #include "CircularMeter.h"
 
 #define POLL_TIME_MS	500
-#define SCR_UPDATE_TIME 200
+#define SCR_UPDATE_TIME 2000
 #define BT_TIMEOUT_MS	5000
 
 //Screen lib
@@ -23,10 +23,16 @@ Screen screen;
 //Meters
 CircularMeter centerOutMeter;
 CircularMeter centerInMeter;
-LinearMeter socMeter;
-LinearMeter waterMeter;
+BitmapMeter socMeter;
+BitmapMeter waterMeter;
+
+BitmapConfig socConfig;
+FillConfig socFill;
+BitmapConfig waterConfig;
+FillConfig waterFill;
 
 //Dynamic text
+Text soc;
 Text battHoursLeft;
 Text waterDaysLeft;
 Text volts;
@@ -64,14 +70,33 @@ void setup()
     centerOutMeter.initMeter(0,20,cx,cy,90,RED2GREEN); 
     centerInMeter.initMeter(0,20,cx,cy,70,GREEN2RED); 
 
-    //Linear meters
-    //(label,vmin,vmax,scale,ticks,majorTicks,x,y,height,width);
-    int lx=10; int ly=30; int width=36;
-    socMeter.drawMeter("SoC", 50, 100, 100, 9, 5, lx, ly, 150, width);
-    waterMeter.drawMeter("Wtr", 0, 100, 100, 5, 3, lcd.width()-width-lx, ly, 150, width);
+    //Bitmap based meters
+    //(char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig);
+    int lx=35; int ly=80; int imgWidth=66; int imgHeight=160;
+
+	socConfig.bmArray=batteryBitmap;
+	socConfig.x=lx;  socConfig.y=ly;  socConfig.width=imgWidth;  socConfig.height=imgHeight;  
+	socConfig.color=BATTERY_ORANGE;
+	socFill.color=BATTERY_FILL;
+	socFill.height=80;
+	socFill.width=57;
+	socFill.start=16;
+	waterFill.redraw=true;
+    socMeter.drawMeter("SoC", 10, 100, 100, &socConfig, &socFill);
+
+	waterConfig.bmArray=waterBottleBitmap;
+	waterConfig.x=lcd.width()-imgWidth-lx;  waterConfig.y=ly;  waterConfig.width=imgWidth;  waterConfig.height=imgHeight;  
+	waterConfig.color=WATER_BLUE;
+	waterFill.color=WATER_FILL;
+	waterFill.rangeColor=WATER_RANGE;	
+	waterFill.height=90;
+	waterFill.width=60;
+	waterFill.start=28;
+	waterFill.redraw=true;
+    waterMeter.drawMeter("Water", 0, 100, 100, &waterConfig, &waterFill);
 
     //Static labels
-    lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+    lcd.setTextColor(TFT_WHITE);
     lcd.drawString("Sprinkle Data",(lcd.width()/2)-(lcd.textWidth("Sprinkle Data")), 5, 4);
 
 	//BLE
@@ -204,8 +229,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		//loadSimulatedValues();
-		loadValues();
+		loadSimulatedValues();
+		//loadValues();
 		updateLCD();
 
 
@@ -284,16 +309,21 @@ void updateLCD()
     centerInMeter.drawMeter(scrPayload.drawAh);
     centerInMeter.drawText("Ah",scrPayload.chargeAh-scrPayload.drawAh);
 
-    //update linear meters
-    socMeter.updatePointer(scrPayload.stateOfCharge,2,0);
-    waterMeter.updatePointer(scrPayload.stateOfWater,2,0);
+	//update bitmap meters
+    socMeter.updateLevel(scrPayload.stateOfCharge,2,0);
+    waterMeter.updateLevel(scrPayload.stateOfWater,scrPayload.rangeForWater,2,0);	
 
     //update text values
 	lcd.setTextFont(4);
-    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),238,scrPayload.volts,1,"V",4);
-    battHoursLeft.drawText(10,190,scrPayload.batteryHoursRem,1," Hrs",2);
-    waterDaysLeft.drawRightText(lcd.width()-10,190,scrPayload.waterDaysRem,1," Dys",2);
-    hertz.drawRightText(lcd.width()-10,220,hertzCount,0,"Hz",2);
+	lcd.setTextSize(1);
+    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),238,scrPayload.volts,1,"V",4,TFT_WHITE);
+
+	//(int x,int y,float value,int dec,const char *label,int font);
+	//(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font)
+	soc.drawBitmapTextCenter(socMeter.getBitmapConfig(),scrPayload.stateOfCharge,0,"%",2,TFT_WHITE,-1);
+    battHoursLeft.drawBitmapTextBottom(socMeter.getBitmapConfig(),20,scrPayload.batteryHoursRem,1," Hrs",2,socMeter.getBitmapConfig()->color);
+    waterDaysLeft.drawBitmapTextBottom(waterMeter.getBitmapConfig(),20,scrPayload.waterDaysRem,1," Dys",2,waterMeter.getBitmapConfig()->color);
+    hertz.drawRightText(lcd.width()-10,lcd.height()-15,hertzCount,0,"Hz",2,TFT_WHITE);
 }
 
 void loadValues()
@@ -316,11 +346,13 @@ void loadValues()
 
 void loadSimulatedValues()
 {
-  scrPayload.stateOfCharge=random(50)+50;  // 50-->100
-  scrPayload.stateOfWater=random(3);
-  if(scrPayload.stateOfWater==0)  scrPayload.stateOfWater=20;
-  if(scrPayload.stateOfWater==1)  scrPayload.stateOfWater=50;
-  if(scrPayload.stateOfWater==2)  scrPayload.stateOfWater=90;
+  scrPayload.stateOfCharge=random(90)+10;  // 10-->100
+  scrPayload.stateOfWater=random(4);
+  if(scrPayload.stateOfWater==0)  { scrPayload.stateOfWater=0; scrPayload.rangeForWater=20; }
+  if(scrPayload.stateOfWater==1)  { scrPayload.stateOfWater=20; scrPayload.rangeForWater=50; }
+  if(scrPayload.stateOfWater==2)  { scrPayload.stateOfWater=50; scrPayload.rangeForWater=90; }
+  if(scrPayload.stateOfWater==3)  { scrPayload.stateOfWater=90; scrPayload.rangeForWater=100; }
+
   scrPayload.volts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
   scrPayload.chargeAh=((double)random(200))/10.0;  // 0 --> 20.0
   scrPayload.drawAh=((double)random(200))/10.0;  // 0 --> 20.0

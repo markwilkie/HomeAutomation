@@ -69,7 +69,7 @@ void CircularMeter::drawText(const char* label,int value)
   char buf[8]; 
   sprintf(buf, "%d", value);
   lcd.fillRect(x-30,y-30,50,35,TFT_BLACK);
-  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  lcd.setTextColor(TFT_WHITE);
   lcd.drawCentreString(buf, x - 5, y - 20, 4);
   lcd.drawCentreString(label, x, y + 5, 2);
 }

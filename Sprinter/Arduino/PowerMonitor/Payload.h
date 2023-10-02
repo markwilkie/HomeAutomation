@@ -2,6 +2,7 @@ struct PAYLOAD_STRUCTURE
 {
   float stateOfCharge;
   float stateOfWater;
+  float rangeForWater;
   float volts;
   float chargeAh;
   float drawAh;
