@@ -266,8 +266,6 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 
 void loop() 
 {
-	hertzCount++;
-
 	//required for the ArduinoBLE library
 	BLE.poll();
 
@@ -315,6 +313,7 @@ void loop()
 	}
 	if(sokReader.getIsNewDataAvailable())
 	{
+		hertzCount++;
 		sokReader.updateValues();
 	}
 
@@ -400,7 +399,7 @@ void loadValues()
 	stateOfCharge=sokReader.getSoc();
 	currentVolts=sokReader.getVolts();
 	chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
-	drawAmps=(sokReader.getAmps()*-1)-chargeAmps;
+	drawAmps=chargeAmps-sokReader.getAmps();
 	if(sokReader.getAmps()<0)
 		batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
 	else

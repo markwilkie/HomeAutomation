@@ -216,7 +216,7 @@ void SOKReader::updateValues()
 	{	
 		cmosFlag=dataReceived[2];
 		dmosFlag=dataReceived[3];
-		temperature=bytesToInt(dataReceived+13,2,true)*.1;
+		temperature=bytesToInt(dataReceived+5,2,true);
 	}
 
 	//Triggered by C2
