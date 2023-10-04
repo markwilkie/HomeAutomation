@@ -28,21 +28,41 @@ class Screen
 
 class Text 
 {
-    private:
-        int lastX, lastY, lastLen, lastHeight;
-        bool lastRightFlag;
-        bool lastCenterFlag;
-
-        void drawText(int x,int y,float value,int dec,const char *label,int font,int color,int bgColor,bool rightFlag,bool centerFlag);
-
     public:
         void drawText(int x,int y,float value,int dec,const char *label,int font,int color);
         void drawRightText(int x,int y,float value,int dec,const char *label,int font,int color);
         void drawCenterText(int x,int y,float value,int dec,const char *label,int font,int color);
 
+        void updateText(float value);  //update using same parameters as last time
+
         void drawBitmapTextBottom(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font,int color);
         void drawBitmapTextTop(BitmapConfig *bmCfg,int offset, float value,int dec,const char *label,int font,int color);
         void drawBitmapTextCenter(BitmapConfig *bmCfg, float value,int dec,const char *label,int font,int color,int bgColor);
+
+    private:
+        int lastX, lastY, lastLen, lastHeight;
+        int lastFont;
+        int lastColor;
+        int lastBgColor;
+        int lastDec;
+        const char *lastLabel;
+        bool lastRightFlag;
+        bool lastCenterFlag;
+
+        void drawText(int x,int y,float value,int dec,const char *label,int font,int color,int bgColor,bool rightFlag,bool centerFlag);        
+};
+
+
+class Primitive
+{
+    public:
+        void drawCircle(int x,int y,int r,int color,int fillColor);
+        void updateCircle(int fillColor);
+
+    private:
+        int lastX, lastY;
+        int lastR;
+        int lastColor,lastFillColor;
 };
 
 #endif

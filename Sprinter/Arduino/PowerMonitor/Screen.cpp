@@ -69,6 +69,11 @@ void Text::drawBitmapTextCenter(BitmapConfig *bmCfg,float value,int dec,const ch
     drawText(x,y,value,dec,label,font,color,bgColor,false,true);
 }
 
+void Text::updateText(float value)
+{
+    drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
+}
+
 void Text::drawText(int x,int y,float value,int dec,const char*label,int font,int color,int bgColor,bool rightFlag,bool centerFlag)
 {
     lcd.setTextFont(font);
@@ -117,5 +122,26 @@ void Text::drawText(int x,int y,float value,int dec,const char*label,int font,in
     //Set last
     lastX=x; lastY=y; lastLen=textWidth; lastHeight=textHeight;
     lastRightFlag=rightFlag;
-    lastCenterFlag=centerFlag;            
+    lastCenterFlag=centerFlag; 
+    lastFont=font;  lastColor=color;  lastBgColor=bgColor;
+    lastDec=dec;
+    lastLabel=label;            
+}
+
+void Primitive::drawCircle(int x,int y,int r,int color,int fillColor)
+{
+    lastX=x;
+    lastY=y;
+    lastR=r;
+    lastColor=color;
+    lastFillColor=fillColor;
+
+    //Draw circle, then fill it
+    lcd.drawCircle(x,y,r,color);
+    lcd.fillCircle(x,y,r-1,fillColor);
+}
+
+void Primitive::updateCircle(int fillColor)
+{
+    lcd.fillCircle(lastX,lastY,lastR-1,fillColor);
 }

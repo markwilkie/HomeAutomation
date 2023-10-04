@@ -216,6 +216,7 @@ void SOKReader::updateValues()
 	{	
 		cmosFlag=dataReceived[2];
 		dmosFlag=dataReceived[3];
+		temperature=bytesToInt(dataReceived+13,2,true)*.1;
 	}
 
 	//Triggered by C2
@@ -261,6 +262,11 @@ float SOKReader::getCapacity()
 int SOKReader::getCycles() 
 {
 	return cycles;
+}
+
+float SOKReader::getTemperature() 
+{
+	return temperature;
 }
 
 boolean SOKReader::isDMOS() 

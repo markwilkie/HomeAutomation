@@ -26,6 +26,7 @@ public:
 	float getAmps();
 	float getCapacity();
 	int getCycles();
+	float getTemperature();
 	boolean isDMOS();
 	boolean isCMOS();
 	boolean isProtected();
@@ -43,6 +44,7 @@ private:
 	float amps;
 	float capacity;
 	int cycles;
+	float temperature;
 	boolean dmosFlag;
 	boolean cmosFlag;
 	boolean protectedFlag;

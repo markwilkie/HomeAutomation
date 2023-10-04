@@ -311,30 +311,44 @@ void BT2Reader::updateValues()
 		switch(registerAddress)
 		{
 			//Alternater amps
-			case 0x0101:
+			case RENOGY_AUX_BATT_VOLTAGE:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
 				Serial.printf("Aux Battery: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,alternaterAmps);
 				break;
-			case 0x0105:
+			case RENOGY_ALTERNATOR_CURRENT:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
 				Serial.printf("Alternater: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,alternaterAmps);
 				break;
-			case 0x0108:
+			case RENOGY_SOLAR_CURRENT:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				solarAmps=(float)(registerValue.value) * rr->multiplier;
 				Serial.printf("Solar: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,solarAmps);
 				break;
-			case 0x0111:
+			case RENOGY_TODAY_AMP_HOURS:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
-				float ampHours=(float)(registerValue.value) * rr->multiplier;
+				ampHours=(float)(registerValue.value) * rr->multiplier;
 				Serial.printf("Today AH: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,ampHours);
-				break;			
+				break;	
+			case RENOGY_AUX_BATT_TEMPERATURE:
+				uint8_t msb = (registerValue.value >> 8) & 0xFF;
+				uint8_t lsb = (registerValue.value) & 0xFF;
+				Serial.print("Temperatures: ")				;
+				Serial.print((lsb & 0x80) > 0 ? '-' : '+');  //aux batt temp
+				Serial.printf("%d C, ", lsb & 0x7F);
+				Serial.print((msb & 0x80) > 0 ? '-' : '+');  //controller temp
+				Serial.printf("%d C, ", msb & 0x7F); 
+
+				temperature=msb & 0x7F;
+				if((msb & 0x80) > 0)
+					temperature=temperature*-1;
+				Serial.printf("Temperature: %fC\n",temperature);
+				break;							
 		}
 	}
 	
@@ -349,6 +363,11 @@ float BT2Reader::getAlternaterAmps()
 float BT2Reader::getSolarAmps()
 {
 	return solarAmps;
+}
+
+float BT2Reader::getTemperature()
+{
+	return temperature;
 }
 
 void BT2Reader::dumpRenogyData()

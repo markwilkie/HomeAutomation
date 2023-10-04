@@ -237,6 +237,7 @@ public:
 	void updateValues();
 	float getAlternaterAmps();
 	float getSolarAmps();	
+	float getTemperature();
 	void dumpRenogyData();
 
 	int printRegister(uint16_t registerAddress);
@@ -259,6 +260,8 @@ private:
 
 	float alternaterAmps;
 	float solarAmps;
+	float ampHours;
+	float temperature;
 
 	boolean appendRenogyPacket(BLECharacteristic *characteristic);
 	uint16_t getProvidedModbusChecksum(uint8_t * data);

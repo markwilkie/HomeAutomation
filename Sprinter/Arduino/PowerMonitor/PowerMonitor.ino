@@ -5,13 +5,12 @@
 #include "SOKReader.h"
 
 #include "PowerMonitor.h"
-#include "Payload.h"
 #include "Screen.h"
 #include "BitmapMeter.h"
 #include "CircularMeter.h"
 
 #define POLL_TIME_MS	500
-#define SCR_UPDATE_TIME 2000
+#define SCR_UPDATE_TIME 200
 #define BT_TIMEOUT_MS	5000
 
 //Screen lib
@@ -31,16 +30,25 @@ FillConfig socFill;
 BitmapConfig waterConfig;
 FillConfig waterFill;
 
+BitmapConfig heaterConfig;
+
+Primitive cmosIndicator;
+Primitive dmosIndicator;
+
 //Dynamic text
 Text soc;
 Text battHoursLeft;
 Text waterDaysLeft;
 Text volts;
 Text hertz;
+Text batteryTemp;
+Text batteryAmps;
+Text chargerTemp;
+Text solarAmps;
+Text alternaterAmps;
 
 //Objects to handle connection
 //Handles reading from the BT2 Renogy device
-PAYLOAD_STRUCTURE scrPayload;
 BT2Reader bt2Reader;
 SOKReader sokReader;
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader};
@@ -55,6 +63,24 @@ int hertzCount=0;
 int currentHz=0;
 boolean tiktok=true;
 
+//data
+int stateOfCharge;
+int stateOfWater;
+int rangeForWater;
+float currentVolts;
+float chargeAmps;
+float drawAmps;
+float batteryHoursRem;
+float waterDaysRem;
+float batteryTemperature;
+float chargerTemperature;
+float batteryAmpValue;
+float solarAmpValue;
+float alternaterAmpValue;
+bool cmos;
+bool dmos;
+bool heater;
+
 void setup() 
 {
 	Serial.begin(115200);
@@ -66,9 +92,12 @@ void setup()
 
     //Init circular meters
     int cx=lcd.width()/2;
-    int cy=(lcd.height()/2)+10;
+    int cy=(lcd.height()/2)-10;
     centerOutMeter.initMeter(0,20,cx,cy,90,RED2GREEN); 
     centerInMeter.initMeter(0,20,cx,cy,70,GREEN2RED); 
+
+	//Draw online indicator
+	setOnlineIndicator(false);
 
     //Bitmap based meters
     //(char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig);
@@ -94,6 +123,28 @@ void setup()
 	waterFill.start=28;
 	waterFill.redraw=true;
     waterMeter.drawMeter("Water", 0, 100, 100, &waterConfig, &waterFill);
+
+	//Battery and charger icons w/ annotations
+	lcd.drawBitmap(lx+imgWidth+30, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
+	cmosIndicator.drawCircle(lx+imgWidth+30+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
+	dmosIndicator.drawCircle(lx+imgWidth+30+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
+	batteryAmps.drawCenterText(lx+imgWidth+30+25, lcd.height()-80,11.5,1,"A",2,TFT_LIGHTGRAY);
+	batteryTemp.drawCenterText(lx+imgWidth+30+25,lcd.height()-25,24.5,0,"C",2,TFT_WHITE);
+
+	//config battery heater bitmap
+	heaterConfig.x=lx+imgWidth+30;
+	heaterConfig.y=lcd.height()-37;
+	heaterConfig.bmArray=heaterBitmap;
+	heaterConfig.width=50;
+	heaterConfig.height=15;
+	heaterConfig.color=TFT_RED;
+
+	//Draw van and battery
+	lcd.drawBitmap(lcd.width()-(lx+imgWidth+65), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
+	solarAmps.drawCenterText(lcd.width()-(lx+imgWidth+75), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
+	lcd.drawBitmap(lcd.width()-(lx+imgWidth+90), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
+	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+40), lcd.height()-45,12,0,"A",2,TFT_DARKGREY);
+	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+80)+25,lcd.height()-25,22.5,0,"C",2,TFT_WHITE);
 
     //Static labels
     lcd.setTextColor(TFT_WHITE);
@@ -170,7 +221,8 @@ void connectCallback(BLEDevice peripheral)
 	}
 	if(stopScanning)
 	{
-		Serial.println("All devices connected.  Stopping scan");
+		setOnlineIndicator(true);
+		Serial.println("All devices connected.  Showing online and stopping scan");
 		BLE.stopScan();
 	}
 }
@@ -193,6 +245,7 @@ void disconnectCallback(BLEDevice peripheral)
 		Serial.printf("Disconnected SOK device %s",peripheral.address().c_str());
 	}	
 
+	setOnlineIndicator(false);
 	Serial.println(" - Starting scan again");
 	BLE.scan();
 }
@@ -213,6 +266,8 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 
 void loop() 
 {
+	hertzCount++;
+
 	//required for the ArduinoBLE library
 	BLE.poll();
 
@@ -229,10 +284,9 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		loadSimulatedValues();
-		//loadValues();
+		//loadSimulatedValues();
+		loadValues();
 		updateLCD();
-
 
 		//gist:  https://gist.github.com/lovyan03/e6e21d4e65919cec34eae403e099876c
 		//touch test  (-1 when no touch.  size/id are always 0)
@@ -262,9 +316,6 @@ void loop()
 	if(sokReader.getIsNewDataAvailable())
 	{
 		sokReader.updateValues();
-
-		//should only calculate once per cycle
-		hertzCount++;
 	}
 
 	//toggle to the other device
@@ -273,6 +324,7 @@ void loop()
 	//calc hertz
 	if(millis()>hertzTime+1000)
 	{
+		currentHz=hertzCount;
 		hertzTime=millis();
 		hertzCount=0;
 	}
@@ -305,57 +357,107 @@ boolean isTimedout()
 void updateLCD()
 {
 	//update center meter
-    centerOutMeter.drawMeter(scrPayload.chargeAh);
-    centerInMeter.drawMeter(scrPayload.drawAh);
-    centerInMeter.drawText("Ah",scrPayload.chargeAh-scrPayload.drawAh);
+    centerOutMeter.drawMeter(chargeAmps);
+    centerInMeter.drawMeter(drawAmps);
+    centerInMeter.drawText("A",chargeAmps-drawAmps);
 
 	//update bitmap meters
-    socMeter.updateLevel(scrPayload.stateOfCharge,2,0);
-    waterMeter.updateLevel(scrPayload.stateOfWater,scrPayload.rangeForWater,2,0);	
+    socMeter.updateLevel(stateOfCharge,2,0);
+    waterMeter.updateLevel(stateOfWater,rangeForWater,2,0);	
 
     //update text values
 	lcd.setTextFont(4);
 	lcd.setTextSize(1);
-    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),238,scrPayload.volts,1,"V",4,TFT_WHITE);
+    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),218,currentVolts,1,"V",4,TFT_WHITE);
 
 	//(int x,int y,float value,int dec,const char *label,int font);
 	//(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font)
-	soc.drawBitmapTextCenter(socMeter.getBitmapConfig(),scrPayload.stateOfCharge,0,"%",2,TFT_WHITE,-1);
-    battHoursLeft.drawBitmapTextBottom(socMeter.getBitmapConfig(),20,scrPayload.batteryHoursRem,1," Hrs",2,socMeter.getBitmapConfig()->color);
-    waterDaysLeft.drawBitmapTextBottom(waterMeter.getBitmapConfig(),20,scrPayload.waterDaysRem,1," Dys",2,waterMeter.getBitmapConfig()->color);
-    hertz.drawRightText(lcd.width()-10,lcd.height()-15,hertzCount,0,"Hz",2,TFT_WHITE);
+	soc.drawBitmapTextCenter(socMeter.getBitmapConfig(),stateOfCharge,0,"%",2,TFT_WHITE,-1);
+    battHoursLeft.drawBitmapTextBottom(socMeter.getBitmapConfig(),20,batteryHoursRem,1," Hrs",2,socMeter.getBitmapConfig()->color);
+    waterDaysLeft.drawBitmapTextBottom(waterMeter.getBitmapConfig(),20,waterDaysRem,1," Dys",2,waterMeter.getBitmapConfig()->color);
+    hertz.drawRightText(lcd.width()-10,lcd.height()-15,currentHz,0,"Hz",2,TFT_WHITE);
+
+	batteryTemp.updateText(batteryTemperature);
+	batteryAmps.updateText(batteryAmpValue);
+	chargerTemp.updateText(chargerTemperature);
+	solarAmps.updateText(solarAmpValue);
+	alternaterAmps.updateText(alternaterAmpValue);
+
+	//Battery heater
+	if(heater)  { lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,heaterConfig.color);}
+	else		{ lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,TFT_BLACK);}
+
+	//Update C and D MOS
+	if(cmos) {	cmosIndicator.updateCircle(TFT_GREEN);}
+	else 	 {	cmosIndicator.updateCircle(TFT_LIGHTGREY);}
+
+	if(dmos) {	dmosIndicator.updateCircle(TFT_GREEN);}
+	else	 {	dmosIndicator.updateCircle(TFT_LIGHTGREY); }
 }
 
 void loadValues()
 {
-	scrPayload.stateOfCharge=sokReader.getSoc();
-	scrPayload.volts=sokReader.getVolts();
-	scrPayload.chargeAh=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
-	scrPayload.drawAh=(sokReader.getAmps()*-1)-scrPayload.chargeAh;
+	stateOfCharge=sokReader.getSoc();
+	currentVolts=sokReader.getVolts();
+	chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
+	drawAmps=(sokReader.getAmps()*-1)-chargeAmps;
 	if(sokReader.getAmps()<0)
-		scrPayload.batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
+		batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
 	else
-	scrPayload.batteryHoursRem=999;
+		batteryHoursRem=999;
 
-	scrPayload.stateOfWater=random(3);
-	if(scrPayload.stateOfWater==0)  scrPayload.stateOfWater=20;
-	if(scrPayload.stateOfWater==1)  scrPayload.stateOfWater=50;
-	if(scrPayload.stateOfWater==2)  scrPayload.stateOfWater=90;
-	scrPayload.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+	stateOfWater=random(3);
+	if(stateOfWater==0)  stateOfWater=20;
+	if(stateOfWater==1)  stateOfWater=50;
+	if(stateOfWater==2)  stateOfWater=90;
+	waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+
+	batteryTemperature=sokReader.getTemperature();
+	chargerTemperature=bt2Reader.getTemperature();
+	batteryAmpValue=sokReader.getAmps();
+	solarAmpValue=bt2Reader.getSolarAmps();
+	alternaterAmpValue=bt2Reader.getAlternaterAmps();
+
+	heater=sokReader.isHeating();
+
+	cmos=sokReader.isCMOS();
+	dmos=sokReader.isDMOS();
 }
 
 void loadSimulatedValues()
 {
-  scrPayload.stateOfCharge=random(90)+10;  // 10-->100
-  scrPayload.stateOfWater=random(4);
-  if(scrPayload.stateOfWater==0)  { scrPayload.stateOfWater=0; scrPayload.rangeForWater=20; }
-  if(scrPayload.stateOfWater==1)  { scrPayload.stateOfWater=20; scrPayload.rangeForWater=50; }
-  if(scrPayload.stateOfWater==2)  { scrPayload.stateOfWater=50; scrPayload.rangeForWater=90; }
-  if(scrPayload.stateOfWater==3)  { scrPayload.stateOfWater=90; scrPayload.rangeForWater=100; }
+  //let's slow things down a bit
+  delay(2000);
 
-  scrPayload.volts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
-  scrPayload.chargeAh=((double)random(200))/10.0;  // 0 --> 20.0
-  scrPayload.drawAh=((double)random(200))/10.0;  // 0 --> 20.0
-  scrPayload.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
-  scrPayload.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+  stateOfCharge=random(90)+10;  // 10-->100
+  stateOfWater=random(4);
+  if(stateOfWater==0)  { stateOfWater=0; rangeForWater=20; }
+  if(stateOfWater==1)  { stateOfWater=20; rangeForWater=50; }
+  if(stateOfWater==2)  { stateOfWater=50; rangeForWater=90; }
+  if(stateOfWater==3)  { stateOfWater=90; rangeForWater=100; }
+
+  currentVolts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
+  chargeAmps=((double)random(200))/10.0;  // 0 --> 20.0
+  drawAmps=((double)random(200))/10.0;  // 0 --> 20.0
+  batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
+  waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+
+  batteryTemperature=((double)random(90))-20;  // 20 --> 70
+  chargerTemperature=((double)random(90))-20;  // 20 --> 70
+  batteryAmpValue=((double)random(200))/10.0;  // 0 --> 20.0
+  solarAmpValue=((double)random(200))/10.0;  // 0 --> 20.0
+  alternaterAmpValue=((double)random(200))/10.0;  // 0 --> 20.0 
+
+  heater=random(2);
+
+  cmos=random(2);
+  dmos=random(2);
+}
+
+void setOnlineIndicator(bool online)
+{
+	if(online)
+		lcd.drawBitmap(lcd.width()-33, 3, onlineBitmap,  30,  30,  TFT_GREEN);
+	else
+		lcd.drawBitmap(lcd.width()-33, 3, onlineBitmap,  30,  30,  TFT_DARKGREY);
 }
