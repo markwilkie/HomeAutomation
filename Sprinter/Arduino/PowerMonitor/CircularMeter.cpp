@@ -74,6 +74,11 @@ void CircularMeter::drawText(const char* label,int value)
   lcd.drawCentreString(label, x, y + 5, 2);
 }
 
+int CircularMeter::getY()
+{
+  return y;
+}
+
 
 // #########################################################################
 // Return a 16 bit rainbow colour

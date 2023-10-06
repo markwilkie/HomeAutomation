@@ -10,7 +10,7 @@
 #include "CircularMeter.h"
 
 #define POLL_TIME_MS	500
-#define SCR_UPDATE_TIME 200
+#define SCR_UPDATE_TIME 2000
 #define BT_TIMEOUT_MS	5000
 
 //Screen lib
@@ -31,6 +31,8 @@ BitmapConfig waterConfig;
 FillConfig waterFill;
 
 BitmapConfig heaterConfig;
+BitmapConfig calendarConfig;
+BitmapConfig moonConfig;
 
 Primitive cmosIndicator;
 Primitive dmosIndicator;
@@ -46,6 +48,8 @@ Text batteryAmps;
 Text chargerTemp;
 Text solarAmps;
 Text alternaterAmps;
+Text nightAh;
+Text dayAh;
 
 //Objects to handle connection
 //Handles reading from the BT2 Renogy device
@@ -90,9 +94,14 @@ void setup()
     screen.init();
 	screen.setBrightness(STND_BRIGHTNESS);
 
+    //Static labels
+    lcd.setTextColor(TFT_WHITE);
+    lcd.drawString("Sprinkle Data",(lcd.width()/2)-(lcd.textWidth("Sprinkle Data")), 5, 4);	
+
     //Init circular meters
-    int cx=lcd.width()/2;
-    int cy=(lcd.height()/2)-10;
+	int cntrOffsetY=20;
+    int cx=(lcd.width()/2);
+    int cy=(lcd.height()/2)+cntrOffsetY;
     centerOutMeter.initMeter(0,20,cx,cy,90,RED2GREEN); 
     centerInMeter.initMeter(0,20,cx,cy,70,GREEN2RED); 
 
@@ -101,7 +110,7 @@ void setup()
 
     //Bitmap based meters
     //(char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig);
-    int lx=35; int ly=80; int imgWidth=66; int imgHeight=160;
+    int lx=5; int ly=80; int imgWidth=66; int imgHeight=160;
 
 	socConfig.bmArray=batteryBitmap;
 	socConfig.x=lx;  socConfig.y=ly;  socConfig.width=imgWidth;  socConfig.height=imgHeight;  
@@ -124,31 +133,55 @@ void setup()
 	waterFill.redraw=true;
     waterMeter.drawMeter("Water", 0, 100, 100, &waterConfig, &waterFill);
 
-	//Battery and charger icons w/ annotations
-	lcd.drawBitmap(lx+imgWidth+30, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
-	cmosIndicator.drawCircle(lx+imgWidth+30+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
-	dmosIndicator.drawCircle(lx+imgWidth+30+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
-	batteryAmps.drawCenterText(lx+imgWidth+30+25, lcd.height()-80,11.5,1,"A",2,TFT_LIGHTGRAY);
-	batteryTemp.drawCenterText(lx+imgWidth+30+25,lcd.height()-25,24.5,0,"C",2,TFT_WHITE);
+	//show moon
+	moonConfig.x=socConfig.x+socConfig.width+20+8;
+	moonConfig.y=socConfig.y+10;
+	moonConfig.bmArray=moonBitmap;
+	moonConfig.width=30;
+	moonConfig.height=26;
+	moonConfig.color=TFT_WHITE;
+	lcd.drawBitmap(moonConfig.x, moonConfig.y, moonConfig.bmArray,  moonConfig.width,  moonConfig.height,  moonConfig.color);
+
+	//show calendar
+	calendarConfig.x=waterConfig.x-50-8;
+	calendarConfig.y=waterConfig.y+10;
+	calendarConfig.bmArray=calendarBitmap;
+	calendarConfig.width=32;
+	calendarConfig.height=32;
+	calendarConfig.color=TFT_WHITE;
+	lcd.drawBitmap(calendarConfig.x, calendarConfig.y, calendarConfig.bmArray,  calendarConfig.width,  calendarConfig.height,  calendarConfig.color);	
+
+	//Text for night/day
+	nightAh.drawCenterText(moonConfig.x+16,moonConfig.y+37,12.4,1,"Ah",2,TFT_WHITE);
+	dayAh.drawCenterText(calendarConfig.x+16,calendarConfig.y+37,17.4,1,"Ah",2,TFT_WHITE);
+
+	//sparklines
+	int slLen=70; int slHeight=20;
+	lcd.fillRect(moonConfig.x-(slLen/2)+(moonConfig.width/2),moonConfig.y-30,slLen,slHeight,TFT_CYAN);
+	lcd.fillRect(calendarConfig.x-(slLen/2)+(calendarConfig.width/2),calendarConfig.y-30,slLen,slHeight,TFT_CYAN);
+
+	//Battery icons w/ annotations
+	int batVanOffset=30;   //higher number moves each icon towards the middle
+	lcd.drawBitmap(lx+imgWidth+batVanOffset, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
+	cmosIndicator.drawCircle(lx+imgWidth+batVanOffset+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
+	dmosIndicator.drawCircle(lx+imgWidth+batVanOffset+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
+	batteryAmps.drawCenterText(lx+imgWidth+batVanOffset+25, lcd.height()-80,11.5,1,"A",2,TFT_LIGHTGRAY);
+	batteryTemp.drawCenterText(lx+imgWidth+batVanOffset+25,lcd.height()-25,24.5,0,"C",2,TFT_WHITE);
 
 	//config battery heater bitmap
-	heaterConfig.x=lx+imgWidth+30;
+	heaterConfig.x=lx+imgWidth+batVanOffset;
 	heaterConfig.y=lcd.height()-37;
 	heaterConfig.bmArray=heaterBitmap;
 	heaterConfig.width=50;
 	heaterConfig.height=15;
 	heaterConfig.color=TFT_RED;
 
-	//Draw van and battery
-	lcd.drawBitmap(lcd.width()-(lx+imgWidth+65), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
-	solarAmps.drawCenterText(lcd.width()-(lx+imgWidth+75), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
-	lcd.drawBitmap(lcd.width()-(lx+imgWidth+90), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
-	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+40), lcd.height()-45,12,0,"A",2,TFT_DARKGREY);
-	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+80)+25,lcd.height()-25,22.5,0,"C",2,TFT_WHITE);
-
-    //Static labels
-    lcd.setTextColor(TFT_WHITE);
-    lcd.drawString("Sprinkle Data",(lcd.width()/2)-(lcd.textWidth("Sprinkle Data")), 5, 4);
+	//Draw van
+	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+25), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
+	solarAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+35), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
+	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+50), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
+	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset), lcd.height()-45,12,0,"A",2,TFT_DARKGREY);
+	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+20),lcd.height()-25,22.5,0,"C",2,TFT_WHITE);
 
 	//BLE
 	Serial.println("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
@@ -282,8 +315,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		//loadSimulatedValues();
-		loadValues();
+		loadSimulatedValues();
+		//loadValues();
 		updateLCD();
 
 		//gist:  https://gist.github.com/lovyan03/e6e21d4e65919cec34eae403e099876c
@@ -367,7 +400,7 @@ void updateLCD()
     //update text values
 	lcd.setTextFont(4);
 	lcd.setTextSize(1);
-    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),218,currentVolts,1,"V",4,TFT_WHITE);
+    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),centerInMeter.getY()+70,currentVolts,1,"V",4,TFT_WHITE);
 
 	//(int x,int y,float value,int dec,const char *label,int font);
 	//(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font)

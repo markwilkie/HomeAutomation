@@ -36,6 +36,7 @@ class CircularMeter
         void initMeter(int _vmin, int _vmax, int _x, int _y, int _r, byte _scheme);
         void drawMeter(int value);
         void drawText(const char* label,int value);
+        int getY();
 };
 
 #endif
