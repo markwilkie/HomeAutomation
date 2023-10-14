@@ -38,6 +38,11 @@ void Text::drawText(int x,int y,float value,int dec,const char*label,int font,in
     drawText(x,y,value,dec,label,font,color,TFT_BLACK,false,false);
 }
 
+void Text::drawText(int x,int y,char*text,int font,int color)
+{
+    drawText(x,y,text,font,color,TFT_BLACK,false,false);
+}
+
 void Text::drawRightText(int x,int y,float value,int dec,const char*label,int font,int color)
 {
     drawText(x,y,value,dec,label,font,color,TFT_BLACK,true,false);
@@ -74,21 +79,15 @@ void Text::updateText(float value)
     drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
 }
 
+void Text::updateText(const char *text)
+{
+    drawText(lastX,lastY,text,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
+}
+
 void Text::drawText(int x,int y,float value,int dec,const char*label,int font,int color,int bgColor,bool rightFlag,bool centerFlag)
 {
     lcd.setTextFont(font);
     lcd.setTextSize(1);
-
-    //Blank out last text (if we've got a background color)
-    if(bgColor>=0)
-    {
-        if(lastRightFlag)
-            lcd.fillRect(lastX-lastLen,lastY,lastX,lastHeight,bgColor);
-        else if(lastCenterFlag)
-            lcd.fillRect(lastX-(lastLen/2),lastY,lastLen,lastHeight,bgColor);
-        else 
-            lcd.fillRect(lastX,lastY,lastLen,lastHeight,bgColor);
-    }
 
     //round value and get it into a string
     char buf[20]; 
@@ -106,9 +105,27 @@ void Text::drawText(int x,int y,float value,int dec,const char*label,int font,in
         sprintf(buf, "--%s",label);
     }
 
+    lastDec=dec;
+    lastLabel=label;    
+    drawText(x,y,buf,font,color,bgColor,rightFlag,centerFlag);
+}
+
+void Text::drawText(int x,int y,const char*buf,int font,int color,int bgColor,bool rightFlag,bool centerFlag)
+{
     //Determin length and heigth
     int textWidth=lcd.textWidth(buf);
     int textHeight=lcd.fontHeight(font);
+
+    //Blank out last text (if we've got a background color)
+    if(bgColor>=0)
+    {
+        if(lastRightFlag)
+            lcd.fillRect(lastX-lastLen,lastY,lastX,lastHeight,bgColor);
+        else if(lastCenterFlag)
+            lcd.fillRect(lastX-(lastLen/2),lastY,lastLen,lastHeight,bgColor);
+        else 
+            lcd.fillRect(lastX,lastY,lastLen,lastHeight,bgColor);
+    }    
 
     //Ok print text
     lcd.setTextColor(color);
@@ -123,9 +140,7 @@ void Text::drawText(int x,int y,float value,int dec,const char*label,int font,in
     lastX=x; lastY=y; lastLen=textWidth; lastHeight=textHeight;
     lastRightFlag=rightFlag;
     lastCenterFlag=centerFlag; 
-    lastFont=font;  lastColor=color;  lastBgColor=bgColor;
-    lastDec=dec;
-    lastLabel=label;            
+    lastFont=font;  lastColor=color;  lastBgColor=bgColor;  
 }
 
 void Primitive::drawCircle(int x,int y,int r,int color,int fillColor)

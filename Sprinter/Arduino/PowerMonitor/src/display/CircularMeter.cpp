@@ -3,9 +3,10 @@
 // #########################################################################
 //  Draw the meter on the screen, returns x coord of righthand side
 // #########################################################################
-void CircularMeter::initMeter(int _vmin,int _vmax,int _x,int _y,int _r,byte _scheme)
+void CircularMeter::initMeter(LGFX *_lcd,int _vmin,int _vmax,int _x,int _y,int _r,byte _scheme)
 {
   //Set initial values
+  lcd=_lcd;
   vmin=_vmin;
   vmax=_vmax;
   x=_x;
@@ -51,14 +52,14 @@ void CircularMeter::drawMeter(int value)
       int y3 = sy2 * r + y;
 
       if (i < v) { // Fill in coloured segments with 2 triangles
-      lcd.fillTriangle(x0, y0, x1, y1, x2, y2, colour);
-      lcd.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
+      lcd->fillTriangle(x0, y0, x1, y1, x2, y2, colour);
+      lcd->fillTriangle(x1, y1, x2, y2, x3, y3, colour);
       //text_colour = colour; // Save the last colour drawn
       }
       else // Fill in blank segments
       {
-      lcd.fillTriangle(x0, y0, x1, y1, x2, y2, TFT_GREY);
-      lcd.fillTriangle(x1, y1, x2, y2, x3, y3, TFT_GREY);
+      lcd->fillTriangle(x0, y0, x1, y1, x2, y2, TFT_GREY);
+      lcd->fillTriangle(x1, y1, x2, y2, x3, y3, TFT_GREY);
       }
   }
 }
@@ -68,10 +69,10 @@ void CircularMeter::drawText(const char* label,int value)
   //Draw value and label
   char buf[8]; 
   sprintf(buf, "%d", value);
-  lcd.fillRect(x-30,y-30,50,35,TFT_BLACK);
-  lcd.setTextColor(TFT_WHITE);
-  lcd.drawCentreString(buf, x - 5, y - 20, 4);
-  lcd.drawCentreString(label, x, y + 5, 2);
+  lcd->fillRect(x-30,y-30,50,35,TFT_BLACK);
+  lcd->setTextColor(TFT_WHITE);
+  lcd->drawCentreString(buf, x - 5, y - 20, 4);
+  lcd->drawCentreString(label, x, y + 5, 2);
 }
 
 int CircularMeter::getY()

@@ -11,8 +11,6 @@
 #define WATER_FILL 0x5cbb
 #define WATER_RANGE 0xdfdf
 
-extern LGFX lcd;
-
 struct BitmapConfig
 {
     const unsigned char* bmArray;
@@ -36,13 +34,14 @@ struct FillConfig
 class BitmapMeter 
 {
     public:
-        void drawMeter(char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig, FillConfig *fillConfig);
+        void drawMeter(LGFX *_lcd,char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig, FillConfig *fillConfig);
         void updateLevel(float value, int digits, int dec);
         void updateLevel(float value, float rangeValue, int digits, int dec);
 
         BitmapConfig *getBitmapConfig();
 
     private:
+        LGFX *lcd;
         BitmapConfig *bmcfg;
         FillConfig *fillcfg;
         char *label;

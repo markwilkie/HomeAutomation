@@ -30,9 +30,11 @@ class Text
 {
     public:
         void drawText(int x,int y,float value,int dec,const char *label,int font,int color);
+        void drawText(int x,int y,char *text,int font,int color);
         void drawRightText(int x,int y,float value,int dec,const char *label,int font,int color);
         void drawCenterText(int x,int y,float value,int dec,const char *label,int font,int color);
 
+        void updateText(const char *text);  //update using same parameters as last time
         void updateText(float value);  //update using same parameters as last time
 
         void drawBitmapTextBottom(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font,int color);
@@ -49,7 +51,8 @@ class Text
         bool lastRightFlag;
         bool lastCenterFlag;
 
-        void drawText(int x,int y,float value,int dec,const char *label,int font,int color,int bgColor,bool rightFlag,bool centerFlag);        
+        void drawText(int x,int y,float value,int dec,const char *label,int font,int color,int bgColor,bool rightFlag,bool centerFlag); 
+        void drawText(int x,int y,const char*buf,int font,int color,int bgColor,bool rightFlag,bool centerFlag);
 };
 
 

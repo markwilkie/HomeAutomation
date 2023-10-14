@@ -1,5 +1,4 @@
 #include "BTDevice.hpp"
-#include "PowerMonitor.h"
 
 uint8_t *BTDevice::getPeripheryAddress()
 {

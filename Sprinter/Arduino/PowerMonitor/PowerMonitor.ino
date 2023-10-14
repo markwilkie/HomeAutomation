@@ -1,55 +1,16 @@
-#include <ArduinoBLE.h>
-#include <LovyanGFX.hpp>
-#include "LGFX_ST32-SC01Plus.hpp"
-#include "BT2Reader.h"
-#include "SOKReader.h"
+#include <ESP32Time.h>  // https://github.com/fbiego/ESP32Time/blob/main/examples/esp32_time/esp32_time.ino
 
-#include "PowerMonitor.h"
-#include "Screen.h"
-#include "BitmapMeter.h"
-#include "CircularMeter.h"
+#include "src/ble/ble.h"
+#include "src/display/display.h"
+#include "src/wifi/wifi.h"
+#include "src/logging/logging.h"
+
+#define TIMEAPI_URL "http://worldtimeapi.org/api/timezone/America/Los_Angeles"
 
 #define POLL_TIME_MS	500
 #define SCR_UPDATE_TIME 2000
 #define BT_TIMEOUT_MS	5000
-
-//Screen lib
-LGFX lcd; 
-
-//Screen
-Screen screen;
-
-//Meters
-CircularMeter centerOutMeter;
-CircularMeter centerInMeter;
-BitmapMeter socMeter;
-BitmapMeter waterMeter;
-
-BitmapConfig socConfig;
-FillConfig socFill;
-BitmapConfig waterConfig;
-FillConfig waterFill;
-
-BitmapConfig heaterConfig;
-BitmapConfig calendarConfig;
-BitmapConfig moonConfig;
-
-Primitive cmosIndicator;
-Primitive dmosIndicator;
-
-//Dynamic text
-Text soc;
-Text battHoursLeft;
-Text waterDaysLeft;
-Text volts;
-Text hertz;
-Text batteryTemp;
-Text batteryAmps;
-Text chargerTemp;
-Text solarAmps;
-Text alternaterAmps;
-Text nightAh;
-Text dayAh;
+#define SPARK_UPD_TIME	250
 
 //Objects to handle connection
 //Handles reading from the BT2 Renogy device
@@ -57,153 +18,73 @@ BT2Reader bt2Reader;
 SOKReader sokReader;
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader};
 
+VanWifi wifi;
+ESP32Time rtc(0);
+Layout layout;
+
+Logger logger;
+
 //state
 BLE_SEMAPHORE bleSemaphore;
 long lastScrUpdatetime=0;
+long lastSparkUpdateTime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
 int hertzCount=0;
-int currentHz=0;
 boolean tiktok=true;
 
-//data
-int stateOfCharge;
-int stateOfWater;
-int rangeForWater;
-float currentVolts;
-float chargeAmps;
-float drawAmps;
-float batteryHoursRem;
-float waterDaysRem;
-float batteryTemperature;
-float chargerTemperature;
-float batteryAmpValue;
-float solarAmpValue;
-float alternaterAmpValue;
-bool cmos;
-bool dmos;
-bool heater;
+int sparkCount=0;
 
 void setup() 
 {
 	Serial.begin(115200);
 	delay(3000);
 
-    //Setup screen
-    screen.init();
-	screen.setBrightness(STND_BRIGHTNESS);
+	Serial.println("Starting wifi...");
+    wifi.startWifi();
 
-    //Static labels
-    lcd.setTextColor(TFT_WHITE);
-    lcd.drawString("Sprinkle Data",(lcd.width()/2)-(lcd.textWidth("Sprinkle Data")), 5, 4);	
+    Serial.println("Getting time...");
+	setTime();
 
-    //Init circular meters
-	int cntrOffsetY=20;
-    int cx=(lcd.width()/2);
-    int cy=(lcd.height()/2)+cntrOffsetY;
-    centerOutMeter.initMeter(0,20,cx,cy,90,RED2GREEN); 
-    centerInMeter.initMeter(0,20,cx,cy,70,GREEN2RED); 
+	//init screen and draw initial form
+	layout.init();
+	layout.drawInitialScreen();
 
-	//Draw online indicator
-	setOnlineIndicator(false);
-
-    //Bitmap based meters
-    //(char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig);
-    int lx=5; int ly=80; int imgWidth=66; int imgHeight=160;
-
-	socConfig.bmArray=batteryBitmap;
-	socConfig.x=lx;  socConfig.y=ly;  socConfig.width=imgWidth;  socConfig.height=imgHeight;  
-	socConfig.color=BATTERY_ORANGE;
-	socFill.color=BATTERY_FILL;
-	socFill.height=80;
-	socFill.width=57;
-	socFill.start=16;
-	waterFill.redraw=true;
-    socMeter.drawMeter("SoC", 10, 100, 100, &socConfig, &socFill);
-
-	waterConfig.bmArray=waterBottleBitmap;
-	waterConfig.x=lcd.width()-imgWidth-lx;  waterConfig.y=ly;  waterConfig.width=imgWidth;  waterConfig.height=imgHeight;  
-	waterConfig.color=WATER_BLUE;
-	waterFill.color=WATER_FILL;
-	waterFill.rangeColor=WATER_RANGE;	
-	waterFill.height=90;
-	waterFill.width=60;
-	waterFill.start=28;
-	waterFill.redraw=true;
-    waterMeter.drawMeter("Water", 0, 100, 100, &waterConfig, &waterFill);
-
-	//show moon
-	moonConfig.x=socConfig.x+socConfig.width+20+8;
-	moonConfig.y=socConfig.y+10;
-	moonConfig.bmArray=moonBitmap;
-	moonConfig.width=30;
-	moonConfig.height=26;
-	moonConfig.color=TFT_WHITE;
-	lcd.drawBitmap(moonConfig.x, moonConfig.y, moonConfig.bmArray,  moonConfig.width,  moonConfig.height,  moonConfig.color);
-
-	//show calendar
-	calendarConfig.x=waterConfig.x-50-8;
-	calendarConfig.y=waterConfig.y+10;
-	calendarConfig.bmArray=calendarBitmap;
-	calendarConfig.width=32;
-	calendarConfig.height=32;
-	calendarConfig.color=TFT_WHITE;
-	lcd.drawBitmap(calendarConfig.x, calendarConfig.y, calendarConfig.bmArray,  calendarConfig.width,  calendarConfig.height,  calendarConfig.color);	
-
-	//Text for night/day
-	nightAh.drawCenterText(moonConfig.x+16,moonConfig.y+37,12.4,1,"Ah",2,TFT_WHITE);
-	dayAh.drawCenterText(calendarConfig.x+16,calendarConfig.y+37,17.4,1,"Ah",2,TFT_WHITE);
-
-	//sparklines
-	int slLen=70; int slHeight=20;
-	lcd.fillRect(moonConfig.x-(slLen/2)+(moonConfig.width/2),moonConfig.y-30,slLen,slHeight,TFT_CYAN);
-	lcd.fillRect(calendarConfig.x-(slLen/2)+(calendarConfig.width/2),calendarConfig.y-30,slLen,slHeight,TFT_CYAN);
-
-	//Battery icons w/ annotations
-	int batVanOffset=30;   //higher number moves each icon towards the middle
-	lcd.drawBitmap(lx+imgWidth+batVanOffset, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
-	cmosIndicator.drawCircle(lx+imgWidth+batVanOffset+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
-	dmosIndicator.drawCircle(lx+imgWidth+batVanOffset+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
-	batteryAmps.drawCenterText(lx+imgWidth+batVanOffset+25, lcd.height()-80,11.5,1,"A",2,TFT_LIGHTGRAY);
-	batteryTemp.drawCenterText(lx+imgWidth+batVanOffset+25,lcd.height()-25,24.5,0,"C",2,TFT_WHITE);
-
-	//config battery heater bitmap
-	heaterConfig.x=lx+imgWidth+batVanOffset;
-	heaterConfig.y=lcd.height()-37;
-	heaterConfig.bmArray=heaterBitmap;
-	heaterConfig.width=50;
-	heaterConfig.height=15;
-	heaterConfig.color=TFT_RED;
-
-	//Draw van
-	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+25), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
-	solarAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+35), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
-	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+50), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
-	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset), lcd.height()-45,12,0,"A",2,TFT_DARKGREY);
-	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+20),lcd.height()-25,22.5,0,"C",2,TFT_WHITE);
-
-	//BLE
+	//Start BLE
 	Serial.println("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
 	Serial.println("-----------------------------------------------------\n");
 	if (!BLE.begin()) 
 	{
-		Serial.println("starting Bluetooth® Low Energy module failed!");
-		while (1) {delay(1000);};
+		Serial.println("ERROR: Starting Bluetooth® Low Energy module failed!.  Restarting in 10 seconds.");
+		delay(10000);
+		ESP.restart();
 	}
 
-	//Set callback functions
+	//Set BLE callback functions
 	BLE.setEventHandler(BLEDiscovered, scanCallback);
 	BLE.setEventHandler(BLEConnected, connectCallback);
 	BLE.setEventHandler(BLEDisconnected, disconnectCallback);	
 
-	//Setup Renogy BT2
-	bt2Reader.setLoggingLevel(BT2READER_VERBOSE);
-
 	// start scanning for peripherals
 	delay(2000);
-	Serial.println("About to start scanning");	
-	BLE.scan(true);  //scan with dupliates
+	Serial.println("Starting BLE scan");	
+	BLE.scan(true);  //scan with duplicates - meaning, it'll keep showing the same ones over and over
+}
+
+void setTime()
+{
+	if(!wifi.isConnected())
+		return;
+
+    DynamicJsonDocument timeDoc=wifi.sendGetMessage(TIMEAPI_URL);	
+	long epoch=timeDoc["unixtime"].as<long>();
+    long offset=timeDoc["raw_offset"].as<long>();
+    long dstOffset=timeDoc["dst_offset"].as<long>();
+
+	rtc.offset=offset+dstOffset;		
+	rtc.setTime(epoch);
+	Serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
 }
 
 /** Scan callback method.  
@@ -242,7 +123,10 @@ void connectCallback(BLEDevice peripheral)
 		{
 			Serial.printf("Connected to SOK device %s\n",peripheral.address().c_str());	
 		}
-	}	
+	}
+
+	//We're at least partially connected
+	layout.setBLEIndicator(TFT_YELLOW);
 
 	//Should I stop scanning now?
 	boolean stopScanning=true;
@@ -254,7 +138,7 @@ void connectCallback(BLEDevice peripheral)
 	}
 	if(stopScanning)
 	{
-		setOnlineIndicator(true);
+		layout.setBLEIndicator(TFT_BLUE);
 		Serial.println("All devices connected.  Showing online and stopping scan");
 		BLE.stopScan();
 	}
@@ -278,7 +162,7 @@ void disconnectCallback(BLEDevice peripheral)
 		Serial.printf("Disconnected SOK device %s",peripheral.address().c_str());
 	}	
 
-	setOnlineIndicator(false);
+	layout.setBLEIndicator(TFT_DARKGRAY);
 	Serial.println(" - Starting scan again");
 	BLE.scan();
 }
@@ -311,19 +195,39 @@ void loop()
 		bleSemaphore.waitingForResponse=false;
 	}
 
+	//time to update spark lines?
+	//   -- use RTC to determine if night  (10pm -- 7am??)
+	if(millis()>lastSparkUpdateTime+SPARK_UPD_TIME)
+	{
+		lastSparkUpdateTime=millis();
+		layout.addToDayAhSpark(random(8,15));
+		layout.addToNightAhSpark(random(3, 5));
+
+		sparkCount++;
+		if(sparkCount==40)
+		{
+			sparkCount=0;
+			layout.addToDayAhSpark(100);
+			layout.addToNightAhSpark(25);
+		}
+	}
+
 	//load values
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
 		loadSimulatedValues();
 		//loadValues();
-		updateLCD();
+		layout.updateLCD(&rtc);
+		layout.setWifiIndicator(wifi.isConnected());
 
 		//gist:  https://gist.github.com/lovyan03/e6e21d4e65919cec34eae403e099876c
 		//touch test  (-1 when no touch.  size/id are always 0)
 		//lgfx::v1::touch_point_t tp;
 		//lcd.getTouch(&tp);
 		//Serial.printf("\nx: %d y:%d s:%d i:%d\n\n",tp.x,tp.y,tp.size,tp.id)		;
+
+		//If rtc is stale, be sure and update it from the interwebs
 	}
 
 	//Time to ask for data again?
@@ -356,7 +260,7 @@ void loop()
 	//calc hertz
 	if(millis()>hertzTime+1000)
 	{
-		currentHz=hertzCount;
+		layout.displayData.currentHertz=hertzCount;
 		hertzTime=millis();
 		hertzCount=0;
 	}
@@ -386,74 +290,33 @@ boolean isTimedout()
 	return timedOutFlag;
 }
 
-void updateLCD()
-{
-	//update center meter
-    centerOutMeter.drawMeter(chargeAmps);
-    centerInMeter.drawMeter(drawAmps);
-    centerInMeter.drawText("A",chargeAmps-drawAmps);
-
-	//update bitmap meters
-    socMeter.updateLevel(stateOfCharge,2,0);
-    waterMeter.updateLevel(stateOfWater,rangeForWater,2,0);	
-
-    //update text values
-	lcd.setTextFont(4);
-	lcd.setTextSize(1);
-    volts.drawText((lcd.width()/2)-(lcd.textWidth("99.9V")/2),centerInMeter.getY()+70,currentVolts,1,"V",4,TFT_WHITE);
-
-	//(int x,int y,float value,int dec,const char *label,int font);
-	//(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font)
-	soc.drawBitmapTextCenter(socMeter.getBitmapConfig(),stateOfCharge,0,"%",2,TFT_WHITE,-1);
-    battHoursLeft.drawBitmapTextBottom(socMeter.getBitmapConfig(),20,batteryHoursRem,1," Hrs",2,socMeter.getBitmapConfig()->color);
-    waterDaysLeft.drawBitmapTextBottom(waterMeter.getBitmapConfig(),20,waterDaysRem,1," Dys",2,waterMeter.getBitmapConfig()->color);
-    hertz.drawRightText(lcd.width()-10,lcd.height()-15,currentHz,0,"Hz",2,TFT_WHITE);
-
-	batteryTemp.updateText(batteryTemperature);
-	batteryAmps.updateText(batteryAmpValue);
-	chargerTemp.updateText(chargerTemperature);
-	solarAmps.updateText(solarAmpValue);
-	alternaterAmps.updateText(alternaterAmpValue);
-
-	//Battery heater
-	if(heater)  { lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,heaterConfig.color);}
-	else		{ lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,TFT_BLACK);}
-
-	//Update C and D MOS
-	if(cmos) {	cmosIndicator.updateCircle(TFT_GREEN);}
-	else 	 {	cmosIndicator.updateCircle(TFT_LIGHTGREY);}
-
-	if(dmos) {	dmosIndicator.updateCircle(TFT_GREEN);}
-	else	 {	dmosIndicator.updateCircle(TFT_LIGHTGREY); }
-}
-
 void loadValues()
 {
-	stateOfCharge=sokReader.getSoc();
-	currentVolts=sokReader.getVolts();
-	chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
-	drawAmps=chargeAmps-sokReader.getAmps();
+	layout.displayData.stateOfCharge=sokReader.getSoc();
+	layout.displayData.currentVolts=sokReader.getVolts();
+	layout.displayData.chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
+	layout.displayData.drawAmps=layout.displayData.chargeAmps-sokReader.getAmps();
 	if(sokReader.getAmps()<0)
-		batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
+		layout.displayData.batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
 	else
-		batteryHoursRem=999;
+		layout.displayData.batteryHoursRem=999;
 
-	stateOfWater=random(3);
-	if(stateOfWater==0)  stateOfWater=20;
-	if(stateOfWater==1)  stateOfWater=50;
-	if(stateOfWater==2)  stateOfWater=90;
-	waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+	layout.displayData.stateOfWater=random(3);
+	if(layout.displayData.stateOfWater==0)  layout.displayData.stateOfWater=20;
+	if(layout.displayData.stateOfWater==1)  layout.displayData.stateOfWater=50;
+	if(layout.displayData.stateOfWater==2)  layout.displayData.stateOfWater=90;
+	layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 
-	batteryTemperature=sokReader.getTemperature();
-	chargerTemperature=bt2Reader.getTemperature();
-	batteryAmpValue=sokReader.getAmps();
-	solarAmpValue=bt2Reader.getSolarAmps();
-	alternaterAmpValue=bt2Reader.getAlternaterAmps();
+	layout.displayData.batteryTemperature=sokReader.getTemperature();
+	layout.displayData.chargerTemperature=bt2Reader.getTemperature();
+	layout.displayData.batteryAmpValue=sokReader.getAmps();
+	layout.displayData.solarAmpValue=bt2Reader.getSolarAmps();
+	layout.displayData.alternaterAmpValue=bt2Reader.getAlternaterAmps();
 
-	heater=sokReader.isHeating();
+	layout.displayData.heater=sokReader.isHeating();
 
-	cmos=sokReader.isCMOS();
-	dmos=sokReader.isDMOS();
+	layout.displayData.cmos=sokReader.isCMOS();
+	layout.displayData.dmos=sokReader.isDMOS();
 }
 
 void loadSimulatedValues()
@@ -461,35 +324,27 @@ void loadSimulatedValues()
   //let's slow things down a bit
   delay(2000);
 
-  stateOfCharge=random(90)+10;  // 10-->100
-  stateOfWater=random(4);
-  if(stateOfWater==0)  { stateOfWater=0; rangeForWater=20; }
-  if(stateOfWater==1)  { stateOfWater=20; rangeForWater=50; }
-  if(stateOfWater==2)  { stateOfWater=50; rangeForWater=90; }
-  if(stateOfWater==3)  { stateOfWater=90; rangeForWater=100; }
+  layout.displayData.stateOfCharge=random(90)+10;  // 10-->100
+  layout.displayData.stateOfWater=random(4);
+  if(layout.displayData.stateOfWater==0)  { layout.displayData.stateOfWater=0; layout.displayData.rangeForWater=20; }
+  if(layout.displayData.stateOfWater==1)  { layout.displayData.stateOfWater=20; layout.displayData.rangeForWater=50; }
+  if(layout.displayData.stateOfWater==2)  { layout.displayData.stateOfWater=50; layout.displayData.rangeForWater=90; }
+  if(layout.displayData.stateOfWater==3)  { layout.displayData.stateOfWater=90; layout.displayData.rangeForWater=100; }
 
-  currentVolts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
-  chargeAmps=((double)random(200))/10.0;  // 0 --> 20.0
-  drawAmps=((double)random(200))/10.0;  // 0 --> 20.0
-  batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
-  waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+  layout.displayData.currentVolts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
+  layout.displayData.chargeAmps=((double)random(200))/10.0;  // 0 --> 20.0
+  layout.displayData.drawAmps=((double)random(200))/10.0;  // 0 --> 20.0
+  layout.displayData.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
+  layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 
-  batteryTemperature=((double)random(90))-20;  // 20 --> 70
-  chargerTemperature=((double)random(90))-20;  // 20 --> 70
-  batteryAmpValue=((double)random(200))/10.0;  // 0 --> 20.0
-  solarAmpValue=((double)random(200))/10.0;  // 0 --> 20.0
-  alternaterAmpValue=((double)random(200))/10.0;  // 0 --> 20.0 
+  layout.displayData.batteryTemperature=((double)random(90))-20;  // 20 --> 70
+  layout.displayData.chargerTemperature=((double)random(90))-20;  // 20 --> 70
+  layout.displayData.batteryAmpValue=((double)random(200))/10.0;  // 0 --> 20.0
+  layout.displayData.solarAmpValue=((double)random(200))/10.0;  // 0 --> 20.0
+  layout.displayData.alternaterAmpValue=((double)random(200))/10.0;  // 0 --> 20.0 
 
-  heater=random(2);
+  layout.displayData.heater=random(2);
 
-  cmos=random(2);
-  dmos=random(2);
-}
-
-void setOnlineIndicator(bool online)
-{
-	if(online)
-		lcd.drawBitmap(lcd.width()-33, 3, onlineBitmap,  30,  30,  TFT_GREEN);
-	else
-		lcd.drawBitmap(lcd.width()-33, 3, onlineBitmap,  30,  30,  TFT_DARKGREY);
+  layout.displayData.cmos=random(2);
+  layout.displayData.dmos=random(2);
 }

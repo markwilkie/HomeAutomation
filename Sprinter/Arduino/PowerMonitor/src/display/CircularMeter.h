@@ -20,11 +20,10 @@
 #define CIR_METER_SEG 5     // If segments are 5 degrees wide = 60 segments for 300 degrees
 #define CIR_METER_SEG_INC 5 // Draw segments every 5 degrees, increase to 10 for segmented ring
 
-extern LGFX lcd;
-
 class CircularMeter 
 {
     private:
+        LGFX *lcd;
         int x,y,r;
         int vmin, vmax;
         byte scheme;
@@ -33,7 +32,7 @@ class CircularMeter
         float sineWave(int phase) ;
 
     public:
-        void initMeter(int _vmin, int _vmax, int _x, int _y, int _r, byte _scheme);
+        void initMeter(LGFX *_lcd,int _vmin, int _vmax, int _x, int _y, int _r, byte _scheme);
         void drawMeter(int value);
         void drawText(const char* label,int value);
         int getY();
