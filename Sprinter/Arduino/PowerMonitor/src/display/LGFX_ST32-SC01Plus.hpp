@@ -1,6 +1,8 @@
 #ifndef LGFX_H
 #define LGFX_H
 
+#define LGFX_USE_V1 
+
 class LGFX : public lgfx::LGFX_Device
 {
 

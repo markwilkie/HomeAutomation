@@ -34,13 +34,9 @@ void Logger::sendLogs(bool wifiConnected)
   else
   {
     #ifndef WIFILOGGER
-      Serial.print(logCache);
-      logCacheIndex=0;   //reset cache only if WIFI is defined
+      logCacheIndex=0;   //reset cache only if WIFI is not defined
     #endif
   }
-
-  //reset cache
-
 }
 
 void Logger::log(int num,bool cr)
@@ -91,6 +87,13 @@ void Logger::log(String str,bool cr)
 
 void Logger::log(const char input[],bool cr)
 {
+
+ #ifdef SERIALLOGGER
+  Serial.print(input);
+  if(cr)
+    Serial.println();
+ #endif
+
  if(logCacheIndex+sizeof(input) >= MAXLOGSIZE)
   return;
   
@@ -104,9 +107,12 @@ void Logger::log(const char input[],bool cr)
 
  //CR?
  if(cr)
+ {
   logCache[logCacheIndex++]='\n';
+ }
   
  logCache[logCacheIndex]='\0';
+
 }
 
 /**

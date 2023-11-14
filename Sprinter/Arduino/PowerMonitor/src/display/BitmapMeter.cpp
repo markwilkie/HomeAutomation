@@ -17,7 +17,7 @@ void BitmapMeter::drawMeter(LGFX *_lcd,char* _label,int _vmin, int _vmax, int _s
     lcd->setTextColor(bmcfg->color);
     
     lcd->drawCentreString(label, bmcfg->x+(bmcfg->width/2), bmcfg->y-20, 2);
-    lcd->drawCentreString("--", bmcfg->x+(bmcfg->width/2), (bmcfg->y+bmcfg->height)+20, 2);
+    //lcd->drawCentreString("--", bmcfg->x+(bmcfg->width/2), (bmcfg->y+bmcfg->height)+20, 2);
 }
 
 void BitmapMeter::updateLevel(float value, int digits, int dec)

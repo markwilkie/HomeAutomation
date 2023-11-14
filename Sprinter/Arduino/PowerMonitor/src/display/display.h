@@ -6,3 +6,4 @@
 #include "SparkLine.h"
 #include "Layout.h"
 #include "DisplayData.h"
+#include "PowerLogger.h"

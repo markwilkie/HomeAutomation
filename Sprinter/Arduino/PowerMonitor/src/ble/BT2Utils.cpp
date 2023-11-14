@@ -1,18 +1,23 @@
 #include "BT2Reader.h"
+#include "../logging/logger.h"
 
 void BT2Reader::printHex(uint8_t * data, int datalen) { printHex(data, datalen, false); }
 void BT2Reader::printHex(uint8_t * data, int datalen, boolean printIndex) {
+	#ifdef SERIALLOGGER
 	if (printIndex) {
 		for (int i = 0; i < datalen; i++) { Serial.printf("%2d%s", i, (i < datalen-1 ? " " : "\n")); }
 	}
 	for (int i = 0; i < datalen; i++) { Serial.printf("%02X%s", (uint8_t)data[i], (i < datalen-1 ? " " : "\n")); }
+	#endif
 }
 
 void BT2Reader::printUuid(uint8_t * data, int datalen) {
+	#ifdef SERIALLOGGER
 	for (int i = datalen - 1; i >= 0; i--) {
 		Serial.printf("%02X%s", (uint8_t)data[i], (UUID_DASHES[datalen - i - 1] == 1 ? "-" : ""));
 	}
-	Serial.println();
+	Serial.println("");
+	#endif
 }
 
 boolean BT2Reader::getIsReceivedDataValid(uint8_t * data) {

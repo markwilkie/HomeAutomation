@@ -20,7 +20,7 @@
   #define ERRORPRINTLN(...)   logger.log(ANSI_COLOR_RED,false);logger.log("ERROR: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
 #elif defined(ERRORDEF)
   #define ERRORPRINT(...)   Serial.print("ERROR: ");Serial.print(__VA_ARGS__)
-  #define ERRORPRINTLN(...)   Serial.print("ERROR: ");Serial.println(__VA_ARGS__)
+  #define ERRORPRINTLN(...)   Serial.print("ERROR: ");logger.log(__VA_ARGS__)
 #else
   #define ERRORPRINT(...)
   #define ERRORPRINTHEX(...)
@@ -33,7 +33,7 @@
   #define WARNPRINTLN(...)   logger.log(ANSI_COLOR_YELLOW,false);logger.log("WARNING: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
 #elif defined(WARNDEF)
   #define WARNPRINT(...)   Serial.print("WARNING: ");Serial.print(__VA_ARGS__)
-  #define WARNPRINTLN(...)   Serial.print("WARNING: ");Serial.println(__VA_ARGS__)
+  #define WARNPRINTLN(...)   Serial.print("WARNING: ");logger.log(__VA_ARGS__)
 #else
   #define WARNPRINT(...)
   #define WARNPRINTLN(...)
@@ -55,7 +55,7 @@
   #define VERBOSEPRINTLN(...)   logger.log(__VA_ARGS__,true)
 #elif defined(VERBOSEDEF)
   #define VERBOSEPRINT(...)   Serial.print(__VA_ARGS__)
-  #define VERBOSEPRINTLN(...)   Serial.println(__VA_ARGS__)
+  #define VERBOSEPRINTLN(...)   logger.log(__VA_ARGS__)
 #else
   #define VERBOSEPRINT(...)
   #define VERBOSEPRINTHEX(...)

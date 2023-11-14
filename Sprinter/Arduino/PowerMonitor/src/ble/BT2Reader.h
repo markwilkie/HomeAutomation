@@ -4,6 +4,9 @@
 #include "BTDevice.hpp"
 #include "ArduinoBLE.h"
 #include <array>
+#include "../logging/logging.h"
+
+extern Logger logger;
 
 static const uint16_t MODBUS_TABLE_A001[256] = {
 	0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
@@ -244,9 +247,6 @@ public:
 	void printHex(uint8_t * data, int datalen);
 	void printHex(uint8_t * data, int datalen, boolean reverse);
 	void printUuid(uint8_t * data, int datalen);
-	
-	int loggingLevel = BT2READER_VERBOSE;
-	void setLoggingLevel(int i);
 
 private:
 
@@ -275,12 +275,6 @@ private:
 	boolean isRegisterAvailable(uint16_t registerAddress);
 	int getRegisterDescriptionIndex(uint16_t registerAddress);
 	int getRegisterValueIndex(uint16_t registerAddress);
-
-	void log(const char * fsh, ...);
-	void logprintf(const char * fsh, ...);
-	void logerror(const char * fsh, ...);
-	void logstub(const char * fsh, va_list * args);
-
 };
 
 

@@ -1,13 +1,14 @@
 #include "Layout.h"
+#include "PowerLogger.h"
 
 LGFX lcd;
 
-//Every ten seconds for 8 hours
-SparkLine<uint16_t> nightSparkAh(48, [&](const uint16_t x0, const uint16_t y0, const uint16_t x1, const uint16_t y1) { 
+//Every ten minutes for 9 hours
+SparkLine<float> nightSparkAh(NIGHT_AH_DUR/NIGHT_AH_INT, [&](const int x0, const int y0, const int x1, const int y1) { 
     lcd.drawLine(x0, y0, x1, y1,WATER_RANGE);
 });
-//Every 20 seconds for 24 hours  (if there's too many elements, it'll miss peaks because of scaling)
-SparkLine<uint16_t> daySparkAh(72, [&](const uint16_t x0, const uint16_t y0, const uint16_t x1, const uint16_t y1) { 
+//Every 20 minutes for 24 hours  (if there's too many elements, it'll miss peaks because of scaling)
+SparkLine<float> daySparkAh(DAY_AH_DUR/DAY_AH_INT, [&](const int x0, const int y0, const int x1, const int y1) { 
     lcd.drawLine(x0, y0, x1, y1,BATTERY_FILL);
 });  
 
@@ -15,7 +16,6 @@ void Layout::init()
 {
     //Setup screen
     screen.init();
-	screen.setBrightness(STND_BRIGHTNESS);
 }
 
 void Layout::drawInitialScreen()
@@ -33,7 +33,7 @@ void Layout::drawInitialScreen()
 
 	//Draw online indicator and datetime
 	setWifiIndicator(false);
-	setBLEIndicator(TFT_DARKGREY);
+	setBLEIndicator(TFT_DARKGRAY);
 	dateTime.drawText(3,3,"n/a",2,TFT_WHITE);
 
     //Bitmap based meters
@@ -80,16 +80,16 @@ void Layout::drawInitialScreen()
 	lcd.drawBitmap(calendarConfig.x, calendarConfig.y, calendarConfig.bmArray,  calendarConfig.width,  calendarConfig.height,  calendarConfig.color);	
 
 	//Text for night/day
-	nightAh.drawRightText(moonConfig.x+10,moonConfig.y-25,1.4,1,"Ah",2,WATER_RANGE);
-	dayAh.drawRightText(calendarConfig.x-25,calendarConfig.y-25,17,0,"Ah",2,BATTERY_FILL);
+	nightAh.drawRightText(moonConfig.x+10,moonConfig.y-25,0,1,"Ah",2,WATER_RANGE);
+	dayAh.drawRightText(calendarConfig.x-25,calendarConfig.y-25,0,1,"Ah",2,BATTERY_FILL);
 
 	//Battery icons w/ annotations
 	int batVanOffset=30;   //higher number moves each icon towards the middle
 	lcd.drawBitmap(lx+imgWidth+batVanOffset, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
 	cmosIndicator.drawCircle(lx+imgWidth+batVanOffset+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
 	dmosIndicator.drawCircle(lx+imgWidth+batVanOffset+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
-	batteryAmps.drawCenterText(lx+imgWidth+batVanOffset+25, lcd.height()-80,11.5,1,"A",2,TFT_LIGHTGRAY);
-	batteryTemp.drawCenterText(lx+imgWidth+batVanOffset+25,lcd.height()-25,24.5,0,"C",2,TFT_WHITE);
+	batteryAmps.drawCenterText(lx+imgWidth+batVanOffset+25, lcd.height()-80,0,0,"A",2,TFT_LIGHTGRAY);
+	batteryTemp.drawCenterText(lx+imgWidth+batVanOffset+25,lcd.height()-25,0,0,"F",2,TFT_WHITE);
 
 	//config battery heater bitmap
 	heaterConfig.x=lx+imgWidth+batVanOffset;
@@ -103,8 +103,8 @@ void Layout::drawInitialScreen()
 	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+25), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
 	solarAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+35), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
 	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+50), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
-	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset), lcd.height()-45,12,0,"A",2,TFT_DARKGREY);
-	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+20),lcd.height()-25,22.5,0,"C",2,TFT_WHITE);
+	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset), lcd.height()-45,0,0,"A",2,TFT_LIGHTGREY);
+	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+20),lcd.height()-25,0,0,"F",2,TFT_WHITE);
 }
 
 void Layout::setWifiIndicator(bool online)
@@ -112,12 +112,20 @@ void Layout::setWifiIndicator(bool online)
 	if(online)
 		lcd.drawBitmap(lcd.width()-25, 3, wifiBitmap,  22,  22,  TFT_WHITE);
 	else
-		lcd.drawBitmap(lcd.width()-25, 3, wifiBitmap,  22,  22,  TFT_DARKGREY);
+		lcd.drawBitmap(lcd.width()-25, 3, wifiBitmap,  22,  22,  TFT_BLACK);
 }
 
 void Layout::setBLEIndicator(int color)
 {
 	lcd.drawBitmap(lcd.width()-60, 3,bleBitmap,  23,  23,  color);
+}
+
+bool Layout::isBLERegion(int x,int y)
+{
+	if(x>lcd.width()-100 && y<100)
+		return true;
+
+	return false;
 }
 
 void Layout::updateLCD(ESP32Time *rtc)
@@ -146,9 +154,9 @@ void Layout::updateLCD(ESP32Time *rtc)
     waterDaysLeft.drawBitmapTextBottom(waterMeter.getBitmapConfig(),10,displayData.waterDaysRem,1," Dys",2,waterMeter.getBitmapConfig()->color);
     hertz.drawRightText(lcd.width()-10,lcd.height()-15,displayData.currentHertz,0,"Hz",2,TFT_WHITE);
 
-	batteryTemp.updateText(displayData.batteryTemperature);
+	batteryTemp.updateText(cTof(displayData.batteryTemperature));
 	batteryAmps.updateText(displayData.batteryAmpValue);
-	chargerTemp.updateText(displayData.chargerTemperature);
+	chargerTemp.updateText(cTof(displayData.chargerTemperature));
 	solarAmps.updateText(displayData.solarAmpValue);
 	alternaterAmps.updateText(displayData.alternaterAmpValue);
 
@@ -158,11 +166,13 @@ void Layout::updateLCD(ESP32Time *rtc)
 	int slY=moonConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     nightSparkAh.draw(slX, slY, slLen, slHeight);
+	nightAh.updateText(nightSparkAh.findSum());
 
 	slX=calendarConfig.x-(slLen/2)+(calendarConfig.width/2);
 	slY=calendarConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     daySparkAh.draw(slX, slY, slLen, slHeight);	
+	dayAh.updateText(daySparkAh.findSum());
 
 	//Battery heater
 	if(displayData.heater)  { lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,heaterConfig.color);}
@@ -176,12 +186,22 @@ void Layout::updateLCD(ESP32Time *rtc)
 	else	 {	dmosIndicator.updateCircle(TFT_LIGHTGREY); }
 }
 
-void Layout::addToDayAhSpark(uint16_t value)
+float Layout::cTof(float c)
+{
+	return (c * 9.0 / 5.0) + 32.0;
+}
+
+void Layout::addToDayAhSpark(float value)
 {
 	daySparkAh.add(value);
 }
 
-void Layout::addToNightAhSpark(uint16_t value)
+void Layout::addToNightAhSpark(float value)
 {
 	nightSparkAh.add(value);
+}
+
+void Layout::resetNightAhSpark()
+{
+	nightSparkAh.reset();
 }

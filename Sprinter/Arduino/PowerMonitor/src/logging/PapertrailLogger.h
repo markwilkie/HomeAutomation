@@ -2,8 +2,13 @@
 #define __papertrail_logger_h__
 
 #include <Arduino.h>
+#include "logger.h"
 
+
+class Logger;
 class WiFiUDP;
+
+extern Logger logger;
 
 enum LogLevel {
   Error = 3,

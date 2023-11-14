@@ -30,48 +30,62 @@
 #include <algorithm>
 #include <FixedPoints.h>
 #include <FixedPointsCommon.h>
+#include "../logging/logger.h"
+
+extern Logger logger;
 
 template <typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
 class SparkLine
 {
-  using drawLineFunction = std::function<void(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)>;
-  using Point = struct { uint16_t x; uint16_t y; };  
+  using drawLineFunction = std::function<void(int x0, int y0, int x1, int y1)>;
+  using Point = struct { int x; int y; };  
   using num_t = SFixed<15, 16>;
 
-  T* container;
-  const size_t capacity;
-  size_t elements;
+  float* container;
+  const int capacity;
+  int elements;
   drawLineFunction drawLine;
+  float offset=0;
 
 public:
-  T findMin() const {
+  T findAbsMin() const {
     T lo = container[0];
-    for (size_t i = 0; i < elements; i++) {
+    for (int i = 0; i < elements; i++) {
       if (container[i] < lo) lo = container[i];
     }
     return lo;
   }
 
-  T findMax() const {
+  T findAbsMax() const {
     T hi = 0;
-    for (size_t i = 0; i < elements; i++) {
+    for (int i = 0; i < elements; i++) {
       if (container[i] > hi) hi = container[i];
     }
     return hi;
   }
 
-  T findAvg() const {
-    T sum = 0;
+  float findAvg() const {
+    float sum = 0;
 	  if (elements > 0) {    
-      for (size_t i = 0; i < elements; i++) {
-        sum += container[i];
-      }
+      for (int i = 0; i < elements; i++) {
+        sum += container[i]-offset;
+      } 
       sum /= elements;
     }
     return sum;
   }
 
-  SparkLine(size_t _size, drawLineFunction _dlf)
+  float findSum() const {
+    float sum = 0;
+	  if (elements > 0) {    
+      for (int i = 0; i < elements; i++) {
+        sum += container[i]-offset;
+      }
+    }
+    return sum;
+  }
+
+  SparkLine(int _size, drawLineFunction _dlf)
     : container(new T[_size]),
       capacity(_size),
       drawLine(_dlf)
@@ -88,6 +102,7 @@ public:
   {
     memset(container, 0, capacity * sizeof(T));
     elements = 0;
+    offset=0;
   }
 
   int getElements()
@@ -95,15 +110,32 @@ public:
     return elements;
   }
 
-  void add(T value) 
+  void add(float _value) 
   {
+    int baseline=1;
+    float value=_value+offset;
+
+    //reset whole thing to new offset to make sure all numbers are positive    
+    if(value<baseline)
+    {
+      float diff=baseline-value;
+      if (elements > 0) {    
+        for (int i = 0; i < elements; i++) {
+          float temp=container[i];
+          container[i]+=diff;
+        }
+      }    
+      offset+=diff;
+      value=_value+offset;       
+    }
+
     if (elements < capacity) {
       container[elements] = value;
       elements++;
       return;
     }
     
-    memmove(container, &container[1], (capacity - 1) * sizeof(T));
+    memmove(container, &container[1], (capacity - 1) * sizeof(float));
     container[capacity - 1] = value;
   }
 
@@ -117,9 +149,9 @@ public:
    * @param maxHeight   max height of the sparkline 
    * @param lineWidth   width of the stroke for the line to be drawn
    */
-  void draw(uint16_t x, uint16_t y, 
-            uint16_t maxWidth, uint16_t maxHeight, 
-            uint16_t lineWidth = 1) const
+  void draw(int x, int y, 
+            int maxWidth, int maxHeight, 
+            int lineWidth = 1) const
   {
     if (elements < 2) {
       return;
@@ -127,8 +159,8 @@ public:
 
     num_t slope = 1.0f * (maxHeight - lineWidth);
 
-    T lo = this->findMin();
-    T hi = this->findMax();
+    T lo = this->findAbsMin();
+    T hi = this->findAbsMax();
     if (lo != hi) {
       slope /= hi - lo;
     }
@@ -136,7 +168,7 @@ public:
     Point lastPoint = { 0, 0 };
     num_t segment = 0.0f;
     
-    size_t maxSegments = elements;
+    int maxSegments = elements;
     if (maxSegments > maxWidth) {
       maxSegments = maxWidth;
     }
@@ -146,15 +178,15 @@ public:
       pixelPerSegment = 1.0f * maxWidth / (elements - 1);
     }
 
-    for (size_t i = 0; i < maxSegments; i++) {
+    for (int i = 0; i < maxSegments; i++) {
       T value = container[i];
       num_t scaledValue = maxHeight - ((value - lo) * slope);
       scaledValue -= lineWidth / 2.0f;
       scaledValue += y;
 
       Point pt {
-        .x = static_cast<uint16_t>(x + segment.getInteger()),
-        .y = static_cast<uint16_t>(scaledValue.getInteger())
+        .x = static_cast<int>(x + segment.getInteger()),
+        .y = static_cast<int>(scaledValue.getInteger())
       };
 
       if (segment > 0) {

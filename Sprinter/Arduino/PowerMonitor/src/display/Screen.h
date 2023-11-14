@@ -7,23 +7,36 @@
 
 #define FULL_BRIGHTNESS 255   //(0-255)
 #define STND_BRIGHTNESS 178   //factor of max for standard
-#define DIM_BRIGHTNESS 12   //factor of max for dim  (how it normally sits)
+#define DIM_BRIGHTNESS 1      //factor of max for dim  (how it normally sits)
 
-#define SCREEN_BRIGHT_TIME 10000
+#define LONG_TOUCH_TIME 1000
+
+#define SCREEN_BRIGHT_TIME 60000
 
 extern LGFX lcd;
 extern bool simulatedData;
 
+typedef void (*touchCallBackTemplate)( int x,int y );
+typedef void (*longTouchCallBackTemplate)(  int x,int y  );
+
 class Screen 
 {
     private:
-        unsigned long time;
+        touchCallBackTemplate touchCallBack;
+        longTouchCallBackTemplate longTouchCallBack;
+        unsigned long brightTime;
         int currentBrightness;
 
     public:
         void init();
+        void poll();
         void setBrightness(int level);
-        void houseKeeping();        
+        void setBrightness(); 
+        bool isTouched();
+        void addTouchCallback(touchCallBackTemplate);
+        void addLongTouchCallback(longTouchCallBackTemplate);
+
+        int32_t touchX,touchY;       
 };
 
 class Text 

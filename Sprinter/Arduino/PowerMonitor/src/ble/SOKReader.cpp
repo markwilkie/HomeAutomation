@@ -21,14 +21,14 @@ void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore)
 		//Make sure we're not busy
 		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 		{
-			Serial.printf("BLE busy with %s\n",bleSemaphore->btDevice->getPerifpheryName());
+			logger.log("BLE busy with %s",bleSemaphore->btDevice->getPerifpheryName());
 			return;
 		}
 
 		//Set semaphore for connect
 		updateSemaphore(bleSemaphore);
 
-		Serial.println("Found targeted SOK device, attempting connection");
+		logger.log("Found targeted SOK device, attempting connection");
 		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();	
 	} 
@@ -37,14 +37,14 @@ void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore)
 
 boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
 {
-	Serial.printf("SOK: Discovering Tx service: %s\n",txServiceUUID);
+	logger.log("SOK: Discovering Tx service: %s",txServiceUUID);
 	if(myDevice->discoverService(txServiceUUID))
 	{
-		Serial.printf("SOK Tx service %s discovered\n",txServiceUUID);
+		logger.log("SOK Tx service %s discovered",txServiceUUID);
 		txDeviceCharateristic=myDevice->characteristic(txCharacteristicUUID);
 		if(!txDeviceCharateristic)
 		{
-			Serial.printf("ERROR: SOK Tx characteristic not discovered, disconnecting\n");
+			logger.log("ERROR: SOK Tx characteristic not discovered, disconnecting");
 			myDevice->disconnect();
 			connected=false;
 			return false;
@@ -52,16 +52,16 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	} 
 	else 
 	{
-		Serial.println("ERROR: SOK Tx service not discovered, disconnecting");
+		logger.log("ERROR: SOK Tx service not discovered, disconnecting");
 		myDevice->disconnect();
 		connected=false;
 		return false;		
 	}
 
-	Serial.printf("SOK: Discovering Rx service: %s\n",rxServiceUUID);
+	logger.log("SOK: Discovering Rx service: %s",rxServiceUUID);
 	if(myDevice->discoverService(rxServiceUUID))
 	{
-		Serial.printf("SOK Rx service %s discovered.  Now looking for characteristic %s\n",rxServiceUUID,rxCharacteristicUUID);
+		logger.log(INFO,"SOK Rx service %s discovered.  Now looking for characteristic %s",rxServiceUUID,rxCharacteristicUUID);
 		if(rxDeviceCharateristic=myDevice->characteristic(rxCharacteristicUUID))
 		{
 			if(rxDeviceCharateristic.canSubscribe() && rxDeviceCharateristic.subscribe())
@@ -70,7 +70,7 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 			}
 			else
 			{
-				Serial.println("ERROR: SOK Rx characteristic not discovered or cannot be subscribed to, disconnecting");
+				logger.log("ERROR: SOK Rx characteristic not discovered or cannot be subscribed to, disconnecting");
 				myDevice->disconnect();
 				connected=false;
 				return false;
@@ -79,17 +79,17 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	} 
 	else 
 	{
-		Serial.println("ERROR: SOK Rx service not discovered, disconnecting\n");
+		logger.log("ERROR: SOK Rx service not discovered, disconnecting");
 		myDevice->disconnect();
 		connected=false;
 		return false;
 	}
 
 	connected=true;
-	Serial.println("SOK found all needed services and characteristics.");
+	logger.log("SOK found all needed services and characteristics.");
 
-	Serial.printf("Releasing connect semaphore for BLE device %s\n",bleSemaphore->btDevice->getPerifpheryName());
 	bleSemaphore->waitingForConnection=false;
+	logger.log("Releasing connect semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
 
 	return true;
 }
@@ -110,7 +110,7 @@ void SOKReader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 	//Release semaphore?
 	if(bleSemaphore->expectedBytes == dataReceived[0] | (dataReceived[1]<<8))
 	{
-		Serial.printf("Releasing response semaphore for BLE device %s\n",bleSemaphore->btDevice->getPerifpheryName());
+		logger.log("Releasing response semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
 		bleSemaphore->waitingForResponse=false;
 	}	
 }
@@ -143,7 +143,7 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	//Make sure we're clear to send
 	if(bleSemaphore->waitingForResponse)
 	{
-		Serial.printf("BLE device %s in use when another send attempt was tried\n",bleSemaphore->btDevice->getPerifpheryName());
+		logger.log("BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
 		return;
 	}
 
@@ -182,9 +182,11 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 		sendCommandCounter=0;
 	}
 
+	#ifdef SERIALLOGGER
 	Serial.print("Sending command sequence to SOK: ");
 	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
 	Serial.println("");
+	#endif
 
 	txDeviceCharateristic.writeValue(command, 6);
 	dataReceivedLength = 0;
@@ -208,7 +210,7 @@ void SOKReader::updateValues()
 		cycles=bytesToInt(dataReceived+14,2,false);
 
 		//debug
-		Serial.printf("Loop:  (cycles?): %d\n",cycles);
+		//logger.log("Loop:  (cycles?): %d",cycles);
 	}
 
 	//Trigger by C1

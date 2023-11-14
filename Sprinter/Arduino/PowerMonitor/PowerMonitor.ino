@@ -5,12 +5,14 @@
 #include "src/wifi/wifi.h"
 #include "src/logging/logging.h"
 
+#include "WaterTank.h"
+
 #define TIMEAPI_URL "http://worldtimeapi.org/api/timezone/America/Los_Angeles"
 
 #define POLL_TIME_MS	500
-#define SCR_UPDATE_TIME 2000
+#define SCR_UPDATE_TIME 500
 #define BT_TIMEOUT_MS	5000
-#define SPARK_UPD_TIME	250
+#define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
 
 //Objects to handle connection
 //Handles reading from the BT2 Renogy device
@@ -18,65 +20,95 @@ BT2Reader bt2Reader;
 SOKReader sokReader;
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader};
 
+Screen screen;
 VanWifi wifi;
 ESP32Time rtc(0);
 Layout layout;
-
 Logger logger;
+PowerLogger powerLogger;
+
+WaterTank waterTank;
 
 //state
 BLE_SEMAPHORE bleSemaphore;
+long lastRTCUpdateTime=0;
 long lastScrUpdatetime=0;
-long lastSparkUpdateTime=0;
+long lastPwrUpdateTime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
 int hertzCount=0;
 boolean tiktok=true;
 
-int sparkCount=0;
-
 void setup() 
 {
-	Serial.begin(115200);
+	#ifdef SERIALLOGGER
+		//Init Serial
+		Serial.begin(115200);
+	#endif
 	delay(3000);
 
-	Serial.println("Starting wifi...");
-    wifi.startWifi();
-
-    Serial.println("Getting time...");
-	setTime();
-
 	//init screen and draw initial form
+	logger.log("Drawing form");
 	layout.init();
 	layout.drawInitialScreen();
 
+	logger.log("Starting wifi...");
+    wifi.startWifi();
+
+	//Reset power logger
+	powerLogger.reset(&rtc);
+
+	//Init water tank
+	waterTank.init();
+
 	//Start BLE
-	Serial.println("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
-	Serial.println("-----------------------------------------------------\n");
-	if (!BLE.begin()) 
-	{
-		Serial.println("ERROR: Starting Bluetooth® Low Energy module failed!.  Restarting in 10 seconds.");
-		delay(10000);
-		ESP.restart();
-	}
+	startBLE();
 
 	//Set BLE callback functions
 	BLE.setEventHandler(BLEDiscovered, scanCallback);
 	BLE.setEventHandler(BLEConnected, connectCallback);
 	BLE.setEventHandler(BLEDisconnected, disconnectCallback);	
 
+	//Set touch callback functions
+	screen.addTouchCallback(&screenTouchedCallback);
+	screen.addLongTouchCallback(&longScreenTouchedCallback);
+
 	// start scanning for peripherals
 	delay(2000);
-	Serial.println("Starting BLE scan");	
+	logger.log("Starting BLE scan");	
 	BLE.scan(true);  //scan with duplicates - meaning, it'll keep showing the same ones over and over
+
+	//setting time
+	setTime();	
+
+	logger.sendLogs(wifi.isConnected());
+}
+
+void startBLE()
+{
+	logger.log("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
+	if (!BLE.begin()) 
+	{
+		logger.log(ERROR,"Starting Bluetooth® Low Energy module failed!.  Restarting in 10 seconds.");
+		delay(10000);
+		ESP.restart();
+	}
 }
 
 void setTime()
 {
 	if(!wifi.isConnected())
-		return;
+	{
+		wifi.startWifi();
+		if(!wifi.isConnected())
+		{
+			logger.log("Tried to get latest time, but no internet connection");
+			return;
+		}
+	}
 
+	logger.log("Getting latest time...");
     DynamicJsonDocument timeDoc=wifi.sendGetMessage(TIMEAPI_URL);	
 	long epoch=timeDoc["unixtime"].as<long>();
     long offset=timeDoc["raw_offset"].as<long>();
@@ -84,7 +116,7 @@ void setTime()
 
 	rtc.offset=offset+dstOffset;		
 	rtc.setTime(epoch);
-	Serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
+	lastRTCUpdateTime=millis();
 }
 
 /** Scan callback method.  
@@ -92,7 +124,7 @@ void setTime()
 void scanCallback(BLEDevice peripheral) 
 {
     // discovered a peripheral, print out address, local name, and advertised service
-	Serial.printf("Found device '%s' at '%s' with uuuid '%s'\n",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
+	//logger.log("Found device '%s' at '%s' with uuuid '%s'",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
 
 	//Checking with both device handlers to see if this is something they're interested in
 	bt2Reader.scanCallback(&peripheral,&bleSemaphore);
@@ -105,23 +137,23 @@ void scanCallback(BLEDevice peripheral)
  */ 
 void connectCallback(BLEDevice peripheral) 
 {
-	Serial.printf("Connect callback for '%s'\n",peripheral.address().c_str());
+	logger.log(INFO,"Connect callback for '%s'",peripheral.address().c_str());
 	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{
-		Serial.println("Renogy connect callback");
+		logger.log(INFO,"Renogy connect callback");
 		if (bt2Reader.connectCallback(&peripheral,&bleSemaphore)) 
 		{
-			Serial.printf("Connected to BT device %s\n",peripheral.address().c_str());
+			logger.log(INFO,"Connected to BT device %s",peripheral.address().c_str());
 			bt2Reader.sendStartupCommand(&bleSemaphore);
 		}
 	}
 
 	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
 	{
-		Serial.println("SOK connect callback");
+		logger.log("SOK connect callback");
 		if (sokReader.connectCallback(&peripheral,&bleSemaphore)) 
 		{
-			Serial.printf("Connected to SOK device %s\n",peripheral.address().c_str());	
+			logger.log(INFO,"Connected to SOK device %s",peripheral.address().c_str());	
 		}
 	}
 
@@ -139,7 +171,7 @@ void connectCallback(BLEDevice peripheral)
 	if(stopScanning)
 	{
 		layout.setBLEIndicator(TFT_BLUE);
-		Serial.println("All devices connected.  Showing online and stopping scan");
+		logger.log("All devices connected.  Showing online and stopping scan");
 		BLE.stopScan();
 	}
 }
@@ -154,22 +186,22 @@ void disconnectCallback(BLEDevice peripheral)
 		renogyCmdSequenceToSend=0;  //need to start at the beginning since we disconnected
 		bt2Reader.disconnectCallback(&peripheral);
 
-		Serial.printf("Disconnected BT2 device %s",peripheral.address().c_str());	
+		logger.log(WARNING,"Disconnected BT2 device %s",peripheral.address().c_str());	
 	}
 
 	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
 	{	
-		Serial.printf("Disconnected SOK device %s",peripheral.address().c_str());
+		logger.log(WARNING,"Disconnected SOK device %s",peripheral.address().c_str());
 	}	
 
 	layout.setBLEIndicator(TFT_DARKGRAY);
-	Serial.println(" - Starting scan again");
+	logger.log(INFO,"Starting BLE scan again");
 	BLE.scan();
 }
 
 void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 {
-	Serial.printf("Characteristic notify from %s\n",peripheral.address().c_str());
+	//logger.log("Characteristic notify from %s",peripheral.address().c_str());
 	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{		
 		bt2Reader.notifyCallback(&peripheral,&characteristic,&bleSemaphore);
@@ -181,10 +213,39 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 	}	
 }
 
+void screenTouchedCallback(int x,int y)
+{
+	//check if in the BLE region - meaning, should we toggle BLE on/off
+	if(layout.isBLERegion(x,y))
+	{
+		static bool BLEOn=true;
+		BLEOn=!BLEOn;
+		logger.log(INFO,"BLE Toggled %d (%d,%d)",BLEOn,x,y);
+		if(!BLEOn)
+		{
+			layout.setBLEIndicator(TFT_BLACK);			
+			BLE.stopScan();
+			BLE.disconnect();
+			//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??
+		}
+		else
+		{
+			layout.setBLEIndicator(TFT_DARKGRAY);
+			startBLE();
+		}
+	}
+}
+
+void longScreenTouchedCallback(int x,int y)
+{
+	//Serial.printf("Long Screen touched!!! (%d,%d)\n",x,y);
+}
+
 void loop() 
 {
 	//required for the ArduinoBLE library
 	BLE.poll();
+	screen.poll();
 
 	//check for BLE timeouts - and disconnect
 	if(isTimedout())
@@ -195,20 +256,40 @@ void loop()
 		bleSemaphore.waitingForResponse=false;
 	}
 
-	//time to update spark lines?
-	//   -- use RTC to determine if night  (10pm -- 7am??)
-	if(millis()>lastSparkUpdateTime+SPARK_UPD_TIME)
+	//time to update power logs?
+	if(millis()>lastPwrUpdateTime+PWR_UPD_TIME)
 	{
-		lastSparkUpdateTime=millis();
-		layout.addToDayAhSpark(random(8,15));
-		layout.addToNightAhSpark(random(3, 5));
+		lastPwrUpdateTime=millis();
 
-		sparkCount++;
-		if(sparkCount==40)
+		//Time to update day spark?
+		powerLogger.data.dayAhSum+=layout.displayData.chargeAmps-layout.displayData.drawAmps;
+		if(rtc.getEpoch()>=(powerLogger.data.startDaySeconds+DAY_AH_INT))
 		{
-			sparkCount=0;
-			layout.addToDayAhSpark(100);
-			layout.addToNightAhSpark(25);
+			float avgDayAh=powerLogger.data.dayAhSum/DAY_AH_INT;
+			float dayVal=avgDayAh/(3600.0/NIGHT_AH_INT);    //convert to amp hours
+			layout.addToDayAhSpark(dayVal);
+			powerLogger.resetDay(&rtc);
+		}
+
+		//night time?
+		if(rtc.getHour(true)>=NIGHT_BEG_HR || rtc.getHour(true)<NIGHT_END_HR)
+		{
+			//reset spark because it's the beginning of the evening
+			if(rtc.getHour(true)==NIGHT_BEG_HR && (rtc.getEpoch()-powerLogger.data.startNightSeconds) > NIGHT_AH_DUR)
+			{
+				logger.log("Resetting night spark");
+				layout.resetNightAhSpark();
+			}
+
+			//Time to update night spark?
+			powerLogger.data.nightAhSum+=layout.displayData.chargeAmps-layout.displayData.drawAmps;
+			if(rtc.getEpoch()>=(powerLogger.data.startNightSeconds+NIGHT_AH_INT))
+			{
+				float avgNightAh=powerLogger.data.nightAhSum/NIGHT_AH_INT;
+				float nightVal=avgNightAh/(3600.0/NIGHT_AH_INT);    //convert to amp hours
+				layout.addToNightAhSpark(nightVal);
+				powerLogger.resetNight(&rtc);
+			}
 		}
 	}
 
@@ -216,18 +297,15 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		loadSimulatedValues();
-		//loadValues();
+		//loadSimulatedValues();
+		loadValues();
 		layout.updateLCD(&rtc);
 		layout.setWifiIndicator(wifi.isConnected());
 
-		//gist:  https://gist.github.com/lovyan03/e6e21d4e65919cec34eae403e099876c
-		//touch test  (-1 when no touch.  size/id are always 0)
-		//lgfx::v1::touch_point_t tp;
-		//lcd.getTouch(&tp);
-		//Serial.printf("\nx: %d y:%d s:%d i:%d\n\n",tp.x,tp.y,tp.size,tp.id)		;
-
 		//If rtc is stale, be sure and update it from the interwebs
+
+		//send logs
+		logger.sendLogs(wifi.isConnected());
 	}
 
 	//Time to ask for data again?
@@ -254,6 +332,13 @@ void loop()
 		sokReader.updateValues();
 	}
 
+	//Time to refresh rtc?
+	if((lastRTCUpdateTime+REFRESH_RTC) < millis())
+	{
+		lastRTCUpdateTime=millis();
+		setTime();
+	}
+
 	//toggle to the other device
 	tiktok=!tiktok;
 
@@ -275,15 +360,15 @@ boolean isTimedout()
 		timedOutFlag=true;
 		if(bleSemaphore.waitingForConnection)
 		{
-			Serial.printf("ERROR: Timed out waiting for connection to %s\n",bleSemaphore.btDevice->getPerifpheryName());
+			logger.log("ERROR: Timed out waiting for connection to %s",bleSemaphore.btDevice->getPerifpheryName());
 		}
 		else if(bleSemaphore.waitingForResponse)
 		{
-			Serial.printf("ERROR: Timed out waiting for response from %s\n",bleSemaphore.btDevice->getPerifpheryName());
+			logger.log("ERROR: Timed out waiting for response from %s",bleSemaphore.btDevice->getPerifpheryName());
 		}
 		else
 		{
-			Serial.println("ERROR: Timed out for an unknown reason");
+			logger.log("ERROR: Timed out for an unknown reason");
 		}
 	}
 
@@ -301,11 +386,12 @@ void loadValues()
 	else
 		layout.displayData.batteryHoursRem=999;
 
-	layout.displayData.stateOfWater=random(3);
-	if(layout.displayData.stateOfWater==0)  layout.displayData.stateOfWater=20;
-	if(layout.displayData.stateOfWater==1)  layout.displayData.stateOfWater=50;
-	if(layout.displayData.stateOfWater==2)  layout.displayData.stateOfWater=90;
-	layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+	int waterReading=waterTank.readLevel();
+	if(waterReading==0)  { layout.displayData.stateOfWater=0; layout.displayData.rangeForWater=20; }
+	if(waterReading==20)  { layout.displayData.stateOfWater=20; layout.displayData.rangeForWater=50; }
+	if(waterReading==50)  { layout.displayData.stateOfWater=50; layout.displayData.rangeForWater=90; }
+	if(waterReading==90)  { layout.displayData.stateOfWater=90; layout.displayData.rangeForWater=100; }
+	//layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 
 	layout.displayData.batteryTemperature=sokReader.getTemperature();
 	layout.displayData.chargerTemperature=bt2Reader.getTemperature();
@@ -321,9 +407,6 @@ void loadValues()
 
 void loadSimulatedValues()
 {
-  //let's slow things down a bit
-  delay(2000);
-
   layout.displayData.stateOfCharge=random(90)+10;  // 10-->100
   layout.displayData.stateOfWater=random(4);
   if(layout.displayData.stateOfWater==0)  { layout.displayData.stateOfWater=0; layout.displayData.rangeForWater=20; }
@@ -331,9 +414,10 @@ void loadSimulatedValues()
   if(layout.displayData.stateOfWater==2)  { layout.displayData.stateOfWater=50; layout.displayData.rangeForWater=90; }
   if(layout.displayData.stateOfWater==3)  { layout.displayData.stateOfWater=90; layout.displayData.rangeForWater=100; }
 
+  layout.displayData.chargeAmps=((double)random(150))/9.2;  // 0 --> 15.0
+  layout.displayData.drawAmps=((double)random(100))/9.2;  // 0 --> 10.0
+
   layout.displayData.currentVolts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
-  layout.displayData.chargeAmps=((double)random(200))/10.0;  // 0 --> 20.0
-  layout.displayData.drawAmps=((double)random(200))/10.0;  // 0 --> 20.0
   layout.displayData.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
   layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
 

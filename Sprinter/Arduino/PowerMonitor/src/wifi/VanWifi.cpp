@@ -46,7 +46,7 @@ void VanWifi::startWifi()
       logger.log(INFO,"\nEnd OTA");
     })
     .onProgress([](unsigned int progress, unsigned int total) {
-      //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      //logger.log("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
       logger.log(ERROR,"OTA Problem: %s",error);

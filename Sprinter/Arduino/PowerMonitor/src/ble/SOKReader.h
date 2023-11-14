@@ -3,6 +3,9 @@
 
 #include "BTDevice.hpp"
 #include "ArduinoBLE.h"
+#include "../logging/logger.h"
+
+extern Logger logger;
 
 #define PROTECTION_COUNT 50
 

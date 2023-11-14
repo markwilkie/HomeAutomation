@@ -11,10 +11,77 @@ void Screen::init()
     setBrightness(STND_BRIGHTNESS);
 }
 
-void Screen::houseKeeping()
+void Screen::addTouchCallback(touchCallBackTemplate cbTemplate)
 {
-    //Check if we need to dim the screen back down
-    if(currentBrightness > DIM_BRIGHTNESS && millis()-time > SCREEN_BRIGHT_TIME)
+    touchCallBack=cbTemplate;
+}
+
+void Screen::addLongTouchCallback(longTouchCallBackTemplate cbTemplate)
+{
+	longTouchCallBack=cbTemplate;
+}
+
+void Screen::poll()
+{
+    //Brightness
+    setBrightness();
+
+    //Poll for touch
+    static bool waitForFingerLift=false;
+    static long startPressTime;
+    if(isTouched())
+    {
+		if(!waitForFingerLift) 
+		{
+			waitForFingerLift=true;
+            startPressTime=millis();
+        }
+    }
+	else
+	{
+        //Meaning....have has the finger just lifted
+        if(waitForFingerLift)
+        {
+            //Check for touch type
+            if(millis()-startPressTime < LONG_TOUCH_TIME)
+            {
+                touchCallBack(touchX,touchY);    
+            }
+            else
+            {
+                longTouchCallBack(touchX,touchY);
+            }            
+        }        
+		waitForFingerLift=false;
+	}      
+}
+
+bool Screen::isTouched()
+{
+    //https://gist.github.com/sukesh-ak/610508bc84779a26efdcf969bf51a2d1#file-wt32-sc01-plus_esp32-s3-ino
+
+    int32_t x=-1,y=-1;
+    lcd.getTouch(&x, &y);
+    if(x>=0 && y>=0)
+    {
+        touchX=x;
+        touchY=y;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void Screen::setBrightness()
+{
+    //Check if we need to dim the screen back down or brighten up because of a touch
+    if(currentBrightness < STND_BRIGHTNESS && isTouched())
+    {
+        setBrightness(STND_BRIGHTNESS);
+    }
+    else if(currentBrightness > DIM_BRIGHTNESS && millis()-brightTime > SCREEN_BRIGHT_TIME)
     {
         setBrightness(DIM_BRIGHTNESS);
     }
@@ -24,7 +91,7 @@ void Screen::setBrightness(int level)
 {
     currentBrightness=level;
     lcd.setBrightness(level);
-    time=millis();
+    brightTime=millis();
 }
 
 ///////////////////////
@@ -91,7 +158,7 @@ void Text::drawText(int x,int y,float value,int dec,const char*label,int font,in
 
     //round value and get it into a string
     char buf[20]; 
-    if(value>0)
+    if(value>=.05 || value<=-.05)
     {
         char valStr[10];
         dtostrf(value,2,dec,valStr);     
@@ -116,16 +183,16 @@ void Text::drawText(int x,int y,const char*buf,int font,int color,int bgColor,bo
     int textWidth=lcd.textWidth(buf);
     int textHeight=lcd.fontHeight(font);
 
-    //Blank out last text (if we've got a background color)
+    //Blank out last text (assuming a valid color)
     if(bgColor>=0)
     {
         if(lastRightFlag)
-            lcd.fillRect(lastX-lastLen,lastY,lastX,lastHeight,bgColor);
+            lcd.fillRect(lastX-lastLen,lastY,lastLen,lastHeight,bgColor);
         else if(lastCenterFlag)
             lcd.fillRect(lastX-(lastLen/2),lastY,lastLen,lastHeight,bgColor);
         else 
             lcd.fillRect(lastX,lastY,lastLen,lastHeight,bgColor);
-    }    
+    }
 
     //Ok print text
     lcd.setTextColor(color);
@@ -138,8 +205,7 @@ void Text::drawText(int x,int y,const char*buf,int font,int color,int bgColor,bo
 
     //Set last
     lastX=x; lastY=y; lastLen=textWidth; lastHeight=textHeight;
-    lastRightFlag=rightFlag;
-    lastCenterFlag=centerFlag; 
+    lastRightFlag=rightFlag; lastCenterFlag=centerFlag; 
     lastFont=font;  lastColor=color;  lastBgColor=bgColor;  
 }
 

@@ -10,6 +10,10 @@
 #include "SparkLine.h"
 #include "Screen.h"
 #include "DisplayData.h"
+#include "../logging/logger.h"
+
+//Screen
+extern Screen screen;
 
 class Layout 
 {
@@ -19,15 +23,16 @@ class Layout
         void updateLCD(ESP32Time *);
         void setWifiIndicator(boolean online);
         void setBLEIndicator(int color);
-        void addToDayAhSpark(uint16_t value);
-        void addToNightAhSpark(uint16_t value);
+        bool isBLERegion(int x,int y);
+        void addToDayAhSpark(float value);
+        void addToNightAhSpark(float value);
+        void resetNightAhSpark();
 
         DisplayData displayData;
 
     private:
 
-        //Screen
-        Screen screen;
+        float cTof(float c);
 
         //Meters
         CircularMeter centerOutMeter;

@@ -34,7 +34,7 @@ BT2Reader::BT2Reader()
 	registerValueSize = 0;
 	for (int i = 0; i < registerDescriptionSize; i++) { registerValueSize += (registerDescription[i].bytesUsed / 2); }
 
-	log("Register Description is %d entries, registerValue is %d entries\n", registerDescriptionSize, registerValueSize);
+	//logger.log(INFO,"Register Description is %d entries, registerValue is %d entries", registerDescriptionSize, registerValueSize);
 
 	dataReceivedLength = 0;
 	dataError = false;
@@ -57,7 +57,6 @@ BT2Reader::BT2Reader()
 	invalidRegister.value = 0;
 }
 
-
 void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 {
  	if (peripheral->localName() == peripheryName)
@@ -68,13 +67,13 @@ void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 		//Make sure we're not busy
 		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 		{
-			log("BLE device %s in use when another send attempt was tried\n",bleSemaphore->btDevice->getPerifpheryName());
+			logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
 			return;
 		}
 		//Set semaphore for connect
 		updateSemaphore(bleSemaphore);
 
-		log("Found targeted BT2 device, attempting connection\n");
+		logger.log(INFO,"Found targeted BT2 device, attempting connection");
 		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();
 	} 
@@ -83,14 +82,14 @@ void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 
 boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
 {
-	log("Discovering Tx service: %s \n",txServiceUUID);
+	logger.log(INFO,"Discovering Tx service: %s ",txServiceUUID);
 	if(myDevice->discoverService(txServiceUUID))
 	{
-		log("Renogy Tx service %s discovered.  Now looking for charecteristic %s\n",txServiceUUID,txCharacteristicUUID);
+		logger.log(INFO,"Renogy Tx service %s discovered.  Now looking for charecteristic %s",txServiceUUID,txCharacteristicUUID);
 		txDeviceCharateristic=myDevice->characteristic(txCharacteristicUUID);
 		if(!txDeviceCharateristic)
 		{
-			logerror("Renogy Tx characteristic not discovered, disconnecting\n");
+			logger.log(ERROR,"Renogy Tx characteristic not discovered, disconnecting");
 			myDevice->disconnect();
 			connected=false;
 			return false;
@@ -98,15 +97,15 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	} 
 	else 
 	{
-		logerror("Renogy Tx service not discovered, disconnecting\n");
+		logger.log(ERROR,"Renogy Tx service not discovered, disconnecting");
 		myDevice->disconnect();
 		return false;
 	}
 
-	log("Discovering Rx service: %s \n",rxServiceUUID);
+	logger.log(INFO,"Discovering Rx service: %s ",rxServiceUUID);
 	if(myDevice->discoverService(rxServiceUUID))
 	{
-		log("Renogy Rx service %s discovered.  Now looking for charecteristic %s\n",rxServiceUUID,rxCharacteristicUUID);
+		logger.log(INFO,"Renogy Rx service %s discovered.  Now looking for charecteristic %s",rxServiceUUID,rxCharacteristicUUID);
 		if(rxDeviceCharateristic=myDevice->characteristic(rxCharacteristicUUID))
 		{
 			if(rxDeviceCharateristic.canSubscribe() && rxDeviceCharateristic.subscribe())
@@ -115,7 +114,7 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 			}
 			else
 			{
-				logerror("Renogy Rx characteristic not discovered or cannot be subscribed to, disconnecting\n");
+				logger.log(ERROR,"Renogy Rx characteristic not discovered or cannot be subscribed to, disconnecting");
 				myDevice->disconnect();
 				connected=false;
 				return false;
@@ -124,16 +123,16 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	} 
 	else 
 	{
-		logerror("Renogy Rx service not discovered, disconnecting\n");
+		logger.log(ERROR,"Renogy Rx service not discovered, disconnecting");
 		myDevice->disconnect();
 		return false;
 	}
 
 	connected=true;
-	log("Found all services and characteristics.\n");
+	logger.log(INFO,"Found all services and characteristics.");
 
-	log("Releasing connect semaphore for BLE device %s\n",bleSemaphore->btDevice->getPerifpheryName());
 	bleSemaphore->waitingForConnection=false;
+	logger.log(INFO,"Releasing connect semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
 
 	return true;
 }
@@ -155,7 +154,7 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 	{
 		if (getIsReceivedDataValid(dataReceived)) 
 		{
-			//Serial.printf("Complete datagram of %d bytes, %d registers (%d packets) received:\n", 
+			//logger.log(INFO,"Complete datagram of %d bytes, %d registers (%d packets) received:", 
 			//	device->dataReceivedLength, device->dataReceived[2], device->dataReceivedLength % 20 + 1);
 			//printHex(device->dataReceived, device->dataReceivedLength);
 			processDataReceived(bleSemaphore);
@@ -163,20 +162,20 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 			//debug
 			uint16_t startRegister = bt2Commands[lastCmdSent].startRegister;
 			uint16_t numberOfRegisters = bt2Commands[lastCmdSent].numberOfRegisters;
-			Serial.printf("Received response for %d registers 0x%04X - 0x%04X\n",numberOfRegisters,startRegister,startRegister + numberOfRegisters - 1);
+			//logger.log(INFO,"Received response for %d registers 0x%04X - 0x%04X",numberOfRegisters,startRegister,startRegister + numberOfRegisters - 1);
 
 			uint8_t bt2Response[21] = "main recv data[XX] [";
 			for (int i = 0; i < dataError; i+= 20) 
 			{
 				bt2Response[15] = HEX_LOWER_CASE[(dataReceived[i] / 16) & 0x0F];
 				bt2Response[16] = HEX_LOWER_CASE[(dataReceived[i]) & 0x0F];
-				Serial.printf("Sending response #%d to BT2: %s\n", i, bt2Response);
+				//logger.log(INFO,"Sending response #%d to BT2: %s", i, bt2Response);
 				txDeviceCharateristic.writeValue(bt2Response, 20);
 			}
 		} 
 		else 
 		{
-			Serial.printf("Checksum error: received is 0x%04X, calculated is 0x%04X\n", 
+			logger.log(WARNING,"Checksum error: received is %d, calculated is %d", 
 				getProvidedModbusChecksum(dataReceived), getCalculatedModbusChecksum(dataReceived));
 		}
 	} 
@@ -184,7 +183,7 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 
 void BT2Reader::sendStartupCommand(BLE_SEMAPHORE* bleSemaphore)
 {
-	Serial.println("Sending Renogy startup command");
+	logger.log(INFO,"Sending Renogy startup command");
 	int cmdIndex=0;
 	uint16_t startRegister = bt2Commands[cmdIndex].startRegister;
 	uint16_t numberOfRegisters = bt2Commands[cmdIndex].numberOfRegisters;
@@ -198,12 +197,12 @@ void BT2Reader::sendSolarOrAlternaterCommand(BLE_SEMAPHORE* bleSemaphore)
 	int cmdIndex=0;
 	if(lastCmdSent==4)
 	{
-		Serial.println("Sending Renogy solar command");
+		logger.log(INFO,"Sending Renogy solar command");
 		cmdIndex=5;
 	}
 	else
 	{
-		Serial.println("Sending Renogy alternater command");
+		logger.log(INFO,"Sending Renogy alternater command");
 		cmdIndex=4;
 	}
 
@@ -226,7 +225,7 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 
 	if (dataLen + dataReceivedLength >= DEFAULT_DATA_BUFFER_LENGTH -1) 
 	{
-		logerror("Buffer overrun receiving data\n");
+		logger.log(ERROR,"Buffer overrun receiving data in BT2Reader");
 		return false;
 	}
 
@@ -234,7 +233,7 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 	dataReceivedLength += dataLen;
 	if (getExpectedLength(dataReceived) < dataReceivedLength) 
 	{
-		logerror("Buffer overrun receiving data\n");
+		logger.log(ERROR,"Unexpected data length in BT2Reader");
 		return false;
 	}
 	return true;
@@ -245,7 +244,7 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	//Make sure we're clear to send
 	if(bleSemaphore->waitingForResponse)
 	{
-		log("BLE device %s in use when another send attempt was tried\n",bleSemaphore->btDevice->getPerifpheryName());
+		logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
 		return;
 	}
 
@@ -260,9 +259,12 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	command[6] = checksum & 0xFF;
 	command[7] = (checksum >> 8) & 0xFF;
 
-	log("Sending command sequence: ");
-	for (int i = 0; i < 8; i++) { logprintf("%02X ", command[i]); }
-	logprintf("\n");
+	//Serial prints are here because it's tough for me to send hex to the serial monitor  (plus, it's for debugging only)
+	#ifdef SERIALLOGGER
+	Serial.print("Sending command sequence: ");
+	for (int i = 0; i < 8; i++) { Serial.printf("%02X ", command[i]); }
+	Serial.println();
+	#endif
 
 	txDeviceCharateristic.writeValue(command, 8);
 	registerExpected = startRegister;
@@ -282,7 +284,7 @@ void BT2Reader::processDataReceived(BLE_SEMAPHORE* bleSemaphore)
 	//Check if we should release the semaphore
 	if(getRegisterValueIndex(bleSemaphore->expectedBytes))
 	{
-		log("Releasing response semaphore for BLE device %s\n",bleSemaphore->btDevice->getPerifpheryName());
+		//logger.log(INFO,"Releasing response semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
 		bleSemaphore->waitingForResponse=false;
 	}
 	
@@ -315,39 +317,39 @@ void BT2Reader::updateValues()
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
-				Serial.printf("Aux Battery: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,alternaterAmps);
+				//logger.log(INFO,"Aux Battery: value=%d multiplier=%f result=%f",registerValue.value,rr->multiplier,alternaterAmps);
 				break;
 			case RENOGY_ALTERNATOR_CURRENT:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
-				Serial.printf("Alternater: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,alternaterAmps);
+				//logger.log(INFO,"Alternater: value=%d multiplier=%f result=%f",registerValue.value,rr->multiplier,alternaterAmps);
 				break;
 			case RENOGY_SOLAR_CURRENT:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				solarAmps=(float)(registerValue.value) * rr->multiplier;
-				Serial.printf("Solar: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,solarAmps);
+				//logger.log(INFO,"Solar: value=%d multiplier=%f result=%f",registerValue.value,rr->multiplier,solarAmps);
 				break;
 			case RENOGY_TODAY_AMP_HOURS:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
 				ampHours=(float)(registerValue.value) * rr->multiplier;
-				Serial.printf("Today AH: value=%d multiplier=%f result=%f\n",registerValue.value,rr->multiplier,ampHours);
+				//logger.log(INFO,"Today AH: value=%d multiplier=%f result=%f",registerValue.value,rr->multiplier,ampHours);
 				break;	
 			case RENOGY_AUX_BATT_TEMPERATURE:
 				uint8_t msb = (registerValue.value >> 8) & 0xFF;
 				uint8_t lsb = (registerValue.value) & 0xFF;
-				Serial.print("Temperatures: ")				;
-				Serial.print((lsb & 0x80) > 0 ? '-' : '+');  //aux batt temp
-				Serial.printf("%d C, ", lsb & 0x7F);
-				Serial.print((msb & 0x80) > 0 ? '-' : '+');  //controller temp
-				Serial.printf("%d C, ", msb & 0x7F); 
+				//logger.log(INFO,"Temperatures: ",false)				;
+				//logger.log((lsb & 0x80) > 0 ? '-' : '+',false);  //aux batt temp
+				//logger.log(INFO,"%d C, ", lsb & 0x7F);
+				//logger.log((msb & 0x80) > 0 ? '-' : '+',false);  //controller temp
+				//logger.log(INFO,"%d C, ", msb & 0x7F); 
 
 				temperature=msb & 0x7F;
 				if((msb & 0x80) > 0)
 					temperature=temperature*-1;
-				Serial.printf("Temperature: %fC\n",temperature);
+				//logger.log(INFO,"Temperature: %fC",temperature);
 				break;							
 		}
 	}
@@ -372,6 +374,7 @@ float BT2Reader::getTemperature()
 
 void BT2Reader::dumpRenogyData()
 {
+	#ifdef SERIALLOGGER
 	int lastCmd=lastCmdSent;
 	uint16_t startRegister = bt2Commands[lastCmd].startRegister;
 	uint16_t numberOfRegisters = bt2Commands[lastCmd].numberOfRegisters;
@@ -381,13 +384,14 @@ void BT2Reader::dumpRenogyData()
 	
 	for (int i = 0; i < numberOfRegisters; i++) 
 	{
-		Serial.printf("Register 0x%04X contains %d\n",startRegister + i,getRegister(startRegister + i)->value);
+		Serial.printf("Register 0x%04X contains %d",startRegister + i,getRegister(startRegister + i)->value);
 	}
 
 	for (int i = 0; i < numberOfRegisters; i++) 
 	{
 		printRegister(startRegister + i);
 	}
+	#endif
 }
 
 
