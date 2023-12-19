@@ -232,6 +232,8 @@ void screenTouchedCallback(int x,int y)
 		{
 			layout.setBLEIndicator(TFT_DARKGRAY);
 			startBLE();
+			logger.log(INFO,"Starting BLE scan again");
+			BLE.scan();			
 		}
 	}
 }
