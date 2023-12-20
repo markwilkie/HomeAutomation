@@ -198,11 +198,18 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	updateSemaphore(bleSemaphore,expectedBytes);		
 }
 
+bool SOKReader::isCurrent()
+{
+	return (millis()-lastHeardTime)<SOK_BLE_STALE;
+}
+
 void SOKReader::updateValues()
 {
 	//trigger by both xC1 and xC2
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF0)
     {
+		lastHeardTime=millis();
+
 		soc=bytesToInt(dataReceived+16,1,false);
 		volts=bytesToInt(dataReceived+2,3,false)*.001;
 		amps=bytesToInt(dataReceived+5,3,true)*.001;

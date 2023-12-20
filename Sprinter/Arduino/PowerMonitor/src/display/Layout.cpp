@@ -128,6 +128,13 @@ bool Layout::isBLERegion(int x,int y)
 	return false;
 }
 
+void Layout::updateBitmaps()
+{
+	//update bitmap meters
+    socMeter.updateLevel(displayData.stateOfCharge,2,0);
+    waterMeter.updateLevel(displayData.stateOfWater,displayData.rangeForWater,2,0);	
+}
+
 void Layout::updateLCD(ESP32Time *rtc)
 {
 	//datetime
@@ -137,10 +144,6 @@ void Layout::updateLCD(ESP32Time *rtc)
     centerOutMeter.drawMeter(displayData.chargeAmps);
     centerInMeter.drawMeter(displayData.drawAmps);
     centerInMeter.drawText("A",displayData.chargeAmps-displayData.drawAmps);
-
-	//update bitmap meters
-    socMeter.updateLevel(displayData.stateOfCharge,2,0);
-    waterMeter.updateLevel(displayData.stateOfWater,displayData.rangeForWater,2,0);	
 
     //update text values
 	lcd.setTextFont(4);

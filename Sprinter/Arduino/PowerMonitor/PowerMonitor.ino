@@ -11,6 +11,7 @@
 
 #define POLL_TIME_MS	500
 #define SCR_UPDATE_TIME 500
+#define BITMAP_UPDATE_TIME 5000
 #define BT_TIMEOUT_MS	5000
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
 
@@ -33,6 +34,7 @@ WaterTank waterTank;
 BLE_SEMAPHORE bleSemaphore;
 long lastRTCUpdateTime=0;
 long lastScrUpdatetime=0;
+long lastBitmapUpdatetime=0;
 long lastPwrUpdateTime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
@@ -215,6 +217,28 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 
 void screenTouchedCallback(int x,int y)
 {
+	//nothing special for short touch
+}
+
+void turnOffBLE()
+{
+	layout.setBLEIndicator(TFT_BLACK);			
+	BLE.stopScan();
+	BLE.disconnect();
+	//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??
+}
+
+void turnOnBLE()
+{
+	layout.setBLEIndicator(TFT_DARKGRAY);
+	startBLE();
+	logger.log(INFO,"Starting BLE scan again");
+	BLE.scan();	
+}
+
+
+void longScreenTouchedCallback(int x,int y)
+{
 	//check if in the BLE region - meaning, should we toggle BLE on/off
 	if(layout.isBLERegion(x,y))
 	{
@@ -223,24 +247,13 @@ void screenTouchedCallback(int x,int y)
 		logger.log(INFO,"BLE Toggled %d (%d,%d)",BLEOn,x,y);
 		if(!BLEOn)
 		{
-			layout.setBLEIndicator(TFT_BLACK);			
-			BLE.stopScan();
-			BLE.disconnect();
-			//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??
+			turnOffBLE();
 		}
 		else
 		{
-			layout.setBLEIndicator(TFT_DARKGRAY);
-			startBLE();
-			logger.log(INFO,"Starting BLE scan again");
-			BLE.scan();			
+			turnOnBLE();
 		}
 	}
-}
-
-void longScreenTouchedCallback(int x,int y)
-{
-	//Serial.printf("Long Screen touched!!! (%d,%d)\n",x,y);
 }
 
 void loop() 
@@ -308,6 +321,21 @@ void loop()
 
 		//send logs
 		logger.sendLogs(wifi.isConnected());
+	}
+
+	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME)
+	{
+		//Update updateBitmaps
+		lastBitmapUpdatetime=millis();
+		layout.updateBitmaps();
+
+		//Check that we're still receiving BLE data
+		if((!sokReader.isCurrent() && sokReader.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
+		{
+			turnOffBLE();
+			delay(1000);
+			turnOnBLE();
+		}
 	}
 
 	//Time to ask for data again?
