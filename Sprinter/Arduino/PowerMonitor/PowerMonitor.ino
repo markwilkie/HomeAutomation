@@ -247,13 +247,41 @@ void longScreenTouchedCallback(int x,int y)
 		logger.log(INFO,"BLE Toggled %d (%d,%d)",BLEOn,x,y);
 		if(!BLEOn)
 		{
-			turnOffBLE();
+			disconnectBLE();
 		}
 		else
 		{
-			turnOnBLE();
+			reStartBLE();
 		}
 	}
+}
+
+void longScreenTouchedCallback(int x,int y)
+{
+	//Serial.printf("Long Screen touched!!! (%d,%d)\n",x,y);
+}
+
+void disconnectBLE()
+{
+	layout.setBLEIndicator(TFT_BLACK);			
+	BLE.stopScan();
+
+	int numOfTargetedDevices=sizeof(targetedDevices)/(sizeof(targetedDevices[0]));
+	for(int i=0;i<numOfTargetedDevices;i++)
+	{
+		targetedDevices[i]->disconnect();
+	}
+	
+	BLE.disconnect();
+	//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??	
+}
+
+void reStartBLE()
+{
+	layout.setBLEIndicator(TFT_DARKGRAY);
+	startBLE();
+	logger.log(INFO,"Starting BLE scan again");
+	BLE.scan();	
 }
 
 void loop() 

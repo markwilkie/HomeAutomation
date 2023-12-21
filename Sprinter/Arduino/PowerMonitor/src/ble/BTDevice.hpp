@@ -47,6 +47,7 @@ class BTDevice
 		uint8_t *getPeripheryAddress();
 		BLEDevice *getBLEDevice();
 		boolean isConnected();
+		void disconnect();
 
 	protected:
 
