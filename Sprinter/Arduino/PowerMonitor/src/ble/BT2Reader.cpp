@@ -301,11 +301,18 @@ void BT2Reader::processDataReceived(BLE_SEMAPHORE* bleSemaphore)
 	newDataAvailable = true;
 }
 
+bool BT2Reader::isCurrent()
+{
+	return (millis()-lastHeardTime)<BT2_BLE_STALE;
+}
+
 void BT2Reader::updateValues()
 {
 	int numRegisters=sizeof(registerValues)/(sizeof(registerValues[0]));
 	for(int i=0;i<numRegisters;i++)
 	{
+		lastHeardTime=millis();
+
 		int registerDescriptionIndex;
 		const REGISTER_DESCRIPTION *rr;
 		REGISTER_VALUE registerValue=registerValues[i];

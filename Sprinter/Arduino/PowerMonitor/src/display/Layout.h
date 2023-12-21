@@ -21,6 +21,7 @@ class Layout
         void init();
         void drawInitialScreen();
         void updateLCD(ESP32Time *);
+        void updateBitmaps();
         void setWifiIndicator(boolean online);
         void setBLEIndicator(int color);
         bool isBLERegion(int x,int y);

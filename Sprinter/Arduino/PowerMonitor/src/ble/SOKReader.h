@@ -7,6 +7,7 @@
 
 extern Logger logger;
 
+#define SOK_BLE_STALE 20000
 #define PROTECTION_COUNT 50
 
 class SOKReader : public BTDevice
@@ -35,6 +36,8 @@ public:
 	boolean isProtected();
 	boolean isHeating();
 
+	boolean isCurrent();
+
 private:
 
 	int bytesToInt(uint8_t *bytes, int len, boolean isSigned) ;	
@@ -42,6 +45,7 @@ private:
 	int sendCommandCounter=0;
 
 	//variables
+	long lastHeardTime;
 	int soc;
 	float volts;
 	float amps;
