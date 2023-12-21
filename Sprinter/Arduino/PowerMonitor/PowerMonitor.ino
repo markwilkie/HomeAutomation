@@ -323,7 +323,7 @@ void loop()
 		logger.sendLogs(wifi.isConnected());
 	}
 
-	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME)
+	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME && lastBitmapUpdatetime>0)
 	{
 		//Update updateBitmaps
 		lastBitmapUpdatetime=millis();
