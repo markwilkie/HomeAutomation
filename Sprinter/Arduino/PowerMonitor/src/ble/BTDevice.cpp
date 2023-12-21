@@ -10,6 +10,11 @@ boolean BTDevice::isConnected()
 	return connected;
 }
 
+void BTDevice::disconnect()
+{
+	this->disconnect();
+}
+
 boolean BTDevice::getIsNewDataAvailable() 
 {
 	boolean isNewDataAvailable = newDataAvailable;
