@@ -7,12 +7,13 @@ uint8_t *BTDevice::getPeripheryAddress()
 
 boolean BTDevice::isConnected()
 {
+	//return bleDevice->connected();
 	return connected;
 }
 
 void BTDevice::disconnect()
 {
-	this->disconnect();
+	bleDevice->disconnect();
 }
 
 boolean BTDevice::getIsNewDataAvailable() 

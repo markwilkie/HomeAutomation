@@ -12,6 +12,7 @@
 #define POLL_TIME_MS	500
 #define SCR_UPDATE_TIME 500
 #define BITMAP_UPDATE_TIME 5000
+#define BLE_IS_ALIVE_TIME 30000
 #define BT_TIMEOUT_MS	5000
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
 
@@ -35,6 +36,7 @@ BLE_SEMAPHORE bleSemaphore;
 long lastRTCUpdateTime=0;
 long lastScrUpdatetime=0;
 long lastBitmapUpdatetime=0;
+long lastBleIsAliveTime=0;
 long lastPwrUpdateTime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
@@ -83,6 +85,9 @@ void setup()
 
 	//setting time
 	setTime();	
+
+	//set time to current so it waits before checking the first time
+	lastBleIsAliveTime=millis();
 
 	logger.sendLogs(wifi.isConnected());
 }
@@ -256,23 +261,33 @@ void longScreenTouchedCallback(int x,int y)
 	}
 }
 
-void longScreenTouchedCallback(int x,int y)
-{
-	//Serial.printf("Long Screen touched!!! (%d,%d)\n",x,y);
-}
-
 void disconnectBLE()
 {
 	layout.setBLEIndicator(TFT_BLACK);			
 	BLE.stopScan();
+	logger.log(INFO,"after stop scan");
 
 	int numOfTargetedDevices=sizeof(targetedDevices)/(sizeof(targetedDevices[0]));
 	for(int i=0;i<numOfTargetedDevices;i++)
 	{
-		targetedDevices[i]->disconnect();
+		logger.log(INFO,targetedDevices[i]->getPerifpheryName());
+		logger.log(INFO,targetedDevices[i]->isConnected());
+		//targetedDevices[i]->disconnect();
 	}
+
+	logger.log(INFO,"after disconnecting");
 	
 	BLE.disconnect();
+
+	logger.log(INFO,"after ble disconnecting");
+
+	for(int i=0;i<numOfTargetedDevices;i++)
+	{
+		logger.log(INFO,targetedDevices[i]->getPerifpheryName());
+		logger.log(INFO,targetedDevices[i]->isConnected());
+		//targetedDevices[i]->disconnect();
+	}
+
 	//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??	
 }
 
@@ -336,6 +351,20 @@ void loop()
 		}
 	}
 
+	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME)
+	{
+		//Check that we're still receiving BLE data
+		if((!sokReader.isCurrent() && sokReader.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
+		{
+			turnOffBLE();
+			delay(1000);
+			turnOnBLE();
+		}
+
+		//reset time
+		lastBleIsAliveTime=millis();
+	}
+
 	//load values
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
@@ -351,10 +380,9 @@ void loop()
 		logger.sendLogs(wifi.isConnected());
 	}
 
-	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME && lastBitmapUpdatetime>0)
+	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME)
 	{
 		//Update updateBitmaps
-		lastBitmapUpdatetime=millis();
 		layout.updateBitmaps();
 
 		//Check that we're still receiving BLE data
@@ -364,6 +392,9 @@ void loop()
 			delay(1000);
 			turnOnBLE();
 		}
+
+		//reset time
+		lastBitmapUpdatetime=millis();
 	}
 
 	//Time to ask for data again?
