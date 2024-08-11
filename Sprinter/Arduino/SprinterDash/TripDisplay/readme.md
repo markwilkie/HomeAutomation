@@ -1,7 +1,8 @@
 
 # Requirements / Components
-- V2.0.9 of the ESP32 Arduino Core  (https://github.com/espressif/arduino-esp32/releases)  V1.6 was very undstable when using I2C.
-- FireBeetle ESP32 board  (https://www.dfrobot.com/product-1590.htm)
+- Must be V2.0.11 of the ESP32 Arduino Core.  (https://github.com/espressif/arduino-esp32/releases/tag/2.0.15)  V1.6 was very undstable when using I2C and.  V3.x has breaking changes, and > 2.0.11 Serial2 didn't work
+    - ESP lives here when installed by the IDE: C:\Users\mark\AppData\Local\Arduino15\packages 
+- FireBeetle ESP32 board.  Note that the board name is 'FireBeetle-ESP32 (esp32)' 
 - Longan Canbed Dual board (https://docs.longan-labs.cc/1030019/)
 - LCD screen (I'm using SK-pixxiLCD-39P4-CTP from 4D Systems)
 - Pressure sensor for altitude and MAF.  (I'm using MPL3115A2 from Adafruit)

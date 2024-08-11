@@ -61,14 +61,17 @@ unsigned long turnOffTime;
 
 //Misc defines
 #define NUMBER_OF_SUMMARY_FORMS 3
+#define SECONDS_IDLING_THRESHOLD 300   //past this number stopped - but engine running - is considered a "stop".  Same as ign off...
 
 //Global objects for LCD
 Genie genie;  
 VanWifi wifi;
 int currentContrast=10;
 bool currentIgnState=false;
+bool currentIdlingState=true;
 unsigned long nextLCDRefresh=0;
 unsigned long nextIgnRefresh=0;
+unsigned long nextIdlingRefresh=0;
 char displayBuffer[1050];  //used for status form
 bool online= false;  //If true, it means every PID and sensor is online  (will list those which are not on boot)
 
@@ -347,6 +350,7 @@ void loop()
 
   //Take care of business
   updateContrast();
+  handleIdlingAsStop();
   handleStatupAndShutdown();
 
   //Get any updates from display  (like button pressed etc.)  Needs to be run as often as possible
@@ -383,6 +387,70 @@ void updateContrast()
     {
       genie.WriteContrast(contrast);   
       currentContrast=contrast;
+    }
+}
+
+void handleIdlingAsStop()
+{
+    //don't update if it's not time to
+    if(millis()<nextIdlingRefresh)
+        return;
+
+    //Update timing
+    nextIdlingRefresh=millis()+SHUTDOWN_STARTUP_RATE;
+
+    //Are we idling?
+    if(currentData.currentSpeed<1)
+    {
+      //Have we started counting?
+      if(currentData.idlingStartSeconds==0)
+        currentData.idlingStartSeconds=currentData.currentSeconds;
+
+      //Has it been over the threshold?
+      if((currentData.currentSeconds-currentData.idlingStartSeconds)>SECONDS_IDLING_THRESHOLD)
+      {
+        logger.log(INFO,"Idling detected");
+        currentData.idlingFlag=true;
+      }
+    }
+
+    //Need to reset?
+    if(currentData.currentSpeed>0 && currentData.idlingFlag)
+    {
+      logger.log(INFO,"Reseting idle state");
+      currentData.idlingFlag=false;
+      currentData.idlingStartSeconds=0;
+    }
+
+    //If idling state has changed, act like ign is turning off or on
+    bool state=currentData.idlingFlag;
+    if(state!=currentIdlingState)
+    {
+      currentIdlingState=state;    
+
+      //ok, act like we're stopped now
+      if(currentData.idlingFlag)
+      {
+        //Now make sure all the trip data objects have the latest
+        sinceLastStop.ignitionOff();
+        currentSegment.ignitionOff();
+        fullTrip.ignitionOff();           
+
+        //Activate stopping form
+        formNavigator.activateForm(STOPPED_FORM);
+        stopForm.updateDisplay();
+      }
+      else
+      {
+        //Reset the data since last stop because we're now going again after idling
+        logger.log(INFO,"Reseting trip data after idling");
+        sinceLastStop.resetTripData();  
+        currentSegment.ignitionOn();
+        fullTrip.ignitionOn();    
+       
+        //now that we're going again, show primary form
+        formNavigator.activateForm(PRIMARY_FORM);
+      }
     }
 }
 

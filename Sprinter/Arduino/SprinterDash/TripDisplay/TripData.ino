@@ -136,18 +136,21 @@ void TripData::updateElevation()
 int TripData::getMilesTravelled()
 {
     long currentMiles=currentDataPtr->currentMiles;
-    if(currentMiles<=0)
-        return 0;
 
     //If MIL comes on, the current miles will reset to zero.  We should catch this situation
+    //  Also, sometimes the miles don't update upon trip start
     if(currentMiles<data.lastMiles)
     {
-        data.priorTotalMiles=data.priorTotalMiles+data.lastMiles-data.startMiles;
+        if(data.lastMiles>data.startMiles)
+            data.priorTotalMiles=data.priorTotalMiles+data.lastMiles-data.startMiles;
         data.startMiles=currentMiles;
     }
     data.lastMiles=currentMiles;
 
-    int milesTravelled=currentMiles-data.startMiles+data.priorTotalMiles;
+    //OK, calc miles travelled once we have reasonable data
+    int milesTravelled=0;
+    if(currentMiles>data.startMiles)
+        milesTravelled=currentMiles-data.startMiles+data.priorTotalMiles;
 
     return milesTravelled;
 }
@@ -196,15 +199,9 @@ void TripData::updateFuelGallonsUsed()
 {
     //Get current fuel tank level
     int currentFuelPerc=currentDataPtr->currentFuelPerc;
-    if(currentFuelPerc<1)
-        return;
-
-    //Make sure we've got a valid start perc
-    if(data.startFuelPerc < 1)
-        data.startFuelPerc=currentFuelPerc;
 
     //Did we fill up since we last stopped?
-    if(currentFuelPerc>(data.stoppedFuelPerc+10)) 
+    if(currentFuelPerc>(data.stoppedFuelPerc+25)) 
     {
         logger.log(INFO,"Fueled up.  Tank now at %d",currentFuelPerc);
 
@@ -214,9 +211,12 @@ void TripData::updateFuelGallonsUsed()
         data.stoppedFuelPerc=currentFuelPerc;
     }
 
-    //Calc current gallons used
-    fuelGallonsUsed = FUEL_TANK_SIZE*((double)(data.startFuelPerc-currentFuelPerc)/100.0);
-    fuelGallonsUsed=fuelGallonsUsed+data.priorTotalGallonsUsed;
+    //Calc current gallons used  (make sure values are valid)
+    if(data.startFuelPerc>=currentFuelPerc)
+    {
+        fuelGallonsUsed = FUEL_TANK_SIZE*((double)(data.startFuelPerc-currentFuelPerc)/100.0);
+        fuelGallonsUsed=fuelGallonsUsed+data.priorTotalGallonsUsed;
+    }
 }
 
 // in gallons

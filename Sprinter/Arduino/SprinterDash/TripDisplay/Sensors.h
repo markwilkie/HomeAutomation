@@ -3,6 +3,7 @@
 
 #include <Adafruit_MPL3115A2.h>
 #include "RTClib.h"
+#include "HampelFilter.h"
 
 /*
 i2c addresses
@@ -30,6 +31,9 @@ class Barometer
     bool online=false;
     int elevationOffset=0;
     int currentElevReadCount=0;
+
+    //Hampel filter for outlier values
+    HampelFilter hampelFilter;
 
     //Data
     int elevation;
@@ -63,7 +67,7 @@ class RTC
     bool online=false;
 
     //Timing
-    unsigned long nextTickCount;      //when to update/refresh the gauge again
+    unsigned long nextTickCount;      //when to update/refresh the gauge again    
 };
 
 #define PRESSURE_I2C_ADDRESS 0x28

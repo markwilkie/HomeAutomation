@@ -107,7 +107,13 @@ void StoppedForm::updateDisplay()
   //Update time data fields
   strField.updateField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled(),sizeof(milesTravelled)-1);
   strField.updateField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime(),sizeof(elapsedTime)-1);
-  strField.updateField(geniePtr,GALLONS_EXPECTED_STRING, gallonsExpected,tripSegDataPtr->getGallonsExpected(),sizeof(gallonsExpected)-1);
+
+  //Create gallons expected + oz of additive and update form
+  int gallExp=tripSegDataPtr->getGallonsExpected();
+  int ozToAdd=tripSegDataPtr->getGallonsExpected()*FUEL_ADDITIVE_RATIO;
+  sprintf(gallonsExpected, "%d (%doz)", gallExp, ozToAdd);
+  geniePtr->WriteStr(GALLONS_EXPECTED_STRING,gallonsExpected);
+  //strField.updateField(geniePtr,GALLONS_EXPECTED_STRING, gallonsExpected,tripSegDataPtr->getGallonsExpected(),sizeof(gallonsExpected)-1);
 
   //If we have a valid avg mpg, show it
   double avgMpgFlt=tripSegDataPtr->getAvgMPG();

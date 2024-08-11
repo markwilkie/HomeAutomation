@@ -13,6 +13,9 @@ void Barometer::setup()
     logger.log(ERROR,"Could not find MPL3115A2 Barometer");
     online=false;
   }
+
+  //For filtering out outlier values  (24 value window, 10 threshold, and 3x outlier override)
+  hampelFilter.init(24, 10, 3);
 }
 
 bool Barometer::isOnline()
@@ -40,9 +43,13 @@ void Barometer::update()
     //logger.log(VERBOSE,"Pressure: %f",pressure);
   }
 
-  //Let's read elevation
+  //Let's read elevation with some bounds checking thrown
   elevation = baro.getAltitude() * 3.28084;
-  elevation = elevation + elevationOffset;
+  bool isNotOutlierFlag = hampelFilter.writeIfNotOutlier(elevation);
+  if(isNotOutlierFlag)
+    elevation = elevation + elevationOffset;
+  else
+    logger.log(VERBOSE,"Elevation Outlier: %d   Median: %d",elevation,hampelFilter.readMedian());
 
   //debg info
   if(!online && pressure!=0)
@@ -134,7 +141,7 @@ uint32_t RTC::adjust(DateTime dateTime)
   delay(2000);  //let things calm down I guess
   rtc.adjust(dateTime);
   secondsSince2000=dateTime.secondstime();
-  logger.log(ERROR,"Setting time to: %lu seconds.  (%d/%d/%d %d:%d:%d)",dateTime.secondstime(),dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second());
+  logger.log(WARNING,"Setting time to: %lu seconds.  (%d/%d/%d %d:%d:%d)",dateTime.secondstime(),dateTime.month(),dateTime.day(),dateTime.year(),dateTime.hour(),dateTime.minute(),dateTime.second());
   
   //Ok, start things back up again
   rtc.start();

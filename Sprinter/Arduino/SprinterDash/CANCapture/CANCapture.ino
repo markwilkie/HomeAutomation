@@ -122,13 +122,15 @@ void setup()
 
     Serial.println("Making sure we can talk to the ECU ok");
     if(digitalRead(10))  //make sure we're not in debug mode
+    {
       initECU();
       
-    //Send quickly 30 times to get initialized ok
-    for(int i=0;i<30;i++)
-    {
-      sendAllPids();
-      delay(500);
+      //Send quickly 30 times to get initialized ok
+      for(int i=0;i<30;i++)
+      {
+        sendAllPids();
+        delay(500);
+      }
     }
 
     Serial.println("...and we're off!");

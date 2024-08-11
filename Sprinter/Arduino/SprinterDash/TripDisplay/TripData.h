@@ -4,7 +4,8 @@
 #include <EEPROM.h>
 #include "CurrentData.h"
 
-#define FUEL_TANK_SIZE 22.0   // in gallons
+#define FUEL_TANK_SIZE 24.5   // in gallons
+#define FUEL_ADDITIVE_RATIO .4   // oz per gallons
 
 struct TripDataStruct{
     //Distance

@@ -1,7 +1,8 @@
 #ifndef CurrentData_h
 #define CurrentData_h
 
-#include "Sensors.h""
+#include "Sensors.h"
+#include "HampelFilter.h"
 
 struct PIDStruct{
     //Distance
@@ -40,7 +41,7 @@ class CurrentData
     void dumpData();
 
     //Data
-    long currentMiles=0;
+    int currentMiles=0;
     unsigned long currentSeconds=0;
     int currentFuelPerc=0;
     int currentElevation=0;
@@ -54,6 +55,8 @@ class CurrentData
     int currentLightLevel=0;
     bool codesPresent=false;
     bool ignitionState=false;
+    unsigned long idlingStartSeconds=0;   //seconds when mph went to zero
+    bool idlingFlag=false;           
 
   private: 
     //Other sensors
@@ -64,6 +67,10 @@ class CurrentData
     LDR ldr;
 
     void initConnections();
+
+    //Hampel filter for outlier values
+    HampelFilter distanceHampelFilter;
+    HampelFilter fuelHampelFilter;
 };
 
 #endif

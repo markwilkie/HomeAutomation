@@ -26,6 +26,7 @@ Options
     SPIsdi                       2
     SPIsck                       1
     ForceProgramFlash            No
+    PixxiuSDSpeed                0
     FlashForceLT16MB             No
 end
 Form

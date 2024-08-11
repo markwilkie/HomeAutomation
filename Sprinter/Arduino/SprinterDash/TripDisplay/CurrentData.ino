@@ -17,6 +17,10 @@ void CurrentData::init()
     //calibrate and setup sensors
     barometer.setup();
     rtc.setup();
+
+    //For filtering out outlier values  (24 value window, 10 threshold, and 3x outlier override)
+    distanceHampelFilter.init(24, 10, 3);
+    fuelHampelFilter.init(24, 10, 3);
 }
 
 void CurrentData::setTime(unsigned long secondsToSet)
@@ -110,10 +114,9 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value)
         
         //Be sure and save off the value
         updateDataFromPIDs(service,pid,value);
-
-        
-        Serial.print("service: ");Serial.print(service,HEX);Serial.print("/");Serial.print(pid,HEX);Serial.print(":");Serial.print(value);
-        Serial.print("   ---> Status: ");Serial.println(pidArray[i]->online);
+      
+        //Serial.print("service: ");Serial.print(service,HEX);Serial.print("/");Serial.print(pid,HEX);Serial.print(":");Serial.print(value);
+        //Serial.print("   ---> Status: ");Serial.println(pidArray[i]->online);
     }
 
     //check allonline flag
@@ -154,14 +157,21 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     //distance travelled in km, converting to miles
     if(service==distance.service && pid==distance.pid)
     {
-        currentMiles=value*0.621371;
+        bool isNotOutlierFlag = distanceHampelFilter.writeIfNotOutlier(value);
+        if(isNotOutlierFlag)
+          currentMiles=value*0.621371;
+        else
+          logger.log(VERBOSE,"Miles Outlier: %d   Median: %d",value,distanceHampelFilter.readMedian());
         return;
     }
     //fuel available in percentage  (30 --> 30%) 
     if(service==fuel.service && pid==fuel.pid)
     {
-        //Set current seconds
-        currentFuelPerc=value;
+        bool isNotOutlierFlag = fuelHampelFilter.writeIfNotOutlier(value);
+        if(isNotOutlierFlag)
+          currentFuelPerc=value;
+        else
+          logger.log(VERBOSE,"Fuel Outlier: %d   Median: %d",value,fuelHampelFilter.readMedian());
         return;
     }
     //MAF in g/s

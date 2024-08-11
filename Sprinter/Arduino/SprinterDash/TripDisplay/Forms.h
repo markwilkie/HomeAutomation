@@ -70,7 +70,7 @@ class StoppedForm
     TripData *tripSegDataPtr;  
 
     //Fields
-    char gallonsExpected[4];
+    char gallonsExpected[10];  //it's big because it also shows oz of additive
     char elapsedTime[5];
     char milesTravelled[5];
     char avgMPG[5];

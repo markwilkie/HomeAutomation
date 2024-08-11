@@ -6,18 +6,18 @@
 
 
 
-// generated 8/11/2024 2:41:57 PM
-// uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 14   GciFlashFiles:- 1
+// generated 8/11/2024 2:36:03 PM
+// uSDRequired:- 1   InternalRequired:- 1   InherentsInProgFlash:- 0   GciFlashFS:- 1   InherentWidgets:- 0   InternalObjects:- 4   GciFlashFiles:- 1
 
+#MODE RUNFLASH
 
 #inherit "4DGL_16bitColours.fnc"
 
 #inherit "VisualConst.inc"
 
 
-#inherit "SprinterGaugeConst.inc"
+#inherit "SprinterGauge-backupConst.inc"
 
-#inherit "CLPrintStringsGciFS.inc"
 
 #constant IPDatasize 22
 
@@ -168,162 +168,59 @@
     REPORT_MAGIC_EVENT_DBYTES 11
     WRITE_LABEL     12
 // End P1.inc
-    nObjects        34
-    nInputs         36
+    nObjects        6
+    nInputs         0
     nAniTimers      0
-    nStrings        40
 #END
 
 #DATA
     word gfxInternals gfx_AngularMeter, -1, -1, -1, -1, -1, -1, -1, gfx_LedDigits, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word gfxIntParms -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
     word gfxIntStrings -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-    word oiviAngularMeter vIAngularMeter0, vIAngularMeter1, vIAngularMeter2, vIAngularMeter3
-    word oiviLedDigits vILedDigits0, vILedDigits1, vILedDigits2, vILedDigits3, vILedDigits4, vILedDigits5, vILedDigits6, vILedDigits7, vILedDigits8, vILedDigits9
-    word xobj2iobj 0x2700, 0x2701, 0x2703, 0x2F01, 0x2F02, 0x2F03, 0x2702, 0x2F04, 0x2F06, 0x2F07, 0x2F08, 0x2F05, 0x2F09, 0x2F00
+    word oiviAngularMeter vIAngularMeter0, vIAngularMeter1, -1, vIAngularMeter3
+    word oiviLedDigits vILedDigits0
+    word xobj2iobj 0x2700, 0x2701, 0x2F00, 0x2703
     word IIAngularMeter0 60, 55, 30, 15, 0, 0, 10, -5, 2, GRAY, 320, 350,
-        0x4228, 0xC620, RED, 1, 4, 1, WHITE, -15, LIAngularMeter0, 0x3, 2,
-        0xBFB5, -15, -7, 0, 165, 9, 140, 122, 235, 70, BLACK, 135, 405, 0, 100,
-        40, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
-    byte LIAngularMeter0 "",0, "",0, "",0, "",0, "",0
-    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 183, 227,
-        0x4228, 0xC620, RED, 1, 3, 1, WHITE, -15, LIAngularMeter1, 0x3, 1,
-        WHITESMOKE, -15, 0, 0, 105, 37, 100, 90, 155, 82, BLACK, 65, 280, 130,
-        250, 32, 0x5, 17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+        0x4228, 0xC620, RED, 1, 4, 1, WHITE, -15, 0, 0x2, 1, WHITESMOKE, -15,
+        5, CIAngularMeter0, 170, 4, 140, 122, 240, 65, BLACK, 135, 405, 0, 100,
+        32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+    byte CIAngularMeter0 "LOD",0 
+    word IIAngularMeter1 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 245, 245,
+        0x4228, 0xC620, 0xC620, 1, 3, 1, WHITE, -15, LIAngularMeter1, 0x3, 1,
+        WHITESMOKE, -15, 0, 0, 120, 32, 100, 90, 170, 77, BLACK, 65, 280, 0,
+        22, 32, 0x5, 17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter1 "",0, "",0, "",0, "",0
-    word IIAngularMeter3 40, 35, 4, 5, 0, 0, 10, -5, 2, GRAY, 360, 360, 0x4228,
-        0x4228, 0x4228, 1, 2, 1, WHITE, -15, LIAngularMeter3, 0x3, 1, 0xBFB5,
-        -15, 0, 0, 265, 5, 95, 89, 312, 49, BLACK, 235, 450, 0, 22, 32, 0x5,
-        17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
+    word IILedDigits0 215, 100, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
+    word IIAngularMeter3 40, 35, 4, 5, 0, 0, 10, -5, 2, GRAY, 325, 360, 0x4228,
+        0xC620, RED, 1, 2, 1, WHITE, -15, LIAngularMeter3, 0x3, 1, WHITESMOKE,
+        -15, 0, 0, 260, 0, 96, 89, 308, 44, BLACK, 235, 450, 150, 270, 32, 0x5,
+        17, 4, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
     byte LIAngularMeter3 "",0, "",0, "",0
-    word IILedDigits1 135, 12, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits2 296, 102, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits3 4, 101, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x10
-    word IIAngularMeter2 40, 35, 5, 15, 0, 0, 10, -5, 2, GRAY, 183, 227,
-        0x4228, 0xC620, RED, 1, 3, 1, WHITE, -15, LIAngularMeter2, 0x3, 1,
-        WHITESMOKE, -15, 0, 0, 41, 37, 100, 90, 91, 82, BLACK, 65, 280, 130,
-        250, 32, 0x5, 17, 2, 0, WHITESMOKE, 0, SLATEGRAY, 0, RED
-    byte LIAngularMeter2 "",0, "",0, "",0, "",0
-    word IILedDigits4 80, 12, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits6 370, 12, 39, 23, 3, 1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits7 370, 41, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits8 359, 70, 52, 23, 4, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits5 340, 101, 26, 23, 2, 1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits9 400, 101, 39, 23, 3, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word IILedDigits0 225, 101, 26, 23, 2, -1, 0, 1, WHEAT, 0x18C3, 0x0
-    word FormStartIndex 0, 16, 18, 21, 25, 27, 28
-    word FormEndIndex 16, 18, 21, 25, 27, 28, 34
-    word iFormStartIndex 0, 14, 14, 14, 14, 14, 14
-    word iFormEndIndex 14, 14, 14, 14, 14, 14, 14
-    word InputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 44, 88, 132, 176, 220, 264, 308, 352, 396, 440, 484, -1, 528, 572, 616, 660, 704, 748
-    word InternalInputControls -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-    word InputData tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 22, 4,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 66, 2,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 110, 12,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 154, 8,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 198, 18,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 242, 22,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 286, 10,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 330, 2,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 374, 4,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 418, 24,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 462, 14,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 506, 16,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 550, 20,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 594, 6,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 638, 8,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 682, 10,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
-                tWinButton, 1, -1, -1, -1, -1, -1, -1, 0, 726, 12,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5,
-                tUserButton, 1, -1, -1, -1, -1, -1, -1, 0, 770, 6,
-                OT_REPORT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
-    word iStrings0  Strings0StartH, Strings0StartL, Strings0Size, 215, 15, 474, 45, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings1  Strings1StartH, Strings1StartL, Strings1Size, 327, 46, 466, 66, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings8
-    word iStrings2  Strings2StartH, Strings2StartL, Strings2Size, 215, 65, 400, 95, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings3  Strings3StartH, Strings3StartL, Strings3Size, 12, 110, 51, 129, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings4  Strings4StartH, Strings4StartL, Strings4Size, 145, 15, 204, 45, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings5  Strings5StartH, Strings5StartL, Strings5Size, 145, 40, 204, 70, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings6  Strings6StartH, Strings6StartL, Strings6Size, 65, 110, 170, 129, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings7  Strings7StartH, Strings7StartL, Strings7Size, 215, 40, 406, 70, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings8  Strings8StartH, Strings8StartL, Strings8Size, 327, 68, 466, 88, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings8
-    word iStrings9  Strings9StartH, Strings9StartL, Strings9Size, 92, 65, 204, 95, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings10  Strings10StartH, Strings10StartL, Strings10Size, 270, 110, 319, 129, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings11  Strings11StartH, Strings11StartL, Strings11Size, 325, 110, 464, 129, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings12  Strings12StartH, Strings12StartL, Strings12Size, 55, 7, 271, 37, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings2
-    word iStrings13  Strings13StartH, Strings13StartL, Strings13Size, 270, 16, 319, 35, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings14  Strings14StartH, Strings14StartL, Strings14Size, 325, 16, 441, 35, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings15  Strings15StartH, Strings15StartL, Strings15Size, 65, 38, 164, 57, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings16  Strings16StartH, Strings16StartL, Strings16Size, 65, 62, 175, 81, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings17  Strings17StartH, Strings17StartL, Strings17Size, 12, 38, 51, 57, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings18  Strings18StartH, Strings18StartL, Strings18Size, 12, 62, 51, 81, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings19  Strings19StartH, Strings19StartL, Strings19Size, 12, 86, 51, 105, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings20  Strings20StartH, Strings20StartL, Strings20Size, 65, 86, 102, 105, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings21  Strings21StartH, Strings21StartL, Strings21Size, 270, 38, 319, 57, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings22  Strings22StartH, Strings22StartL, Strings22Size, 325, 38, 424, 57, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings23  Strings23StartH, Strings23StartL, Strings23Size, 270, 62, 319, 81, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings24  Strings24StartH, Strings24StartL, Strings24Size, 325, 62, 424, 81, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings25  Strings25StartH, Strings25StartL, Strings25Size, 270, 86, 319, 105, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings26  Strings26StartH, Strings26StartL, Strings26Size, 325, 86, 467, 105, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings27  Strings27StartH, Strings27StartL, Strings27Size, 100, 86, 121, 105, WHEAT, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings28  Strings28StartH, Strings28StartL, Strings28Size, 122, 86, 203, 105, WHITE, BLACK, 0, 1, 1, 2, -1-iFontStrings10
-    word iStrings29  Strings29StartH, Strings29StartL, Strings29Size, 270, 68, 319, 87, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings8
-    word iStrings30  Strings30StartH, Strings30StartL, Strings30Size, 270, 92, 319, 112, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings8
-    word iStrings31  Strings31StartH, Strings31StartL, Strings31Size, 327, 90, 470, 111, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings8
-    word iStrings32  Strings32StartH, Strings32StartL, Strings32Size, 270, 46, 319, 66, WHEAT, BLACK, 0, 1, 1, 3, -1-iFontStrings8
-    word iStrings33  Strings33StartH, Strings33StartL, Strings33Size, 284, 15, 422, 39, WHITE, BLACK, 0, 1, 1, 3, -1-iFontStrings2
-    word iStrings34  Strings34StartH, Strings34StartL, Strings34Size, 190, 15, 468, 111, WHEAT, BLACK, 0, 1, 1, 4, -1-iFontStrings10
-    word iStrings35  Strings35StartH, Strings35StartL, Strings35Size, 15, 16, 182, 35, WHITE, BLACK, 0, 1, 1, 4, -1-iFontStrings10
-    word iStrings36  Strings36StartH, Strings36StartL, Strings36Size, 15, 92, 182, 111, WHITE, BLACK, 0, 1, 1, 4, -1-iFontStrings10
-    word iStrings37  Strings37StartH, Strings37StartL, Strings37Size, 215, 90, 400, 120, WHITE, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings38  Strings38StartH, Strings38StartL, Strings38Size, 145, 90, 204, 120, WHEAT, BLACK, 0, 1, 1, 1, -1-iFontStrings2
-    word iStrings39  Strings39StartH, Strings39StartL, Strings39Size, 24, 40, 458, 62, WHITE, 0xFFFF, 0, 0, 1, 5, -1-iFontStrings39
+    word FormStartIndex 0, 6
+    word FormEndIndex 6, 6
+    word iFormStartIndex 0, 4
+    word iFormEndIndex 4, 4
+    word InputControls 0
+    word InternalInputControls -1, -1, -1, -1
+    word InputData 0
     word oDipSwitchs 0
-    word oWinButtons 6, iWinbutton0, iWinbutton1, iWinbutton2, iWinbutton3, iWinbutton4, iWinbutton5
-    word oForms 7, -1, -1, -1, -1, -1, iForm5, -1
-    word oGauges 4, iGauge0, iGauge1, iGauge2, iGauge3
-    word oImages 11, iImage0, iImage1, -1, iImage3, iImage4, iImage5, iImage6, iImage7, iImage8, iImage9, iImage10
-    word oStringss 40, iStrings0, iStrings1, iStrings2, iStrings3, iStrings4, iStrings5, iStrings6, iStrings7, iStrings8, iStrings9, iStrings10, iStrings11, iStrings12, iStrings13, iStrings14, iStrings15, iStrings16, iStrings17, iStrings18, iStrings19, iStrings20, iStrings21,
-                    iStrings22, iStrings23, iStrings24, iStrings25, iStrings26, iStrings27, iStrings28, iStrings29, iStrings30, iStrings31, iStrings32, iStrings33, iStrings34, iStrings35, iStrings36, iStrings37, iStrings38, iStrings39
-    word oUserleds 1, iUserled0
-    word oUserButtons 12, iUserbutton0, iUserbutton1, iUserbutton2, iUserbutton3, iUserbutton4, iUserbutton5, iUserbutton6, iUserbutton7, iUserbutton8, iUserbutton9, iUserbutton10, iUserbutton11
-    word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, IIAngularMeter2, IIAngularMeter3
-    word oiLedDigitss 10, IILedDigits0, IILedDigits1, IILedDigits2, IILedDigits3, IILedDigits4, IILedDigits5, IILedDigits6, IILedDigits7, IILedDigits8, IILedDigits9
-    word FormBGcolors 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, ColorBGimage, 0x0000
+    word oAngularmeters 1, iAngularmeter0
+    word oCustomdigitss 2, iCustomdigits0, iCustomdigits1
+    word oForms 2, -1, -1
+    word oImages 1, iImage0
+    word oiAngularMeters 4, IIAngularMeter0, IIAngularMeter1, -1, IIAngularMeter3
+    word oiLedDigitss 1, IILedDigits0
+    word FormBGcolors 0x0000, 0x0000
     word kKeyboardKeystrokes -1
     word rKeyboardRoutines -1
+    word oCustomDigitsn 152, 2, 1, 12, 0,
+                305, 2, 1, 12, 0
 #END
 
     var vIAngularMeter0[WIDGET_RAM_SPACE] ;
     var vIAngularMeter1[WIDGET_RAM_SPACE] ;
-    var vIAngularMeter3[WIDGET_RAM_SPACE] ;
-    var vILedDigits1[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits2[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits3[WIDGET_RAM_SPACE+2] ;
-    var vIAngularMeter2[WIDGET_RAM_SPACE] ;
-    var vILedDigits4[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits6[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits7[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits8[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits5[WIDGET_RAM_SPACE+2] ;
-    var vILedDigits9[WIDGET_RAM_SPACE+2] ;
     var vILedDigits0[WIDGET_RAM_SPACE+2] ;
-var stringsCV[40] := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], hstrings ;
+    var vIAngularMeter3[WIDGET_RAM_SPACE] ;
 // Start P2.inc
 var vObjects[MaxIntObjects+1] ;              // address of RAM objects
 var GObjectIdx, GObjectFunc, GObjectRAM, GObjectDATA, GObjectParms, GObjectStrings ;
@@ -400,12 +297,10 @@ func ReadObject(var ObjectType, var ObjectIdx)
     j := 2 + ObjectIdx * 2 + Objects ;
      if (ObjectType == tForm)
         k := CurrentForm ;
-    else if (ObjectType == tStrings)
-        k := stringsCV[ObjectIdx];
+    else if ((ObjectType == tCustomdigits) || (ObjectType == tLeddigits))
+        k := img_GetWord(hndl, *j, IMAGE_TAG2);
         else
         k := img_GetWord(hndl, *j, IMAGE_INDEX);
-        if (((ObjectType == tWinButton) || (ObjectType == tAniButton) || (ObjectType == tUserButton) || (ObjectType == t4Dbutton)) && (k)) k := 1 ; // this is not correct for blocked buttons and cannot be fixed as we cannot
-                                                                                                                                                    // determine if button is momentary or not which is needed for correct answer.
     endif
     endif
     SendReport(REPORT_OBJ, ObjectType, ObjectIdx, k) ;
@@ -434,59 +329,11 @@ func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
             Objects(NewVal, k, i) ; 
         return ;
     endif
-    switch (ObjectType)
-        case tWinButton :
-            j := InputControls[oWinButtons[ObjectIdx+1]] ;
-            break ;
-        case tUserButton :
-            j := InputControls[oUserButtons[ObjectIdx+1]] ;
-            break ;
-        default : j := -1 ;
-    endswitch
 
-    if (j != -1)
-        k := img_GetWord(hndl, i , IMAGE_INDEX) ;
-        if (   (k == -1)                    // currently disabled
-            && (NewVal != -1) )             // and don't want it disabled
-            img_ClearAttributes(hndl, i, I_TOUCH_DISABLE);    // enable touch
-        else if (   (k != -1)               // currently enabled
-                 && (NewVal == -1) )        // and want it disabled
-            img_SetWord(hndl, i, IMAGE_INDEX, 0xffff) ;       // make invisible
-            img_SetAttributes(hndl, i, I_TOUCH_DISABLE);      // and disable touch
-            if (img_GetWord(hndl,i,IMAGE_FLAGS) & I_ENABLED)  // only clear if we are enabled (i.e. on current form) 
-                if (FormBGcolors[CurrentForm] != ColorBGimage)
-                    gfx_RectangleFilled(img_GetWord(hndl, i, IMAGE_XPOS), img_GetWord(hndl, i, IMAGE_YPOS),
-                                        img_GetWord(hndl, i, IMAGE_XPOS) + img_GetWord(hndl, i, IMAGE_WIDTH),
-                                        img_GetWord(hndl, i, IMAGE_YPOS) + img_GetWord(hndl, i, IMAGE_HEIGHT), FormBGcolors[CurrentForm]);
-                else
-                    gfx_ClipWindow(img_GetWord(hndl, i, IMAGE_XPOS), img_GetWord(hndl, i, IMAGE_YPOS),
-                                   img_GetWord(hndl, i, IMAGE_XPOS) + img_GetWord(hndl, i, IMAGE_WIDTH),
-                                   img_GetWord(hndl, i, IMAGE_YPOS) + img_GetWord(hndl, i, IMAGE_HEIGHT)) ;
-                    gfx_Clipping(ON) ;
-                    img_Show(hndl,FormStartIndex[CurrentForm]) ;
-                    gfx_Clipping(OFF) ;
-                endif
-            endif
-            return ;
-        else
-            NewVal := NewVal << 1 ;
-            if (OVF())      // button group index change
-                if (*(j+InputData+Ofs_IPD_P1))
-                    k &= 1 ;    // mask off old group index for momentary
-                else
-                    k &= 3 ;    // mask off old group index for toggle
-                endif
-            else            // normal set
-                if (*(j+InputData+Ofs_IPD_P2) != -1) TurnOffButtons(*(j+InputData+Ofs_IPD_P2)) ;
-                k &= 0xfffc ;    // retain only group index for state set
-            endif
-            NewVal |= k ;
-            endif
-//        endif
-        endif
 
-        if (ObjectType == tStrings)
-            PrintStrings(ObjectIdx, NewVal, 0);
+        if (ObjectType == tCustomdigits)
+            img_SetWord(hndl, i , IMAGE_TAG2, NewVal); // where state is 0 to 2
+            ledDigitsDisplay(i, oCustomdigitss, oCustomDigitsn) ;
             return ;
         endif
     img_SetWord(hndl, i , IMAGE_INDEX, NewVal); // where state is 0 to 2
@@ -494,35 +341,41 @@ func WriteObject(var ObjectType, var ObjectIdx, var NewVal)
     return ; // compiler bug circumvention!
 endfunc
 
-func TurnOffButtons(var group)
-    var j, k, l, m, n, o, p;
-    m := GObjectIdx ;     // save as will be clobbered
-    n := GObjectType ;     // save as will be clobbered
-    for (j := 0; j < nInputs; j++)
-        k := j*IPDatasize ;
-        if (*(InputData+k+Ofs_IPD_P2) == group)
-            l := -1 ;
-             if (*(InputData+k) == tWinButton)
-                l := oWinButtons[*(InputData+k+Ofs_IPD_OBJVIDX)/2] ;
-                if (img_GetWord(hndl, l, IMAGE_INDEX) != 0xffff)
-                img_SetWord(hndl, l, IMAGE_INDEX, 0);
-                img_Show(hndl, l);      // only shows on current form
-                endif
 
-            else if (*(InputData+k) == tUserButton)
-                l := oUserButtons[*(InputData+k+Ofs_IPD_OBJVIDX)/2] ;
-                if (img_GetWord(hndl, l, IMAGE_INDEX) != 0xffff)
-                img_SetWord(hndl, l, IMAGE_INDEX, img_GetWord(hndl, l, IMAGE_INDEX) & 0xfffc );
-                img_Show(hndl, l);      // only shows on current form
-                endif
+
+// WARNING, this code will crash if newval exceeds maximum displayable number
+func ledDigitsDisplay(var imgidx, var typeptr, var setptr)
+    var i, j, k, l, lb, newval, num[4] ;
+    if (!((img_GetWord(hndl, imgidx, IMAGE_FLAGS) & I_ENABLED))) return ;  // ;img_GetWord(hndl, imgidx, IMAGE_TAG2) ;if diabled then exit
+    newval := img_GetWord(hndl, imgidx, IMAGE_TAG2) ;
+    i := -1 ;
+    j := *(typeptr) ;
+    repeat
+        typeptr += 2 ;
+        i++ ;
+        until (*(typeptr) == imgidx);
+    j := setptr + i*10 ;
+
+    l := 0x500a | (*(j+Ofs_Digits_Digits) << 8) ;       // UDECxZ
+    to(num) ;
+    putnum(l, newval) ;
+    imgidx++ ;
+    lb := *(j+Ofs_Digits_LeadingBlanks) ;
+    l := str_Ptr(num) ;
+    for (i := 0; i < *(j+Ofs_Digits_Digits); i++)
+        k := str_GetByte(l++) & 0x0f ;
+        if ( lb && (i < *(j+Ofs_Digits_Digits) - *(j+Ofs_Digits_MinDigits)) )
+            if (k == 0)
+                k := 10 ;
+            else
+                lb := 0 ;
             endif
         endif
+        img_SetWord(hndl, imgidx, IMAGE_INDEX, k);
+        img_SetWord(hndl, imgidx, IMAGE_XPOS, *(j+Ofs_Digits_Left)+i* *(j+Ofs_Digits_Widthdigit)) ;
+        img_Show(hndl, imgidx);
     next
-    GObjectIdx := m ;     // Restore
-    GObjectType := n ;    // Restore
 endfunc
-
-
 
 
 func ActivateForm(var newform)
@@ -551,14 +404,14 @@ func ActivateForm(var newform)
             j-- ;
             img_SetAttributes(hndl, i, I_STAYONTOP+I_ENABLED);        // make sure this is on top of form, if applicable
             //if (j != tKeyboard)
-            if (img_GetWord(hndl, i, IMAGE_INDEX) != 0xffff)
             if (((j <= tWinButton) || (j >= t4Dbutton)) && (j != tSmartGauge) )               // enable inputs
                 img_ClearAttributes(hndl, i, I_TOUCH_DISABLE);        // ensure touch is enabled
             endif
             img_Show(hndl,i) ; // show initialy, if required
-            endif
             if (j == tForm)
                 DoGFXObjects() ;                                    // display GFX 'widgets' for image backgruobds
+            else if (j == tCustomdigits)
+                ledDigitsDisplay(i, oCustomdigitss, oCustomDigitsn) ;
             endif
         endif
     next
@@ -589,11 +442,6 @@ print([HEX4] gfxInternals, " ", [HEX4] gfx_AngularMeter, " ", [HEX4] gfx_Gauge, 
         endif
     next
 
-    for (i := 0; i < nStrings; i++)
-        if (stringsCV[i] != -1)
-            WriteObject(tStrings, i, stringsCV[i]) ;
-        endif
-    next
 
 endfunc
 
@@ -612,14 +460,6 @@ func UpdateObjects(var newval)
     else
         WriteObject(GObjectType, GObjectIdx, newval) ;
     endif
-        if ((GObjectType == t4Dbutton) || (GObjectType == tUserButton) || (GObjectType == tWinButton))
-            if (*(CurInputData+Ofs_IPD_P1))
-                newval &= 1;
-            else
-                newval &= 3;
-            endif
-            if (newval > 1) newval := 1;
-        endif
         IPidx := *(CurInputData+TouchState) ;
         while(IPidx != 0)
             otherOBJ := IPidx + InputData;
@@ -648,14 +488,6 @@ func UpdateObjects(var newval)
                         WriteObject(*(otherOBJ+Ofs_IPD_P5),*(otherOBJ+Ofs_IPD_P2),img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX)+1) ;
                     endif
                     newval := img_GetWord(hndl, *(otherOBJ+Ofs_IPD_P6), IMAGE_INDEX) ;
-                else if (*(otherOBJ) == OT_PREVSTRING)
-                    if (stringsCV[*(otherOBJ+Ofs_IPD_P2)])
-                        WriteObject(tStrings,*(otherOBJ+Ofs_IPD_P2),stringsCV[*(otherOBJ+Ofs_IPD_P2)]-1) ;
-                    endif
-                else if (*(otherOBJ) == OT_NEXTSTRING)
-                    if (stringsCV[*(otherOBJ+Ofs_IPD_P2)] < *(otherOBJ+Ofs_IPD_P3)) // fix IPD_P2 not filled in yet
-                        WriteObject(tStrings,*(otherOBJ+Ofs_IPD_P2),stringsCV[*(otherOBJ+Ofs_IPD_P2)]+1) ;
-                    endif
                 endif
             endif
             IPidx := *(otherOBJ+TouchState) ;
@@ -695,20 +527,20 @@ func main()
     oObjects[tRotarySwitch] := oDipSwitchs ; // dummy as no object there
     oObjects[tGSlider] := oDipSwitchs ; // dummy as no object there
     oObjects[tTrackbar] := oDipSwitchs ; // dummy as no object there
-    oObjects[tWinButton] := oWinButtons ;
-    oObjects[tAngularmeter] := oDipSwitchs ; // dummy as no object there
+    oObjects[tWinButton] := oDipSwitchs ; // dummy as no object there
+    oObjects[tAngularmeter] := oAngularmeters ;
     oObjects[tCoolgauge] := oDipSwitchs ; // dummy as no object there
-    oObjects[tCustomdigits] := oDipSwitchs ; // dummy as no object there
+    oObjects[tCustomdigits] := oCustomdigitss ;
     oObjects[tForm] := oForms ;
-    oObjects[tGauge] := oGauges ;
+    oObjects[tGauge] := oDipSwitchs ; // dummy as no object there
     oObjects[tImage] := oImages ;
     oObjects[tKeyboard] := oDipSwitchs ; // dummy as no object there
     oObjects[tLed] := oDipSwitchs ; // dummy as no object there
     oObjects[tLeddigits] := oDipSwitchs ; // dummy as no object there
     oObjects[tMeter] := oDipSwitchs ; // dummy as no object there
-    oObjects[tStrings] := oStringss ;
+    oObjects[tStrings] := oDipSwitchs ; // dummy as no object there
     oObjects[tThermometer] := oDipSwitchs ; // dummy as no object there
-    oObjects[tUserled] := oUserleds ;
+    oObjects[tUserled] := oDipSwitchs ; // dummy as no object there
     oObjects[tVideo] := oDipSwitchs ; // dummy as no object there
     oObjects[tStaticText] := oDipSwitchs ; // dummy as no object there
     oObjects[tSounds] := oDipSwitchs ; // dummy as no object there
@@ -721,7 +553,7 @@ func main()
     oObjects[t4Dbutton] := oDipSwitchs ; // dummy as no object there
     oObjects[tAniButton] := oDipSwitchs ; // dummy as no object there
     oObjects[tColorPicker] := oDipSwitchs ; // dummy as no object there
-    oObjects[tUserButton] := oUserButtons ;
+    oObjects[tUserButton] := oDipSwitchs ; // dummy as no object there
     oObjects[tMagicObject] := oDipSwitchs ; // dummy as no object there
     oObjects[tSmartGauge] := oDipSwitchs ; // dummy as no object there
     oObjects[tSmartSlider] := oDipSwitchs ; // dummy as no object there
@@ -759,15 +591,15 @@ func main()
     vObjects[0] := oiviAngularMeter ;
     vObjects[8] := oiviLedDigits ;
 // Start P4.inc
-    wp := widget_Create(14) ;
-    for (i := 0; i < 14; i++)
+    wp := widget_Create(4) ;
+    for (i := 0; i < 4; i++)
 	addressInternalWidget(i, 0) ;
         if (GObjectType != tiLedDigit) widget_Add(wp, i, GObjectRAM) ;    // don't add tiLedDigit objects as they are only 1 word long
     next
 
     // init comms
     com_Init(comRX,CMDLenMAX,0);
-    com_SetBaud(COM0,19886);
+    com_SetBaud(COM0,960);
     com_TXbuffer(comTX, 100, 0);
     // tag 'real' objects
     for (i := 0; i <= MaxTotObjects; i++)
@@ -793,7 +625,7 @@ func main()
     CurrentForm := -1 ;
 // End P4.inc
 // Start P5.inc
-    ActivateForm(5) ; // need to change this according to first actual form
+    ActivateForm(0) ; // need to change this according to first actual form
 
 // End P5.inc
 // Start P6.inc px44
@@ -805,56 +637,8 @@ func main()
         if (com_Count() != 0)
             i := serin() ;
             InputCS ^= i ;               // update checksum
-            if (   (cmdi > 2)
-                && (cmd[0] == WRITE_STRU) )
-                j := (cmdi-1) >> 1 + 2 ;
-                if (j == CMDLenMAX)    // max length exceeded
-                    nak0() ;
-                    cmdi := -1 ;
-                else if (cmdi & 1)
-                    cmd[j] := i ;
-                    if (cmd[2] == 0)    // if string complete
-                        if (InputCS)
-                            nak0() ;
-                        else
-                            if (cmd[0] == WRITE_STRU)
-                            cmd[j] := 0 ;                     // terminate it
-                            PrintStrings(cmd[1], &cmd[3], 1) ;
-                            serout(ACK) ;
-                            else
-                            endif
-                        endif
-                        cmdi := -1 ;
-                    endif
-                else
-                    cmd[j] := cmd[j] << 8 + i ;
-                    cmd[2]-- ;          // dec length
-                endif
-                cmdi++ ;
-            else // not unicode string
                 cmd[cmdi++] := i ;
-                 if ((cmd[0] == WRITE_STR) || (cmd[0] == WRITE_LABEL) )                  // Ansi String or Label
-                    if (cmdi == CMDLenMAX)      // max length exceeded
-                        nak0() ;
-                        cmdi := 0 ;
-                    else if (cmdi > 2)
-                        if (cmd[2] == -1)
-                            if (InputCS)
-                                nak0() ;
-                            else
-                                if ((cmd[0] == WRITE_STR) || (cmd[0] == WRITE_LABEL))
-                                cmd[cmdi-1] := 0 ;                     // terminate it
-                                PrintStrings(cmd[1], &cmd[3], 1) ;
-                                serout(ACK) ;
-                                else
-                                endif
-                            endif
-                            cmdi := 0 ;
-                        else
-                            cmd[2]-- ;          // dec length
-                        endif
-                    endif
-                else if (   (cmd[0] == READ_OBJ)
+                 if (   (cmd[0] == READ_OBJ)
                          && (cmdi == 4)         )
                     if (InputCS)
                         nak0() ;
@@ -884,7 +668,6 @@ func main()
                     nak0() ;
                     cmdi := 0 ;
                 endif
-            endif   // not unicode string
         endif   // a character is available
 
 
@@ -986,40 +769,6 @@ ciButton:
 c4DButton:
 cUserButton:
 cWinbutton:
-    pInputIndex := oObjects[GObjectType]  + *(CurInputData+Ofs_IPD_OBJVIDX) ;
-    i := img_GetWord(hndl, *(pInputIndex), IMAGE_INDEX) ; // current state
-CommonButtons:
-    if (*(CurInputData+Ofs_IPD_P1))                                 // momentary, reports 0, but should report 1
-        if (TouchStatus == TOUCH_RELEASED)
-            i &= 0xfffe ;
-            TouchState == Ofs_IPD_DOWN ;
-        else
-            i |= 1 ;
-            TouchState == Ofs_IPD_RELEASE ;
-        endif
-    else if (*(CurInputData+Ofs_IPD_P2) == -1)                      // Toggle, reports 0+2, but should report 0+1
-        if (TouchStatus == TOUCH_RELEASED)                     // only truly change on release
-            if ((i & 3) == 3)
-                i &= 0xfffc ;
-            else
-                i++ ;
-            endif
-        else
-            i |= 1 ;                                      // make down regardless of current state
-        endif
-    else                        // group action, up all other buttons on touch press, reports 0 for button down
-        if (TouchStatus == TOUCH_PRESSED)                     // only truly change on release
-            TurnOffButtons(*(CurInputData+Ofs_IPD_P2)) ;
-        endif
-        if (GObjectType < tiLedDigits)
-            i := (i & 0xfffc) | 2 ;         // uSD button, four, grouping and blocking states
-        else
-            i := 1 ;                        // Internal button two states
-        endif
-    endif
-
-    UpdateObjects(i) ;
-endsub ;
 
 cAniButton:
 

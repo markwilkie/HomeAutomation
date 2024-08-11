@@ -982,11 +982,11 @@ Strings
     Font.Size                    -14
     Font.Strikethrough           No
     Font.Underline               No
-    Left                         145
-    Strings                      99\n
+    Left                         92
+    Strings                      '99 (99oz)\n'
     StringsStyle                 Message
     Top                          65
-    Width                        60
+    Width                        113
     OnChanged                    ''
 end
 UserButton
