@@ -71,9 +71,9 @@ void StartingForm::updateDisplay()
   nextTickCount=millis()+refreshTicks;
 
   //Update time data fields
-  strField.updateField(geniePtr,HEATER_FUEL_STRING, heaterFuel, tripSegDataPtr->getHeaterGallonsUsed(), sizeof(heaterFuel)-1);
-  strField.updateField(geniePtr,MILES_DRIVEN_STRING, elapsedTime, tripSegDataPtr->getMilesTravelled(), sizeof(elapsedTime)-1);
-  strField.updateField(geniePtr,TIME_ELAPSED_STRING, milesTravelled,tripSegDataPtr->getElapsedTime(), sizeof(milesTravelled)-1);
+  strField.updateNumberField(geniePtr,HEATER_FUEL_STRING, heaterFuel, tripSegDataPtr->getHeaterGallonsUsed(), sizeof(heaterFuel)-1);
+  strField.updateNumberField(geniePtr,MILES_DRIVEN_STRING, elapsedTime, tripSegDataPtr->getMilesTravelled(), sizeof(elapsedTime)-1);
+  strField.updateNumberField(geniePtr,TIME_ELAPSED_STRING, milesTravelled,tripSegDataPtr->getElapsedTime(), sizeof(milesTravelled)-1);
 }
 
 
@@ -105,8 +105,8 @@ void StoppedForm::updateDisplay()
   nextTickCount=millis()+refreshTicks;
 
   //Update time data fields
-  strField.updateField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled(),sizeof(milesTravelled)-1);
-  strField.updateField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime(),sizeof(elapsedTime)-1);
+  strField.updateNumberField(geniePtr,MILES_SINCE_STOP_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled(),sizeof(milesTravelled)-1);
+  strField.updateNumberField(geniePtr,HOURS_ELAPSED_STRING, elapsedTime, tripSegDataPtr->getElapsedTime(),sizeof(elapsedTime)-1);
 
   //Create gallons expected + oz of additive and update form
   int gallExp=tripSegDataPtr->getGallonsExpected();
@@ -118,7 +118,7 @@ void StoppedForm::updateDisplay()
   //If we have a valid avg mpg, show it
   double avgMpgFlt=tripSegDataPtr->getAvgMPG();
   if(avgMpgFlt>0 && avgMpgFlt<30)
-    strField.updateField(geniePtr,AVG_MPG_STRING_1, avgMPG,avgMpgFlt,sizeof(avgMPG)-1);
+    strField.updateNumberField(geniePtr,AVG_MPG_STRING_1, avgMPG,avgMpgFlt,sizeof(avgMPG)-1);
   else
     geniePtr->WriteStr(AVG_MPG_STRING_1,"---");
 }

@@ -38,16 +38,16 @@ void SummaryForm::updateDisplay()
   geniePtr->WriteStr(TITLE_STRING, label);
 
   //Update time data fields
-  strField.updateField(geniePtr,DRIVING_TIME_STRING, drivingTime, tripSegDataPtr->getDrivingTime(),sizeof(drivingTime)-1,TIME_FIELD_CONVERSION);
-  strField.updateField(geniePtr,ELASPED_TIME_STRING, elapsedTime, tripSegDataPtr->getElapsedTime(),sizeof(elapsedTime)-1,TIME_FIELD_CONVERSION);
-  strField.updateField(geniePtr,TIME_STOPPED_STRING, stoppedTime,tripSegDataPtr->getStoppedTime(),sizeof(stoppedTime)-1,TIME_FIELD_CONVERSION);
-  strField.updateField(geniePtr,NUM_STOPS_STRING, numberOfStops, tripSegDataPtr->getNumberOfStops(),2);
-  strField.updateField(geniePtr,TIME_PARKED_STRING, parkedTime, tripSegDataPtr->getParkedTime(),sizeof(parkedTime)-1,TIME_FIELD_CONVERSION);
+  strField.updateHoursField(geniePtr,DRIVING_TIME_STRING, drivingTime, tripSegDataPtr->getDrivingTime(),sizeof(drivingTime)-1);
+  strField.updateHoursField(geniePtr,ELASPED_TIME_STRING, elapsedTime, tripSegDataPtr->getElapsedTime(),sizeof(elapsedTime)-1);
+  strField.updateHoursField(geniePtr,TIME_STOPPED_STRING, stoppedTime,tripSegDataPtr->getStoppedTime(),sizeof(stoppedTime)-1);
+  strField.updateNumberField(geniePtr,NUM_STOPS_STRING, numberOfStops, tripSegDataPtr->getNumberOfStops(),2);
+  strField.updateHoursField(geniePtr,TIME_PARKED_STRING, parkedTime, tripSegDataPtr->getParkedTime(),sizeof(parkedTime)-1);
 
   //Update moving data fields
-  strField.updateField(geniePtr,MILES_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled(),sizeof(milesTravelled)-1);
-  strField.updateField(geniePtr,GALLONS_STRING, gallonsUsed, tripSegDataPtr->getFuelGallonsUsed(),sizeof(gallonsUsed)-1);
-  strField.updateField(geniePtr,AVG_MPG_STRING, avgMPG, tripSegDataPtr->getAvgMPG(),sizeof(avgMPG)-1);
-  strField.updateField(geniePtr,AVG_MOV_SPEED_STRING, avgMovingSpeed, tripSegDataPtr->getAvgMovingSpeed(),sizeof(avgMovingSpeed)-1);
-  strField.updateField(geniePtr,ELEVATION_GAIN_STRING, elevationGain, tripSegDataPtr->getTotalClimb(),sizeof(elevationGain)-1,ELEV_FIELD_CONVERSION);
+  strField.updateNumberField(geniePtr,MILES_STRING, milesTravelled, tripSegDataPtr->getMilesTravelled(),sizeof(milesTravelled)-1);
+  strField.updateNumberField(geniePtr,GALLONS_STRING, gallonsUsed, tripSegDataPtr->getFuelGallonsUsed(),sizeof(gallonsUsed)-1);
+  strField.updateNumberField(geniePtr,AVG_MPG_STRING, avgMPG, tripSegDataPtr->getAvgMPG(),sizeof(avgMPG)-1);
+  strField.updateNumberField(geniePtr,AVG_MOV_SPEED_STRING, avgMovingSpeed, tripSegDataPtr->getAvgMovingSpeed(),sizeof(avgMovingSpeed)-1);
+  strField.updateElevationField(geniePtr,ELEVATION_GAIN_STRING, elevationGain, tripSegDataPtr->getTotalClimb(),sizeof(elevationGain)-1);
 }

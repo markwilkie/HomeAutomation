@@ -292,7 +292,12 @@ double TripData::getAvgMPG()
 double TripData::getAvgMovingSpeed()
 {
     double hours=getDrivingTime();
-    return (double)getMilesTravelled()/hours;
+    int miles=getMilesTravelled();
+    double avgSpeed=(double)miles/hours;
+
+    //DEBUG
+    //logger.log(VERBOSE,"Driving time: %f, Miles: %d, Avg Speed: %f",hours,miles,avgSpeed);
+    return avgSpeed;
 }
 
 // Uses instant for miles left  (car already has the other)
