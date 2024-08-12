@@ -159,7 +159,10 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     {
         bool isNotOutlierFlag = distanceHampelFilter.writeIfNotOutlier(value);
         if(isNotOutlierFlag)
+        {
           currentMiles=value*0.621371;
+          currentMilesOnline=true;
+        }
         else
           logger.log(VERBOSE,"Miles Outlier: %d   Median: %d",value,distanceHampelFilter.readMedian());
         return;
@@ -169,7 +172,10 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     {
         bool isNotOutlierFlag = fuelHampelFilter.writeIfNotOutlier(value);
         if(isNotOutlierFlag)
+        {
           currentFuelPerc=value;
+          currentFuelPercOnline=true;
+        }
         else
           logger.log(VERBOSE,"Fuel Outlier: %d   Median: %d",value,fuelHampelFilter.readMedian());
         return;

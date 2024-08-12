@@ -40,6 +40,7 @@ class TripData
     void updateElevation();  //Call every loop 
     void updateFuelGallonsUsed(); //Called by getGallonsUsed, and on startup/shutdown
     void resetTripData();   //Call when starting a new segment etc  (e.g. when ignition is turned off)
+    void updateStartValuesIfNeeded();  //Make sure start values are using online values from ECU
     void saveTripData(int offset);    //Saves data to EEPROM
     void loadTripData(int offset);
     void dumpTripData();
@@ -74,6 +75,10 @@ class TripData
     long numInstMPGSamples=0;
     double instMPG=0;
     double lastAvgInstMPG=0;
+
+    //Make sure starting values are using an online value from the ECU.  Set to true by reset;
+    bool startMilesNeedsUpdating=false;
+    bool startFuelNeedsUpdating=false;
 };
 
 #endif

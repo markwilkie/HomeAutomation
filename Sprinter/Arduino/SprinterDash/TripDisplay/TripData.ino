@@ -13,6 +13,18 @@ void TripData::resetTripData()
 {
     logger.log(INFO,"Reseting TripData Idx: %d",tripIdx);
 
+    //If not online yet, set flag so we catch it later
+    if(!currentDataPtr->currentMilesOnline)
+    {
+        startMilesNeedsUpdating=true;
+        logger.log(WARNING,"Distance not online yet when reseting");
+    }
+    if(!currentDataPtr->currentFuelPercOnline)
+    {
+        startFuelNeedsUpdating=true;
+        logger.log(WARNING,"Fuel not online yet when reseting");
+    }
+
     data.startMiles=currentDataPtr->currentMiles;
     data.startSeconds=currentDataPtr->currentSeconds;
     data.startFuelPerc=currentDataPtr->currentFuelPerc;
@@ -27,6 +39,24 @@ void TripData::resetTripData()
     data.totalStoppedSeconds=0;
     data.numberOfStops=0;
     data.totalClimb=0;
+}
+
+void TripData::updateStartValuesIfNeeded()
+{
+    if(startMilesNeedsUpdating && currentDataPtr->currentMilesOnline)
+    {
+        data.startMiles=currentDataPtr->currentMiles;
+        startMilesNeedsUpdating=false;
+        logger.log(WARNING,"Updated start miles now that distance is online");
+    }
+
+    if(startFuelNeedsUpdating && currentDataPtr->currentFuelPercOnline)
+    {
+        data.startFuelPerc=currentDataPtr->currentFuelPerc;
+        data.stoppedFuelPerc=currentDataPtr->currentFuelPerc;
+        startFuelNeedsUpdating=false;
+        logger.log(WARNING,"Updated start (and stop) fuel now that fuel is online");
+    }
 }
 
 //Save data to EEPROM
@@ -126,7 +156,9 @@ void TripData::updateElevation()
     {
         if(currentElevation>data.lastElevation)
         {
-            data.totalClimb=data.totalClimb+(currentElevation-data.lastElevation);
+            int climbToAdd=(currentElevation-data.lastElevation);
+            data.totalClimb=data.totalClimb+climbToAdd;
+            logger.log(VERBOSE,"ELEVATION add: %d  (Current: %ld)",climbToAdd,currentElevation);
         }
         data.lastElevation=currentElevation;
     }

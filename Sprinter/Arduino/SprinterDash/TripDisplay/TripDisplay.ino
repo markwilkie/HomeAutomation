@@ -56,6 +56,7 @@ unsigned long turnOffTime;
 //timing
 #define LCD_REFRESH_RATE 5000
 #define SHUTDOWN_STARTUP_RATE 1000 //how often we check ignition
+#define CHECK_START_VALUES 60000 //how often we check if we need to update start state
 #define CAN_VERIFY_TIMEOUT 5000    //How long we'll wait for something from the CAN controller before showing error screen
 #define VERIFY_TIMEOUT 20000      //How long we'll wait for everything to come online at a time
 
@@ -68,10 +69,11 @@ Genie genie;
 VanWifi wifi;
 int currentContrast=10;
 bool currentIgnState=false;
-bool currentIdlingState=true;
+bool currentIdlingState=false;
 unsigned long nextLCDRefresh=0;
 unsigned long nextIgnRefresh=0;
 unsigned long nextIdlingRefresh=0;
+unsigned long nextUpdateStartValues=0;
 char displayBuffer[1050];  //used for status form
 bool online= false;  //If true, it means every PID and sensor is online  (will list those which are not on boot)
 
@@ -350,6 +352,7 @@ void loop()
 
   //Take care of business
   updateContrast();
+  updateStartValues();
   handleIdlingAsStop();
   handleStatupAndShutdown();
 
@@ -390,6 +393,22 @@ void updateContrast()
     }
 }
 
+//Update start values if needed.  This handles the case where we're going, but fuel or miles aren't online yet
+void updateStartValues()
+{
+    //don't update if it's not time to
+    if(millis()<nextUpdateStartValues)
+        return;
+
+    //Update timing
+    nextUpdateStartValues=millis()+CHECK_START_VALUES;
+
+    //check
+    sinceLastStop.updateStartValuesIfNeeded();
+    currentSegment.updateStartValuesIfNeeded();
+    fullTrip.updateStartValuesIfNeeded();
+}
+
 void handleIdlingAsStop()
 {
     //don't update if it's not time to
@@ -417,7 +436,7 @@ void handleIdlingAsStop()
     //Need to reset?
     if(currentData.currentSpeed>0 && currentData.idlingFlag)
     {
-      logger.log(INFO,"Reseting idle state");
+      logger.log(INFO,"Reseting idle state as we're moving again");
       currentData.idlingFlag=false;
       currentData.idlingStartSeconds=0;
     }

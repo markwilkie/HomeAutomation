@@ -42,8 +42,10 @@ class CurrentData
 
     //Data
     int currentMiles=0;
+    bool currentMilesOnline=false;
     unsigned long currentSeconds=0;
     int currentFuelPerc=0;
+    bool currentFuelPercOnline=false;
     int currentElevation=0;
     int currentMAF=0;
     int currentSpeed=0;
@@ -56,7 +58,7 @@ class CurrentData
     bool codesPresent=false;
     bool ignitionState=false;
     unsigned long idlingStartSeconds=0;   //seconds when mph went to zero
-    bool idlingFlag=false;           
+    bool idlingFlag=false;
 
   private: 
     //Other sensors
