@@ -319,13 +319,16 @@ void loop()
 	{
 		lastPwrUpdateTime=millis();
 
-		//Time to update day spark?
+		//Sum of Ah's every PWR_UPD_TIME for DAY_AH_INT  (e.g. every 1 sec for 20 minutes)
 		powerLogger.data.dayAhSum+=layout.displayData.chargeAmps-layout.displayData.drawAmps;
+		
+		//Time to update day spark?  Does so every DAY_AH_INT (e.g. 20 minutes)
 		if(rtc.getEpoch()>=(powerLogger.data.startDaySeconds+DAY_AH_INT))
 		{
-			float avgDayAh=powerLogger.data.dayAhSum/DAY_AH_INT;
-			float dayVal=avgDayAh/(3600.0/NIGHT_AH_INT);    //convert to amp hours
-			layout.addToDayAhSpark(dayVal);
+			float intervalAh=powerLogger.data.dayAhSum/DAY_AH_INT;  //get avg value for DAY_AH_INT  (e.g. avg last 20 minutes)
+			float ampHrs=intervalAh*(3600.0/DAY_AH_INT);    //convert to amp hours  (e.g. intervalValue * number of intervals per hour)
+			logger.log(VERBOSE,"Adding %fAh to day spark line",ampHrs);
+			layout.addToDayAhSpark(ampHrs);
 			powerLogger.resetDay(&rtc);
 		}
 
@@ -335,7 +338,7 @@ void loop()
 			//reset spark because it's the beginning of the evening
 			if(rtc.getHour(true)==NIGHT_BEG_HR && (rtc.getEpoch()-powerLogger.data.startNightSeconds) > NIGHT_AH_DUR)
 			{
-				logger.log("Resetting night spark");
+				logger.log(VERBOSE,"Resetting night spark");
 				layout.resetNightAhSpark();
 			}
 
@@ -343,9 +346,10 @@ void loop()
 			powerLogger.data.nightAhSum+=layout.displayData.chargeAmps-layout.displayData.drawAmps;
 			if(rtc.getEpoch()>=(powerLogger.data.startNightSeconds+NIGHT_AH_INT))
 			{
-				float avgNightAh=powerLogger.data.nightAhSum/NIGHT_AH_INT;
-				float nightVal=avgNightAh/(3600.0/NIGHT_AH_INT);    //convert to amp hours
-				layout.addToNightAhSpark(nightVal);
+				float intervalAh=powerLogger.data.nightAhSum/NIGHT_AH_INT;  //get avg value for NIGHT_AH_INT  (e.g. avg last 10 minutes)
+				float ampHrs=intervalAh*(3600.0/NIGHT_AH_INT);    //convert to amp hours  (e.g. intervalValue * number of intervals per hour)
+				logger.log(VERBOSE,"Adding %fAh to night spark line",ampHrs);
+				layout.addToNightAhSpark(ampHrs);
 				powerLogger.resetNight(&rtc);
 			}
 		}
