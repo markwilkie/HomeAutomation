@@ -18,9 +18,9 @@ void CurrentData::init()
     barometer.setup();
     rtc.setup();
 
-    //For filtering out outlier values  (24 value window, 10 threshold, and 3x outlier override)
-    distanceHampelFilter.init(24, 10, 3);
-    fuelHampelFilter.init(24, 10, 3);
+    //For filtering out outlier values  (24 value window, 40 threshold, and 3x outlier override)
+    distanceHampelFilter.init(24, 40, 3);
+    fuelHampelFilter.init(24, 40, 3);
 }
 
 void CurrentData::setTime(unsigned long secondsToSet)

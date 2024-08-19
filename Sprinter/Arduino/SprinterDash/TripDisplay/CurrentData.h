@@ -58,7 +58,7 @@ class CurrentData
     bool codesPresent=false;
     bool ignitionState=false;
     unsigned long idlingStartSeconds=0;   //seconds when mph went to zero
-    bool idlingFlag=false;
+    bool idlingAsStoppedFlag=false;   // we've been idling for more than n time
 
   private: 
     //Other sensors

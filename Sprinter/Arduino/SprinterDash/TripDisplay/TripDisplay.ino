@@ -418,10 +418,10 @@ void handleIdlingAsStop()
     //Update timing
     nextIdlingRefresh=millis()+SHUTDOWN_STARTUP_RATE;
 
-    //Are we idling?
-    if(currentData.currentSpeed<1)
+    //Are we idling and we don't already know it?
+    if(currentData.currentSpeed<1 && !currentData.idlingAsStoppedFlag)
     {
-      //Have we started counting?
+      //Have we started the timer?
       if(currentData.idlingStartSeconds==0)
         currentData.idlingStartSeconds=currentData.currentSeconds;
 
@@ -429,26 +429,30 @@ void handleIdlingAsStop()
       if((currentData.currentSeconds-currentData.idlingStartSeconds)>SECONDS_IDLING_THRESHOLD)
       {
         logger.log(INFO,"Idling detected");
-        currentData.idlingFlag=true;
+        currentData.idlingAsStoppedFlag=true;
       }
     }
+    else
+    {
+      currentData.idlingStartSeconds=0;
+    }
 
-    //Need to reset?
-    if(currentData.currentSpeed>0 && currentData.idlingFlag)
+    //Need to reset now that we're moving again?
+    if(currentData.currentSpeed>0 && currentData.idlingAsStoppedFlag)
     {
       logger.log(INFO,"Reseting idle state as we're moving again");
-      currentData.idlingFlag=false;
+      currentData.idlingAsStoppedFlag=false;
       currentData.idlingStartSeconds=0;
     }
 
     //If idling state has changed, act like ign is turning off or on
-    bool state=currentData.idlingFlag;
+    bool state=currentData.idlingAsStoppedFlag;
     if(state!=currentIdlingState)
     {
       currentIdlingState=state;    
 
       //ok, act like we're stopped now
-      if(currentData.idlingFlag)
+      if(currentData.idlingAsStoppedFlag)
       {
         //Now make sure all the trip data objects have the latest
         sinceLastStop.ignitionOff();

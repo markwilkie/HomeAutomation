@@ -15,7 +15,7 @@ void Barometer::setup()
   }
 
   //For filtering out outlier values  (24 value window, 10 threshold, and 3x outlier override)
-  hampelFilter.init(24, 10, 3);
+  hampelFilter.init(24, 20, 3);
 }
 
 bool Barometer::isOnline()
