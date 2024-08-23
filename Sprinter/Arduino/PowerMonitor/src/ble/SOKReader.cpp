@@ -110,7 +110,7 @@ void SOKReader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 	//Release semaphore?
 	if(bleSemaphore->expectedBytes == dataReceived[0] | (dataReceived[1]<<8))
 	{
-		logger.log("Releasing response semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
+		//logger.log("Releasing response semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
 		bleSemaphore->waitingForResponse=false;
 	}	
 }

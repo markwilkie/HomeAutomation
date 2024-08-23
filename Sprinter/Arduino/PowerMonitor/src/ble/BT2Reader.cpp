@@ -197,12 +197,12 @@ void BT2Reader::sendSolarOrAlternaterCommand(BLE_SEMAPHORE* bleSemaphore)
 	int cmdIndex=0;
 	if(lastCmdSent==4)
 	{
-		logger.log(INFO,"Sending Renogy solar command");
+		//logger.log(INFO,"Sending Renogy solar command");
 		cmdIndex=5;
 	}
 	else
 	{
-		logger.log(INFO,"Sending Renogy alternater command");
+		//logger.log(INFO,"Sending Renogy alternater command");
 		cmdIndex=4;
 	}
 

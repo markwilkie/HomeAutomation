@@ -146,6 +146,11 @@ void Text::updateText(float value)
     drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
 }
 
+void Text::updateText(int value)
+{
+    drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
+}
+
 void Text::updateText(const char *text)
 {
     drawText(lastX,lastY,text,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);

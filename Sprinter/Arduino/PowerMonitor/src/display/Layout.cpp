@@ -169,13 +169,13 @@ void Layout::updateLCD(ESP32Time *rtc)
 	int slY=moonConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     nightSparkAh.draw(slX, slY, slLen, slHeight);
-	nightAh.updateText(nightSparkAh.findSum());
+	nightAh.updateText((int)(nightSparkAh.findSum()/(3600.0/NIGHT_AH_INT)));  //convert back into Ah
 
 	slX=calendarConfig.x-(slLen/2)+(calendarConfig.width/2);
 	slY=calendarConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     daySparkAh.draw(slX, slY, slLen, slHeight);	
-	dayAh.updateText(daySparkAh.findSum());
+	dayAh.updateText((int)(daySparkAh.findSum()/(3600.0/DAY_AH_INT)));  //convert back into Ah
 
 	//Battery heater
 	if(displayData.heater)  { lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,heaterConfig.color);}
