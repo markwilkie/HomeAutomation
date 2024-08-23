@@ -3,7 +3,7 @@
 
 #include <Adafruit_MPL3115A2.h>
 #include "RTClib.h"
-#include "HampelFilter.h"
+#include "Filter.h"
 
 /*
 i2c addresses
@@ -32,12 +32,12 @@ class Barometer
     int elevationOffset=0;
     int currentElevReadCount=0;
 
-    //Hampel filter for outlier values
-    HampelFilter hampelFilter;
+    //Filter for outlier values
+    Filter filter;
 
     //Data
-    int elevation;
-    double pressure;
+    int elevation=0;
+    double pressure=0;
 
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again

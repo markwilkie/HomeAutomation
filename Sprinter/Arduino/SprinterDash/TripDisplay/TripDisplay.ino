@@ -70,6 +70,7 @@ VanWifi wifi;
 int currentContrast=10;
 bool currentIgnState=false;
 bool currentIdlingState=false;
+unsigned long idlingStartSeconds=0;   //seconds when mph went to zero
 unsigned long nextLCDRefresh=0;
 unsigned long nextIgnRefresh=0;
 unsigned long nextIdlingRefresh=0;
@@ -422,11 +423,11 @@ void handleIdlingAsStop()
     if(currentData.currentSpeed<1 && !currentData.idlingAsStoppedFlag)
     {
       //Have we started the timer?
-      if(currentData.idlingStartSeconds==0)
-        currentData.idlingStartSeconds=currentData.currentSeconds;
+      if(idlingStartSeconds==0)
+        idlingStartSeconds=currentData.currentSeconds;
 
       //Has it been over the threshold?
-      if((currentData.currentSeconds-currentData.idlingStartSeconds)>SECONDS_IDLING_THRESHOLD)
+      if((currentData.currentSeconds-idlingStartSeconds)>SECONDS_IDLING_THRESHOLD)
       {
         logger.log(INFO,"Idling detected");
         currentData.idlingAsStoppedFlag=true;
@@ -434,7 +435,7 @@ void handleIdlingAsStop()
     }
     else
     {
-      currentData.idlingStartSeconds=0;
+      idlingStartSeconds=0;
     }
 
     //Need to reset now that we're moving again?
@@ -442,7 +443,7 @@ void handleIdlingAsStop()
     {
       logger.log(INFO,"Reseting idle state as we're moving again");
       currentData.idlingAsStoppedFlag=false;
-      currentData.idlingStartSeconds=0;
+      idlingStartSeconds=0;
     }
 
     //If idling state has changed, act like ign is turning off or on
@@ -656,6 +657,7 @@ void myGenieEventHandler(void)
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
       currentData.setTime(10);
+      idlingStartSeconds=currentData.currentSeconds; 
       sinceLastStop.resetTripData();
       currentSegment.resetTripData();
       fullTrip.resetTripData();    

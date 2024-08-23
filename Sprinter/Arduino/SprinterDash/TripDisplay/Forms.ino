@@ -73,7 +73,7 @@ void StartingForm::updateDisplay()
   //Update time data fields
   strField.updateNumberField(geniePtr,HEATER_FUEL_STRING, heaterFuel, tripSegDataPtr->getHeaterGallonsUsed(), sizeof(heaterFuel)-1);
   strField.updateNumberField(geniePtr,MILES_DRIVEN_STRING, elapsedTime, tripSegDataPtr->getMilesTravelled(), sizeof(elapsedTime)-1);
-  strField.updateNumberField(geniePtr,TIME_ELAPSED_STRING, milesTravelled,tripSegDataPtr->getElapsedTime(), sizeof(milesTravelled)-1);
+  strField.updateHoursField(geniePtr,TIME_ELAPSED_STRING, milesTravelled, tripSegDataPtr->getParkedTime(),sizeof(milesTravelled)-1);  
 }
 
 

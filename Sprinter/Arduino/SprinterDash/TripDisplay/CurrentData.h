@@ -2,7 +2,7 @@
 #define CurrentData_h
 
 #include "Sensors.h"
-#include "HampelFilter.h"
+#include "Filter.h"
 
 struct PIDStruct{
     //Distance
@@ -57,7 +57,6 @@ class CurrentData
     int currentLightLevel=0;
     bool codesPresent=false;
     bool ignitionState=false;
-    unsigned long idlingStartSeconds=0;   //seconds when mph went to zero
     bool idlingAsStoppedFlag=false;   // we've been idling for more than n time
 
   private: 
@@ -70,9 +69,9 @@ class CurrentData
 
     void initConnections();
 
-    //Hampel filter for outlier values
-    HampelFilter distanceHampelFilter;
-    HampelFilter fuelHampelFilter;
+    //Filter for outlier values
+    Filter distanceFilter;
+    Filter fuelFilter;
 };
 
 #endif

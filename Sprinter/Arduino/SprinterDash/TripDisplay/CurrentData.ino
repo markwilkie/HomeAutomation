@@ -18,9 +18,9 @@ void CurrentData::init()
     barometer.setup();
     rtc.setup();
 
-    //For filtering out outlier values  (24 value window, 40 threshold, and 3x outlier override)
-    distanceHampelFilter.init(24, 40, 3);
-    fuelHampelFilter.init(24, 40, 3);
+    //For filtering out outlier values  (9 value window, 6 threshold, and 3x outlier override)
+    distanceFilter.init(9, 6, 3);
+    fuelFilter.init(9, 6, 3);
 }
 
 void CurrentData::setTime(unsigned long secondsToSet)
@@ -157,27 +157,39 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     //distance travelled in km, converting to miles
     if(service==distance.service && pid==distance.pid)
     {
-        bool isNotOutlierFlag = distanceHampelFilter.writeIfNotOutlier(value);
+        if(value==0)
+        {
+          logger.log(WARNING,"Miles is zero.  CRC error?");
+          return;
+        }
+
+        bool isNotOutlierFlag = distanceFilter.writeIfNotOutlier(value);
         if(isNotOutlierFlag)
         {
           currentMiles=value*0.621371;
           currentMilesOnline=true;
         }
         else
-          logger.log(VERBOSE,"Miles Outlier: %d   Median: %d",value,distanceHampelFilter.readMedian());
+          logger.log(VERBOSE,"Miles Outlier: %d   Avg: %d",value,distanceFilter.readAvg());
         return;
     }
     //fuel available in percentage  (30 --> 30%) 
     if(service==fuel.service && pid==fuel.pid)
     {
-        bool isNotOutlierFlag = fuelHampelFilter.writeIfNotOutlier(value);
+        if(value==0)
+        {
+          logger.log(WARNING,"Fuel is zero.  CRC error?");
+          return;
+        }
+
+        bool isNotOutlierFlag = fuelFilter.writeIfNotOutlier(value);
         if(isNotOutlierFlag)
         {
           currentFuelPerc=value;
           currentFuelPercOnline=true;
         }
         else
-          logger.log(VERBOSE,"Fuel Outlier: %d   Median: %d",value,fuelHampelFilter.readMedian());
+          logger.log(VERBOSE,"Fuel Outlier: %d   Avg: %d",value,fuelFilter.readAvg());
         return;
     }
     //MAF in g/s

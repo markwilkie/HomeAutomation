@@ -27,7 +27,7 @@ struct TripDataStruct{
 
     //Elevation
     uint32_t totalClimb;
-    uint16_t lastElevation;
+    uint32_t lastElevation;
 };
 
 class TripData

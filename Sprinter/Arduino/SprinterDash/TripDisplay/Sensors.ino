@@ -14,8 +14,8 @@ void Barometer::setup()
     online=false;
   }
 
-  //For filtering out outlier values  (24 value window, 10 threshold, and 3x outlier override)
-  hampelFilter.init(24, 20, 3);
+  //For filtering out outlier values  (9 value window, 50 threshold, and 3x outlier override)
+  filter.init(9, 50, 3);
 }
 
 bool Barometer::isOnline()
@@ -44,28 +44,27 @@ void Barometer::update()
   }
 
   //Let's read elevation with some bounds checking thrown
-  elevation = baro.getAltitude() * 3.28084;
-  bool isNotOutlierFlag = hampelFilter.writeIfNotOutlier(elevation);
-  if(isNotOutlierFlag)
-    elevation = elevation + elevationOffset;
-  else
-    logger.log(VERBOSE,"Elevation Outlier: %d   Median: %d",elevation,hampelFilter.readMedian());
+  int baroElevation = baro.getAltitude() * 3.28084;
 
   //debg info
   if(!online && pressure!=0)
   {
-    logger.log(INFO,"Barometer online!  Altitude: %d Pressure: %f",elevation,pressure); 
+    logger.log(INFO,"Barometer online!  Altitude: %d Pressure: %f",baroElevation,pressure); 
     online=true; 
   }
   
   //poor man's calibration
-  if(elevation<0)
+  if(baroElevation<0)
   {
-    elevationOffset=elevationOffset-elevation;
-    elevation = elevation + elevationOffset;
+    elevationOffset=elevationOffset-baroElevation;
+    baroElevation = baroElevation + elevationOffset;
   }
 
-  //logger.log(VERBOSE,"Altitude: %d",elevation); 
+  bool isNotOutlierFlag = filter.writeIfNotOutlier(baroElevation);
+  if(isNotOutlierFlag)
+    elevation = baroElevation;
+  else
+    logger.log(VERBOSE,"Elevation Outlier: %d   Avg: %d",baroElevation,filter.readAvg());  
 }
 
 int Barometer::getElevation()

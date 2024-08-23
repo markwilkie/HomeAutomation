@@ -152,13 +152,14 @@ void TripData::updateElevation()
 
     //Calc elevation gained
     long currentElevation=currentDataPtr->currentElevation;
-    if(currentElevation>0)
+    if(currentElevation>0) 
     {
         if(currentElevation>data.lastElevation)
         {
-            int climbToAdd=(currentElevation-data.lastElevation);
+            long climbToAdd=(currentElevation-data.lastElevation);
             data.totalClimb=data.totalClimb+climbToAdd;
-            logger.log(VERBOSE,"ELEVATION add: %d  (Current: %ld)",climbToAdd,currentElevation);
+            if(tripIdx==1)
+                logger.log(VERBOSE,"ELEVATION,%ld,Current,%ld,Last,%ld,total,%ld",climbToAdd,currentElevation,data.lastElevation,data.totalClimb);
         }
         data.lastElevation=currentElevation;
     }
