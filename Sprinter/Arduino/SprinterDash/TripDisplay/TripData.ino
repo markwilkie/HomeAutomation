@@ -158,8 +158,8 @@ void TripData::updateElevation()
         {
             long climbToAdd=(currentElevation-data.lastElevation);
             data.totalClimb=data.totalClimb+climbToAdd;
-            if(tripIdx==1)
-                logger.log(VERBOSE,"ELEVATION,%ld,Current,%ld,Last,%ld,total,%ld",climbToAdd,currentElevation,data.lastElevation,data.totalClimb);
+            //if(tripIdx==1)
+            //    logger.log(VERBOSE,"ELEVATION,%ld,Current,%ld,Last,%ld,total,%ld",climbToAdd,currentElevation,data.lastElevation,data.totalClimb);
         }
         data.lastElevation=currentElevation;
     }
