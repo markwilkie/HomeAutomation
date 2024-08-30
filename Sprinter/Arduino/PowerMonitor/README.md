@@ -1,6 +1,29 @@
 # Bluetooth power monitor
 Arduino library to interrogate BT devices and display the results on a small touch screen
 
+The screen is pretty self explanatory, but a few notes:
+- Top wifi indicator is white if connected, or black (invisible) if not
+- Top BLE indicator is:  Black=off, Grey=scanning, Yellow=partially connected, Blue=fully connected
+- The two big rings are the current charge (outer) and draw (inner) in amps.  Charge could be solar or alternater.
+- Big number in the middle is the current net flow.  e.g. if 4A draw, and 3A charge, then the number would show 1A.
+- Below the big graph is current battery volts
+- Graph on left is battery state of charge
+- At the bottom, time in hours is shown based on the capacity (according to the BMS) and current draw
+- Graph on the right is water tank level
+- There are two spark lines which show net amp flow.  The night spark is from 10pm to 7am (PST), and the day spark is last 24 hours.
+- The numbers by the spark lines are the sum of the spark in amp hours  (e.g. night spark could show 12, which would mean 12ah were used)
+- Bottom icons are battery and charger controller (van icon).
+- Charge controller shows solar and alternater amps - plus temperature of the controller itself
+- Battery shows amps draw/charge, plus temperature of the battery itself.
+- There are two small circles in the battery icon.  These are the DMOS and CMOS indicators, or Discharge and Charge "switch".  If they are green, it means the battery is charging and discharging normally.
+- Below the battery icon a heater icon will appear if the BMS turns the heater on
+
+Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
+- ESP32S3 processor
+- ST7796UI touch panel
+- Uses library https://github.com/lovyan03/LovyanGFX with an update (LGFX_ST32-SC01Plus.hpp)
+- Includes built in Wifi and BLE
+
 Supported BT devices as of 9/2023:
 - Renogy BT2
 - SOK bms that ships w/ their batteries
