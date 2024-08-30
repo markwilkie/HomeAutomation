@@ -169,7 +169,7 @@ void Layout::updateLCD(ESP32Time *rtc)
 	int slY=moonConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     nightSparkAh.draw(slX, slY, slLen, slHeight);
-	nightAh.updateText((int)(nightSparkAh.findAvg()*(double)(nightSparkAh.getElements()/(3600.0/DAY_AH_INT))));  
+	nightAh.updateText((int)(nightSparkAh.findAvg()*(double)(nightSparkAh.getElements()/(3600.0/NIGHT_AH_INT))));  
 
 	slX=calendarConfig.x-(slLen/2)+(calendarConfig.width/2);
 	slY=calendarConfig.y-30;
