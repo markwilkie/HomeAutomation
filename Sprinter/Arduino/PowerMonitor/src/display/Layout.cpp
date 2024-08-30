@@ -169,13 +169,13 @@ void Layout::updateLCD(ESP32Time *rtc)
 	int slY=moonConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     nightSparkAh.draw(slX, slY, slLen, slHeight);
-	nightAh.updateText((int)(nightSparkAh.findSum()/(3600.0/NIGHT_AH_INT)));  //convert back into Ah
+	nightAh.updateText((int)(nightSparkAh.findAvg()*(double)(nightSparkAh.getElements()/(3600.0/DAY_AH_INT))));  
 
 	slX=calendarConfig.x-(slLen/2)+(calendarConfig.width/2);
 	slY=calendarConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
     daySparkAh.draw(slX, slY, slLen, slHeight);	
-	dayAh.updateText((int)(daySparkAh.findSum()/(3600.0/DAY_AH_INT)));  //convert back into Ah
+	dayAh.updateText((int)(daySparkAh.findAvg()*(double)(daySparkAh.getElements()/(3600.0/DAY_AH_INT))));  
 
 	//Battery heater
 	if(displayData.heater)  { lcd.drawBitmap(heaterConfig.x,heaterConfig.y,heaterConfig.bmArray,heaterConfig.width,heaterConfig.height,heaterConfig.color);}
@@ -194,17 +194,12 @@ float Layout::cTof(float c)
 	return (c * 9.0 / 5.0) + 32.0;
 }
 
-void Layout::addToDayAhSpark(float value)
+SparkLine<float> *Layout::getDaySparkPtr()
 {
-	daySparkAh.add(value);
+	return &daySparkAh;
 }
 
-void Layout::addToNightAhSpark(float value)
+SparkLine<float> *Layout::getNightSparkPtr()
 {
-	nightSparkAh.add(value);
-}
-
-void Layout::resetNightAhSpark()
-{
-	nightSparkAh.reset();
+	return &nightSparkAh;
 }

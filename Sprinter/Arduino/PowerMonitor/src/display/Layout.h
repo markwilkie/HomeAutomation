@@ -25,9 +25,8 @@ class Layout
         void setWifiIndicator(boolean online);
         void setBLEIndicator(int color);
         bool isBLERegion(int x,int y);
-        void addToDayAhSpark(float value);
-        void addToNightAhSpark(float value);
-        void resetNightAhSpark();
+        SparkLine<float> *getDaySparkPtr();
+        SparkLine<float> *getNightSparkPtr();
 
         DisplayData displayData;
 

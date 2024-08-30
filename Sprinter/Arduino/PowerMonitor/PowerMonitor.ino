@@ -318,41 +318,7 @@ void loop()
 	if(millis()>lastPwrUpdateTime+PWR_UPD_TIME)
 	{
 		lastPwrUpdateTime=millis();
-
-		//Sum of Ah's every PWR_UPD_TIME for DAY_AH_INT  (e.g. every 1 sec for 20 minutes)
-		powerLogger.data.dayAhSum+=layout.displayData.chargeAmps-layout.displayData.drawAmps;
-		
-		//Time to update day spark?  Does so every DAY_AH_INT (e.g. 20 minutes)
-		if(rtc.getEpoch()>=(powerLogger.data.startDaySeconds+DAY_AH_INT))
-		{
-			float intervalAh=powerLogger.data.dayAhSum/DAY_AH_INT;  //get avg value for DAY_AH_INT  (e.g. avg last 20 minutes)
-			float ampHrs=intervalAh*(3600.0/DAY_AH_INT);    //convert to amp hours  (e.g. intervalValue * number of intervals per hour)
-			logger.log(VERBOSE,"Adding %fAh to day spark line",ampHrs);
-			layout.addToDayAhSpark(ampHrs);
-			powerLogger.resetDay(&rtc);
-		}
-
-		//night time?
-		if(rtc.getHour(true)>=NIGHT_BEG_HR || rtc.getHour(true)<NIGHT_END_HR)
-		{
-			//reset spark because it's the beginning of the evening
-			if(rtc.getHour(true)==NIGHT_BEG_HR && (rtc.getEpoch()-powerLogger.data.startNightSeconds) > NIGHT_AH_DUR)
-			{
-				logger.log(VERBOSE,"Resetting night spark");
-				layout.resetNightAhSpark();
-			}
-
-			//Time to update night spark?
-			powerLogger.data.nightAhSum+=layout.displayData.chargeAmps-layout.displayData.drawAmps;
-			if(rtc.getEpoch()>=(powerLogger.data.startNightSeconds+NIGHT_AH_INT))
-			{
-				float intervalAh=powerLogger.data.nightAhSum/NIGHT_AH_INT;  //get avg value for NIGHT_AH_INT  (e.g. avg last 10 minutes)
-				float ampHrs=intervalAh*(3600.0/NIGHT_AH_INT);    //convert to amp hours  (e.g. intervalValue * number of intervals per hour)
-				logger.log(VERBOSE,"Adding %fAh to night spark line",ampHrs);
-				layout.addToNightAhSpark(ampHrs);
-				powerLogger.resetNight(&rtc);
-			}
-		}
+		powerLogger.add(layout.displayData.chargeAmps-layout.displayData.drawAmps,&rtc,&layout);
 	}
 
 	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME)
