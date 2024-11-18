@@ -122,7 +122,7 @@ end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub
 local function device_added(driver, device)
-  log.info("[" .. device.id .. "] Adding new soil device")
+  log.info("[" .. device.id .. "] Adding New Soil Device")
 end
 
 -- this is called both when a device is added (but after `added`) and after a hub reboots.

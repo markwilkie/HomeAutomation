@@ -76,7 +76,7 @@ local function send_lan_command(url, method, path, body)
 
     local nodeIP = 'http://192.168.15.143:80'
     if deviceName == 'soil' then
-      nodeIP = 'http://192.168.15.168:80'
+      nodeIP = 'http://192.168.15.145:80'
     end
 
     log.debug(string.format("About to Handshake with %s containing %s",nodeIP,content))
