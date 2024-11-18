@@ -63,3 +63,5 @@ Azure/SensorWebApp/packages/*.*
 RPi/RFHub/browse.VC.db
 Soiler/SoilerGateway/properties.h
 Sprinter/Arduino/ArduinoOutput/
+/Sprinter/Arduino/PowerMonitor/.vscode
+/Sprinter/Arduino/PowerMonitor/.vscode
