@@ -65,3 +65,6 @@ Soiler/SoilerGateway/properties.h
 Sprinter/Arduino/ArduinoOutput/
 /Sprinter/Arduino/PowerMonitor/.vscode
 /Sprinter/Arduino/PowerMonitor/.vscode
+/Sprinter/Arduino/SprinterDash/TripDisplay/.vscode
+/Sprinter/Arduino/SprinterDash/CANCapture/.vscode
+/Sprinter/Arduino/PowerMonitor/.vscode
