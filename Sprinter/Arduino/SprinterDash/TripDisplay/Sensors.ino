@@ -56,13 +56,12 @@ void Barometer::update()
   //poor man's calibration
   if(baroElevation<0)
   {
-    elevationOffset=elevationOffset-baroElevation;
-    baroElevation = baroElevation + elevationOffset;
+    elevationOffset=baroElevation*-1;
   }
 
   bool isNotOutlierFlag = filter.writeIfNotOutlier(baroElevation);
   if(isNotOutlierFlag)
-    elevation = baroElevation;
+    elevation = baroElevation+elevationOffset;
   else
     logger.log(VERBOSE,"Elevation Outlier: %d   Avg: %d",baroElevation,filter.readAvg());  
 }
