@@ -54,7 +54,7 @@ void Barometer::update()
   }
   
   //poor man's calibration
-  if(baroElevation<0)
+  if(baroElevation<0 && (baroElevation*-1)>elevationOffset)
   {
     elevationOffset=baroElevation*-1;
   }
