@@ -169,7 +169,11 @@ void TripData::updateElevation()
 int TripData::getMilesTravelled()
 {
     long currentMiles=currentDataPtr->currentMiles;
-
+    
+    // Ignore cases where currentMiles is zero (likely invalid readings)
+    if(currentMiles == 0)
+        return data.priorTotalMiles;  // Return accumulated miles only
+        
     //If MIL comes on, the current miles will reset to zero.  We should catch this situation
     //  Also, sometimes the miles don't update upon trip start
     if(currentMiles<data.lastMiles)
@@ -184,6 +188,8 @@ int TripData::getMilesTravelled()
     int milesTravelled=0;
     if(currentMiles>data.startMiles)
         milesTravelled=currentMiles-data.startMiles+data.priorTotalMiles;
+    else
+        milesTravelled=data.priorTotalMiles;  // Always include accumulated miles even if current <= start
 
     return milesTravelled;
 }
