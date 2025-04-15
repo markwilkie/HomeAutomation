@@ -1,0 +1,7 @@
+{
+    "sketch": "GarageParker.ino",
+    "port": "COM3",
+    "board": "arduino:avr:uno",
+    "output": "build",
+    "intelliSenseGen": "enable"
+}
