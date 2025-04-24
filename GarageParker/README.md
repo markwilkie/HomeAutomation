@@ -5,8 +5,7 @@ An Arduino-based garage parking assistant that helps you park your car in the ga
 ## Hardware Requirements
 
 - Arduino board (Uno, Nano, or similar)
-- Sharp GP2Y0A21YK0F IR Distance Sensor (middle position)
-- 2× HC-SR04 Ultrasonic Distance Sensors (left and right positions)
+- 3× HC-SR04 Ultrasonic Distance Sensors (left, middle, and right positions)
 - WS2812B LED strip (16 LEDs recommended)
 - Jumper wires
 - 5V power supply (for powering the LED strip if using more than a few LEDs)
@@ -14,10 +13,11 @@ An Arduino-based garage parking assistant that helps you park your car in the ga
 
 ## Wiring
 
-- Connect the Sharp GP2Y0A21YK0F IR sensor:
+- Connect the middle HC-SR04 ultrasonic sensor:
   - VCC to Arduino 5V
   - GND to Arduino GND
-  - Output to Arduino analog pin A0
+  - Trigger pin to Arduino pin 7
+  - Echo pin to Arduino pin 8
 
 - Connect the left HC-SR04 ultrasonic sensor:
   - VCC to Arduino 5V
@@ -60,13 +60,13 @@ The system uses three distance sensors mounted on the side wall of your garage t
 For accurate angle calculation, the sensors should be mounted as follows:
 - On the side wall of your garage at approximately the height of your car's side
 - Left and right ultrasonic sensors spaced 100cm apart (adjustable in code)
-- IR sensor positioned in the middle between the two ultrasonic sensors
+- Middle ultrasonic sensor positioned in the middle between the two ultrasonic sensors
 - All sensors facing perpendicular to the wall towards your parking area
 
 ## How It Works
 
 1. The left and right ultrasonic sensors measure the distance to the side of your car
-2. The IR sensor in the middle measures the middle distance
+2. The middle ultrasonic sensor measures the middle distance
 3. The system calculates the angle of your car based on the difference in these distances
 4. The LED strip displays the angle and guides you to the perfect parking position
 

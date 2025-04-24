@@ -3,47 +3,30 @@
  * 
  * An Arduino project to assist with parking in a garage
  * Using WS2812B LED strip as a 16x16 matrix for car visualization, 
- * Sharp GP2Y0A21YK0F IR sensor for middle distance,
- * and two HC-SR04 ultrasonic sensors for side distance and angle calculation
+ * and two HC-SR04 ultrasonic sensors for distance and angle calculation
  * 
  * Created: April 14, 2025
+ * Updated: April 17, 2025 - Migrated from Adafruit NeoPixel to FastLED library
  */
 
 #include "include/DistanceSensor.h"
 #include "include/LedController.h"
 
-// Pin definitions
-// IR sensor in the middle
-const int irSensorPin = A0;  // Analog pin for Sharp IR sensor
-
-// Ultrasonic sensors (left and right)
-const int leftTrigPin = 9;   // Left ultrasonic trigger pin
-const int leftEchoPin = 10;  // Left ultrasonic echo pin
-const int rightTrigPin = 11; // Right ultrasonic trigger pin
-const int rightEchoPin = 12; // Right ultrasonic echo pin
-
-// LED strip
-const int ledDataPin = 6;    // WS2812B data pin
-
 // Constants
-const int numLeds = 256;      // 16x16 matrix = 256 LEDs
-const int matrixWidth = 16;   // 16 LEDs wide
-const int matrixHeight = 16;  // 16 LEDs high
-const float sensorSpacing = 100.0; // Distance between left and right sensors in cm
-
-// Angle thresholds
-const float angleThreshold = 5.0;  // Angle (in degrees) threshold for "straight"
-const float maxAngle = 30.0;      // Maximum expected angle in degrees
+const int minSidePerc = 50;       // perc of max distance from wall
+const int maxSidePerc = 99;     
+const int minFrontPerc = 20;      // perc of max sensor distance
+const int maxFrontPerc = 40;     
 
 // Class instances
-DistanceSensor distanceSensor(irSensorPin,
-                              leftTrigPin, leftEchoPin,
-                              rightTrigPin, rightEchoPin,
-                              sensorSpacing);
-LedController ledController(ledDataPin, numLeds, 100, 50);
+DistanceSensor distanceSensor;
+LedController ledController(50, 10);
 
 // Display update timing
 unsigned long lastDisplayTime = 0;
+unsigned long carFirstDetectedTime = 0; // Time when car was first detected
+bool carWasInGarage = false;            // Track if car was in garage in the previous loop
+const unsigned long screenTimeout = 120000; // 2 minutes in milliseconds
 
 void setup() {
   // Initialize serial communication
@@ -53,29 +36,93 @@ void setup() {
   distanceSensor.init();
   ledController.init();
   
-  // Configure LED matrix
-  ledController.setupMatrix(matrixWidth, matrixHeight);
-  
   Serial.println("GarageParker system initializing...");
-  Serial.println("Using Sharp GP2Y0A21YK0F IR sensor in the middle");
-  Serial.println("Using HC-SR04 ultrasonic sensors on left and right");
+  Serial.println("Using two HC-SR04 ultrasonic sensors for distance measurement");
   Serial.println("Using WS2812B LED strip as 16x16 matrix for car visualization");
+  Serial.println("Running with FastLED library for improved performance");
+}
+
+SidePositionStatus getSidePosition() { // Return type changed to enum
+  float sidePerc = distanceSensor.getSidePercent();
+  
+  // Check if the car is too close to the left wall
+  if (sidePerc > maxSidePerc) {
+    return SidePositionStatus::LEFT; // Return enum value
+  }
+  
+  // Check if the car is too close to the right wall
+  if (sidePerc < minSidePerc) {
+    return SidePositionStatus::RIGHT; // Return enum value
+  }
+  
+  //we're centered!
+  return SidePositionStatus::CENTER; // Return enum value
+}
+
+FrontPositionStatus getFrontPosition() { // Return type changed to enum
+  float frontPerc = distanceSensor.getFrontPercent();
+  
+  // Check if the car is too close to the front wall
+  if (frontPerc < minFrontPerc) {
+    return FrontPositionStatus::TOO_CLOSE; // Return enum value
+  }
+  
+  // Check if the car is too far from the front wall
+  if (frontPerc > maxFrontPerc) {
+    return FrontPositionStatus::TOO_FAR; // Return enum value
+  }
+  
+  //we're centered!
+  return FrontPositionStatus::OPTIMAL; // Return enum value
 }
 
 void loop() {
   // Read all sensor values
   distanceSensor.readAllSensors();
+
+  bool carIsInGarage = distanceSensor.isCarInGarage();
+  unsigned long currentTime = millis();
+
+  // Check if the car is in the garage
+  if (carIsInGarage) {
+    // Check if the car just entered the garage
+    if (!carWasInGarage) {
+      carFirstDetectedTime = currentTime; // Record the time the car entered
+      carWasInGarage = true;
+      Serial.println("Car detected in garage.");
+    }
+
+    // Check if the screen timeout has been reached
+    if (currentTime - carFirstDetectedTime > screenTimeout) {
+      ledController.clearScreen(); // Turn off screen after timeout
+    } else {
+      showCarPosition(); // Show position if within timeout
+    }
+  } 
+  else {
+    // Car is not in the garage
+    if (carWasInGarage) {
+      Serial.println("Car left the garage.");
+      ledController.clearScreen(); // Clear the screen immediately when car leaves
+      carWasInGarage = false;      // Reset the state
+      carFirstDetectedTime = 0;    // Reset the timer
+    }
+    // Keep screen clear if car remains out
+    ledController.clearScreen(); 
+  }
+
+  delay(100); // Adjusted delay slightly
+}
+
+void showCarPosition() {
   
   // Get distances from each sensor
-  long middleDistance = distanceSensor.getIRDistance();
-  long leftDistance = distanceSensor.getLeftDistance();
-  long rightDistance = distanceSensor.getRightDistance();
-  
-  // Calculate car angle (in degrees)
-  float carAngle = distanceSensor.calculateCarAngle();
-  
-  // Get side-to-side position (-1 = left, 0 = center, 1 = right)
-  int sidePosition = distanceSensor.getSidePosition();
+  float sidePerc = distanceSensor.getSidePercent();
+  float frontPerc = distanceSensor.getFrontPercent();
+   
+  // Get side-to-side position
+  SidePositionStatus sideStatus = getSidePosition(); // Variable type changed
+  FrontPositionStatus frontStatus = getFrontPosition(); // Variable type changed
   
   // Display sensor readings every 500ms
   unsigned long currentTime = millis();
@@ -83,31 +130,38 @@ void loop() {
     lastDisplayTime = currentTime;
     
     // Print distances
-    Serial.print("Left: ");
-    Serial.print(leftDistance);
-    Serial.print(" cm | Middle: ");
-    Serial.print(middleDistance);
-    Serial.print(" cm | Right: ");
-    Serial.print(rightDistance);
-    Serial.print(" cm | Angle: ");
-    Serial.print(carAngle);
-    Serial.print(" degrees | Position: ");
+    Serial.print("Front: ");
+    Serial.print(frontPerc);
+    Serial.print(" % | Side: ");
+    Serial.print(sidePerc);
+    Serial.print(" % | Position: ");
     
-    switch(sidePosition) {
-      case -1:
-        Serial.println("LEFT");
+    switch(sideStatus) { // Use enum variable
+      case SidePositionStatus::LEFT:
+        Serial.print("TOO FAR LEFT | ");
         break;
-      case 0:
-        Serial.println("CENTER");
+      case SidePositionStatus::CENTER:
+        Serial.print("CENTERED LEFT/RIGHT | ");
         break;
-      case 1:
-        Serial.println("RIGHT");
+      case SidePositionStatus::RIGHT:
+        Serial.print("TOO FAR RIGHT | ");
+        break;
+    }
+
+    switch(frontStatus) { // Use enum variable
+      case FrontPositionStatus::TOO_CLOSE:
+        Serial.println("TOO CLOSE TO FRONT WALL");
+        break;
+      case FrontPositionStatus::OPTIMAL:
+        Serial.println("CENTERED IN GARAGE");
+        break;
+      case FrontPositionStatus::TOO_FAR:
+        Serial.println("TOO FAR FROM FRONT WALL");
         break;
     }
   }
   
   // Update car visualization on the LED matrix
-  ledController.visualizeCar(carAngle, sidePosition, middleDistance);
-  
-  delay(50); // Short delay for smoother visual feedback
+  ledController.visualizeCar(sidePerc, frontPerc, sideStatus, frontStatus); 
+
 }

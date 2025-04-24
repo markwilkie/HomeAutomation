@@ -3,58 +3,57 @@
 
 #include <Arduino.h>
 
+#define MAX_ULTRASONIC_DISTANCE 300 // Maximum distance for ultrasonic sensors in cm
+
+#define MIN_SIDE_DIST 50       // Desired distance from the wall in cm
+#define MAX_SIDE_DIST 80       // Maximum distance from the wall in cm
+#define MIN_FRONT_DIST 60      // Minimum distance from the front wall in cm
+#define MAX_FRONT_DIST 100      // Maximum distance from the front wall in cm
+
+
 class DistanceSensor {
   private:
-    // IR sensor (middle)
-    int _irAnalogPin;
-    
     // Ultrasonic sensors (left and right)
     int _leftTrigPin;
     int _leftEchoPin;
     int _rightTrigPin;
     int _rightEchoPin;
+    int _FrontTrigPin;
+    int _FrontEchoPin;
     
     // Distances
-    long _irDistance;      // Distance from IR sensor (middle)
-    long _leftDistance;    // Distance from left ultrasonic sensor
-    long _rightDistance;   // Distance from right ultrasonic sensor
+    long _leftDistance;   // Distance from left ultrasonic sensor
+    long _rightDistance;  // Distance from right ultrasonic sensor
+    long _frontDistance;  // Distance from front ultrasonic sensor 
     
-    // Sensor spacing (in cm)
-    float _sensorSpacing;  // Distance between left and right sensors
-    
-    // Maximum distance for sensors
-    int _maxIRDistance;
-    int _maxUltrasonicDistance;
+
+    // Helper method for ultrasonic sensor readings
+    long readUltrasonicCm(int trigPin, int echoPin);
     
   public:
-    DistanceSensor(int irAnalogPin, 
-                  int leftTrigPin, int leftEchoPin,
-                  int rightTrigPin, int rightEchoPin,
-                  float sensorSpacing);
-                  
+    // Pin definitions for ultrasonic sensors - these replace the constants in the main file
+    static const int LEFT_TRIG_PIN;    // Left ultrasonic trigger pin
+    static const int LEFT_ECHO_PIN;    // Left ultrasonic echo pin
+    static const int RIGHT_TRIG_PIN;   // Right ultrasonic trigger pin
+    static const int RIGHT_ECHO_PIN;   // Right ultrasonic echo pin
+    static const int FRONT_TRIG_PIN;   // Front ultrasonic trigger pin
+    static const int FRONT_ECHO_PIN;   // Front ultrasonic echo pin
+                
     void init();
     
     // Read individual sensors
-    long readIRSensorCm();
-    long readLeftUltrasonicCm();
-    long readRightUltrasonicCm();
-    
+    long readSideUltrasonicCm();
+    long readFrontUltrasonicCm();
+
     // Read all sensors at once
     void readAllSensors();
-    
-    // Get stored distance values
-    long getIRDistance() const { return _irDistance; }
-    long getLeftDistance() const { return _leftDistance; }
-    long getRightDistance() const { return _rightDistance; }
-    
-    // Calculate car angle in degrees
-    // Positive angle means the car is angled clockwise
-    // Negative angle means the car is angled counter-clockwise
-    // Zero means the car is parallel
-    float calculateCarAngle();
-    
-    // Calculate side-to-side position (-1 = left, 0 = center, 1 = right)
-    int getSidePosition();
+
+    // Return %
+    float getSidePercent();
+    float getFrontPercent();
+
+    // Is car in garage
+    bool isCarInGarage();
 };
 
 #endif

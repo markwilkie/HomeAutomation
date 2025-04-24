@@ -4,7 +4,7 @@
         {
             "label": "Arduino CLI: Verify",
             "type": "shell",
-            "command": "arduino-cli compile --fqbn arduino:avr:uno ${file}",
+            "command": "arduino-cli compile --fqbn arduino:avr:uno '${file}'",
             "problemMatcher": [
                 "$gcc"
             ],
@@ -24,7 +24,7 @@
         {
             "label": "Arduino CLI: Upload",
             "type": "shell",
-            "command": "arduino-cli upload -p COM3 --fqbn arduino:avr:uno ${file}",
+            "command": "arduino-cli upload -p COM3 --fqbn arduino:avr:uno '${file}'",
             "problemMatcher": [
                 "$gcc"
             ],
