@@ -13,14 +13,14 @@
 #include "include/LedController.h"
 
 // Constants
-const int minSidePerc = 50;       // perc of max distance from wall
-const int maxSidePerc = 99;     
-const int minFrontPerc = 20;      // perc of max sensor distance
-const int maxFrontPerc = 40;     
+const float optimalSidePerc = .22; //perc off wall
+const float plusMinusSidePerc = .03; // +/- perc off wall
+const float optimalFrontPerc = .18;   
+const float plusMinusFrontPerc = .05;
 
 // Class instances
 DistanceSensor distanceSensor;
-LedController ledController(50, 10);
+LedController ledController;
 
 // Display update timing
 unsigned long lastDisplayTime = 0;
@@ -44,6 +44,9 @@ void setup() {
 
 SidePositionStatus getSidePosition() { // Return type changed to enum
   float sidePerc = distanceSensor.getSidePercent();
+
+  float maxSidePerc = optimalSidePerc + plusMinusSidePerc; // Maximum side percentage
+  float minSidePerc = optimalSidePerc - plusMinusSidePerc; // Minimum side percentage
   
   // Check if the car is too close to the left wall
   if (sidePerc > maxSidePerc) {
@@ -61,6 +64,9 @@ SidePositionStatus getSidePosition() { // Return type changed to enum
 
 FrontPositionStatus getFrontPosition() { // Return type changed to enum
   float frontPerc = distanceSensor.getFrontPercent();
+
+  float maxFrontPerc = optimalFrontPerc + plusMinusFrontPerc; // Maximum front percentage
+  float minFrontPerc = optimalFrontPerc - plusMinusFrontPerc; // Minimum front percentage
   
   // Check if the car is too close to the front wall
   if (frontPerc < minFrontPerc) {
@@ -162,6 +168,6 @@ void showCarPosition() {
   }
   
   // Update car visualization on the LED matrix
-  ledController.visualizeCar(sidePerc, frontPerc, sideStatus, frontStatus); 
+  ledController.visualizeCar(sidePerc, frontPerc, optimalSidePerc, optimalFrontPerc, sideStatus, frontStatus); 
 
 }

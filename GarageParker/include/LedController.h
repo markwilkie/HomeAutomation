@@ -1,7 +1,12 @@
 #ifndef LED_CONTROLLER_H
 #define LED_CONTROLLER_H
 
-#include <FastLED.h>
+#include <Adafruit_NeoPixel.h>
+
+#define LED_DATA_PIN 5 // Pin connected to the data line of the LED strip
+#define LED_MATRIX_WIDTH 16 // Width of the LED matrix
+#define LED_MATRIX_HEIGHT 16 // Height of the LED matrix
+
 
 // Define enums for position status
 enum class FrontPositionStatus {
@@ -20,36 +25,35 @@ class LedController {
   private:
     int _dataPin;
     int _numLeds;
-    
-    // Colors
-    CRGB _colorGreen;
-    CRGB _colorYellow;
-    CRGB _colorRed;
-    CRGB _colorOff;
-    CRGB _colorCar;
-    CRGB _colorGrey;
-    CRGB _colorOptimal;
-    
-    // LED array
-    CRGB* _leds;
-    
+    int _matrixWidth;
+    int _matrixHeight;
+
+    // Adafruit NeoPixel object
+    Adafruit_NeoPixel* _strip;
+
+    // Colors (using uint32_t for Adafruit NeoPixel)
+    uint32_t _colorGreen;
+    uint32_t _colorYellow;
+    uint32_t _colorRed;
+    uint32_t _colorOff;
+    uint32_t _colorCar;
+    uint32_t _colorGrey;
+    uint32_t _colorOptimal;
+
     // Helper methods for matrix
     int getPixelIndex(int x, int y);
-    void drawRect(int x, int y, int width, int height, CRGB color);
-    void fillRect(int x, int y, int width, int height, CRGB color);
-    
+    void drawRect(int x, int y, int width, int height, uint32_t color);
+    void fillRect(int x, int y, int width, int height, uint32_t color);
+
   public:
-    LedController(int safeDistance, int warningDistance);
+    LedController(); //
     ~LedController(); // Destructor to free allocated memory
-    void init();
+    void init(uint8_t brightness = 150); // Add brightness parameter
     void clearScreen();
-    void setAllPixels(CRGB color);
-    void visualizeCar(float, float, SidePositionStatus sideStatus, FrontPositionStatus frontStatus);
-    
-    // Expose direct access to the LED array for external animations
-    CRGB* getLeds() { return _leds; }
-    int getNumLeds() { return _numLeds; }
-    void show() { FastLED.show(); }
+    void setAllPixels(uint32_t color);
+    void visualizeCar(float sidePerc, float frontPerc, float optimalSidePerc, float optimalFrontPerc, SidePositionStatus sideStatus, FrontPositionStatus frontStatus);
+    void setBrightness(uint8_t brightness); // Method to adjust brightness
+    void show(); // Method to update the strip
 };
 
 #endif

@@ -31,11 +31,6 @@ const int ledDataPin = 6;    // WS2812B data pin
 const int numLeds = 256;      // 16x16 matrix = 256 LEDs
 const int matrixWidth = 16;   // 16 LEDs wide
 const int matrixHeight = 16;  // 16 LEDs high
-const float sensorSpacing = 100.0; // Distance between left and right sensors in cm
-
-// Angle thresholds
-const float angleThreshold = 5.0;  // Angle (in degrees) threshold for "straight"
-const float maxAngle = 30.0;      // Maximum expected angle in degrees
 
 // Class instances
 DistanceSensor distanceSensor(irSensorPin,
