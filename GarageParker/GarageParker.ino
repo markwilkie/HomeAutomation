@@ -6,11 +6,13 @@
  * and two HC-SR04 ultrasonic sensors for distance and angle calculation
  * 
  * Created: April 14, 2025
- * Updated: April 17, 2025 - Migrated from Adafruit NeoPixel to FastLED library
+ * Updated: April 17, 2025 - Using Adafruit NeoPixel library
+ * Updated: April 29, 2025 - Switched TF-Luna to SoftwareSerial
  */
 
 #include "include/DistanceSensor.h"
 #include "include/LedController.h"
+#include <SoftwareSerial.h> // Include SoftwareSerial
 
 // Constants
 const float optimalSidePerc = .22; //perc off wall
@@ -18,8 +20,15 @@ const float plusMinusSidePerc = .03; // +/- perc off wall
 const float optimalFrontPerc = .18;   
 const float plusMinusFrontPerc = .05;
 
+// Define pins for SoftwareSerial communication with TF-Luna
+#define TFLUNA_RX_PIN 10 // Choose appropriate pins for your board
+#define TFLUNA_TX_PIN 11 // Choose appropriate pins for your board
+
+// Create SoftwareSerial instance for TF-Luna
+SoftwareSerial tflunaSerial(TFLUNA_RX_PIN, TFLUNA_TX_PIN);
+
 // Class instances
-DistanceSensor distanceSensor;
+DistanceSensor distanceSensor(tflunaSerial); // Pass the SoftwareSerial port for TF-Luna
 LedController ledController;
 
 // Display update timing
@@ -29,17 +38,18 @@ bool carWasInGarage = false;            // Track if car was in garage in the pre
 const unsigned long screenTimeout = 120000; // 2 minutes in milliseconds
 
 void setup() {
-  // Initialize serial communication
+  // Initialize serial communication for debugging
   Serial.begin(9600);
-  
+  // Note: TF-Luna serial port (SoftwareSerial) is initialized within distanceSensor.init() -> _tfluna.init()
+
   // Initialize components
   distanceSensor.init();
   ledController.init();
   
   Serial.println("GarageParker system initializing...");
   Serial.println("Using two HC-SR04 ultrasonic sensors for distance measurement");
-  Serial.println("Using WS2812B LED strip as 16x16 matrix for car visualization");
-  Serial.println("Running with FastLED library for improved performance");
+  Serial.println("Using TF-Luna via SoftwareSerial for front distance"); // Update message
+  Serial.println("Running with Adafruit NeoPixel library"); // Corrected library name
 }
 
 SidePositionStatus getSidePosition() { // Return type changed to enum
@@ -83,37 +93,42 @@ FrontPositionStatus getFrontPosition() { // Return type changed to enum
 }
 
 void loop() {
-  // Read all sensor values
+  // Read all sensor values and update occupancy state
   distanceSensor.readAllSensors();
 
-  bool carIsInGarage = distanceSensor.isCarInGarage();
+  // Use the new method to check if the garage is confirmed empty
+  bool garageIsEmpty = distanceSensor.isGarageEmpty();
   unsigned long currentTime = millis();
 
-  // Check if the car is in the garage
-  if (carIsInGarage) {
-    // Check if the car just entered the garage
+  // Check if the garage is NOT empty (car is present or potentially present)
+  if (!garageIsEmpty) {
+    // Check if the car just entered the garage (or was detected again)
     if (!carWasInGarage) {
-      carFirstDetectedTime = currentTime; // Record the time the car entered
+      carFirstDetectedTime = currentTime; // Record the time the car entered/detected
       carWasInGarage = true;
       Serial.println("Car detected in garage.");
     }
 
-    // Check if the screen timeout has been reached
+    // Check if the screen timeout has been reached since first detection
     if (currentTime - carFirstDetectedTime > screenTimeout) {
       ledController.clearScreen(); // Turn off screen after timeout
+      // Optional: Add a serial print indicating timeout
+      // if (carWasInGarage) { // Print only once when timeout occurs
+      //   Serial.println("Screen timed out.");
+      // }
     } else {
       showCarPosition(); // Show position if within timeout
     }
   } 
   else {
-    // Car is not in the garage
+    // Garage is confirmed empty
     if (carWasInGarage) {
-      Serial.println("Car left the garage.");
-      ledController.clearScreen(); // Clear the screen immediately when car leaves
+      Serial.println("Garage confirmed empty."); // Updated message
+      ledController.clearScreen(); // Clear the screen immediately when confirmed empty
       carWasInGarage = false;      // Reset the state
       carFirstDetectedTime = 0;    // Reset the timer
     }
-    // Keep screen clear if car remains out
+    // Keep screen clear if garage remains empty
     ledController.clearScreen(); 
   }
 
@@ -124,7 +139,7 @@ void showCarPosition() {
   
   // Get distances from each sensor
   float sidePerc = distanceSensor.getSidePercent();
-  float frontPerc = distanceSensor.getFrontPercent();
+  float frontPerc = distanceSensor.getFrontPercent(); // This now uses TF-Luna data implicitly
    
   // Get side-to-side position
   SidePositionStatus sideStatus = getSidePosition(); // Variable type changed

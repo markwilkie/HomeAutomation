@@ -1,16 +1,16 @@
 #include "../include/DistanceSensor.h"
 #include <Arduino.h>
 #include <math.h>
-#include <Wire.h> // Include Wire library for I2C communication
+#include "../include/TFLunaUART.h" // Ensure new header is included
+#include <SoftwareSerial.h> // Include SoftwareSerial
 
 // Pin definitions for ultrasonic sensors
-// Removed FRONT_TRIG_PIN, FRONT_ECHO_PIN
 const int DistanceSensor::LEFT_TRIG_PIN = 8;    // Left ultrasonic trigger pin
 const int DistanceSensor::LEFT_ECHO_PIN = 9;   // Left ultrasonic echo pin
 const int DistanceSensor::RIGHT_TRIG_PIN = 6;  // Right ultrasonic trigger pin
 const int DistanceSensor::RIGHT_ECHO_PIN = 7;  // Right ultrasonic echo pin
 
-Adafruit_VL53L1X _vl53 = Adafruit_VL53L1X(XSHUT_PIN, IRQ_PIN);
+DistanceSensor::DistanceSensor(SoftwareSerial& lidarSerial) : _tfluna(lidarSerial) {}
 
 void DistanceSensor::init() {
   _leftTrigPin = LEFT_TRIG_PIN;
@@ -18,9 +18,13 @@ void DistanceSensor::init() {
   _rightTrigPin = RIGHT_TRIG_PIN;
   _rightEchoPin = RIGHT_ECHO_PIN;
   
-  _leftDistance = 0;
-  _rightDistance = 0;
-  _frontDistance = 0;
+  _leftDistance = MAX_ULTRASONIC_DISTANCE; // Initialize distances to max
+  _rightDistance = MAX_ULTRASONIC_DISTANCE;
+  _frontDistance = MAX_LIDAR_DISTANCE;
+
+  // Initialize occupancy state variables
+  _lastPotentialEmptyTime = 0;
+  _isConfirmedEmpty = true; // Assume empty initially until sensors confirm otherwise
 
   // Set up ultrasonic sensor pins
   pinMode(_leftTrigPin, OUTPUT);
@@ -28,26 +32,9 @@ void DistanceSensor::init() {
   pinMode(_rightTrigPin, OUTPUT);
   pinMode(_rightEchoPin, INPUT);
 
-  // Initialize I2C for VL53L1X
-  Wire.begin();
-  if (! _vl53.begin(0x29, &Wire)) {
-    Serial.print(F("Error on init of VL53L1X sensor: "));
-    Serial.println(_vl53.vl_status);
-    while (1) delay(10); // Halt if sensor init fails
-  }
-  Serial.println(F("VL53L1X sensor OK!"));
-
-  if (! _vl53.startRanging()) {
-    Serial.print(F("Couldn't start ranging VL53L1X: "));
-    Serial.println(_vl53.vl_status);
-    while (1) delay(10); // Halt if ranging fails
-  }
-  Serial.println(F("VL53L1X Ranging started"));
-
-  // Set timing budget (50ms is a good default)
-  _vl53.setTimingBudget(50);
-  Serial.print(F("VL53L1X Timing budget (ms): "));
-  Serial.println(_vl53.getTimingBudget());
+  // Initialize TF-Luna Sensor using the new class with SoftwareSerial
+  _tfluna.init(); // Default baud rate is 115200
+  Serial.println(F("TF-Luna SoftwareSerial Initialized")); // Update message
 }
 
 // Common helper method for ultrasonic distance reading
@@ -69,7 +56,7 @@ int DistanceSensor::readUltrasonicCm(int trigPin, int echoPin) {
   long distance = (duration / 2) * 0.0343;
   
   // Check if the reading is valid
-  if (distance == 0 || distance > MAX_ULTRASONIC_DISTANCE) { // Use MAX_SIDE_DISTANCE
+  if (distance == 0 || distance > MAX_ULTRASONIC_DISTANCE) { // Use MAX_ULTRASONIC_DISTANCE
     distance = MAX_ULTRASONIC_DISTANCE; // Out of range or invalid reading
   }
   
@@ -95,48 +82,43 @@ int DistanceSensor::readSideUltrasonicCm() {
   return (_leftDistance + _rightDistance) / 2; // Average if both are in range
 }
 
-// Method to read distance from VL53L1X sensor
-int DistanceSensor::readFrontVl53l1xCm() {
-  int16_t distance_mm = -1; // Use int16_t as per library example
-
-  if (_vl53.dataReady()) {
-    // New measurement available
-    distance_mm = _vl53.distance();
-    if (distance_mm == -1) {
-      // Error reading distance
-      //Serial.println("VL out of range");
-      _frontDistance = MAX_TOF_DISTANCE; // Set to max on error
+// Method to read distance from TF-Luna Lidar sensor using direct UART implementation
+int DistanceSensor::readFrontLidarCm() {
+  // Attempt to get data from TF-Luna using the new class
+  if (_tfluna.readData()) { // readData returns true if a complete packet was received
+    int dist_cm = _tfluna.getDistance();
+    if (dist_cm > 0 && dist_cm <= MAX_LIDAR_DISTANCE) {
+      _frontDistance = dist_cm; // Update distance if valid reading within range
     } else {
-      // Convert mm to cm
-      _frontDistance = distance_mm / 10;
-      // Clamp to max distance
-      if (_frontDistance > MAX_TOF_DISTANCE) {
-          _frontDistance = MAX_TOF_DISTANCE;
-      }
+      // Reading is out of range or invalid (e.g., 0 or > max)
+      _frontDistance = MAX_LIDAR_DISTANCE;
     }
-    // Clear the interrupt flag to allow next measurement
-    _vl53.clearInterrupt();
+  } else {
+    // Failed to get data (e.g., communication error or incomplete packet)
+    // Keep the previous distance or set to max? For now, keep previous valid reading.
+    // If you prefer setting to max on failure, uncomment the next line:
+    // _frontDistance = MAX_LIDAR_DISTANCE;
+    // Serial.println("TF-Luna readData() failed or no new data"); // Optional debug message
+  }
 
-  } 
+  Serial.print(F("Front distance: "));
+  Serial.print(_frontDistance);
+  Serial.println(F(" cm"));
 
-  // if still out of range, help out
-  if (_frontDistance >= MAX_TOF_DISTANCE 
+  // Keep the heuristic logic for out-of-range scenarios if desired,
+  // but adjust the max distance check to MAX_LIDAR_DISTANCE
+  if (_frontDistance >= MAX_LIDAR_DISTANCE
     && _rightDistance < MAX_ULTRASONIC_DISTANCE
     && _leftDistance >= MAX_ULTRASONIC_DISTANCE) {
     _frontDistance = .75 * GARAGE_LENGTH; // 25% of garage length
   }
 
-  if(_frontDistance >= MAX_TOF_DISTANCE
+  if(_frontDistance >= MAX_LIDAR_DISTANCE
     && _leftDistance < MAX_ULTRASONIC_DISTANCE
-    && _leftDistance < MAX_ULTRASONIC_DISTANCE) {
+    && _rightDistance < MAX_ULTRASONIC_DISTANCE) { // Corrected logic: both sides should see something
     _frontDistance = .35 * GARAGE_LENGTH; // 65% of garage length
   }
 
-  Serial.print(F("VL53L1X distance: "));
-  Serial.println(_frontDistance);
-
-  // If data is not ready, return the last known distance
-  // This prevents blocking if the sensor is slow or unresponsive
   return _frontDistance;
 }
 
@@ -177,13 +159,41 @@ float DistanceSensor::getSidePercent() {
 void DistanceSensor::readAllSensors() {
   // Read sensors sequentially
   readSideUltrasonicCm();
-  // No delay needed before VL53L1X as it's non-blocking
-  readFrontVl53l1xCm(); 
+  readFrontLidarCm(); 
+  // Update occupancy state after reading sensors
+  updateGarageOccupancyState();
 }
 
-// Once the left sensor see something, the car is in
-bool DistanceSensor::isCarInGarage() {
-  // Use the most recent _leftDistance value
-  // Consider car in if left sensor sees something closer than half its max range
-  return ( _rightDistance <= MAX_ULTRASONIC_DISTANCE / 2 ); 
+// Update garage occupancy state based on sensor readings and time
+void DistanceSensor::updateGarageOccupancyState() {
+  // Define conditions that suggest the garage is occupied.
+  // Use the right sensor: if it detects something closer than half its max range.
+  bool potentiallyOccupied = (_rightDistance < MAX_ULTRASONIC_DISTANCE / 2);
+
+  unsigned long currentTime = millis();
+
+  if (potentiallyOccupied) {
+    // Garage seems occupied, reset empty confirmation state
+    _isConfirmedEmpty = false;
+    _lastPotentialEmptyTime = 0; // Reset timer
+    // Serial.println("Garage potentially occupied (right sensor)."); // Debug
+  } else {
+    // Garage seems empty
+    if (_lastPotentialEmptyTime == 0) {
+      // Start the timer if it hasn't started yet
+      _lastPotentialEmptyTime = currentTime;
+      // Serial.println("Garage potentially empty, starting timer (right sensor)."); // Debug
+    } else {
+      // Timer is running, check if the delay has passed
+      if (!_isConfirmedEmpty && (currentTime - _lastPotentialEmptyTime >= EMPTY_CONFIRMATION_DELAY)) {
+        _isConfirmedEmpty = true; // Confirm empty after delay
+        // Serial.println("Garage confirmed empty after delay (right sensor)."); // Debug
+      }
+    }
+  }
+}
+
+// Check if the garage is confirmed empty
+bool DistanceSensor::isGarageEmpty() {
+  return _isConfirmedEmpty;
 }
