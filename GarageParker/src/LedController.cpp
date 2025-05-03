@@ -1,5 +1,6 @@
 #include "../include/LedController.h"
 #include <Arduino.h>
+#include <math.h> // Include for fabs()
 
 // Constructor now takes pin and dimensions
 LedController::LedController() {
@@ -55,58 +56,28 @@ void LedController::show() {
     _strip->show();
 }
 
-void LedController::visualizeCar(float sidePerc, float frontPerc, float optimalSidePerc, float optimalFrontPerc, SidePositionStatus sideStatus, FrontPositionStatus frontStatus) {
+void LedController::visualizeCar(float sidePerc, float frontPerc, SidePositionStatus sideStatus, FrontPositionStatus frontStatus) {
   if (!_strip) return;
-
-  int carWidth = 3; // Width of the car in pixels
-  int carHeight = 10; // Height of the car in pixels
 
   // Clear all pixels first or fill with background color
   if (sideStatus == SidePositionStatus::CENTER && frontStatus == FrontPositionStatus::OPTIMAL) {
-    _strip->fill(_colorGreen); // Use fill for solid color
+    _strip->fill(_colorGreen);
   } else {
     _strip->fill(_colorOff); // Use fill for solid color (clear)
   }
 
-  // Calculate x and y based on percentages
-  // Ensure division by zero doesn't happen
-  float vizSidePixels = (optimalSidePerc > 0) ? ((_matrixWidth / 2.0f) / optimalSidePerc) : 0;
-  int rightPixels = round(sidePerc * vizSidePixels); // Right side percentage
-  int carX = _matrixWidth - (carWidth / 2) - rightPixels; // X position based on side percentage
+  // Draw optimal front target line, any arrows, and center line for orientation
+  drawOptimalFrontTargetLine(frontStatus); // Pass frontStatus
+  drawCenterLine(sideStatus);
+  drawSideIndicators(sideStatus);
 
-  //float vizFrontPixels = (optimalFrontPerc > 0) ? ((_matrixHeight / 2.0f) / optimalFrontPerc) : 0;
-  //int frontPixels = round(frontPerc * vizFrontPixels);
-  //int frontPixels = round(frontPerc * _matrixHeight); // Front percentage
-  //int carY = frontPixels - (carHeight / 2); // Y position based on front percentage
-  int carY = round(frontPerc * _matrixHeight); // Y position based on front percentage
+  //100% is centered, 0 is all the way to the right, 200 is all the way left
+  int carX = _matrixWidth - (sidePerc * (_matrixWidth/2));
+  int carY = (frontPerc * (_matrixHeight/2))-(CAR_HEIGHT/2); // Calculate car's y position
 
-  Serial.print("Car y: ");
-  Serial.println(carY); 
-
-  // Draw the car (only if within bounds, adjust fillRect/drawRect to handle clipping if needed)
-  // Basic bounds check for the starting corner
-  if (carX >= 0 && carX < _matrixWidth && carY >= 0 && carY < _matrixHeight) {
-      drawRect(carX, carY, carWidth, carHeight, _colorCar); // Car body outline
-      fillRect(carX + 1, carY + 1, carWidth - 2, carHeight - 2, _colorGrey); // Car interior (adjust width/height for fill)
-  }
-
-  // Draw indicators
-  if (frontStatus == FrontPositionStatus::TOO_CLOSE) {
-    // Draw red line above the car
-    fillRect(carX, carY - 1, carWidth, 1, _colorRed);
-  }
-  // No indicator for OPTIMAL or TOO_FAR front status in this logic
-
-  if (sideStatus == SidePositionStatus::LEFT) {
-    // Draw yellow line to the left of the car
-    fillRect(carX - 1, carY, 1, carHeight, _colorYellow);
-  } else if (sideStatus == SidePositionStatus::RIGHT) {
-    // Draw yellow line to the right of the car
-    fillRect(carX + carWidth, carY, 1, carHeight, _colorYellow);
-  }
-  // No indicator for CENTER side status
-
-  _strip->show(); // Update the display
+  // Draw and fill the car rectangle
+  drawRect(carX, carY, CAR_WIDTH, CAR_HEIGHT, _colorCar); // Draw outline
+  fillRect(carX+1, carY+1, CAR_WIDTH-2, CAR_HEIGHT-2, _colorGrey);
 }
 
 int LedController::getPixelIndex(int x, int y) {
@@ -134,6 +105,49 @@ int LedController::getPixelIndex(int x, int y) {
   }
 
   return index;
+}
+
+// Implementation of Bresenham's line algorithm or similar
+void LedController::drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
+  if (!_strip) return;
+
+  // Handle simple cases: horizontal and vertical lines
+  if (x0 == x1) { // Vertical line
+    int startY = min(y0, y1);
+    int endY = max(y0, y1);
+    for (int y = startY; y <= endY; ++y) {
+      setPixelSafe(x0, y, color);
+    }
+    return;
+  }
+  if (y0 == y1) { // Horizontal line
+    int startX = min(x0, x1);
+    int endX = max(x0, x1);
+    for (int x = startX; x <= endX; ++x) {
+      setPixelSafe(x, y0, color);
+    }
+    return;
+  }
+
+  // Bresenham's line algorithm for other cases (optional, can be added if needed)
+  // For now, only horizontal and vertical lines are implemented as they are used.
+  // If diagonal lines are needed, implement Bresenham's algorithm here.
+  // Example: Simple diagonal (slope 1 or -1) - adapt if needed
+  int dx = abs(x1 - x0);
+  int dy = abs(y1 - y0);
+  if (dx == dy) { // Simple diagonal case
+      int sx = x0 < x1 ? 1 : -1;
+      int sy = y0 < y1 ? 1 : -1;
+      int x = x0;
+      int y = y0;
+      while (true) {
+          setPixelSafe(x, y, color);
+          if (x == x1 && y == y1) break;
+          x += sx;
+          y += sy;
+      }
+  }
+  // Add full Bresenham's implementation here if general lines are required.
 }
 
 // Draw rectangle outline
@@ -168,8 +182,91 @@ void LedController::fillRect(int x, int y, int width, int height, uint32_t color
   }
 }
 
-void LedController::setAllPixels(uint32_t color) {
+// Add helper function to set pixel color safely with bounds checking
+void LedController::setPixelSafe(int x, int y, uint32_t color) {
+  if (x >= 0 && x < _matrixWidth && y >= 0 && y < _matrixHeight) {
+    int pixelIndex = getPixelIndex(x, y);
+    if (pixelIndex != -1) {
+      _strip->setPixelColor(pixelIndex, color);
+    }
+  }
+}
+
+// Add new function to draw side indicators
+void LedController::drawSideIndicators(SidePositionStatus sideStatus) {
   if (!_strip) return;
-  _strip->fill(color); // Use Adafruit's fill method
-  _strip->show();
+
+  int row1 = _matrixHeight / 3;
+  int row2 = _matrixHeight * 2 / 3;
+
+  if (sideStatus == SidePositionStatus::RIGHT) { // Need to move LEFT ('<')
+    int x = 0; // Left edge
+    drawArrow(x, row1, 2, _colorYellow); // Draw arrow pointing left
+    drawArrow(x, row2, 2, _colorYellow); // Draw arrow pointing left
+  } else if (sideStatus == SidePositionStatus::LEFT) { // Need to move RIGHT ('>')
+    int x = _matrixWidth - 1; // Right edge
+    drawArrow(x, row1, 3, _colorYellow); // Draw arrow pointing right 
+    drawArrow(x, row2, 3, _colorYellow); // Draw arrow pointing right
+  } else if (sideStatus == SidePositionStatus::DANGEROUSLY_LEFT) { // Need to move RIGHT ('>')
+    int x = _matrixWidth - 1; // Right edge
+    drawArrow(x, row1, 3, _colorRed); // Draw arrow pointing right 
+    drawArrow(x, row2, 3, _colorRed); // Draw arrow pointing right
+  } else if (sideStatus == SidePositionStatus::DANGEROUSLY_RIGHT) { // Need to move LEFT ('<')
+    int x = 0; // Left edge
+    drawArrow(x, row1, 2, _colorRed); // Draw arrow pointing left
+    drawArrow(x, row2, 2, _colorRed); // Draw arrow pointing left
+  }
+  // If status is CENTER, no indicators are drawn
+}
+
+void LedController::drawArrow(int x, int y, int direction, uint32_t color) {
+  if (!_strip) return;
+  // Draw a simple arrow shape based on direction
+  if (direction == 0) { // Up
+    setPixelSafe(x, y - 1, color);
+    setPixelSafe(x - 1, y, color);
+    setPixelSafe(x + 1, y, color);
+    setPixelSafe(x, y + 1, color);
+  } else if (direction == 1) { // Down
+    setPixelSafe(x, y + 1, color);
+    setPixelSafe(x - 1, y, color);
+    setPixelSafe(x + 1, y, color);
+    setPixelSafe(x, y - 1, color);
+  } else if (direction == 2) { // Left
+    setPixelSafe(x + 1, y - 1, color);
+    setPixelSafe(x, y, color);
+    setPixelSafe(x + 1, y + 1, color);
+  } else if (direction == 3) { // Right
+    setPixelSafe(x-1, y - 1, color);
+    setPixelSafe(x, y, color);
+    setPixelSafe(x-1, y + 1, color);
+  }
+}
+
+// Add new function to draw the center line
+void LedController::drawCenterLine(SidePositionStatus sideStatus) {
+  if (!_strip) return;
+
+  uint32_t color = _colorGrey; // Default color for center line
+
+  if(sideStatus == SidePositionStatus::DANGEROUSLY_LEFT || sideStatus == SidePositionStatus::DANGEROUSLY_RIGHT) {
+    color = _colorRed; // Change color to red for dangerous status); 
+  }
+
+  drawLine(_matrixWidth / 2, 0, _matrixWidth / 2, _matrixHeight - 1, color); // Draw center line
+}
+
+// Add new function to draw the optimal front target line
+void LedController::drawOptimalFrontTargetLine(FrontPositionStatus frontStatus) { // Add frontStatus parameter
+  if (!_strip) return;
+
+  uint32_t color = _colorGrey; // Default color for optimal front target line
+  if(frontStatus == FrontPositionStatus::DANGEROUSLY_CLOSE) {
+    color = _colorRed; // Change color to red for dangerous status
+  }
+
+  // Map optimalFrontPerc (0 to 1) to matrix rows (0 to _matrixHeight - 1)
+  // This line represents where the *front* of the car should ideally be.
+  int targetFrontY = (_matrixHeight/2)-(CAR_HEIGHT/2); // Centered vertically in the matrix)
+  drawLine(0, targetFrontY, _matrixWidth - 1, targetFrontY, _colorGrey); // Draw horizontal line
 }

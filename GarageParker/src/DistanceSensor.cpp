@@ -93,13 +93,7 @@ int DistanceSensor::readFrontLidarCm() {
       // Reading is out of range or invalid (e.g., 0 or > max)
       _frontDistance = MAX_LIDAR_DISTANCE;
     }
-  } else {
-    // Failed to get data (e.g., communication error or incomplete packet)
-    // Keep the previous distance or set to max? For now, keep previous valid reading.
-    // If you prefer setting to max on failure, uncomment the next line:
-    // _frontDistance = MAX_LIDAR_DISTANCE;
-    // Serial.println("TF-Luna readData() failed or no new data"); // Optional debug message
-  }
+  } 
 
   Serial.print(F("Front distance: "));
   Serial.print(_frontDistance);
@@ -122,37 +116,21 @@ int DistanceSensor::readFrontLidarCm() {
   return _frontDistance;
 }
 
-float DistanceSensor::getFrontPercent() {
-  float perc =  (float)_frontDistance / (float)GARAGE_LENGTH;
+//100% is perfectly centered, 0 is all the way forward
+float DistanceSensor::getFrontPercent(float optimalFrontPerc) {
+  float perc =  (float)_frontDistance / (float)((GARAGE_LENGTH - CAR_LENGTH)/2.0); // Adjusted denominator to account for car length
+  perc = perc - (1.0 - optimalFrontPerc); // Adjusted to account for optimal front distance
 
-  if(perc < 0) {
-    perc = 0; // Ensure percentage is not negative
-  } else if(perc > 1) {
-    perc = 1; // Ensure percentage does not exceed 100%
-  }
   return perc;
 }
 
-float DistanceSensor::getSidePercent() {
-  // Calculate the percentage of the distance from the maximum distance
+  // 100% is perfectly centered, 0 is full right and 200% is full left
+float DistanceSensor::getSidePercent(float optimalSidePerc) {
   int sideDistance = readSideUltrasonicCm(); // Get current average side distance
 
-  // Handle cases where one or both sensors might be out of range
-  if (_leftDistance >= MAX_ULTRASONIC_DISTANCE && _rightDistance >= MAX_ULTRASONIC_DISTANCE) {
-      sideDistance = MAX_ULTRASONIC_DISTANCE; // If both out of range, use max
-  } else if (_leftDistance >= MAX_ULTRASONIC_DISTANCE) {
-      sideDistance = _rightDistance; // Use right if left is out of range
-  } else {
-      sideDistance = (_leftDistance + _rightDistance) / 2; // Average if both in range
-  }
+  float perc = (float)sideDistance / (float)((GARAGE_WIDTH - CAR_WIDTH)/2.0); // Adjusted denominator to account for car width
+  perc = perc - (1.0 - optimalSidePerc); // Adjusted to account for optimal side distance
 
-  float perc = (float)sideDistance / (float)GARAGE_WIDTH;
-
-  if(perc < 0) {
-    perc = 0; // Ensure percentage is not negative
-  } else if(perc > 1) {
-    perc = 1; // Ensure percentage does not exceed 100%
-  }
   return perc;
 } 
 

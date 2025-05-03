@@ -2,6 +2,8 @@
 
 An Arduino-based garage parking assistant that helps you park your car in the garage by visualizing its position using ultrasonic sensors, a TF-Luna Lidar sensor (via Serial), and an LED matrix.
 
+**Last Updated:** May 3, 2025
+
 ## Hardware Requirements
 
 - Arduino board (Uno, Nano, or similar - Uno/Nano require SoftwareSerial for TF-Luna)
@@ -32,6 +34,7 @@ An Arduino-based garage parking assistant that helps you park your car in the ga
   - TX (TF-Luna Pin 3) to Arduino Pin 10 (defined as `TFLUNA_RX_PIN` in `GarageParker.ino`) - Uses SoftwareSerial RX
   - RX (TF-Luna Pin 2) to Arduino Pin 11 (defined as `TFLUNA_TX_PIN` in `GarageParker.ino`) - Uses SoftwareSerial TX
   - Note: TF-Luna uses Serial communication (default 115200 baud). If using Arduino Mega or similar with hardware serial ports available, you could adapt the code to use `Serial1`, `Serial2`, etc. instead of SoftwareSerial.
+  - See the [Waveshare Wiki](https://www.waveshare.com/wiki/TF-Luna_LiDAR_Range_Sensor) for more details on the sensor.
 
 - Connect the WS2811/WS2812B LED Matrix:
   - Data pin to Arduino pin 5 (defined as `LED_DATA_PIN` in `LedController.h`)
@@ -74,7 +77,16 @@ For accurate position calculation, the sensors should be mounted as follows:
 
 1. The Left and Right ultrasonic sensors measure the distance to the side of the car. These are averaged (or handled individually if one is out of range) to determine the side distance.
 2. The Front TF-Luna Lidar sensor measures the distance to the front of the car using Serial communication (via SoftwareSerial).
-3. The system calculates the side position percentage (`sidePerc`) relative to `GARAGE_WIDTH` and the front position percentage (`frontPerc`) relative to `GARAGE_LENGTH`.
+3. The system calculates the side position percentage (`sidePerc`) and the front position percentage (`frontPerc`). These percentages are used to determine the car's position relative to the desired optimal spot.
+    - **Side Percentage (`sidePerc`):** This represents the car's side-to-side position.
+        - `100%` (or `1.0`) means the car is perfectly centered according to the `optimalSidePerc` setting (e.g., 90cm from the left wall if `optimalSidePerc` is 0.9 and `GARAGE_WIDTH` is 300cm).
+        - Values **greater than 100%** mean the car is **too far to the left**.
+        - Values **less than 100%** mean the car is **too far to the right**.
+        - The raw percentage is calculated based on the distance from the *left* sensor relative to the `GARAGE_WIDTH`. The comparison to `optimalSidePerc` determines the final status (LEFT, RIGHT, CENTER).
+    - **Front Percentage (`frontPerc`):** This represents how close the car's front bumper is to the desired stopping point.
+        - `100%` (or `1.0`) means the car has reached the optimal stopping distance defined by `optimalFrontPerc` relative to the `GARAGE_LENGTH`.
+        - Values **greater than 100%** mean the car is **too far away** from the front wall (needs to move forward).
+        - Values **less than 100%** mean the car is **too close** to the front wall.
 4. These percentages are compared to optimal ranges (`optimalSidePerc`, `plusMinusSidePerc`, `optimalFrontPerc`, `plusMinusFrontPerc` defined in `GarageParker.ino`).
 5. The `LedController` class uses these percentages and status enums (`SidePositionStatus`, `FrontPositionStatus`) to calculate the car's position on the 16x16 matrix and display appropriate visual feedback.
 6. The display turns off after a timeout or when the car leaves the garage.
@@ -82,7 +94,7 @@ For accurate position calculation, the sensors should be mounted as follows:
 ## Required Libraries
 
 - Adafruit NeoPixel library for controlling the WS2811/WS2812B LED matrix.
-- `TFLunaUART.h` (Included in this project's `include/` directory) for direct UART communication with the TF-Luna sensor.
+- `TFLunaUART.h` (Included in this project's `include/` directory) for direct UART communication with the TF-Luna sensor. See the [Waveshare Wiki](https://www.waveshare.com/wiki/TF-Luna_LiDAR_Module) for sensor details.
 - SoftwareSerial library (built-in Arduino library, used by `TFLunaUART.h`).
 
 To install libraries: Sketch > Include Library > Manage Libraries...

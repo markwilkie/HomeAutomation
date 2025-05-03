@@ -8,10 +8,13 @@
 #define GARAGE_WIDTH 310 //size of garage space side to side in cm
 #define GARAGE_LENGTH 670 //size of garage space front to back
 
+#define CAR_WIDTH 180 // Width of the car in cm
+#define CAR_LENGTH 460 // Length of the car in cm
+
 #define MAX_ULTRASONIC_DISTANCE 300 // Maximum distance for ultrasonic sensors can see in cm
 #define MAX_LIDAR_DISTANCE 800 // Maximum distance for TF-Luna sensor can see in cm (TF-Luna range is up to 8m)
-#define OPTIMAL_SIDE_DISTANCE 75       // perfect distance from the wall in cm
-#define OPTIMAL_FRONT_DISTANCE 120      // perfect distance from the front wall in cm
+//#define OPTIMAL_SIDE_DISTANCE 75       // perfect distance from the wall in cm
+//#define OPTIMAL_FRONT_DISTANCE 120      // perfect distance from the front wall in cm
 
 // Add constant for the empty confirmation delay
 #define EMPTY_CONFIRMATION_DELAY 10000 // 10 seconds in milliseconds
@@ -59,8 +62,8 @@ class DistanceSensor {
     void readAllSensors();
 
     // Return % 
-    float getSidePercent();
-    float getFrontPercent();
+    float getSidePercent(float optimalSidePerdc);
+    float getFrontPercent(float optimalFrontPerc);
 
     // Update garage occupancy state based on sensor readings
     void updateGarageOccupancyState();

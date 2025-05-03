@@ -15,10 +15,10 @@
 #include <SoftwareSerial.h> // Include SoftwareSerial
 
 // Constants
-const float optimalSidePerc = .22; //perc off wall
-const float plusMinusSidePerc = .03; // +/- perc off wall
-const float optimalFrontPerc = .18;   
-const float plusMinusFrontPerc = .05;
+const float optimalSidePerc = .96;  //target is just right of center
+const float plusMinusSidePerc = .15; // +/- perc off wall
+const float optimalFrontPerc = 1.0; //target is centered in garage
+const float plusMinusFrontPerc = .2;
 
 // Define pins for SoftwareSerial communication with TF-Luna
 #define TFLUNA_RX_PIN 10 // Choose appropriate pins for your board
@@ -53,19 +53,30 @@ void setup() {
 }
 
 SidePositionStatus getSidePosition() { // Return type changed to enum
-  float sidePerc = distanceSensor.getSidePercent();
+  float sidePerc = distanceSensor.getSidePercent(optimalSidePerc);
 
-  float maxSidePerc = optimalSidePerc + plusMinusSidePerc; // Maximum side percentage
-  float minSidePerc = optimalSidePerc - plusMinusSidePerc; // Minimum side percentage
+  //remember that getsidepercentage returns 1.0 for optimal already
+  float maxSidePerc = 1.0 + plusMinusSidePerc; // Maximum side percentage
+  float minSidePerc = 1.0 - plusMinusSidePerc; // Minimum side percentage
   
   // Check if the car is too close to the left wall
   if (sidePerc > maxSidePerc) {
-    return SidePositionStatus::LEFT; // Return enum value
+    if(sidePerc > (maxSidePerc + plusMinusFrontPerc)) { 
+      return SidePositionStatus::DANGEROUSLY_LEFT; // Return enum value
+    }
+    else {
+      return SidePositionStatus::LEFT; // Return enum value
+    }
   }
   
   // Check if the car is too close to the right wall
   if (sidePerc < minSidePerc) {
-    return SidePositionStatus::RIGHT; // Return enum value
+    if(sidePerc < (minSidePerc - plusMinusFrontPerc)) { 
+      return SidePositionStatus::DANGEROUSLY_RIGHT; // Return enum value
+    }
+    else {
+      return SidePositionStatus::RIGHT; // Return enum value
+    }
   }
   
   //we're centered!
@@ -73,14 +84,20 @@ SidePositionStatus getSidePosition() { // Return type changed to enum
 }
 
 FrontPositionStatus getFrontPosition() { // Return type changed to enum
-  float frontPerc = distanceSensor.getFrontPercent();
+  float frontPerc = distanceSensor.getFrontPercent(optimalFrontPerc);
 
-  float maxFrontPerc = optimalFrontPerc + plusMinusFrontPerc; // Maximum front percentage
-  float minFrontPerc = optimalFrontPerc - plusMinusFrontPerc; // Minimum front percentage
+  //remember that getfrontpercentage returns 1.0 for optimal already
+  float maxFrontPerc = 1.0 + plusMinusFrontPerc; // Maximum front percentage
+  float minFrontPerc = 1.0 - plusMinusFrontPerc; // Minimum front percentage
   
   // Check if the car is too close to the front wall
   if (frontPerc < minFrontPerc) {
-    return FrontPositionStatus::TOO_CLOSE; // Return enum value
+    if(frontPerc < (minFrontPerc - plusMinusFrontPerc)) { 
+      return FrontPositionStatus::DANGEROUSLY_CLOSE; // Return enum value
+    }
+    else {
+      return FrontPositionStatus::TOO_CLOSE; // Return enum value
+    }
   }
   
   // Check if the car is too far from the front wall
@@ -138,8 +155,8 @@ void loop() {
 void showCarPosition() {
   
   // Get distances from each sensor
-  float sidePerc = distanceSensor.getSidePercent();
-  float frontPerc = distanceSensor.getFrontPercent(); // This now uses TF-Luna data implicitly
+  float sidePerc = distanceSensor.getSidePercent(optimalSidePerc);
+  float frontPerc = distanceSensor.getFrontPercent(optimalFrontPerc); // This now uses TF-Luna data implicitly
    
   // Get side-to-side position
   SidePositionStatus sideStatus = getSidePosition(); // Variable type changed
@@ -158,6 +175,9 @@ void showCarPosition() {
     Serial.print(" % | Position: ");
     
     switch(sideStatus) { // Use enum variable
+      case SidePositionStatus::DANGEROUSLY_LEFT:
+        Serial.print("DANGEROUSLY LEFT | ");
+        break;
       case SidePositionStatus::LEFT:
         Serial.print("TOO FAR LEFT | ");
         break;
@@ -167,9 +187,15 @@ void showCarPosition() {
       case SidePositionStatus::RIGHT:
         Serial.print("TOO FAR RIGHT | ");
         break;
+      case SidePositionStatus::DANGEROUSLY_RIGHT:
+        Serial.print("DANGEROUSLY RIGHT | ");
+        break;
     }
 
     switch(frontStatus) { // Use enum variable
+      case FrontPositionStatus::DANGEROUSLY_CLOSE:
+        Serial.println("DANGEROUSLY CLOSE TO FRONT WALL");
+        break;
       case FrontPositionStatus::TOO_CLOSE:
         Serial.println("TOO CLOSE TO FRONT WALL");
         break;
@@ -182,7 +208,8 @@ void showCarPosition() {
     }
   }
   
-  // Update car visualization on the LED matrix
-  ledController.visualizeCar(sidePerc, frontPerc, optimalSidePerc, optimalFrontPerc, sideStatus, frontStatus); 
+  // Update car visualization on the LED matrix, passing plusMinusSidePerc
+  ledController.visualizeCar(sidePerc, frontPerc, sideStatus, frontStatus); 
+  ledController.show(); // Add show() call here to update the physical LEDs
 
 }
