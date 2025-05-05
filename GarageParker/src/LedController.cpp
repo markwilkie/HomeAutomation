@@ -19,7 +19,7 @@ LedController::LedController() {
   _colorRed = _strip->Color(255, 0, 0);      // Red
   _colorOff = _strip->Color(0, 0, 0);        // Off
   _colorCar = _strip->Color(255, 255, 255);  // White for car
-  _colorGrey = _strip->Color(25, 25, 30);    // Grey interior
+  _colorGrey = _strip->Color(25, 25, 15);    // Grey interior
   _colorOptimal = _strip->Color(0, 100, 255); // Light blue for optimal position (adjust if needed)
 }
 
@@ -71,9 +71,17 @@ void LedController::visualizeCar(float sidePerc, float frontPerc, SidePositionSt
   drawCenterLine(sideStatus);
   drawSideIndicators(sideStatus);
 
+  //get ready to calc y
+  //int targetFrontY = (_matrixHeight/2)-(CAR_HEIGHT/2);  //where front ends up
+
   //100% is centered, 0 is all the way to the right, 200 is all the way left
   int carX = _matrixWidth - (sidePerc * (_matrixWidth/2));
-  int carY = (frontPerc * (_matrixHeight/2))-(CAR_HEIGHT/2); // Calculate car's y position
+  int carY = frontPerc * ((_matrixHeight/2)-(CAR_HEIGHT/2)); // Calculate car's y position
+
+  Serial.print(F("Car X: "));
+  Serial.print(carX); 
+  Serial.print(F(", Car Y: "));
+  Serial.println(carY);
 
   // Draw and fill the car rectangle
   drawRect(carX, carY, CAR_WIDTH, CAR_HEIGHT, _colorCar); // Draw outline
@@ -252,8 +260,12 @@ void LedController::drawCenterLine(SidePositionStatus sideStatus) {
   if(sideStatus == SidePositionStatus::DANGEROUSLY_LEFT || sideStatus == SidePositionStatus::DANGEROUSLY_RIGHT) {
     color = _colorRed; // Change color to red for dangerous status); 
   }
+  if(sideStatus == SidePositionStatus::LEFT || sideStatus == SidePositionStatus::RIGHT) {
+    color = _colorYellow; 
+  }
 
   drawLine(_matrixWidth / 2, 0, _matrixWidth / 2, _matrixHeight - 1, color); // Draw center line
+  drawLine((_matrixWidth / 2) - 1, 0, (_matrixWidth / 2) - 1, _matrixHeight - 1, color); // Draw left line
 }
 
 // Add new function to draw the optimal front target line
@@ -268,5 +280,5 @@ void LedController::drawOptimalFrontTargetLine(FrontPositionStatus frontStatus) 
   // Map optimalFrontPerc (0 to 1) to matrix rows (0 to _matrixHeight - 1)
   // This line represents where the *front* of the car should ideally be.
   int targetFrontY = (_matrixHeight/2)-(CAR_HEIGHT/2); // Centered vertically in the matrix)
-  drawLine(0, targetFrontY, _matrixWidth - 1, targetFrontY, _colorGrey); // Draw horizontal line
+  drawLine(0, targetFrontY, _matrixWidth - 1, targetFrontY, color); // Draw horizontal line
 }

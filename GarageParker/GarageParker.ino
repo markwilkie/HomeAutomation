@@ -15,10 +15,10 @@
 #include <SoftwareSerial.h> // Include SoftwareSerial
 
 // Constants
-const float optimalSidePerc = .96;  //target is just right of center
-const float plusMinusSidePerc = .15; // +/- perc off wall
-const float optimalFrontPerc = 1.0; //target is centered in garage
-const float plusMinusFrontPerc = .2;
+const float optimalSidePerc = .95;  //target is just right of center
+const float plusMinusSidePerc = .30; // +/- perc off wall
+const float optimalFrontPerc = 1.2; //target is centered in garage
+const float plusMinusFrontPerc = .40;
 
 // Define pins for SoftwareSerial communication with TF-Luna
 #define TFLUNA_RX_PIN 10 // Choose appropriate pins for your board
@@ -56,12 +56,12 @@ SidePositionStatus getSidePosition() { // Return type changed to enum
   float sidePerc = distanceSensor.getSidePercent(optimalSidePerc);
 
   //remember that getsidepercentage returns 1.0 for optimal already
-  float maxSidePerc = 1.0 + plusMinusSidePerc; // Maximum side percentage
-  float minSidePerc = 1.0 - plusMinusSidePerc; // Minimum side percentage
+  float maxSidePerc = optimalSidePerc + plusMinusSidePerc; // Maximum side percentage
+  float minSidePerc = optimalSidePerc - plusMinusSidePerc; // Minimum side percentage
   
   // Check if the car is too close to the left wall
   if (sidePerc > maxSidePerc) {
-    if(sidePerc > (maxSidePerc + plusMinusFrontPerc)) { 
+    if(sidePerc > (maxSidePerc + (plusMinusFrontPerc*2))) { 
       return SidePositionStatus::DANGEROUSLY_LEFT; // Return enum value
     }
     else {
@@ -71,7 +71,7 @@ SidePositionStatus getSidePosition() { // Return type changed to enum
   
   // Check if the car is too close to the right wall
   if (sidePerc < minSidePerc) {
-    if(sidePerc < (minSidePerc - plusMinusFrontPerc)) { 
+    if(sidePerc < (minSidePerc - (plusMinusSidePerc*2))) { 
       return SidePositionStatus::DANGEROUSLY_RIGHT; // Return enum value
     }
     else {
@@ -87,12 +87,12 @@ FrontPositionStatus getFrontPosition() { // Return type changed to enum
   float frontPerc = distanceSensor.getFrontPercent(optimalFrontPerc);
 
   //remember that getfrontpercentage returns 1.0 for optimal already
-  float maxFrontPerc = 1.0 + plusMinusFrontPerc; // Maximum front percentage
-  float minFrontPerc = 1.0 - plusMinusFrontPerc; // Minimum front percentage
+  float maxFrontPerc = optimalFrontPerc + plusMinusFrontPerc; // Maximum front percentage
+  float minFrontPerc = optimalFrontPerc - plusMinusFrontPerc; // Minimum front percentage
   
   // Check if the car is too close to the front wall
   if (frontPerc < minFrontPerc) {
-    if(frontPerc < (minFrontPerc - plusMinusFrontPerc)) { 
+    if(frontPerc < (minFrontPerc - (plusMinusFrontPerc*2))) { 
       return FrontPositionStatus::DANGEROUSLY_CLOSE; // Return enum value
     }
     else {
@@ -129,10 +129,6 @@ void loop() {
     // Check if the screen timeout has been reached since first detection
     if (currentTime - carFirstDetectedTime > screenTimeout) {
       ledController.clearScreen(); // Turn off screen after timeout
-      // Optional: Add a serial print indicating timeout
-      // if (carWasInGarage) { // Print only once when timeout occurs
-      //   Serial.println("Screen timed out.");
-      // }
     } else {
       showCarPosition(); // Show position if within timeout
     }

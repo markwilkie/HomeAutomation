@@ -7,7 +7,7 @@
 #define LED_MATRIX_WIDTH 16 // Width of the LED matrix
 #define LED_MATRIX_HEIGHT 16 // Height of the LED matrix
 
-#define CAR_WIDTH 3 // Width of the car in pixels
+#define CAR_WIDTH 4 // Width of the car in pixels
 #define CAR_HEIGHT 8 // Height of the car in pixels
 
 

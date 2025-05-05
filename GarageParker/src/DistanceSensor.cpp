@@ -99,27 +99,15 @@ int DistanceSensor::readFrontLidarCm() {
   Serial.print(_frontDistance);
   Serial.println(F(" cm"));
 
-  // Keep the heuristic logic for out-of-range scenarios if desired,
-  // but adjust the max distance check to MAX_LIDAR_DISTANCE
-  if (_frontDistance >= MAX_LIDAR_DISTANCE
-    && _rightDistance < MAX_ULTRASONIC_DISTANCE
-    && _leftDistance >= MAX_ULTRASONIC_DISTANCE) {
-    _frontDistance = .75 * GARAGE_LENGTH; // 25% of garage length
-  }
-
-  if(_frontDistance >= MAX_LIDAR_DISTANCE
-    && _leftDistance < MAX_ULTRASONIC_DISTANCE
-    && _rightDistance < MAX_ULTRASONIC_DISTANCE) { // Corrected logic: both sides should see something
-    _frontDistance = .35 * GARAGE_LENGTH; // 65% of garage length
-  }
-
   return _frontDistance;
 }
 
 //100% is perfectly centered, 0 is all the way forward
 float DistanceSensor::getFrontPercent(float optimalFrontPerc) {
-  float perc =  (float)_frontDistance / (float)((GARAGE_LENGTH - CAR_LENGTH)/2.0); // Adjusted denominator to account for car length
-  perc = perc - (1.0 - optimalFrontPerc); // Adjusted to account for optimal front distance
+  int frontDistance = readFrontLidarCm(); // Get current average front distance
+  
+  float denom = optimalFrontPerc*(GARAGE_LENGTH - CAR_LENGTH)/2.0; // Adjusted denominator to account for car length
+  float perc =  frontDistance / denom; // Adjusted denominator to account for car length
 
   return perc;
 }
@@ -128,8 +116,8 @@ float DistanceSensor::getFrontPercent(float optimalFrontPerc) {
 float DistanceSensor::getSidePercent(float optimalSidePerc) {
   int sideDistance = readSideUltrasonicCm(); // Get current average side distance
 
-  float perc = (float)sideDistance / (float)((GARAGE_WIDTH - CAR_WIDTH)/2.0); // Adjusted denominator to account for car width
-  perc = perc - (1.0 - optimalSidePerc); // Adjusted to account for optimal side distance
+  float denom = optimalSidePerc*(GARAGE_WIDTH - CAR_WIDTH)/2.0; // Adjusted denominator to account for car width
+  float perc = sideDistance / denom; // Adjusted denominator to account for car width
 
   return perc;
 } 
