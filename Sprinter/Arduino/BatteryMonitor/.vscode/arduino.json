@@ -1,7 +1,0 @@
-{
-    "configuration": "cpu=atmega2560",
-    "board": "arduino:avr:mega",
-    "port": "COM8",
-    "sketch": "BatteryMonitor.ino",
-    "output": "../ArduinoOutput"
-}
