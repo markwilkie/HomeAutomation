@@ -1,13 +1,13 @@
 #include "Arduino.h" 
 #include <Wire.h>  
 #include <SPI.h>
-#include <LoRa.h>      //library from sandeep
+#include <LoRa.h>      //https://github.com/sandeepmistry/arduino-LoRa
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <Dictionary.h>
 
 //#include "HT_SSD1306Wire.h"   //new(?) library shipping with heltec.  verified to work on v2 BUT requires heltec libary which conflicts
-//#include "SSD1306.h" //I can no longer find this library for some reason
+#include "SSD1306.h" //https://github.com/ThingPulse/esp8266-oled-ssd1306
 #include "Debug.h"
 #include "logger.h"
 #include "version.h"
@@ -32,7 +32,7 @@ const char* api=RACHIO_API_KEY;
 Dictionary sensorZones;
 
 //Display
-//SSD1306 display(0x3c, 4, 15);
+SSD1306 display(0x3c, 4, 15);
 //static SSD1306Wire  display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED); 
 
 //OLED pins to ESP32 GPIOs via this connection:
@@ -222,7 +222,6 @@ void setup()
     initialSetup();
   
     //Setup display
-    /*
     pinMode(16,OUTPUT);
     digitalWrite(16, LOW);    // set GPIO16 low to reset OLED
     delay(50); 
@@ -231,7 +230,6 @@ void setup()
     display.flipScreenVertically();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
-    */
 
     // Setup mapping of Rachio zones to sensors
     //
@@ -258,19 +256,19 @@ void setup()
 
     //Setuip LoRa
     Serial.println("LoRa Receiver"); 
-    //display.drawString(5,5,"LoRa Receiver"); 
-    //display.display();
+    display.drawString(5,5,"LoRa Receiver"); 
+    display.display();
     SPI.begin(5,19,27,18);
     LoRa.setPins(SS,RST,DI0);
     
     if (!LoRa.begin(BAND)) {
       Serial.println("Starting LoRa Receiver Failed!"); 
-      //display.drawString(5,25,"Starting LoRa failed!");
+      display.drawString(5,25,"Starting LoRa failed!");
       while (1);
     }
     Serial.println("LoRa Initial OK!");
-    //display.drawString(5,25,"LoRa Initializing OK!");
-    //display.display();    
+    display.drawString(5,25,"LoRa Initializing OK!");
+    display.display();    
 
     //Initial sync
     syncEpoch();
@@ -316,10 +314,10 @@ void readPacket(int packetSize)
 {
   // received a packets
   Serial.println("Received packet");
-  //display.clear();
-  //display.setFont(ArialMT_Plain_16);
-  //display.drawString(3, 0, "Received packet ");
-  //display.display();
+  display.clear();
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(3, 0, "Received packet ");
+  display.display();
 
   //make sure we're at the start of the transmission
   while(LoRa.available() && LoRa.read() != 01) {}
@@ -333,10 +331,10 @@ void readPacket(int packetSize)
   while(LoRa.available()) {LoRa.read();} 
 
   // print RSSI of packet
-  //display.drawString(20,22, (String)perc);
-  //display.drawString(20, 45, "RSSI:  ");
-  //display.drawString(70, 45, (String)LoRa.packetRssi());
-  //display.display();
+  display.drawString(20,22, (String)perc);
+  display.drawString(20, 45, "RSSI:  ");
+  display.drawString(70, 45, (String)LoRa.packetRssi());
+  display.display();
 
   //poor man's crc
   if(crc!=(id|perc|voltage))

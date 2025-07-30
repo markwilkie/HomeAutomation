@@ -18,7 +18,7 @@ A WiFi and LoRa gateway for soil moisture monitoring and irrigation control, des
 ## Hardware Requirements
 
 ### ESP32 Board
-- Heltec Wifi Lora 32(v2)
+- Heltec Wifi Lora 32(v2)   - https://docs.heltec.org/en/node/esp32/wifi_lora_32/index.html
 - Board data: https://resource.heltec.cn/download/package_heltec_esp32_index.json
 - NOTE: use 'WiFi LoRa 32(v2)', NOT 'Heltec Wifi Lora 32(v2)'
 - NOTE: Do NOT install the heltec extended libraries as they'll conflict. 
@@ -40,14 +40,15 @@ LoRa Module (SX1278):
 ```
 
 ## Dependencies
+#include <LoRa.h>    //https://github.com/sandeepmistry/arduino-LoRa
+#include "SSD1306.h" //https://github.com/ThingPulse/esp8266-oled-ssd1306
 
+NOTE: Do NOT use the newer Heltec libary
 
 ## Configuration
+Create a file called 'properties.h' with the following two defines in it:
 
-### Sensor Zone Mapping
-`config.json' is download directly from Github via "https://raw.githubusercontent.com/markwilkie/HomeAutomation/master/Soiler/SoilerGateway/config.json"
-
-### Rachio API
-Set your Rachio API key in the properties file (referenced as `RACHIO_API_KEY`).
+#define RACHIO_API_KEY "put rachio api key here"
+#define CONFIG_URL "https://raw.githubusercontent.com/markwilkie/HomeAutomation/master/Soiler/SoilerGateway/config.json"
 
 #
