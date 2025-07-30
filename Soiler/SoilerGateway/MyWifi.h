@@ -1,7 +1,7 @@
 #include "logger.h"
 #include "debug.h"
 
-extern Logger logger;
+extern MyLogger myLogger;
 
 #ifndef wifi_h
 #define wifi_h
@@ -11,7 +11,7 @@ extern Logger logger;
 #include <HTTPClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
-#include <WiFiUdp.h>
+#include <NetworkUdp.h>
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
@@ -31,7 +31,7 @@ extern void blinkLED(int,int,int);
 extern unsigned long epoch;  //Epoch from hub
 extern char hubAddress[30];
 
-class Wifi 
+class MyWifi 
 {
 
   public:

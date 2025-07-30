@@ -1,9 +1,9 @@
-#include "Wifi.h"
+#include "MyWifi.h"
 
-WebServer server(80);
-Logger logger;
+WebServer myServer(80);
+MyLogger myLogger;
 
-void Wifi::startWifi()
+void MyWifi::startWifi()
 {
   serverOnFlag=false;  //clearly, the server is not yet on
 
@@ -17,7 +17,7 @@ void Wifi::startWifi()
  
   // Wait for connection
   int connectCount = 0;
-  logger.log(VERBOSE,"Connecting to WIFI...");  
+  myLogger.log(VERBOSE,"Connecting to WIFI...");  
   while (WiFi.status() != WL_CONNECTED) 
   {
     connectCount++;
@@ -27,12 +27,12 @@ void Wifi::startWifi()
       //Blink because we couldn't connect to wifi  (5x250)
       blinkLED(5,250,250);
 
-      logger.log(ERROR,"Could not connect to Wifi, restarting board  (obviously this only shows up on a serial connection)");
+      myLogger.log(ERROR,"Could not connect to Wifi, restarting board  (obviously this only shows up on a serial connection)");
       ESP.restart();
     }
   }
 
-  logger.log(INFO,"Connected to %s, IP: %s",SSID,WiFi.localIP().toString().c_str());
+  myLogger.log(INFO,"Connected to %s, IP: %s",SSID,WiFi.localIP().toString().c_str());
 
   //Init OTA
   ArduinoOTA
@@ -44,50 +44,50 @@ void Wifi::startWifi()
         type = "filesystem";
 
       // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      logger.log(WARNING,"Starting OTA updating ");
+      myLogger.log(WARNING,"Starting OTA updating ");
     })
     .onEnd([]() {
-      logger.log(INFO,"\nEnd OTA");
+      myLogger.log(INFO,"\nEnd OTA");
     })
     .onProgress([](unsigned int progress, unsigned int total) {
       //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      logger.log(ERROR,"OTA Problem: %s",error);
-      if (error == OTA_AUTH_ERROR) { logger.log(ERROR,"Auth Failed"); }
-      else if (error == OTA_BEGIN_ERROR){ logger.log(ERROR,"Begin Failed"); }
-      else if (error == OTA_CONNECT_ERROR){ logger.log(ERROR,"Connect Failed"); }
-      else if (error == OTA_RECEIVE_ERROR) { logger.log(ERROR,"Receive Failed"); }
-       else if (error == OTA_END_ERROR) { logger.log(ERROR,"End Failed"); }
+      myLogger.log(ERROR,"OTA Problem: %s",error);
+      if (error == OTA_AUTH_ERROR) { myLogger.log(ERROR,"Auth Failed"); }
+      else if (error == OTA_BEGIN_ERROR){ myLogger.log(ERROR,"Begin Failed"); }
+      else if (error == OTA_CONNECT_ERROR){ myLogger.log(ERROR,"Connect Failed"); }
+      else if (error == OTA_RECEIVE_ERROR) { myLogger.log(ERROR,"Receive Failed"); }
+       else if (error == OTA_END_ERROR) { myLogger.log(ERROR,"End Failed"); }
     });
 
   ArduinoOTA.begin();
 
   //send logs
-  logger.sendLogs(isConnected());
+  myLogger.sendLogs(isConnected());
 }
 
-void Wifi::startServer()
+void MyWifi::startServer()
 { 
   // Set server routing and then start
   setupServerRouting();
-  //server.onNotFound(handleNotFound);
-  server.begin();
+  //myServer.onNotFound(handleNotFound);
+  myServer.begin();
   serverOnFlag=true;
-  logger.log(INFO,"HTTP server started");  
+  myLogger.log(INFO,"HTTP server started");  
 }
 
-bool Wifi::isServerOn()
+bool MyWifi::isServerOn()
 {
   return serverOnFlag;
 }
 
-void Wifi::disableWifi()
+void MyWifi::disableWifi()
 { 
-  logger.log(VERBOSE,"Disabling Wifi...");  
+  myLogger.log(VERBOSE,"Disabling Wifi...");  
 
   //Let's be sure and flush the log cache before shutting down
-  logger.sendLogs(isConnected());
+  myLogger.sendLogs(isConnected());
   
   WiFi.disconnect(true);  // Disconnect from the network
   WiFi.mode(WIFI_OFF);    // Switch WiFi off
@@ -95,22 +95,22 @@ void Wifi::disableWifi()
   serverOnFlag=false;
 }
 
-bool Wifi::isConnected()
+bool MyWifi::isConnected()
 {
   return (WiFi.status() == WL_CONNECTED);
 }
 
-int Wifi::getRSSI()
+int MyWifi::getRSSI()
 {
   return WiFi.RSSI();
 }
 
-void Wifi::listen(long secondsToWait)
+void MyWifi::listen(long secondsToWait)
 {
   //take some time to care of webserver stuff  (this will be negotiated in the future)
   if(secondsToWait==0)
   {
-    server.handleClient();
+    myServer.handleClient();
     ArduinoOTA.handle();
     return;
   }    
@@ -118,56 +118,56 @@ void Wifi::listen(long secondsToWait)
   unsigned long startMillis=millis();
   while(millis()<(startMillis+(secondsToWait*1000L)))
   {
-    server.handleClient();
+    myServer.handleClient();
     ArduinoOTA.handle();
   }
 
   //It's been a bit, so let's send any logs we have
-  logger.sendLogs(isConnected());
+  myLogger.sendLogs(isConnected());
 }
 
-void Wifi::sendResponse(DynamicJsonDocument doc)
+void MyWifi::sendResponse(DynamicJsonDocument doc)
 {
   String buf;
   serializeJson(doc, buf);
-  server.send(200, "application/json", buf);
+  myServer.send(200, "application/json", buf);
 }
 
-DynamicJsonDocument Wifi::readContent()
+DynamicJsonDocument MyWifi::readContent()
 {
-  String postBody = server.arg("plain");
+  String postBody = myServer.arg("plain");
   DynamicJsonDocument doc(512);
   DeserializationError error = deserializeJson(doc, postBody);
   if (error) 
   {
       // if the file didn't open, print an error:
       sendErrorResponse(error.c_str());
-      logger.log(ERROR,"Problem parsing JSON: %s",error.c_str());      
+      myLogger.log(ERROR,"Problem parsing JSON: %s",error.c_str());      
   }
 
   return doc;
 }
 
-bool Wifi::isPost()
+bool MyWifi::isPost()
 {
-  return (server.method() == HTTP_POST);
+  return (myServer.method() == HTTP_POST);
 }
 
 // Define routing
-void Wifi::setupServerRouting() {
-    server.on("/", HTTP_GET, []() {
-        server.send(200,"text/html",
+void MyWifi::setupServerRouting() {
+    myServer.on("/", HTTP_GET, []() {
+        myServer.send(200,"text/html",
         "Welcome to the REST Web Server");
     });
 
     //GET
-    //server.on("/settings", HTTP_GET, getSettings);    //not currently used 
+    //myServer.on("/settings", HTTP_GET, getSettings);    //not currently used 
 
     //POST
-    server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
+    myServer.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch
 }
 
-bool Wifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
+bool MyWifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
 {
   if(!isConnected())
   {
@@ -182,7 +182,7 @@ bool Wifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
     
   // Your Domain name with URL path or IP address with path
   sprintf(address,"http://%s:%d%s",hubAddress,hubPort,url);  
-  logger.log(VERBOSE,"Hub Address: %s",address);
+  myLogger.log(VERBOSE,"Hub Address: %s",address);
   http.begin(client,address);
   http.addHeader("Content-Type", "application/json");
 
@@ -209,7 +209,7 @@ bool Wifi::sendPostMessage(const char*url,DynamicJsonDocument doc,int hubPort)
   return success;
 }
 
-bool Wifi::sendPutMessage(const char*fullurl,const char*token,const char*buf)
+bool MyWifi::sendPutMessage(const char*fullurl,const char*token,const char*buf)
 {
   if(!isConnected())
   {
@@ -222,7 +222,7 @@ bool Wifi::sendPutMessage(const char*fullurl,const char*token,const char*buf)
   HTTPClient http;
     
   // Your Domain name with URL path or IP address with path
-  logger.log(VERBOSE,"PUT Address: %s",fullurl);
+  myLogger.log(VERBOSE,"PUT Address: %s",fullurl);
   //http.begin(client,fullurl);
   http.begin(fullurl);
   //http.addHeader("Content-Type", "application/json");
@@ -256,7 +256,7 @@ bool Wifi::sendPutMessage(const char*fullurl,const char*token,const char*buf)
   return success;
 }
 
-DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
+DynamicJsonDocument MyWifi::sendGetMessage(const char*url,int hubPort)
 {
   DynamicJsonDocument doc(512);
   WiFiClient client;
@@ -265,7 +265,7 @@ DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
     
   // Your Domain name with URL path or IP address with path
   sprintf(address,"http://%s:%d%s",hubAddress,hubPort,url);  
-  logger.log(VERBOSE,"get Hub Address: %s",address);
+  myLogger.log(VERBOSE,"get Hub Address: %s",address);
   http.begin(client,address);
 
   // Send HTTP GET request
@@ -276,7 +276,7 @@ DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
   while(httpResponseCode==-5 && retryCount<10) 
   {
     retryCount++;
-    logger.log(INFO,"Retrying (Code: %d)",httpResponseCode);
+    myLogger.log(INFO,"Retrying (Code: %d)",httpResponseCode);
     delay(1000);
     http.begin(client,address);
     httpResponseCode = http.GET();
@@ -304,7 +304,7 @@ DynamicJsonDocument Wifi::sendGetMessage(const char*url,int hubPort)
   return doc;
 }
 
-void Wifi::sendErrorResponse(const char*errorString)
+void MyWifi::sendErrorResponse(const char*errorString)
 {
   DynamicJsonDocument doc(48);
   doc["status"] = "KO";
@@ -312,31 +312,31 @@ void Wifi::sendErrorResponse(const char*errorString)
   
   String buf;
   serializeJson(doc, buf);
-  server.send(400,"application/json",buf);
+  myServer.send(400,"application/json",buf);
   
-  logger.log(ERROR,"Could not stream error response back to client.  No data found, or incorrect!");
+  myLogger.log(ERROR,"Could not stream error response back to client.  No data found, or incorrect!");
 }
 
 // Manage not found URL
-void Wifi::handleNotFound() 
+void MyWifi::handleNotFound() 
 {
   String message = "File Not Found\n\n";
   message += "URI: ";
-  message += server.uri();
+  message += myServer.uri();
   message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += (myServer.method() == HTTP_GET) ? "GET" : "POST";
   message += "\nArguments: ";
-  message += server.args();
+  message += myServer.args();
   message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  for (uint8_t i = 0; i < myServer.args(); i++) {
+    message += " " + myServer.argName(i) + ": " + myServer.arg(i) + "\n";
   }
-  server.send(404, "text/plain", message);
+  myServer.send(404, "text/plain", message);
 
-  logger.log(ERROR,"404 - %s",message.c_str());
+  myLogger.log(ERROR,"404 - %s",message.c_str());
 }
 
-DynamicJsonDocument Wifi::readJsonFile(char* url)
+DynamicJsonDocument MyWifi::readJsonFile(char* url)
 {
   DynamicJsonDocument doc(2048);
   HTTPClient http;
@@ -356,7 +356,7 @@ DynamicJsonDocument Wifi::readJsonFile(char* url)
     } 
     else 
     {
-      logger.log(ERROR,"File GET failed. Error: %s\n", http.errorToString(httpCode).c_str());
+      myLogger.log(ERROR,"File GET failed. Error: %s\n", http.errorToString(httpCode).c_str());
     }
     
     http.end();

@@ -1,7 +1,7 @@
 #ifndef __papertrail_logger_h__
 #define __papertrail_logger_h__
 
-class WiFiUDP;
+class NetworkUDP;
 
 enum LogLevel {
   Error = 3,
@@ -17,7 +17,7 @@ class PapertrailLogger: public Print  {
   private:
     String mHost;
     int mPort;
-    WiFiUDP *mWifiUdp;
+    NetworkUDP *mWifiUdp;
     LogLevel mLevel;
     String mSystem;
     String mContext;

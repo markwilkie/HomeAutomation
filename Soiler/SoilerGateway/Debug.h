@@ -16,8 +16,8 @@
 
 //Defines for actual printing
 #if defined(ERRORDEF) && defined(WIFILOGGER)
-  #define ERRORPRINT(...)   logger.log(ANSI_COLOR_RED,false);logger.log("ERROR: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,false)
-  #define ERRORPRINTLN(...)   logger.log(ANSI_COLOR_RED,false);logger.log("ERROR: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
+  #define ERRORPRINT(...)   myLogger.log(ANSI_COLOR_RED,false);myLogger.log("ERROR: ",false);myLogger.log(__VA_ARGS__,false);myLogger.log(ANSI_COLOR_RESET,false)
+  #define ERRORPRINTLN(...)   myLogger.log(ANSI_COLOR_RED,false);myLogger.log("ERROR: ",false);myLogger.log(__VA_ARGS__,false);myLogger.log(ANSI_COLOR_RESET,true) 
 #elif defined(ERRORDEF)
   #define ERRORPRINT(...)   Serial.print("ERROR: ");Serial.print(__VA_ARGS__)
   #define ERRORPRINTLN(...)   Serial.print("ERROR: ");Serial.println(__VA_ARGS__)
@@ -29,8 +29,8 @@
 #endif
 
 #if defined(WARNDEF) && defined(WIFILOGGER)
-  #define WARNPRINT(...)   logger.log(ANSI_COLOR_YELLOW,false);logger.log("WARNING: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,false)
-  #define WARNPRINTLN(...)   logger.log(ANSI_COLOR_YELLOW,false);logger.log("WARNING: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
+  #define WARNPRINT(...)   myLogger.log(ANSI_COLOR_YELLOW,false);myLogger.log("WARNING: ",false);myLogger.log(__VA_ARGS__,false);myLogger.log(ANSI_COLOR_RESET,false)
+  #define WARNPRINTLN(...)   myLogger.log(ANSI_COLOR_YELLOW,false);myLogger.log("WARNING: ",false);myLogger.log(__VA_ARGS__,false);myLogger.log(ANSI_COLOR_RESET,true) 
 #elif defined(WARNDEF)
   #define WARNPRINT(...)   Serial.print("WARNING: ");Serial.print(__VA_ARGS__)
   #define WARNPRINTLN(...)   Serial.print("WARNING: ");Serial.println(__VA_ARGS__)
@@ -40,8 +40,8 @@
 #endif
 
 #if defined(INFODEF) && defined(WIFILOGGER)
-  #define INFOPRINT(...)   logger.log(ANSI_COLOR_CYAN,false);logger.log("INFO: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,false)
-  #define INFOPRINTLN(...)   logger.log(ANSI_COLOR_CYAN,false);logger.log("INFO: ",false);logger.log(__VA_ARGS__,false);logger.log(ANSI_COLOR_RESET,true) 
+  #define INFOPRINT(...)   myLogger.log(ANSI_COLOR_CYAN,false);myLogger.log("INFO: ",false);myLogger.log(__VA_ARGS__,false);myLogger.log(ANSI_COLOR_RESET,false)
+  #define INFOPRINTLN(...)   myLogger.log(ANSI_COLOR_CYAN,false);myLogger.log("INFO: ",false);myLogger.log(__VA_ARGS__,false);myLogger.log(ANSI_COLOR_RESET,true) 
 #elif defined(INFODEF)
   #define INFOPRINT(...)   Serial.print("INFO: ");Serial.print(__VA_ARGS__)
   #define INFOPRINTLN(...)   Serial.print("INFO: ");(__VA_ARGS__)
@@ -51,8 +51,8 @@
 #endif
 
 #if defined(VERBOSEDEF) && defined(WIFILOGGER)
-  #define VERBOSEPRINT(...)   logger.log(__VA_ARGS__,false)
-  #define VERBOSEPRINTLN(...)   logger.log(__VA_ARGS__,true)
+  #define VERBOSEPRINT(...)   myLogger.log(__VA_ARGS__,false)
+  #define VERBOSEPRINTLN(...)   myLogger.log(__VA_ARGS__,true)
 #elif defined(VERBOSEDEF)
   #define VERBOSEPRINT(...)   Serial.print(__VA_ARGS__)
   #define VERBOSEPRINTLN(...)   Serial.println(__VA_ARGS__)

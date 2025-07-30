@@ -11,7 +11,7 @@ PapertrailLogger::PapertrailLogger(String host, int port, LogLevel level, String
   mSystem = system;
   mContext = context;
   mBufferPos = 0;
-  mWifiUdp = new WiFiUDP();
+  mWifiUdp = new NetworkUDP();
 }
 
 size_t PapertrailLogger::write(uint8_t c) {

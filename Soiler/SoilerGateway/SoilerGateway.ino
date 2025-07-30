@@ -1,16 +1,18 @@
 #include "Arduino.h" 
+#include <Wire.h>  
 #include <SPI.h>
-#include <LoRa.h>    
+#include <LoRa.h>      //library from sandeep
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <Dictionary.h>
 
-#include "SSD1306.h"    
+//#include "HT_SSD1306Wire.h"   //new(?) library shipping with heltec.  verified to work on v2 BUT requires heltec libary which conflicts
+//#include "SSD1306.h" //I can no longer find this library for some reason
 #include "Debug.h"
 #include "logger.h"
 #include "version.h"
 #include "properties.h"
-#include "Wifi.h"
+#include "MyWifi.h"
 
 #define HTTPSERVERTIME        0                    // time blocking in server listen for handshaking while in loop  (zero is immediate)
 
@@ -18,7 +20,7 @@
 
 //Globals
 Preferences preferences;
-Wifi wifi;
+MyWifi wifi;
 unsigned long millisAtEpoch = 0;
 char hubAddress[30]="";
 int hubSoilSWPort=0;
@@ -30,7 +32,8 @@ const char* api=RACHIO_API_KEY;
 Dictionary sensorZones;
 
 //Display
-SSD1306  display(0x3c, 4, 15);
+//SSD1306 display(0x3c, 4, 15);
+//static SSD1306Wire  display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED); 
 
 //OLED pins to ESP32 GPIOs via this connection:
 //OLED_SDA -- GPIO4
@@ -60,7 +63,7 @@ void syncEpoch()
   epoch = doc["epoch"].as<unsigned long>();
   millisAtEpoch = millis();
 
-  logger.log(INFO,"Setting Epoch to %s (%ld)",getTimeString(epoch),epoch);
+  myLogger.log(INFO,"Setting Epoch to %s (%ld)",getTimeString(epoch),epoch);
 }
 
 //Update soil moisture % with rachio
@@ -83,7 +86,7 @@ void putSoilMoisture(const char*id,const char*token,double percentage)
 
   //send admin data back
   if(wifi.sendPutMessage("https://api.rach.io/1/public/zone/setMoisturePercent",token,buf))
-    logger.log(VERBOSE,"Updated Rachio with soil moisture data...");
+    myLogger.log(VERBOSE,"Updated Rachio with soil moisture data...");
 }
 
 //refresh soil gateway data
@@ -104,7 +107,7 @@ void postSoilGW()
   if(!wifi.sendPostMessage("/soilgw",doc,hubSoilSWPort))
     hubSoilSWPort=0;
 
-  logger.log(VERBOSE,"Posted soil gateway data...");
+  myLogger.log(VERBOSE,"Posted soil gateway data...");
 }
 
 //refresh soil sensor data
@@ -138,13 +141,13 @@ void postSoil(int id,int moistureReading,int voltage,int rssi)
   if(!wifi.sendPostMessage("/soil",doc,sensorPort))
   {
     //error, so let's take this sensor out
-    logger.log(WARNING,"Error posting to ensor id %d, so removing it from our list",id);
+    myLogger.log(WARNING,"Error posting to ensor id %d, so removing it from our list",id);
     sensorPort=0;
     moistureSensorPorts.remove(String(id));
     return;
   }
 
-  logger.log(VERBOSE,"Posted soil sensor data...");
+  myLogger.log(VERBOSE,"Posted soil sensor data...");
 }
 
 bool registerSensor(int id)
@@ -159,9 +162,9 @@ bool registerSensor(int id)
 
   //set if unable to get valid port
   if(port<=0)
-    logger.log(WARNING,"Unable to get sensor port");
+    myLogger.log(WARNING,"Unable to get sensor port");
   else
-    logger.log(INFO,"Setting Port to %d for device id %d  (%s)",port,id,moistureSensorPorts.search(String(id)));
+    myLogger.log(INFO,"Setting Port to %d for device id %d  (%s)",port,id,moistureSensorPorts.search(String(id)));
 
   return port>0;
 }
@@ -184,7 +187,7 @@ void syncWithHub()
       if(deviceName.equals("soil"))
         hubSoilSWPort = doc["hubPort"].as<int>();
 
-      logger.log(VERBOSE,"Device info from hub - Device Name/ID: %s/%s, IP: %s, Port: %d, Epoch: %ld  (%s)",deviceName,doc["network_id"].as<String>().c_str(),ip.c_str(),doc["hubPort"].as<int>(),epoch,getTimeString(epoch));
+      myLogger.log(VERBOSE,"Device info from hub - Device Name/ID: %s/%s, IP: %s, Port: %d, Epoch: %ld  (%s)",deviceName,doc["network_id"].as<String>().c_str(),ip.c_str(),doc["hubPort"].as<int>(),epoch,getTimeString(epoch));
     
       // Create the response
       // To get the status of the result you can get the http status so
@@ -201,7 +204,7 @@ void syncWithHub()
       }
   }
 
-  logger.sendLogs(wifi.isConnected());
+  myLogger.sendLogs(wifi.isConnected());
 }
 
 void setup() 
@@ -213,12 +216,13 @@ void setup()
     //setup LED pin
     pinMode(LED_BUILTIN, OUTPUT);
 
-    logger.log(INFO,"-------------------------- Booting"); 
+    myLogger.log(INFO,"-------------------------- Booting"); 
 
     //Important setup stuff
     initialSetup();
   
     //Setup display
+    /*
     pinMode(16,OUTPUT);
     digitalWrite(16, LOW);    // set GPIO16 low to reset OLED
     delay(50); 
@@ -227,6 +231,7 @@ void setup()
     display.flipScreenVertically();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
+    */
 
     // Setup mapping of Rachio zones to sensors
     //
@@ -241,7 +246,7 @@ void setup()
     for(JsonVariant v : array) 
     {
       sensorZones.insert(v["sensorid"].as<String>(),v["zoneid"].as<String>());
-      logger.log(INFO,"Mapping sensor %s to zone %s",v["sensorid"].as<String>().c_str(),v["zoneid"].as<String>().c_str());
+      myLogger.log(INFO,"Mapping sensor %s to zone %s",v["sensorid"].as<String>().c_str(),v["zoneid"].as<String>().c_str());
     } 
 
     //sensorZones.insert("15","457fe405-7582-4cdc-8672-b28f3bec4bde");  //Candy tuffs zone 1
@@ -253,23 +258,24 @@ void setup()
 
     //Setuip LoRa
     Serial.println("LoRa Receiver"); 
-    display.drawString(5,5,"LoRa Receiver"); 
-    display.display();
+    //display.drawString(5,5,"LoRa Receiver"); 
+    //display.display();
     SPI.begin(5,19,27,18);
     LoRa.setPins(SS,RST,DI0);
     
     if (!LoRa.begin(BAND)) {
-      display.drawString(5,25,"Starting LoRa failed!");
+      Serial.println("Starting LoRa Receiver Failed!"); 
+      //display.drawString(5,25,"Starting LoRa failed!");
       while (1);
     }
     Serial.println("LoRa Initial OK!");
-    display.drawString(5,25,"LoRa Initializing OK!");
-    display.display();    
+    //display.drawString(5,25,"LoRa Initializing OK!");
+    //display.display();    
 
     //Initial sync
     syncEpoch();
     postSoilGW();
-    logger.sendLogs(wifi.isConnected());       
+    myLogger.sendLogs(wifi.isConnected());       
 }
 
 void initialSetup()
@@ -302,7 +308,7 @@ void loop()
   {
     syncEpoch();
     postSoilGW();
-    logger.sendLogs(wifi.isConnected()); 
+    myLogger.sendLogs(wifi.isConnected()); 
   }
 }
 
@@ -310,10 +316,10 @@ void readPacket(int packetSize)
 {
   // received a packets
   Serial.println("Received packet");
-  display.clear();
-  display.setFont(ArialMT_Plain_16);
-  display.drawString(3, 0, "Received packet ");
-  display.display();
+  //display.clear();
+  //display.setFont(ArialMT_Plain_16);
+  //display.drawString(3, 0, "Received packet ");
+  //display.display();
 
   //make sure we're at the start of the transmission
   while(LoRa.available() && LoRa.read() != 01) {}
@@ -327,34 +333,34 @@ void readPacket(int packetSize)
   while(LoRa.available()) {LoRa.read();} 
 
   // print RSSI of packet
-  display.drawString(20,22, (String)perc);
-  display.drawString(20, 45, "RSSI:  ");
-  display.drawString(70, 45, (String)LoRa.packetRssi());
-  display.display();
+  //display.drawString(20,22, (String)perc);
+  //display.drawString(20, 45, "RSSI:  ");
+  //display.drawString(70, 45, (String)LoRa.packetRssi());
+  //display.display();
 
   //poor man's crc
   if(crc!=(id|perc|voltage))
   {
-    logger.log(INFO,"CRC's don't match  (id: %d perc: %d)",id,perc); 
-    logger.sendLogs(wifi.isConnected());
+    myLogger.log(INFO,"CRC's don't match  (id: %d perc: %d)",id,perc); 
+    myLogger.sendLogs(wifi.isConnected());
     return;
   }
 
   //is this valid data?
   if(id<10 || id>128 || perc<0 || perc>100 || voltage<0 || voltage>100)
   {
-    logger.log(INFO,"Did not recognize packet  (id: %d, perc: %d, volt: %d, crc: %d)",id,perc,voltage,crc); 
-    logger.sendLogs(wifi.isConnected());
+    myLogger.log(INFO,"Did not recognize packet  (id: %d, perc: %d, volt: %d, crc: %d)",id,perc,voltage,crc); 
+    myLogger.sendLogs(wifi.isConnected());
     return;
   }
 
   //post soil info we just got to hub
   postSoil(id,perc,voltage,LoRa.packetRssi());
-  logger.sendLogs(wifi.isConnected());
+  myLogger.sendLogs(wifi.isConnected());
 
   //post soil percentage we just got to Rachio
   updateSoilMoisture(id,perc);
-  logger.sendLogs(wifi.isConnected());
+  myLogger.sendLogs(wifi.isConnected());
 }
 
 void updateSoilMoisture(int sensorId,int perc)
@@ -368,7 +374,7 @@ void updateSoilMoisture(int sensorId,int perc)
     soilPerc=1.0;
 
   String zoneId=sensorZones.search(String(sensorId));
-  logger.log(INFO,"Updating Zone %s for Sensor %d with %f",zoneId.c_str(),sensorId,soilPerc); 
+  myLogger.log(INFO,"Updating Zone %s for Sensor %d with %f",zoneId.c_str(),sensorId,soilPerc); 
   if(zoneId.length()>0)
   {
     //update zone just returned
@@ -378,7 +384,7 @@ void updateSoilMoisture(int sensorId,int perc)
     zoneId=sensorZones.search(zoneId);
     while(zoneId.length()>0)
     {
-      logger.log(INFO,"Linked Zone %s found",zoneId.c_str());
+      myLogger.log(INFO,"Linked Zone %s found",zoneId.c_str());
       putSoilMoisture(zoneId.c_str(),api,soilPerc);
       zoneId=sensorZones.search(zoneId);
     }

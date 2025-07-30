@@ -24,11 +24,11 @@ extern RTC_DATA_ATTR int logCacheIndex;
 #define INFO 2
 #define VERBOSE 3
 
-class Logger 
+class MyLogger 
 {
 
   public:
-    Logger();
+    MyLogger();
     void sendLogs(bool wifiConnected);
     void log(const char *input ,bool cr);
     void log(String str, bool cr);

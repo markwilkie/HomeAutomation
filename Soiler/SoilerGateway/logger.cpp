@@ -3,7 +3,7 @@
 RTC_DATA_ATTR char logCache[MAXLOGSIZE];
 RTC_DATA_ATTR int logCacheIndex=0;
 
-Logger::Logger()
+MyLogger::MyLogger()
 {
   //errorLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Error, "\033[0;31m", PAPERTRAIL_SYSTEMNAME, " ");
   //warningLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Warning, "\033[0;33m", PAPERTRAIL_SYSTEMNAME, " ");
@@ -12,7 +12,7 @@ Logger::Logger()
   infoLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Info, "\033[0;34m", PAPERTRAIL_SYSTEMNAME, " ");
 }
 
-void Logger::sendLogs(bool wifiConnected)
+void MyLogger::sendLogs(bool wifiConnected)
 {
   //just return if there's nothing to send
   if(logCacheIndex<1)
@@ -43,7 +43,7 @@ void Logger::sendLogs(bool wifiConnected)
 
 }
 
-void Logger::log(int num,bool cr)
+void MyLogger::log(int num,bool cr)
 {
   //now, add number
   char buf[11];
@@ -53,7 +53,7 @@ void Logger::log(int num,bool cr)
   log(buf,cr);
 }
 
-void Logger::log(long num,bool cr)
+void MyLogger::log(long num,bool cr)
 {
   //now, add number
   char buf[11];
@@ -63,7 +63,7 @@ void Logger::log(long num,bool cr)
   log(buf,cr);
 }
 
-void Logger::log(unsigned long num,bool cr)
+void MyLogger::log(unsigned long num,bool cr)
 {
   //now, add number
   char buf[11];
@@ -73,7 +73,7 @@ void Logger::log(unsigned long num,bool cr)
   log(buf,cr);
 }
 
-void Logger::log(double flt,bool cr)
+void MyLogger::log(double flt,bool cr)
 {
   /* 4 is mininum width, 2 is precision; double value is copied onto str_temp*/
   char buf[15];
@@ -83,13 +83,13 @@ void Logger::log(double flt,bool cr)
   log(buf,cr);
 }
 
-void Logger::log(String str,bool cr)
+void MyLogger::log(String str,bool cr)
 {
   //get the char pointer
   log(str.c_str(),cr);
 }
 
-void Logger::log(const char input[],bool cr)
+void MyLogger::log(const char input[],bool cr)
 {
  if(logCacheIndex+sizeof(input) >= MAXLOGSIZE)
   return;
@@ -128,7 +128,7 @@ void Logger::log(const char input[],bool cr)
  * https://medium.com/@kslooi/print-formatted-data-in-arduino-serial-aaea9ca840e3
  * --------------------------------------------------------------
  */
-bool Logger::log(int logLevel,const char *fmt, ...) 
+bool MyLogger::log(int logLevel,const char *fmt, ...) 
 { 
   /* buffer for storing the formatted data */
   char buf[SERIAL_PRINTF_MAX_BUFF];
