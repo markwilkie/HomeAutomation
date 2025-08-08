@@ -7,30 +7,75 @@ void ADCHandler::init()
 {
   pinMode(CAP_VOLTAGE_PIN, INPUT);
   pinMode(VCC_VOLTAGE_PIN, INPUT);
-  pinMode(LDR_PIN, INPUT);
+  pinMode(MUX_PIN, INPUT);
   pinMode(MOISTURE_PIN, INPUT);
-  pinMode(UV_PIN, INPUT);
 
-  pinMode(UV_EN, OUTPUT);
+  pinMode(MUX_SEL_0, OUTPUT);
+  pinMode(MUX_SEL_1, OUTPUT);
+  pinMode(MUX_EN, OUTPUT);
+  digitalWrite(MUX_EN, HIGH);  //disable MUX
 }
 
 void ADCHandler::storeSamples()
 {
-  //Enable stuff that needs it
-  digitalWrite(UV_EN, HIGH);
-  delay(100);
-
   //raw
   _capVoltage = readADC(CAP_VOLTAGE_PIN);
   _vccVoltage = readADC(VCC_VOLTAGE_PIN);
-  _ldr = readADC(LDR_PIN);
   _moisture = readDigital(MOISTURE_PIN);
-  _uv = readADC(UV_PIN);
 
-  logger.log(VERBOSE,"RAW ADC VALUES: cap voltage: %d, vcc voltage: %d, LDR: %d, Moisture: %d, UV: %d",_capVoltage,_vccVoltage,_ldr,_moisture,_uv);  
 
-  //Disable stuff that needs it
-  digitalWrite(UV_EN, LOW);
+  //Read inputs from MUX
+  //
+  //enable MUX
+  digitalWrite(MUX_EN, LOW);
+
+//for(int i=0;i<20;i++)
+//{
+  //select LDR
+  digitalWrite(MUX_SEL_0, HIGH);
+  digitalWrite(MUX_SEL_1, HIGH);
+  delay(100);
+
+  
+//Serial.print("high/high: ");
+//delay(10000);
+  _ldr = readADC(MUX_PIN);
+//Serial.println(_ldr);
+
+  //select UV1
+  digitalWrite(MUX_SEL_0, LOW);
+  digitalWrite(MUX_SEL_1, LOW);
+  delay(100);  
+
+//Serial.print("low/low: ");
+//delay(10000);  
+  _uv1 = readADC(MUX_PIN);
+//Serial.println(_uv1);
+
+  //select UV2
+  digitalWrite(MUX_SEL_0, LOW);
+  digitalWrite(MUX_SEL_1, HIGH);
+  delay(100);
+
+//Serial.print("low/high: ");
+//delay(10000);  
+  _uv2 = readADC(MUX_PIN);
+//Serial.println(_uv2);
+
+    //select UV3
+  digitalWrite(MUX_SEL_0, HIGH);
+  digitalWrite(MUX_SEL_1, LOW);
+  delay(100);
+
+//Serial.print("high/low: ");
+//delay(10000);  
+  _uv3 = readADC(MUX_PIN);
+//Serial.println(_uv3);
+//}
+  // disable MUX
+  digitalWrite(MUX_EN, HIGH);
+
+  logger.log(VERBOSE,"RAW ADC VALUES: cap voltage: %d, vcc voltage: %d, LDR: %d, Moisture: %d, UV1-3: %d,%d,%d",_capVoltage,_vccVoltage,_ldr,_moisture,_uv1,_uv2,_uv3);  
 }
 
 double ADCHandler::getCapVoltage()
@@ -65,6 +110,11 @@ String ADCHandler::getMoisture()
 
 double ADCHandler::getUV()
 {
+  int _uv=_uv1;  //default to uv1
+  if(_uv2>_uv)
+    _uv=_uv2;  //use uv2 if it's higher  
+  if(_uv3>_uv)
+    _uv=_uv3;  //use uv3 if it's higher  
   double uv=getUVIndex(_uv);
     
   return round2(uv);
@@ -167,10 +217,10 @@ double ADCHandler::getVolts(int adcReading)
 double ADCHandler::getUVIndex(int adcReading)
 {
   //used to map voltage to intensity
-  double in_min=.99;
+  double in_min=.1;
   double in_max=2.8;
   double out_min=0.0;
-  double out_max=15.0;
+  double out_max=11.0;
   
   double outputVoltage = getVolts(adcReading);
   double uvIntensity = (outputVoltage - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

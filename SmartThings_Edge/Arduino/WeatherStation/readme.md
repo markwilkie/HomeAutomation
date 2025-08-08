@@ -9,10 +9,11 @@ Last updated Sept 14 (version 1.3.xx)
 ### Specifications
 - Board: [FireBeetle from dfrobot](https://wiki.dfrobot.com/FireBeetle_ESP32_IOT_Microcontroller(V3.0)__Supports_Wi-Fi_&_Bluetooth__SKU__DFR0478)
     - Draws .15ma (milliamps) while deep sleeping
+	- Wroom specific pins:  https://www.espboards.dev/esp32/esp32-wroom/  (e.g. io9/io10 are still NOT ok to use on wroom)
 - 2X 250F Capacitors in series for power + 1000mah LiPO battery which is attached directly to the Fire Beetle board which charges it
 - Temp, pressure, humidity: BME280 from Adafruit
 - Air quality sensor: PMS5003
-- UV sensor: GY-8511
+- UV sensor: GUVA-S12SD
 - Wind speed: https://www.makerfabs.com/wiki/index.php?title=Anemometer 
 - Wind direction: Weather vane from an old (old) weather station 
 - Rain gauge: Tipper from an old (old) weather station 
@@ -22,18 +23,20 @@ Last updated Sept 14 (version 1.3.xx)
 - https://arduinojson.org/?utm_source=meta&utm_medium=library.properties
 - https://github.com/adafruit/Adafruit_BME280_Library
 - https://github.com/finitespace/BME280  (used only for environment calculations)
-- ULP - Steps in https://github.com/duff2013/ulptool
-	- Path is C:\Users\<username>\Documents\ArduinoData\packages\esp32
-	- Add recipe hooks to  platform.local.txt  (C:\Users\mawilkie\AppData\Local\Arduino15\packages\firebeetle32\hardware\esp32\0.1.1)
-		- Add recipe hook before copying platform.local.txt  https://github.com/duff2013/ulptool/issues/78
+- Install Python 2.7  https://www.python.org/downloads/release/python-2718/  (for ULP tool chain)
+- Add python to your path  (c:\python27?)
+- ESP32 1.0.6 (not 2.x) is required for ULP toolchain
+	- Use IDE board manager https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json 
+- ULP toolchain - follow manual steps in https://github.com/duff2013/ulptool
+	- Copy platform.local.text --> C:\Users\mark\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6
+	- Add recipe hook to platform.local.txt  https://github.com/duff2013/ulptool/issues/78
 			- recipe.hooks.core.prebuild.01.pattern.windows=cmd /c if exist "{build.source.path}\*.s" copy /y "{build.source.path}\*.s" "{build.path}\sketch\"
-		- Add recipe hook for version increment
+	- Add recipe hook for version increment (not necessary)
 			- recipe.hooks.sketch.prebuild.02.pattern.windows=cmd /c if exist {build.source.path}\incrementversion.bat {build.source.path}\incrementversion.bat {build.path} {build.source.path} {build.project_name}
-	- Install Python 2.7  https://www.python.org/downloads/release/python-2718/  (for ULP tool chain)
-	- Add python to your path  (c:\python27?)
+
 
 ### Board Setup:
-- FireBeetle  http://download.dfrobot.top/FireBeetle/package_esp32_index.json
+- FireBeetle  https://raw.githubusercontent.com/DFRobot/FireBeetle-ESP32/master/package_esp32_index.json
 - ESP DOIT Dev Kit: https://dl.espressif.com/dl/package_esp32_index.json
 - VS Code and OTA:  http://arduinoetcetera.blogspot.com/2019/12/visual-studio-code-for-arduino-ota.html
 
@@ -173,14 +176,18 @@ TODO
 - UART for air quality
 	- https://how2electronics.com/interfacing-pms5003-air-quality-sensor-arduino/
 	- https://github.com/markwilkie/HomeAutomation/blob/master/rf24_based_solution-deprecated/Sonoff/FactoryATMEGAFirmware/sonoff_sc/pms5003.ino 
+- MUX (74hc4051n) to share one ADC across the LDR and the three (3) UV sensors
 
 
 ### Wiring / Hookup
 Wiring:
+-Notes:
+	- Using GPIO9 and 10 cause the board not to boot
+	- Not using ADC on pin 15 because it's disabled when wifi is on
 - ESP32 (power)
 	- VIN - 5v+ from caps via booster
 	- Ground - from caps
-	- VDD 3.3V which powers all sensors except for the PMS5003
+	- VDD 3.3V which powers all sensors except for the PMS5003 (which is 5v) and LDR/UV which is an output pin
 	- 1000mAh LiPO battery also connected via the built in battery port (this also charges battery)
 	- Solar Panel --> charges capacitors 
 - 4 pair from attached
@@ -204,14 +211,17 @@ Wiring:
 		- White-->10K pull down-->red-->GPIO26 - pulse count on high
 	- Moisture
 		- Black-->1M pull down-->white-->GPIO13  (is a digital input)
-- 3 pair from UV
+- Main box --> sensor box with MUX
 	- Red - VIN
-	- Yellow - 3.3v
+	- Green - Ground	
+	- Black - GPIO27 to enable MUX and all sensors (enable is low)
+	- Yellow/White - GPIO2 and GPIO5 to select MUX input
+	- Blue - GPIO34 for selected analog from MUX  (will be LDR or one of the three UV sensors)
+- MUX sens box --> 3x UV sensors  (from board in sensor box)
+	- Red - 3.3v  (PNP transistor e.g. high when GPIO27 is low)
 	- Green - Ground
 	- Blue - out (GPIO34)
 	- Black - Enable (GPIO27)
-- LDR 
-	- White-->10K divider-->yellow-->GPIO15  (shares power w/ Red)
 - Anemometer
 	- Brown - 3.3v
 	- Black - Ground

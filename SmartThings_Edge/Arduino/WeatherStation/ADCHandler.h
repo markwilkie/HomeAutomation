@@ -12,16 +12,17 @@
 #define TOLERANCE 5           //% of max adc reading to e used to determine if we need to resample
 #define MAXTRIES  3           //# of times we'll try and get a clean read that is within tolerance  
 
+//MUX selector pins
+#define MUX_EN  27          //low is enabled
+#define MUX_SEL_0  2
+#define MUX_SEL_1  5
+
 //adc pins
 // Note that 15 doesn't work when wifi is enabled
 #define CAP_VOLTAGE_PIN     39    
 #define VCC_VOLTAGE_PIN     35    
-#define LDR_PIN             15
 #define MOISTURE_PIN        13   // GPIO 6-11 can't be used for digital inputs
-#define UV_PIN              34
-
-//enable pins
-#define UV_EN           27
+#define MUX_PIN             34   // either one of the 3 UV sensors or the LDR
 
 //sample setup
 #define ADC_SAMPLE_SEC     600                //how often we're reading the sensor in seconds
@@ -59,7 +60,9 @@ class ADCHandler
     int _vccVoltage;
     int _ldr;
     int _moisture;
-    int _uv;    
+    int _uv1;    
+    int _uv2;    
+    int _uv3;    
 
     long sampleValues[SAMPLES];
 };

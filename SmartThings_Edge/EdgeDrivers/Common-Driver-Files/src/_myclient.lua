@@ -74,7 +74,7 @@ local function send_lan_command(url, method, path, body)
       content = [[ {"network_id":"]]..network_id..[[","epoch":]]..currentEpoch..[[,"deviceName":"]]..deviceName..[[","hubAddress":"]]..commonglobals.server_ip..[[","hubPort":]]..commonglobals.server_port..[[ } ]]
     end
 
-    local nodeIP = 'http://192.168.15.143:80'
+    local nodeIP = 'http://192.168.15.196:80'
     if deviceName == 'soil' then
       nodeIP = 'http://192.168.15.145:80'
     end
