@@ -22,7 +22,11 @@ def photos():
 @click.option('--limit', default=100, help='Maximum number of photos to retrieve per request')
 @click.option('--output', type=click.Choice(['table', 'json']), default='table', help='Output format')
 @click.option('--save-to', type=click.Path(), help='Save results to file')
-def list_rejected(catalog_id: Optional[str], limit: int, output: str, save_to: Optional[str]):
+@click.option('--year', type=int, help='Filter rejected photos by year (e.g., --year 2025)')
+@click.option('--this-year', is_flag=True, help='Show rejected photos from this year')
+@click.option('--date-type', type=click.Choice(['import', 'sync', 'capture']), default='import',
+              help='Which date to use for year filtering: import (when imported to Lightroom), sync (when synced to cloud), capture (when photo was taken)')
+def list_rejected(catalog_id: Optional[str], limit: int, output: str, save_to: Optional[str], year: Optional[int], this_year: bool, date_type: str):
     """List all rejected photos from Lightroom Cloud"""
     config = Config()
     token_manager = TokenManager(config)
@@ -46,14 +50,38 @@ def list_rejected(catalog_id: Optional[str], limit: int, output: str, save_to: O
             catalog_id = catalogs[0]['id']
             click.echo(f"Using catalog: {catalogs[0].get('name', catalog_id)}")
         
-        # Get rejected photos
-        click.echo("Fetching rejected photos...")
-        rejected_photos = api_client.get_rejected_photos(catalog_id, limit=limit)
-        
+
+        # Validate year options
+        if year and this_year:
+            click.echo("Cannot specify both --year and --this-year", err=True)
+            raise click.Abort()
+
+        # Determine year filter
+        target_year = None
+        if this_year:
+            from datetime import datetime
+            target_year = datetime.now().year
+            click.echo(f"Filtering rejected photos from {target_year}...")
+        elif year:
+            if year < 1900 or year > 2100:
+                click.echo("Error: Year must be between 1900 and 2100", err=True)
+                raise click.Abort()
+            target_year = year
+            click.echo(f"Filtering rejected photos from {target_year}...")
+
+        # Use search_photos for combined filtering
+        query = {
+            'rejected_only': True,
+            'year': target_year,
+            'date_type': date_type
+        }
+        collection = api_client.search_photos(catalog_id, query, limit=limit)
+        rejected_photos = collection.photos
+
         if not rejected_photos:
             click.echo("No rejected photos found.")
             return
-        
+
         # Format output
         if output == 'json':
             photos_data = [photo.to_dict() for photo in rejected_photos]
@@ -64,17 +92,14 @@ def list_rejected(catalog_id: Optional[str], limit: int, output: str, save_to: O
                 "ID\tFilename\tCreated\tSize\tFormat",
                 "-" * 80
             ]
-            
             for photo in rejected_photos:
                 created = photo.created_date.strftime('%Y-%m-%d %H:%M') if photo.created_date else 'Unknown'
                 size = f"{photo.file_size // 1024}KB" if photo.file_size else 'Unknown'
                 format_type = photo.format or 'Unknown'
-                
                 lines.append(f"{photo.id[:8]}\t{photo.filename[:30]}\t{created}\t{size}\t{format_type}")
-            
             output_text = "\n".join(lines)
             output_text += f"\n\nTotal rejected photos: {len(rejected_photos)}"
-        
+
         # Save to file or print
         if save_to:
             with open(save_to, 'w') as f:
@@ -884,134 +909,6 @@ def count_all_photos(catalog_id: Optional[str], pattern: Optional[str]):
         click.echo(f"Error: {e}", err=True)
         raise click.Abort()
 
-
-@photos.command('missing-wjd')
-@click.option('--catalog-id', help='Specific catalog ID to search (optional)')
-@click.option('--start-number', type=int, help='Starting WJD number to check (e.g., 883)')
-@click.option('--end-number', type=int, help='Ending WJD number to check (e.g., 1038)')
-@click.option('--save-to', type=click.Path(), help='Save missing photo list to file')
-def find_missing_wjd_photos(catalog_id: Optional[str], start_number: Optional[int], end_number: Optional[int], save_to: Optional[str]):
-    """Find missing WJD photos between local folder and Lightroom Cloud"""
-    config = Config()
-    token_manager = TokenManager(config)
-    
-    # Check authentication
-    if not token_manager.get_valid_access_token():
-        click.echo("Not authenticated. Run 'lightroom-tool auth login' first.", err=True)
-        raise click.Abort()
-    
-    try:
-        api_client = LightroomAPIClient(config)
-        
-        # Get catalogs if catalog_id not specified
-        if not catalog_id:
-            catalogs = api_client.get_catalogs()
-            if not catalogs:
-                click.echo("No catalogs found.")
-                return
-            catalog_id = catalogs[0]['id']
-        
-        # Get all WJD photos from cloud
-        click.echo("Fetching all WJD photos from Lightroom Cloud...")
-        collection = api_client.get_assets(catalog_id, limit=1000)
-        
-        # Filter for WJD photos only
-        wjd_photos_in_cloud = []
-        for photo in collection.photos:
-            if photo.filename.startswith('WJD') and photo.filename.endswith('.JPG'):
-                wjd_photos_in_cloud.append(photo.filename)
-        
-        wjd_photos_in_cloud.sort()
-        click.echo(f"Found {len(wjd_photos_in_cloud)} WJD photos in cloud")
-        
-        # Extract numbers from WJD filenames in cloud
-        cloud_numbers = set()
-        for filename in wjd_photos_in_cloud:
-            try:
-                # Extract number from WJD00XXX.JPG format
-                number_str = filename[3:8]  # Get the 5 digits after WJD
-                number = int(number_str)
-                cloud_numbers.add(number)
-            except (ValueError, IndexError):
-                continue
-        
-        # Determine range to check
-        if start_number is None:
-            start_number = min(cloud_numbers) if cloud_numbers else 883
-        if end_number is None:
-            # Assume your local folder has 156 consecutive photos, so calculate likely end
-            if cloud_numbers:
-                # Find largest gap and extend beyond it
-                max_cloud = max(cloud_numbers)
-                missing_count = 156 - len(cloud_numbers)  # 156 is your local folder count
-                end_number = max_cloud + missing_count + 50  # Add buffer
-            else:
-                end_number = start_number + 200  # Default range
-        
-        click.echo(f"Checking WJD range: {start_number:05d} to {end_number:05d}")
-        
-        # Find missing numbers
-        missing_numbers = []
-        for num in range(start_number, end_number + 1):
-            if num not in cloud_numbers:
-                missing_numbers.append(num)
-        
-        # Format output
-        if missing_numbers:
-            missing_filenames = [f"WJD{num:05d}.JPG" for num in missing_numbers]
-            
-            output_lines = [
-                f"Missing WJD Photos Analysis",
-                f"=" * 50,
-                f"Photos in cloud: {len(cloud_numbers)}",
-                f"Expected in local folder: 156",
-                f"Missing from cloud: {len(missing_numbers)}",
-                f"Range checked: WJD{start_number:05d}.JPG to WJD{end_number:05d}.JPG",
-                "",
-                "Missing photo filenames:",
-                "-" * 30
-            ]
-            
-            # Group consecutive missing numbers for easier reading
-            current_group = []
-            for i, num in enumerate(missing_numbers):
-                if not current_group or num == missing_numbers[i-1] + 1:
-                    current_group.append(num)
-                else:
-                    # End current group and start new one
-                    if len(current_group) == 1:
-                        output_lines.append(f"WJD{current_group[0]:05d}.JPG")
-                    else:
-                        output_lines.append(f"WJD{current_group[0]:05d}.JPG - WJD{current_group[-1]:05d}.JPG ({len(current_group)} photos)")
-                    current_group = [num]
-            
-            # Handle last group
-            if current_group:
-                if len(current_group) == 1:
-                    output_lines.append(f"WJD{current_group[0]:05d}.JPG")
-                else:
-                    output_lines.append(f"WJD{current_group[0]:05d}.JPG - WJD{current_group[-1]:05d}.JPG ({len(current_group)} photos)")
-            
-            output_text = "\n".join(output_lines)
-            
-            # Save to file or print
-            if save_to:
-                with open(save_to, 'w') as f:
-                    f.write(output_text)
-                    f.write("\n\nComplete missing list:\n")
-                    for filename in missing_filenames:
-                        f.write(f"{filename}\n")
-                click.echo(f"Missing photo analysis saved to {save_to}")
-            else:
-                click.echo(output_text)
-        else:
-            click.echo("No missing WJD photos found in the specified range.")
-            
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        raise click.Abort()
-
-
 @photos.command('search')
 @click.option('--catalog-id', help='Specific catalog ID to search (optional)')
 @click.option('--rejected-only', is_flag=True, help='Show only rejected photos')
@@ -1089,3 +986,545 @@ def search_photos(catalog_id: Optional[str], rejected_only: bool, accepted_only:
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         raise click.Abort()
+
+
+@photos.command('delete-rejected-local')
+@click.option('--rejected-json', required=True, type=click.Path(exists=True), help='Path to JSON file containing rejected photos')
+@click.option('--search-paths', multiple=True, help='Local directories to search for photos (can specify multiple)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted without actually deleting')
+@click.option('--confirm', is_flag=True, help='Confirm each deletion individually')
+@click.option('--recursive', is_flag=True, help='Search subdirectories recursively')
+@click.option('--delete-from-cloud', is_flag=True, help='Also delete photos from Lightroom Cloud')
+@click.option('--catalog-id', help='Specific catalog ID (required if deleting from cloud)')
+@click.option('--filename-only', is_flag=True, help='Match by filename only (faster for network drives, less accurate)')
+def delete_rejected_local(rejected_json: str, search_paths: tuple, dry_run: bool, confirm: bool, recursive: bool, delete_from_cloud: bool, catalog_id: Optional[str], filename_only: bool):
+    """Find and delete local files matching rejected photos from Lightroom Cloud"""
+    import json
+    import os
+    import hashlib
+    from pathlib import Path
+    
+    # Initialize API client if deleting from cloud
+    api_client = None
+    if delete_from_cloud:
+        config = Config()
+        token_manager = TokenManager(config)
+        
+        # Check authentication
+        if not token_manager.get_valid_access_token():
+            click.echo("Not authenticated. Run 'lightroom-tool auth login' first.", err=True)
+            raise click.Abort()
+            
+        api_client = LightroomAPIClient(config)
+        
+        # Get catalog ID if not provided
+        if not catalog_id:
+            catalogs = api_client.get_catalogs()
+            if not catalogs:
+                click.echo("No catalogs found.")
+                raise click.Abort()
+            catalog_id = catalogs[0]['id']
+            click.echo(f"Using catalog: {catalogs[0].get('name', catalog_id)}")
+    
+    if not search_paths and not delete_from_cloud:
+        click.echo("Error: At least one search path must be specified with --search-paths, or use --delete-from-cloud", err=True)
+        raise click.Abort()
+    
+    # Load rejected photos
+    try:
+        with open(rejected_json, 'r') as f:
+            rejected_data = json.load(f)
+            if isinstance(rejected_data, dict) and 'photos' in rejected_data:
+                rejected_photos = rejected_data['photos']
+            elif isinstance(rejected_data, list):
+                rejected_photos = rejected_data
+            else:
+                click.echo("Error: Invalid JSON format. Expected list of photos or object with 'photos' key.", err=True)
+                raise click.Abort()
+    except Exception as e:
+        click.echo(f"Error reading rejected photos file: {e}", err=True)
+        raise click.Abort()
+    
+    if not rejected_photos:
+        click.echo("No rejected photos found in file.")
+        return
+    
+    click.echo(f"Loaded {len(rejected_photos)} rejected photos from {rejected_json}")
+    
+    # Build lookup dictionaries for matching (including file sizes for faster filtering)
+    rejected_by_filename = {}
+    rejected_by_sha256 = {}
+    rejected_by_size = {}  # Map file size to list of photos
+    
+    for photo in rejected_photos:
+        filename = photo.get('filename') or photo.get('metadata', {}).get('original_filename')
+        sha256 = photo.get('metadata', {}).get('sha256')
+        file_size = photo.get('file_size') or photo.get('metadata', {}).get('fileSize')
+        
+        if filename:
+            rejected_by_filename[filename.lower()] = photo
+        if sha256:
+            rejected_by_sha256[sha256] = photo
+        if file_size:
+            if file_size not in rejected_by_size:
+                rejected_by_size[file_size] = []
+            rejected_by_size[file_size].append(photo)
+    
+    click.echo(f"Built lookup tables: {len(rejected_by_filename)} filenames, {len(rejected_by_sha256)} hashes, {len(rejected_by_size)} file sizes")
+    
+    # Search for local files (if search paths provided)
+    found_files = []
+    
+    if search_paths:
+        for search_path in search_paths:
+            path = Path(search_path)
+            if not path.exists():
+                click.echo(f"Warning: Search path does not exist: {search_path}")
+                continue
+                
+            click.echo(f"Searching in: {search_path}")
+            
+            if recursive:
+                pattern = "**/*"
+            else:
+                pattern = "*"
+            
+            # Collect all files first to show progress
+            all_files = []
+            click.echo("  Collecting file list...")
+            for file_path in path.glob(pattern):
+                if file_path.is_file():
+                    all_files.append(file_path)
+            
+            click.echo(f"  Found {len(all_files)} files to check")
+            
+            # Process files with progress reporting (filename matching only for speed)
+            processed = 0
+            matched_by_filename = 0
+            
+            for file_path in all_files:
+                processed += 1
+                if processed % 100 == 0:
+                    click.echo(f"  Progress: {processed}/{len(all_files)} files checked")
+                
+                # Match by filename only (fastest - no file I/O)
+                filename = file_path.name.lower()
+                matched_photo = rejected_by_filename.get(filename)
+                
+                if matched_photo:
+                    found_files.append((file_path, matched_photo, 'filename'))
+                    matched_by_filename += 1
+            
+            click.echo(f"  Completed: {matched_by_filename} files matched by filename")
+    
+    # Handle cloud-only deletion if no local files specified
+    if not search_paths and delete_from_cloud:
+        click.echo(f"\nPreparing to delete {len(rejected_photos)} rejected photos from Lightroom Cloud:")
+        
+        if dry_run:
+            for photo in rejected_photos:
+                photo_id = photo.get('id', 'unknown')[:8]
+                filename = photo.get('filename', 'unknown')
+                click.echo(f"  [DRY RUN] Would delete from cloud: {filename} (ID: {photo_id})")
+            click.echo(f"\n[DRY RUN] Would delete {len(rejected_photos)} photos from Lightroom Cloud.")
+            return
+        
+        # Delete from cloud
+        cloud_deleted = 0
+        cloud_failed = 0
+        
+        for photo in rejected_photos:
+            photo_id = photo.get('id')
+            filename = photo.get('filename', 'unknown')
+            
+            if not photo_id:
+                click.echo(f"  ✗ No ID for photo {filename}, skipping")
+                cloud_failed += 1
+                continue
+                
+            should_delete = True
+            if confirm:
+                should_delete = click.confirm(f"Delete from cloud: {filename} (ID: {photo_id[:8]})?")
+            
+            if should_delete:
+                if api_client.delete_photo(catalog_id, photo_id):
+                    click.echo(f"  ✓ Deleted from cloud: {filename}")
+                    cloud_deleted += 1
+                else:
+                    click.echo(f"  ✗ Failed to delete from cloud: {filename}")
+                    cloud_failed += 1
+            else:
+                click.echo(f"  - Skipped cloud deletion: {filename}")
+                cloud_failed += 1
+        
+        click.echo(f"\nCloud deletion completed: {cloud_deleted} deleted, {cloud_failed} skipped/failed.")
+        return
+    
+    if not found_files and search_paths:
+        click.echo("No local files found matching rejected photos.")
+        if not delete_from_cloud:
+            return
+    
+    if found_files:
+        click.echo(f"\nFound {len(found_files)} local files matching rejected photos:")
+    
+    deleted_count = 0
+    skipped_count = 0
+    cloud_deleted = 0
+    cloud_failed = 0
+    
+    for file_path, photo, match_type in found_files:
+        file_size = file_path.stat().st_size
+        photo_id = photo.get('id', 'unknown')[:8]
+        full_photo_id = photo.get('id')
+        filename = photo.get('filename', 'unknown')
+        
+        click.echo(f"\nFile: {file_path}")
+        click.echo(f"  Size: {file_size:,} bytes")
+        click.echo(f"  Matched by: {match_type}")
+        click.echo(f"  Lightroom ID: {photo_id}")
+        
+        if dry_run:
+            click.echo("  [DRY RUN] Would delete local file")
+            if delete_from_cloud:
+                click.echo("  [DRY RUN] Would delete from Lightroom Cloud")
+            continue
+        
+        should_delete = True
+        if confirm:
+            msg = f"Delete local file: {file_path.name}"
+            if delete_from_cloud:
+                msg += " and from Lightroom Cloud"
+            msg += "?"
+            should_delete = click.confirm(msg)
+        
+        if should_delete:
+            # Delete local file
+            local_deleted = False
+            try:
+                file_path.unlink()
+                click.echo("  ✓ Deleted local file")
+                deleted_count += 1
+                local_deleted = True
+            except Exception as e:
+                click.echo(f"  ✗ Error deleting local file: {e}")
+                skipped_count += 1
+            
+            # Delete from cloud if requested and local deletion succeeded
+            if delete_from_cloud and local_deleted and full_photo_id:
+                if api_client.delete_photo(catalog_id, full_photo_id):
+                    click.echo("  ✓ Deleted from Lightroom Cloud")
+                    cloud_deleted += 1
+                else:
+                    click.echo("  ✗ Failed to delete from Lightroom Cloud")
+                    cloud_failed += 1
+            elif delete_from_cloud and not full_photo_id:
+                click.echo("  ✗ No photo ID for cloud deletion")
+                cloud_failed += 1
+                
+        else:
+            click.echo("  - Skipped")
+            skipped_count += 1
+    
+    # Summary
+    if dry_run:
+        summary = f"\n[DRY RUN] Found {len(found_files)} local files that would be deleted."
+        if delete_from_cloud:
+            summary += f" Would also delete {len(found_files)} photos from Lightroom Cloud."
+        click.echo(summary)
+    else:
+        summary = f"\nCompleted: {deleted_count} local files deleted, {skipped_count} skipped."
+        if delete_from_cloud:
+            summary += f" Cloud: {cloud_deleted} deleted, {cloud_failed} failed."
+        click.echo(summary)
+
+
+@photos.command('delete-jpg-raw-pairs')
+@click.option('--directory', required=True, type=click.Path(exists=True, file_okay=False, dir_okay=True), help='Base directory containing jpg and raw subdirectories')
+@click.option('--rejected-json', required=True, type=click.Path(exists=True), help='JSON file containing rejected photos from list-rejected command')
+@click.option('--jpg-subdir', default='jpg', help='Name of the jpg subdirectory (default: jpg)')
+@click.option('--raw-subdir', default='raw', help='Name of the raw subdirectory (default: raw)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted without actually deleting')
+@click.option('--confirm', is_flag=True, help='Prompt for confirmation before each deletion')
+@click.option('--recursive', is_flag=True, help='Search subdirectories recursively')
+def delete_jpg_raw_pairs(directory: str, rejected_json: str, jpg_subdir: str, raw_subdir: str, dry_run: bool, confirm: bool, recursive: bool):
+    """Delete rejected photo files in jpg subdirectory and matching files (.RAF extension) in raw subdirectory"""
+    import os
+    from pathlib import Path
+    
+    # Load rejected photos
+    try:
+        with open(rejected_json, 'r') as f:
+            rejected_data = json.load(f)
+        
+        # Handle both array format and object format
+        if isinstance(rejected_data, list):
+            rejected_photos = rejected_data
+        else:
+            rejected_photos = rejected_data.get('photos', [])
+            
+        click.echo(f"Loaded {len(rejected_photos)} rejected photos from {rejected_json}")
+    except Exception as e:
+        click.echo(f"Error loading rejected photos JSON: {e}", err=True)
+        raise click.Abort()
+    
+    # Build lookup set of rejected filenames (without path, just the filename)
+    rejected_filenames = set()
+    for photo in rejected_photos:
+        if 'filename' in photo:
+            rejected_filenames.add(photo['filename'])
+    
+    click.echo(f"Built lookup set: {len(rejected_filenames)} rejected filenames")
+    
+    base_path = Path(directory)
+    jpg_path = base_path / jpg_subdir
+    raw_path = base_path / raw_subdir
+    
+    # Validate paths
+    if not jpg_path.exists():
+        click.echo(f"Error: jpg directory not found: {jpg_path}", err=True)
+        raise click.Abort()
+    
+    if not raw_path.exists():
+        click.echo(f"Error: raw directory not found: {raw_path}", err=True)
+        raise click.Abort()
+    
+    click.echo(f"Searching in jpg directory: {jpg_path}")
+    click.echo(f"Searching in raw directory: {raw_path}")
+    
+    # Find all jpg files
+    jpg_pattern = "**/*" if recursive else "*"
+    jpg_extensions = ['.jpg', '.jpeg', '.JPG', '.JPEG']
+    
+    jpg_files = set()  # Use set to avoid duplicates
+    for ext in jpg_extensions:
+        jpg_files.update(jpg_path.glob(f"{jpg_pattern}{ext}"))
+    
+    jpg_files = list(jpg_files)  # Convert back to list
+    
+    if not jpg_files:
+        click.echo("No jpg files found.")
+        return
+    
+    click.echo(f"Found {len(jpg_files)} jpg files")
+    
+    # Filter to only rejected files
+    rejected_jpg_files = []
+    for jpg_file in jpg_files:
+        if jpg_file.name in rejected_filenames:
+            rejected_jpg_files.append(jpg_file)
+    
+    if not rejected_jpg_files:
+        click.echo("No rejected jpg files found in directory.")
+        return
+    
+    click.echo(f"Found {len(rejected_jpg_files)} rejected jpg files to process")
+    
+    # Track deletion statistics
+    jpg_deleted = 0
+    raw_deleted = 0
+    jpg_skipped = 0
+    raw_skipped = 0
+    raw_not_found = 0
+    
+    for jpg_file in rejected_jpg_files:
+        # Get the relative path from jpg_path to maintain directory structure
+        relative_path = jpg_file.relative_to(jpg_path)
+        
+        # Remove extension to get base filename
+        base_name = relative_path.with_suffix('')
+        
+        # Find matching raw file (only .RAF extension)
+        raw_file = raw_path / f"{base_name}.RAF"
+        
+        click.echo(f"\nProcessing: {jpg_file.name}")
+        click.echo(f"  JPG: {jpg_file}")
+        
+        # Check if raw file exists
+        if raw_file.exists():
+            click.echo(f"  RAW: {raw_file}")
+        else:
+            click.echo(f"  RAW: {raw_file} (not found)")
+            raw_not_found += 1
+        
+        if dry_run:
+            click.echo("  [DRY RUN] Would delete jpg file")
+            if raw_file.exists():
+                click.echo("  [DRY RUN] Would delete raw file")
+            continue
+        
+        should_delete = True
+        if confirm:
+            msg = f"Delete {jpg_file.name}"
+            if raw_file.exists():
+                msg += f" and {raw_file.name}"
+            msg += "?"
+            should_delete = click.confirm(msg)
+        
+        if should_delete:
+            # Delete jpg file
+            try:
+                jpg_file.unlink()
+                click.echo("  ✓ Deleted jpg file")
+                jpg_deleted += 1
+            except Exception as e:
+                click.echo(f"  ✗ Error deleting jpg file: {e}")
+                jpg_skipped += 1
+            
+            # Delete raw file if it exists
+            if raw_file.exists():
+                try:
+                    raw_file.unlink()
+                    click.echo("  ✓ Deleted raw file")
+                    raw_deleted += 1
+                except Exception as e:
+                    click.echo(f"  ✗ Error deleting raw file: {e}")
+                    raw_skipped += 1
+        else:
+            click.echo("  - Skipped")
+            jpg_skipped += 1
+            if raw_file.exists():
+                raw_skipped += 1
+    
+    # Summary
+    if dry_run:
+        raw_would_delete = len(rejected_jpg_files) - raw_not_found
+        summary = f"\n[DRY RUN] Would delete {len(rejected_jpg_files)} rejected jpg files and {raw_would_delete} matching raw files."
+        if raw_not_found > 0:
+            summary += f" ({raw_not_found} raw files not found)"
+        click.echo(summary)
+    else:
+        summary = f"\nCompleted: {jpg_deleted} rejected jpg files deleted, {raw_deleted} raw files deleted."
+        if jpg_skipped > 0 or raw_skipped > 0:
+            summary += f" Skipped: {jpg_skipped} jpg, {raw_skipped} raw."
+        if raw_not_found > 0:
+            summary += f" ({raw_not_found} raw files not found)"
+        click.echo(summary)
+
+
+@photos.command('delete-rejected-cloud')
+@click.option('--rejected-json', required=True, type=click.Path(exists=True), help='JSON file containing rejected photos from list-rejected command')
+@click.option('--catalog-id', help='Specific catalog ID (optional, will use default if not specified)')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted without actually deleting')
+@click.option('--save-to', type=click.Path(), help='Save dry-run results to file')
+@click.option('--confirm', is_flag=True, help='Prompt for confirmation before each deletion')
+def delete_rejected_cloud(rejected_json: str, catalog_id: Optional[str], dry_run: bool, save_to: Optional[str], confirm: bool):
+    """Delete rejected photos from Lightroom Cloud using rejected JSON file"""
+    
+    # Load rejected photos
+    try:
+        with open(rejected_json, 'r') as f:
+            rejected_data = json.load(f)
+        
+        # Handle both array format and object format
+        if isinstance(rejected_data, list):
+            rejected_photos = rejected_data
+        else:
+            rejected_photos = rejected_data.get('photos', [])
+            
+        click.echo(f"Loaded {len(rejected_photos)} rejected photos from {rejected_json}")
+    except Exception as e:
+        click.echo(f"Error loading rejected photos JSON: {e}", err=True)
+        raise click.Abort()
+    
+    if not rejected_photos:
+        click.echo("No rejected photos found in JSON file.")
+        return
+    
+    # Setup authentication and API client
+    config = Config()
+    token_manager = TokenManager(config)
+    
+    # Check authentication
+    if not token_manager.get_valid_access_token():
+        click.echo("Not authenticated. Run 'lightroom-tool auth login' first.", err=True)
+        raise click.Abort()
+    
+    api_client = LightroomAPIClient(config)
+    
+    # Get catalog ID if not specified
+    if not catalog_id:
+        catalogs = api_client.get_catalogs()
+        if not catalogs:
+            click.echo("No catalogs found.")
+            raise click.Abort()
+        catalog_id = catalogs[0]['id']
+        click.echo(f"Using catalog: {catalog_id}")
+    
+    # Collect output for saving to file
+    output_lines = []
+    if save_to:
+        output_lines.append(f"Loaded {len(rejected_photos)} rejected photos from {rejected_json}")
+        output_lines.append(f"Using catalog: {catalog_id}")
+        output_lines.append("")
+    
+    # Track deletion statistics
+    deleted_count = 0
+    skipped_count = 0
+    error_count = 0
+    
+    for i, photo in enumerate(rejected_photos, 1):
+        photo_id = photo.get('id')
+        filename = photo.get('filename', 'Unknown')
+        
+        if not photo_id:
+            click.echo(f"[{i}/{len(rejected_photos)}] Skipping {filename}: No photo ID")
+            if save_to:
+                output_lines.append(f"[{i}/{len(rejected_photos)}] Skipping {filename}: No photo ID")
+            skipped_count += 1
+            continue
+        
+        click.echo(f"[{i}/{len(rejected_photos)}] Processing: {filename} (ID: {photo_id})")
+        if save_to:
+            output_lines.append(f"[{i}/{len(rejected_photos)}] Processing: {filename} (ID: {photo_id})")
+        
+        if dry_run:
+            click.echo("  [DRY RUN] Would delete from Lightroom Cloud")
+            if save_to:
+                output_lines.append("  [DRY RUN] Would delete from Lightroom Cloud")
+            continue
+        
+        should_delete = True
+        if confirm:
+            should_delete = click.confirm(f"Delete {filename} from Lightroom Cloud?")
+        
+        if should_delete:
+            try:
+                if api_client.delete_photo(catalog_id, photo_id):
+                    click.echo("  ✓ Deleted from Lightroom Cloud")
+                    if save_to:
+                        output_lines.append("  ✓ Deleted from Lightroom Cloud")
+                    deleted_count += 1
+                else:
+                    click.echo("  ✗ Failed to delete from Lightroom Cloud")
+                    if save_to:
+                        output_lines.append("  ✗ Failed to delete from Lightroom Cloud")
+                    error_count += 1
+            except Exception as e:
+                click.echo(f"  ✗ Error deleting from Lightroom Cloud: {e}")
+                if save_to:
+                    output_lines.append(f"  ✗ Error deleting from Lightroom Cloud: {e}")
+                error_count += 1
+        else:
+            click.echo("  - Skipped")
+            if save_to:
+                output_lines.append("  - Skipped")
+            skipped_count += 1
+    
+    # Summary
+    if dry_run:
+        summary = f"\n[DRY RUN] Would delete {len(rejected_photos)} photos from Lightroom Cloud."
+        click.echo(summary)
+        
+        # Save to file if requested
+        if save_to:
+            output_lines.append(summary.strip())
+            try:
+                with open(save_to, 'w') as f:
+                    f.write('\n'.join(output_lines))
+                click.echo(f"\nDry-run results saved to: {save_to}")
+            except Exception as e:
+                click.echo(f"Error saving to file: {e}", err=True)
+    else:
+        summary = f"\nCompleted: {deleted_count} photos deleted from Lightroom Cloud, {skipped_count} skipped, {error_count} errors."
+        click.echo(summary)

@@ -226,24 +226,27 @@ class LightroomAPIClient:
             next_cursor=response.get('next_cursor')
         )
     
-    def get_rejected_photos(self, catalog_id: str, limit: int = 100) -> List[Photo]:
-        """Get all rejected photos from a catalog"""
-        rejected_photos = []
-        cursor = None
-        
+    def get_rejected_photos(self, catalog_id: str, limit: int = 100, max_pages: int = 1000) -> List[Photo]:
+        """Get all rejected photos from a catalog using timestamp-based pagination (updated_since) for robustness."""
+        all_photos = []
+        updated_since = None
+        page_count = 0
         while True:
-            collection = self.get_assets(catalog_id, limit=limit, cursor=cursor)
-            
-            # Filter for rejected photos
-            batch_rejected = collection.rejected_photos()
-            rejected_photos.extend(batch_rejected)
-            
-            # Check if we have more pages
+            collection = self.get_assets(catalog_id, limit=limit, updated_since=updated_since)
+            all_photos.extend(collection.photos)
+            page_count += 1
+            print(f"Fetched page {page_count}, updated_since={updated_since}, batch={len(collection.photos)}")
             if not collection.has_more or not collection.next_cursor:
                 break
-                
-            cursor = collection.next_cursor
-        
+            if collection.next_cursor == updated_since:
+                print("Warning: updated_since did not advance, breaking to avoid infinite loop.")
+                break
+            if page_count >= max_pages:
+                print(f"Warning: reached max_pages={max_pages}, breaking loop.")
+                break
+            updated_since = collection.next_cursor
+        # Filter for rejected photos after collecting all
+        rejected_photos = [p for p in all_photos if p.flag == 'reject']
         return rejected_photos
     
     def get_photo_details(self, catalog_id: str, asset_id: str) -> Photo:
@@ -372,3 +375,47 @@ class LightroomAPIClient:
         response = self._make_request('GET', endpoint)
         
         return response
+
+    def delete_photo(self, catalog_id: str, asset_id: str) -> bool:
+        """Delete a photo from Lightroom Cloud
+        
+        Args:
+            catalog_id: The catalog ID containing the photo
+            asset_id: The asset ID of the photo to delete
+            
+        Returns:
+            True if deletion was successful, False otherwise
+        """
+        endpoint = f"catalogs/{catalog_id}/assets/{asset_id}"
+        
+        try:
+            response = self._make_request('DELETE', endpoint)
+            return True
+        except Exception as e:
+            print(f"Error deleting photo {asset_id}: {e}")
+            return False
+    
+    def delete_photos_batch(self, catalog_id: str, asset_ids: list) -> dict:
+        """Delete multiple photos from Lightroom Cloud
+        
+        Args:
+            catalog_id: The catalog ID containing the photos
+            asset_ids: List of asset IDs to delete
+            
+        Returns:
+            Dictionary with success/failure counts and failed IDs
+        """
+        results = {
+            'success_count': 0,
+            'failure_count': 0,
+            'failed_ids': []
+        }
+        
+        for asset_id in asset_ids:
+            if self.delete_photo(catalog_id, asset_id):
+                results['success_count'] += 1
+            else:
+                results['failure_count'] += 1
+                results['failed_ids'].append(asset_id)
+                
+        return results
