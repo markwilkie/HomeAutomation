@@ -1,6 +1,0 @@
-requests>=2.20.0
-python-dotenv>=0.15.0
-click>=7.0
-keyring>=20.0.0
-cryptography>=3.0.0
-pyjwt>=2.0.0
