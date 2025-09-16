@@ -132,3 +132,42 @@ dmypy.json
 .cache/
 tokens.json
 *.log
+
+# Lightroom tool specific files
+config.json
+auth_tokens.json
+.tokens/
+rejected_*.json
+photo_metadata.json
+sync_*.json
+temp_*.json
+debug_*.json
+deletion_plan.json
+all_photos_*.json
+accepted_*.json
+*.backup
+
+# Data export files (keep schema/example files)
+*.json
+!requirements*.json
+!package*.json
+!schema*.json
+!example*.json
+
+# IDE/Editor files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Development and debug files
+debug_api_call.py
+debug_*.py
+
+# Temporary Python files not covered by __pycache__
+*.pyc
