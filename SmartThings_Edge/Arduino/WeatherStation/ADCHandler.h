@@ -47,6 +47,9 @@ class ADCHandler
     long getIllumination();
     String getMoisture();
     double getUV();
+    double getUV1();
+    double getUV2();
+    double getUV3();
     
   private: 
     int readADC(int);

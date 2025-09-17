@@ -192,6 +192,9 @@ DynamicJsonDocument refreshADCDoc(DynamicJsonDocument doc)
    doc["ldr"] = adcHandler.getIllumination();
    doc["moisture"] = adcHandler.getMoisture();
    doc["uv"] = adcHandler.getUV();
+   doc["uv1"] = adcHandler.getUV1();
+   doc["uv2"] = adcHandler.getUV2();
+   doc["uv3"] = adcHandler.getUV3();
    doc["current_time"] = currentTime(); //send back the last epoch sent in + elapsed time since
   
    return doc;
