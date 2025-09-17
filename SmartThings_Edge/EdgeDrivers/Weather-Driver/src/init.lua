@@ -46,6 +46,9 @@ function RefreshWeather(content)
   globals.pressure = tonumber(string.format("%.1f", jsondata.pressure))
   globals.dewPoint = tonumber(string.format("%.1f", jsondata.dew_point))
   globals.uvIndex = tonumber(string.format("%.1f", jsondata.uv))
+  globals.uv1Index = tonumber(string.format("%.1f", jsondata.uv1))
+  globals.uv2Index = tonumber(string.format("%.1f", jsondata.uv2))
+  globals.uv3Index = tonumber(string.format("%.1f", jsondata.uv3))
   globals.ldr = jsondata.ldr
   globals.pm25 = jsondata.pm25AQI
   globals.pm25AQI = jsondata.pm25AQI
@@ -71,6 +74,10 @@ local function emitWeatherData(driver, device)
   device:emit_event(capabilities.illuminanceMeasurement.illuminance(globals.ldr))
   device:emit_event(capabilities.dewPoint.dewpoint({value = globals.dewPoint, unit = 'C'}))
   device:emit_event(lastupdated.Time(globals.currentTime))
+
+  device:emit_component_event(device.profile.components['uvmorning'],capabilities.ultravioletIndex.ultravioletIndex(globals.uv3Index))
+  device:emit_component_event(device.profile.components['uvmidday'],capabilities.ultravioletIndex.ultravioletIndex(globals.uv1Index))
+  device:emit_component_event(device.profile.components['uvevening'],capabilities.ultravioletIndex.ultravioletIndex(globals.uv2Index))
 
   device:emit_component_event(device.profile.components['airQuality'],airquality.AQI(globals.pm25AQI))
   device:emit_component_event(device.profile.components['airQuality'],airquality.Designation(globals.pm25Label))

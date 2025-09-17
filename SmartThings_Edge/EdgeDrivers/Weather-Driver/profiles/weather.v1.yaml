@@ -36,6 +36,27 @@ components:
     version: 1    
   - id: temperatureMeasurement
     version: 1
+- id: uvmorning
+  label: "UV Morning"
+  capabilities:
+  - id: refresh
+    version: 1    
+  - id: ultravioletIndex
+    version: 1
+- id: uvmidday
+  label: "UV Midday"
+  capabilities:
+  - id: refresh
+    version: 1    
+  - id: ultravioletIndex
+    version: 1
+- id: uvevening
+  label: "UV Evening"
+  capabilities:
+  - id: refresh
+    version: 1    
+  - id: ultravioletIndex
+    version: 1
 - id: lastHour
   label: "Change Last Hour"
   capabilities:
