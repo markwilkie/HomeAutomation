@@ -112,7 +112,10 @@ TODO
 	doc["vcc_voltage"] voltage on the vcc pin (usually battery)
     doc["ldr"] = Calculated to approx lux  (note that this will be zero if in OTA/Handshake mode because the ADC is disabled when Wifi is on)
     doc["moisture"] = "wet" or "dry"  (read via a digital pin because we ran out of adc)
-    doc["uv"] = Calculated to uv index    
+    doc["uv"] = Calculated to uv index (highest reading from the 3 UV sensors)
+    doc["uv1"] = UV index from sensor 1
+    doc["uv2"] = UV index from sensor 2
+    doc["uv3"] = UV index from sensor 3    
 
     doc["pm25"] standard PM 2.5
     doc["pm100"] 

@@ -120,19 +120,19 @@ double ADCHandler::getUV()
   return round2(uv);
 }
 
-int ADCHandler::getUV1()
+double ADCHandler::getUV1()
 {
-  return _uv1;
+  return getUVIndex(_uv1);
 }
 
-int ADCHandler::getUV2()
+double ADCHandler::getUV2()
 {
-  return _uv2;
+  return getUVIndex(_uv2);
 }
 
-int ADCHandler::getUV3()
+double ADCHandler::getUV3()
 {
-  return _uv3;
+  return getUVIndex(_uv3);
 }
 
 int ADCHandler::readDigital(int pin)
