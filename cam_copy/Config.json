@@ -1,0 +1,28 @@
+{
+    "RAFNetworkShare": "P:\\Xt5\\raw",
+    "JPGNetworkShare": "P:\\Xt5\\jpg",
+    "LogFile": ".\\CameraCopy.log",
+    "AutoEject": true,
+    "NotificationEnabled": true,
+    "MonitoringInterval": 5,
+    "Settings": {
+        "CreateDateFolders": true,
+        "DateFolderFormat": "yyyy-MM-dd",
+        "SkipDuplicates": true,
+        "RenameConflicts": true,
+        "MaxRetries": 3,
+        "RetryDelay": 2000
+    },
+    "CameraSettings": {
+        "Slot2FileTypes": ["*.RAF", "*.ARW", "*.CR2", "*.NEF"],
+        "Slot1FileTypes": ["*.JPG", "*.JPEG"],
+        "DCIMFolderPattern": "DCIM",
+        "MinimumFreeSpace": 1073741824
+    },
+    "NetworkSettings": {
+        "ConnectionTimeout": 30,
+        "EnableCredentials": false,
+        "Username": "",
+        "Domain": ""
+    }
+}
