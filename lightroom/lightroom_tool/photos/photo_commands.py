@@ -739,17 +739,36 @@ def search_photos(catalog_id: Optional[str], rejected_only: bool, accepted_only:
 
 
 @photos.command('delete-jpg-raw-pairs')
-@click.option('--directory', required=True, type=click.Path(exists=True, file_okay=False, dir_okay=True), help='Base directory containing jpg and raw subdirectories')
-@click.option('--rejected-json', required=True, type=click.Path(exists=True), help='JSON file containing rejected photos from list-rejected command')
-@click.option('--jpg-subdir', default='jpg', help='Name of the jpg subdirectory (default: jpg)')
-@click.option('--raw-subdir', default='raw', help='Name of the raw subdirectory (default: raw)')
+@click.option('--directory', type=click.Path(exists=True, file_okay=False, dir_okay=True), help='Base directory containing jpg and raw subdirectories (uses config if not specified)')
+@click.option('--rejected-json', default='rejected.json', type=click.Path(exists=True), help='JSON file containing rejected photos from list-rejected command (default: rejected.json)')
+@click.option('--jpg-subdir', help='Name of the jpg subdirectory (uses config default if not specified)')
+@click.option('--raw-subdir', help='Name of the raw subdirectory (uses config default if not specified)')
 @click.option('--dry-run', is_flag=True, help='Show what would be deleted without actually deleting')
 @click.option('--confirm', is_flag=True, help='Prompt for confirmation before each deletion')
 @click.option('--recursive', is_flag=True, help='Search subdirectories recursively')
-def delete_jpg_raw_pairs(directory: str, rejected_json: str, jpg_subdir: str, raw_subdir: str, dry_run: bool, confirm: bool, recursive: bool):
+@click.option('--use-api-dates/--no-api-dates', default=True, help='Use API date information to find photos in jpg\\YYYY\\mm-dd directory structure (default: enabled)')
+@click.option('--date-type', type=click.Choice(['import', 'capture']), default='import', help='Date type to use for directory structure: import (when imported) or capture (when photo was taken) (default: import)')
+def delete_jpg_raw_pairs(directory: Optional[str], rejected_json: str, jpg_subdir: Optional[str], raw_subdir: Optional[str], dry_run: bool, confirm: bool, recursive: bool, use_api_dates: bool, date_type: str):
     """Delete rejected photo files in jpg subdirectory and matching files (.RAF extension) in raw subdirectory"""
     import os
     from pathlib import Path
+    from datetime import datetime
+    
+    # Load configuration
+    config = Config()
+    
+    # Use config defaults if not specified
+    if not directory:
+        directory = config.get_path('photo_base')
+        if not directory:
+            click.echo("Error: No directory specified and no photo_base configured", err=True)
+            raise click.Abort()
+    
+    if not jpg_subdir:
+        jpg_subdir = config.get_setting('paths.jpg_subdir', 'jpg')
+    
+    if not raw_subdir:
+        raw_subdir = config.get_setting('paths.raw_subdir', 'raw')
     
     # Load rejected photos
     try:
@@ -767,13 +786,45 @@ def delete_jpg_raw_pairs(directory: str, rejected_json: str, jpg_subdir: str, ra
         click.echo(f"Error loading rejected photos JSON: {e}", err=True)
         raise click.Abort()
     
-    # Build lookup set of rejected filenames (without path, just the filename)
+    # Build lookup set of rejected photos with date information
+    rejected_photo_map = {}
     rejected_filenames = set()
+    
     for photo in rejected_photos:
         if 'filename' in photo:
-            rejected_filenames.add(photo['filename'])
+            filename = photo['filename']
+            rejected_filenames.add(filename)
+            
+            # Extract date information for directory structure
+            photo_date = None
+            if use_api_dates and 'metadata' in photo:
+                metadata = photo['metadata']
+                if date_type == 'import' and 'import_source' in metadata and 'importTimestamp' in metadata['import_source']:
+                    # Import timestamp is an ISO string
+                    timestamp = metadata['import_source']['importTimestamp']
+                    if isinstance(timestamp, str):
+                        try:
+                            photo_date = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        except ValueError:
+                            pass
+                elif date_type == 'capture' and 'capture_date' in metadata:
+                    # Capture date is typically an ISO string
+                    capture_date = metadata['capture_date']
+                    if isinstance(capture_date, str):
+                        try:
+                            photo_date = datetime.fromisoformat(capture_date.replace('Z', '+00:00'))
+                        except ValueError:
+                            pass
+            
+            rejected_photo_map[filename] = {
+                'photo': photo,
+                'date': photo_date
+            }
     
-    click.echo(f"Built lookup set: {len(rejected_filenames)} rejected filenames")
+    click.echo(f"Built lookup map: {len(rejected_filenames)} rejected filenames")
+    if use_api_dates:
+        dated_photos = sum(1 for info in rejected_photo_map.values() if info['date'])
+        click.echo(f"Found date information for {dated_photos} photos")
     
     base_path = Path(directory)
     jpg_path = base_path / jpg_subdir
@@ -791,33 +842,91 @@ def delete_jpg_raw_pairs(directory: str, rejected_json: str, jpg_subdir: str, ra
     click.echo(f"Searching in jpg directory: {jpg_path}")
     click.echo(f"Searching in raw directory: {raw_path}")
     
-    # Find all jpg files
-    jpg_pattern = "**/*" if recursive else "*"
+    # Find rejected photo files using API date information
+    rejected_jpg_files = []
+    files_found_by_date = 0
+    files_found_by_search = 0
+    files_not_found = 0
+    
     jpg_extensions = ['.jpg', '.jpeg', '.JPG', '.JPEG']
     
-    jpg_files = set()  # Use set to avoid duplicates
-    for ext in jpg_extensions:
-        jpg_files.update(jpg_path.glob(f"{jpg_pattern}{ext}"))
+    for filename, photo_info in rejected_photo_map.items():
+        photo_date = photo_info['date']
+        found_files = []
+        
+        if use_api_dates and photo_date:
+            # Add date-based directory structure: base_path\jpg\YYYY\mm-dd and base_path\raw\YYYY\mm-dd
+            year_str = f"{photo_date.year:04d}"
+            month_day_str = f"{photo_date.month:02d}-{photo_date.day:02d}"
+            
+            # Construct full path with date: base_path\jpg\YYYY\mm-dd
+            date_jpg_path = jpg_path / year_str / month_day_str
+            date_raw_path = raw_path / year_str / month_day_str
+            
+            if date_jpg_path.exists():
+                for ext in jpg_extensions:
+                    # Try exact filename match
+                    base_name = Path(filename).stem
+                    potential_file = date_jpg_path / f"{base_name}{ext}"
+                    if potential_file.exists():
+                        found_files.append((potential_file, date_raw_path))
+                        break
+                    
+                    # Also try the original filename with different extension
+                    if filename.lower().endswith(('.jpg', '.jpeg')):
+                        potential_file = date_jpg_path / filename
+                        if potential_file.exists():
+                            found_files.append((potential_file, date_raw_path))
+                            break
+            
+            if found_files:
+                files_found_by_date += 1
+        
+        # If not found by date, fall back to recursive search
+        if not found_files:
+            jpg_pattern = "**/*" if recursive else "*"
+            
+            for ext in jpg_extensions:
+                # Search for files matching the base name
+                base_name = Path(filename).stem
+                matching_files = list(jpg_path.glob(f"{jpg_pattern}{base_name}{ext}"))
+                
+                # Also search for exact filename matches
+                if not matching_files:
+                    matching_files = list(jpg_path.glob(f"{jpg_pattern}{filename}"))
+                
+                for jpg_file in matching_files:
+                    # Determine corresponding raw path (maintain directory structure)
+                    relative_path = jpg_file.relative_to(jpg_path)
+                    corresponding_raw_path = raw_path / relative_path.parent
+                    found_files.append((jpg_file, corresponding_raw_path))
+                
+                if matching_files:
+                    break
+            
+            if found_files:
+                files_found_by_search += 1
+        
+        if found_files:
+            for jpg_file, raw_dir in found_files:
+                rejected_jpg_files.append((jpg_file, raw_dir, photo_info))
+        else:
+            files_not_found += 1
+            if not use_api_dates or not photo_date:
+                click.echo(f"  File not found: {filename} (no date info)")
+            else:
+                expected_path = jpg_path / f"{photo_date.year:04d}" / f"{photo_date.month:02d}-{photo_date.day:02d}"
+                click.echo(f"  File not found: {filename} (expected in {expected_path})")
     
-    jpg_files = list(jpg_files)  # Convert back to list
-    
-    if not jpg_files:
-        click.echo("No jpg files found.")
-        return
-    
-    click.echo(f"Found {len(jpg_files)} jpg files")
-    
-    # Filter to only rejected files
-    rejected_jpg_files = []
-    for jpg_file in jpg_files:
-        if jpg_file.name in rejected_filenames:
-            rejected_jpg_files.append(jpg_file)
+    click.echo(f"Found {len(rejected_jpg_files)} rejected jpg files to process")
+    if use_api_dates:
+        click.echo(f"  - {files_found_by_date} found using date-based directories")
+        click.echo(f"  - {files_found_by_search} found using recursive search")
+        click.echo(f"  - {files_not_found} not found")
     
     if not rejected_jpg_files:
         click.echo("No rejected jpg files found in directory.")
         return
-    
-    click.echo(f"Found {len(rejected_jpg_files)} rejected jpg files to process")
     
     # Track deletion statistics
     jpg_deleted = 0
@@ -826,18 +935,19 @@ def delete_jpg_raw_pairs(directory: str, rejected_json: str, jpg_subdir: str, ra
     raw_skipped = 0
     raw_not_found = 0
     
-    for jpg_file in rejected_jpg_files:
-        # Get the relative path from jpg_path to maintain directory structure
-        relative_path = jpg_file.relative_to(jpg_path)
+    for jpg_file, raw_dir, photo_info in rejected_jpg_files:
+        photo_date = photo_info['date']
         
-        # Remove extension to get base filename
-        base_name = relative_path.with_suffix('')
+        # Get the base filename for matching raw files
+        base_name = jpg_file.stem
         
-        # Find matching raw file (only .RAF extension)
-        raw_file = raw_path / f"{base_name}.RAF"
+        # Find matching raw file (only .RAF extension) in the corresponding raw directory
+        raw_file = raw_dir / f"{base_name}.RAF"
         
         click.echo(f"\nProcessing: {jpg_file.name}")
         click.echo(f"  JPG: {jpg_file}")
+        if photo_date and use_api_dates:
+            click.echo(f"  Date: {photo_date.strftime('%Y-%m-%d')} ({date_type} date)")
         
         # Check if raw file exists
         if raw_file.exists():

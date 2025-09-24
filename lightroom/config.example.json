@@ -1,0 +1,37 @@
+{
+  "paths": {
+    "photo_base": "D:\\Photos",
+    "jpg_subdir": "jpg",
+    "raw_subdir": "raw",
+    "export_base": "D:\\Lightroom_Exports",
+    "rejected_photos": "D:\\Lightroom_Exports\\rejected_photos",
+    "backups": "D:\\Lightroom_Exports\\backups"
+  },
+  "filenames": {
+    "rejected_json": "rejected_photos.json",
+    "metadata_json": "photo_metadata.json",
+    "deletion_plan": "deletion_plan.json",
+    "accepted_photos": "accepted_photos.json"
+  },
+  "settings": {
+    "default_photo_limit": 1000,
+    "max_photos_per_request": 500,
+    "default_output_format": "table",
+    "default_date_type": "import",
+    "filename_only_matching": false,
+    "require_deletion_confirmation": true,
+    "show_dry_run_by_default": true
+  },
+  "photo_extensions": {
+    "raw": [".RAF", ".CR2", ".CR3", ".NEF", ".ARW", ".ORF", ".RW2", ".DNG"],
+    "processed": [".JPG", ".JPEG", ".TIFF", ".TIF", ".PNG"]
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "directories": {
+    "create_missing": true,
+    "backup_before_delete": true
+  }
+}

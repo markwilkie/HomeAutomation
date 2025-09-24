@@ -6,6 +6,7 @@ Main CLI entry point for Adobe Lightroom Cloud Access Tool
 import click
 from lightroom_tool.auth import auth_commands
 from lightroom_tool.photos import photo_commands
+from lightroom_tool.cleanup_commands import cleanup
 
 
 @click.group()
@@ -25,6 +26,7 @@ def cli(ctx, verbose):
 # Add command groups
 cli.add_command(auth_commands.auth)
 cli.add_command(photo_commands.photos)
+cli.add_command(cleanup)
 
 
 if __name__ == '__main__':

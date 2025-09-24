@@ -1,0 +1,61 @@
+# Lightroom Tool Configuration
+# Non-sensitive configuration settings that can be version controlled
+
+# Photo Directory Paths
+paths:
+  # Main photo directory (base path where your photos are stored)
+  photo_base: "p:\\xt5"
+  
+  # Photo subdirectories for different formats
+  jpg_subdir: "jpg"
+  raw_subdir: "raw"
+  
+  # Output paths for exports and reports
+  export_base: "p:\\xt5"
+  rejected_photos: "p:\\xt5"
+  backups: "p:\\xt5"
+
+  # Network drive paths (uncomment and modify if using network storage)
+  # network_photos: "\\\\server\\photos"
+  # network_exports: "\\\\server\\exports"
+
+# Default file naming patterns
+filenames:
+  rejected_json: "rejected_photos.json"
+  metadata_json: "photo_metadata.json"
+  deletion_plan: "deletion_plan.json"
+  accepted_photos: "accepted_photos.json"
+
+# Application behavior settings
+settings:
+  # Default limits for API calls
+  default_photo_limit: 1000
+  max_photos_per_request: 500
+  
+  # Default output format (table or json)
+  default_output_format: "table"
+  
+  # Date filtering defaults
+  default_date_type: "import"  # import, sync, or capture
+  
+  # File matching options
+  filename_only_matching: false  # Set to true for faster network drive operations
+  
+  # Confirmation prompts
+  require_deletion_confirmation: true
+  show_dry_run_by_default: true
+
+# Photo file extensions to recognize
+photo_extensions:
+  raw: [".RAF", ".CR2", ".CR3", ".NEF", ".ARW", ".ORF", ".RW2", ".DNG"]
+  processed: [".JPG", ".JPEG", ".TIFF", ".TIF", ".PNG"]
+
+# Logging configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+# Directory creation settings
+directories:
+  create_missing: true
+  backup_before_delete: true

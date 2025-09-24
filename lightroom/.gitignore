@@ -153,6 +153,13 @@ accepted_*.json
 !package*.json
 !schema*.json
 !example*.json
+!config.example.json
+
+# Config files (keep examples, ignore user configs)
+config.json
+config.local.yaml
+config.local.yml
+!config.yaml  # Keep the main config template
 
 # IDE/Editor files
 .vscode/settings.json

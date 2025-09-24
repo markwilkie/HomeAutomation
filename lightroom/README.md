@@ -29,12 +29,43 @@ A command-line interface application for accessing Adobe Lightroom Cloud with si
 
 ## Configuration
 
+### Environment Variables (Sensitive Settings)
+
 1. Create a `.env` file in the project root
 2. Add your Adobe API Client ID:
-   ```
+   ```env
    ADOBE_CLIENT_ID=your_client_id_here
    ADOBE_REDIRECT_URI=http://localhost:8080/callback
    ```
+
+### General Configuration (Paths and Settings)
+
+The tool uses `config.yaml` for non-sensitive configuration like file paths and default settings:
+
+1. Copy the example configuration:
+   ```bash
+   cp config.example.json config.yaml
+   ```
+   
+2. Edit `config.yaml` to match your setup:
+   ```yaml
+   paths:
+     photo_base: "D:\\Photos"          # Your main photo directory
+     jpg_subdir: "jpg"                 # JPG subdirectory name
+     raw_subdir: "raw"                 # RAW subdirectory name
+     export_base: "D:\\Lightroom_Exports"
+   
+   settings:
+     default_photo_limit: 1000
+     default_output_format: "table"
+     require_deletion_confirmation: true
+   ```
+
+The tool will automatically find and load configuration files in this order:
+- `config.yaml` (preferred)
+- `config.yml` 
+- `config.json`
+- `config.example.json` (fallback)
 
 Note: This application uses PKCE (Proof Key for Code Exchange) flow, so no client secret is required. This is the recommended approach for applications that cannot securely store secrets.
 
@@ -61,6 +92,26 @@ Common issues:
 * **invalid_scope**: One or more scopes not enabled for your integration
 
 ## Usage
+
+### Quick Start - Automated Cleanup
+
+For most users, start with the automated cleanup workflow:
+
+```bash
+# 1. Login first (opens browser for authentication)
+python -m lightroom_tool auth login
+
+# 2. Run complete cleanup workflow (recommended)
+python -m lightroom_tool cleanup
+```
+
+The `cleanup` command performs the complete workflow automatically:
+1. **Fetches** all rejected photos from Lightroom Cloud → `rejected.json`
+2. **Previews** what local files would be deleted (dry-run)
+3. **Asks for confirmation** before proceeding
+4. **Deletes** the matched JPG/RAW file pairs
+
+No parameters needed - uses your configuration defaults and shows a directory summary of found/missing files.
 
 ### Authentication Commands
 
@@ -95,6 +146,19 @@ python -m lightroom_tool auth url
 ```
 
 ### Photo Management Commands
+
+#### Complete Cleanup Workflow (Recommended)
+```bash
+# Automated workflow: fetch rejected photos, preview, and delete with confirmation
+python -m lightroom_tool cleanup
+```
+
+This command performs the complete cleanup workflow:
+- Fetches all rejected photos from Lightroom Cloud
+- Shows directory summary of found vs missing files
+- Previews what would be deleted (JPG + RAW pairs)
+- Asks for confirmation before deletion
+- Uses your `config.yaml` settings automatically
 
 #### List Rejected Photos
 ```bash
@@ -137,29 +201,31 @@ python -m lightroom_tool photos search --this-year --output json
 #### Delete Local Photo Files
 ```bash
 # Delete local JPG/RAF file pairs matching rejected photos
+# Uses config settings and defaults to rejected.json
 python -m lightroom_tool photos delete-jpg-raw-pairs \
-  --directory /path/to/photos \
-  --rejected-json rejected.json \
   --dry-run  # See what would be deleted first
 
-# Actually delete the files (remove --dry-run)
+# Use API date information to find photos in jpg\YYYY\mm-dd directory structure
 python -m lightroom_tool photos delete-jpg-raw-pairs \
-  --directory /path/to/photos \
-  --rejected-json rejected.json
+  --date-type import \
+  --dry-run
 
-# Use custom subdirectory names
+# Use capture date instead of import date for directory structure
+python -m lightroom_tool photos delete-jpg-raw-pairs \
+  --date-type capture \
+  --dry-run
+
+# Override config settings with custom paths and JSON file
 python -m lightroom_tool photos delete-jpg-raw-pairs \
   --directory /path/to/photos \
-  --rejected-json rejected.json \
+  --rejected-json custom_rejected.json \
   --jpg-subdir "jpeg" \
-  --raw-subdir "raw_files"
+  --raw-subdir "raw_files" \
+  --dry-run
 
-# Save dry-run results to file
+# Actually delete the files (remove --dry-run) with confirmation prompts
 python -m lightroom_tool photos delete-jpg-raw-pairs \
-  --directory /path/to/photos \
-  --rejected-json rejected.json \
-  --dry-run \
-  --save-to deletion_plan.json
+  --confirm
 ```
 
 #### Get Photo Details
@@ -218,7 +284,20 @@ python -m lightroom_tool photos api-explore --catalog-id <catalog_id>
 
 ## Common Workflows
 
-### 1. Export and Delete Rejected Photos
+### 1. Automated Cleanup (Recommended)
+```bash
+# One-command workflow - handles everything automatically
+python -m lightroom_tool cleanup
+
+# Shows output like:
+# 📁 Files found by directory:
+#    2025\09-23: 49 jpg, 49 raw
+# ❌ Files not found by directory:
+#    2025\09-08: 23 files
+#    2025\09-12: 22 files
+```
+
+### 2. Manual Export and Delete (Advanced)
 ```bash
 # Step 1: Export rejected photos to JSON
 python -m lightroom_tool photos list-rejected --output json --save-to rejected_2025.json --year 2025
@@ -235,7 +314,7 @@ python -m lightroom_tool photos delete-jpg-raw-pairs \
   --rejected-json rejected_2025.json
 ```
 
-### 2. Search and Export Photos by Year
+### 3. Search and Export Photos by Year
 ```bash
 # Export all accepted photos from 2025
 python -m lightroom_tool photos search \
@@ -251,7 +330,7 @@ python -m lightroom_tool photos search \
   --output json > all_photos_2025.json
 ```
 
-### 3. Get Detailed Photo Information
+### 4. Get Detailed Photo Information
 ```bash
 # Get summary of photo counts
 python -m lightroom_tool photos count-all
