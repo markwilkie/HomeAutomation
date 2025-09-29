@@ -5,6 +5,11 @@
  * Uses PubSubClient library for MQTT communication
  * Uses A-OK library for RF transmission
  * 
+ * A-OK RF Protocol Reference:
+ * https://github.com/akirjavainen/A-OK/blob/master/A-OK.ino
+ * 
+ * This repo was also used to capture the RF sequences from the remote
+ * 
  * MQTT Message Format:
  * Topic: "blinds/control"
  * 
