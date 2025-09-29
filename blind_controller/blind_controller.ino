@@ -7,7 +7,13 @@
  * 
  * MQTT Message Format:
  * Topic: "blinds/control"
+ * 
+ * Individual blind control:
  * Payload: {"blind": 1, "action": "up"} or {"blind": 1, "action": "down"}
+ * 
+ * Group blind control:
+ * End blinds (1-2): {"group": "endblinds", "action": "up"} or {"group": "endblinds", "action": "down"}
+ * Side blinds (3-5): {"group": "sideblinds", "action": "up"} or {"group": "sideblinds", "action": "down"}
  */
 
 #include <WiFi.h>
@@ -106,23 +112,52 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
   
-  // Extract blind number and action
-  int blind_number = doc["blind"];
+  // Extract action
   String action = doc["action"];
   
-  // Validate inputs
-  if (blind_number < 1 || blind_number > MAX_BLINDS) {
-    Serial.println("Error: Invalid blind number");
-    return;
-  }
-  
+  // Validate action
   if (action != "up" && action != "down") {
     Serial.println("Error: Invalid action. Use 'up' or 'down'");
     return;
   }
   
-  // Control the blind
-  control_blind(blind_number, action);
+  // Check if it's a group command or individual blind
+  if (doc.containsKey("group")) {
+    String group = doc["group"];
+    if (group == "endblinds") {
+      // Control blinds 1-2 (end blinds)
+      Serial.println("Controlling end blinds (1-2) - Action: " + action);
+      control_blind(1, action);
+      delay(500);  // Small delay between commands
+      control_blind(2, action);
+    } else if (group == "sideblinds") {
+      // Control blinds 3-5 (side blinds)
+      Serial.println("Controlling side blinds (3-5) - Action: " + action);
+      control_blind(3, action);
+      delay(500);  // Small delay between commands
+      control_blind(4, action);
+      delay(500);
+      control_blind(5, action);
+    } else {
+      Serial.println("Error: Invalid group. Use 'endblinds' or 'sideblinds'");
+      return;
+    }
+  } else if (doc.containsKey("blind")) {
+    // Individual blind control
+    int blind_number = doc["blind"];
+    
+    // Validate blind number
+    if (blind_number < 1 || blind_number > MAX_BLINDS) {
+      Serial.println("Error: Invalid blind number");
+      return;
+    }
+    
+    // Control the individual blind
+    control_blind(blind_number, action);
+  } else {
+    Serial.println("Error: Missing 'blind' or 'group' parameter");
+    return;
+  }
 }
 
 void sendRawData(unsigned int rawData[], int length) {
@@ -182,12 +217,12 @@ void control_blind(int blind_number, String action) {
   
   if (rawData != nullptr) {
     Serial.println("Using raw RF data for " + blindAction);
-    for (int i = 0; i < 3; i++) {  // Send 3 times for reliability
+    for (int i = 0; i < 9; i++) {  // Send 3 times for reliability
       sendRawData(rawData, 511);
       Serial.print("Sending transmission ");
       Serial.print(i + 1);
-      Serial.println("/3");
-      delay(1000);  // 1 second delay between repeats
+      Serial.println("/9");
+      delay(10);  // delay between repeats
     }
     Serial.println("Completed raw RF transmission for " + blindAction);
   } else {
