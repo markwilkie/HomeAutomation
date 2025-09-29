@@ -1,0 +1,12 @@
+{
+    "vsmqtt.brokerProfiles": [
+        {
+            "name": "synology",
+            "host": "192.168.15.10",
+            "port": 1883,
+            "clientId": "vsmqtt_client_ba85",
+            "username": "mwilkie",
+            "password": "123lauve"
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+# Ignore credentials file
+credentials.h
+
+# Ignore Arduino IDE build files
+*.hex
+*.elf
+*.bin
+
+# Ignore OS specific files
+.DS_Store
+Thumbs.db
