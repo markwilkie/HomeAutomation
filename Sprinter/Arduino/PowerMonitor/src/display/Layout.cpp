@@ -54,7 +54,7 @@ void Layout::drawInitialScreen()
 	waterConfig.x=lcd.width()-imgWidth-lx;  waterConfig.y=ly;  waterConfig.width=imgWidth;  waterConfig.height=imgHeight;  
 	waterConfig.color=WATER_BLUE;
 	waterFill.color=WATER_FILL;
-	waterFill.rangeColor=WATER_RANGE;	
+	//aterFill.rangeColor=WATER_RANGE;	
 	waterFill.height=90;
 	waterFill.width=60;
 	waterFill.start=28;
@@ -132,7 +132,7 @@ void Layout::updateBitmaps()
 {
 	//update bitmap meters
     socMeter.updateLevel(displayData.stateOfCharge,2,0);
-    waterMeter.updateLevel(displayData.stateOfWater,displayData.rangeForWater,2,0);	
+    waterMeter.updateLevel(displayData.stateOfWater,2,0);	
 }
 
 void Layout::updateLCD(ESP32Time *rtc)

@@ -7,7 +7,8 @@
 
 #include "WaterTank.h"
 
-#define TIMEAPI_URL "http://worldtimeapi.org/api/timezone/America/Los_Angeles"
+#define TIMEAPI_URL "https://timeapi.io/api/time/current/zone?timeZone=America/Los_Angeles"
+//#define TIMEAPI_URL "http://worldtimeapi.org/api/timezone/America/Los_Angeles"
 
 #define POLL_TIME_MS	500
 #define SCR_UPDATE_TIME 500
@@ -19,8 +20,9 @@
 //Objects to handle connection
 //Handles reading from the BT2 Renogy device
 BT2Reader bt2Reader;
-SOKReader sokReader;
-BTDevice *targetedDevices[] = {&bt2Reader,&sokReader};
+SOKReader sokReader1("SOK-AA12487");  // First SOK battery (default name: SOK-AA12487)
+SOKReader sokReader2("SOK-AA12488");  // Second SOK battery (customize name as needed)
+BTDevice *targetedDevices[] = {&bt2Reader,&sokReader1,&sokReader2};
 
 Screen screen;
 VanWifi wifi;
@@ -30,6 +32,7 @@ Logger logger;
 PowerLogger powerLogger;
 
 WaterTank waterTank;
+WaterPump waterPump;
 
 //state
 BLE_SEMAPHORE bleSemaphore;
@@ -42,7 +45,6 @@ int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
 int hertzCount=0;
-boolean tiktok=true;
 
 void setup() 
 {
@@ -63,8 +65,9 @@ void setup()
 	//Reset power logger
 	powerLogger.reset(&rtc);
 
-	//Init water tank
-	waterTank.init();
+	//Init water tank and pump
+	//waterTank.init();
+	waterPump.init();
 
 	//Start BLE
 	startBLE();
@@ -135,7 +138,8 @@ void scanCallback(BLEDevice peripheral)
 
 	//Checking with both device handlers to see if this is something they're interested in
 	bt2Reader.scanCallback(&peripheral,&bleSemaphore);
-	sokReader.scanCallback(&peripheral,&bleSemaphore);
+	sokReader1.scanCallback(&peripheral,&bleSemaphore);
+	sokReader2.scanCallback(&peripheral,&bleSemaphore);
 }
 
 /** Connect callback method.  Exact order of operations is up to the user.  if bt2Reader attempted a connection
@@ -155,12 +159,21 @@ void connectCallback(BLEDevice peripheral)
 		}
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
+	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
 	{
-		logger.log("SOK connect callback");
-		if (sokReader.connectCallback(&peripheral,&bleSemaphore)) 
+		logger.log("SOK Battery 1 connect callback");
+		if (sokReader1.connectCallback(&peripheral,&bleSemaphore)) 
 		{
-			logger.log(INFO,"Connected to SOK device %s",peripheral.address().c_str());	
+			logger.log(INFO,"Connected to SOK Battery 1 %s",peripheral.address().c_str());	
+		}
+	}
+
+	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
+	{
+		logger.log("SOK Battery 2 connect callback");
+		if (sokReader2.connectCallback(&peripheral,&bleSemaphore)) 
+		{
+			logger.log(INFO,"Connected to SOK Battery 2 %s",peripheral.address().c_str());	
 		}
 	}
 
@@ -196,9 +209,14 @@ void disconnectCallback(BLEDevice peripheral)
 		logger.log(WARNING,"Disconnected BT2 device %s",peripheral.address().c_str());	
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
+	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
 	{	
-		logger.log(WARNING,"Disconnected SOK device %s",peripheral.address().c_str());
+		logger.log(WARNING,"Disconnected SOK Battery 1 %s",peripheral.address().c_str());
+	}
+
+	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
+	{	
+		logger.log(WARNING,"Disconnected SOK Battery 2 %s",peripheral.address().c_str());
 	}	
 
 	layout.setBLEIndicator(TFT_DARKGRAY);
@@ -214,9 +232,14 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 		bt2Reader.notifyCallback(&peripheral,&characteristic,&bleSemaphore);
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader.getPeripheryAddress(),6)==0)
+	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
 	{		
-		sokReader.notifyCallback(&peripheral,&characteristic,&bleSemaphore); 
+		sokReader1.notifyCallback(&peripheral,&characteristic,&bleSemaphore); 
+	}
+
+	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
+	{		
+		sokReader2.notifyCallback(&peripheral,&characteristic,&bleSemaphore); 
 	}	
 }
 
@@ -324,7 +347,7 @@ void loop()
 	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME)
 	{
 		//Check that we're still receiving BLE data
-		if((!sokReader.isCurrent() && sokReader.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
+		if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
 		{
 			turnOffBLE();
 			delay(1000);
@@ -344,6 +367,10 @@ void loop()
 		layout.updateLCD(&rtc);
 		layout.setWifiIndicator(wifi.isConnected());
 
+		//water pump indicator light
+		waterPump.updateLight();
+		// Track water usage percentage per day
+		waterTank.updateUsage();
 		//If rtc is stale, be sure and update it from the interwebs
 
 		//send logs
@@ -367,17 +394,24 @@ void loop()
 		lastBitmapUpdatetime=millis();
 	}
 
-	//Time to ask for data again?
-	if (tiktok && bt2Reader.isConnected() && millis()>lastCheckedTime+POLL_TIME_MS) 
+	//Time to ask for data again? Cycle through devices
+	static int deviceCycle = 0;
+	if (millis()>lastCheckedTime+POLL_TIME_MS) 
 	{
 		lastCheckedTime=millis();
-		bt2Reader.sendSolarOrAlternaterCommand(&bleSemaphore);
-	}
-
-	if (!tiktok && sokReader.isConnected() && millis()>lastCheckedTime+POLL_TIME_MS) 
-	{
-		lastCheckedTime=millis();
-		sokReader.sendReadCommand(&bleSemaphore);
+		if (deviceCycle == 0 && bt2Reader.isConnected()) 
+		{
+			bt2Reader.sendSolarOrAlternaterCommand(&bleSemaphore);
+		}
+		else if (deviceCycle == 1 && sokReader1.isConnected()) 
+		{
+			sokReader1.sendReadCommand(&bleSemaphore);
+		}
+		else if (deviceCycle == 2 && sokReader2.isConnected()) 
+		{
+			sokReader2.sendReadCommand(&bleSemaphore);
+		}
+		deviceCycle = (deviceCycle + 1) % 3;
 	}
 
 	//Do we have any data waiting?
@@ -385,10 +419,14 @@ void loop()
 	{
 		bt2Reader.updateValues();
 	}
-	if(sokReader.getIsNewDataAvailable())
+	if(sokReader1.getIsNewDataAvailable())
 	{
 		hertzCount++;
-		sokReader.updateValues();
+		sokReader1.updateValues();
+	}
+	if(sokReader2.getIsNewDataAvailable())
+	{
+		sokReader2.updateValues();
 	}
 
 	//Time to refresh rtc?
@@ -397,9 +435,6 @@ void loop()
 		lastRTCUpdateTime=millis();
 		setTime();
 	}
-
-	//toggle to the other device
-	tiktok=!tiktok;
 
 	//calc hertz
 	if(millis()>hertzTime+1000)
@@ -436,43 +471,41 @@ boolean isTimedout()
 
 void loadValues()
 {
-	layout.displayData.stateOfCharge=sokReader.getSoc();
-	layout.displayData.currentVolts=sokReader.getVolts();
+	// Combine data from both SOK batteries
+	int avgSoc = (sokReader1.getSoc() + sokReader2.getSoc()) / 2;
+	float avgVolts = (sokReader1.getVolts() + sokReader2.getVolts()) / 2.0;
+	float totalAmps = sokReader1.getAmps() + sokReader2.getAmps();
+	float totalCapacity = sokReader1.getCapacity() + sokReader2.getCapacity();
+	
+	layout.displayData.stateOfCharge=avgSoc;
+	layout.displayData.currentVolts=avgVolts;
 	layout.displayData.chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
-	layout.displayData.drawAmps=layout.displayData.chargeAmps-sokReader.getAmps();
-	if(sokReader.getAmps()<0)
-		layout.displayData.batteryHoursRem=sokReader.getCapacity()/(sokReader.getAmps()*-1);
+	layout.displayData.drawAmps=layout.displayData.chargeAmps-totalAmps;
+	if(totalAmps<0)
+		layout.displayData.batteryHoursRem=totalCapacity/(totalAmps*-1);
 	else
 		layout.displayData.batteryHoursRem=999;
 
-	int waterReading=waterTank.readLevel();
-	if(waterReading==0)  { layout.displayData.stateOfWater=0; layout.displayData.rangeForWater=20; }
-	if(waterReading==20)  { layout.displayData.stateOfWater=20; layout.displayData.rangeForWater=50; }
-	if(waterReading==50)  { layout.displayData.stateOfWater=50; layout.displayData.rangeForWater=90; }
-	if(waterReading==90)  { layout.displayData.stateOfWater=90; layout.displayData.rangeForWater=100; }
-	//layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
-
-	layout.displayData.batteryTemperature=sokReader.getTemperature();
+	layout.displayData.stateOfWater=waterTank.readWaterLevel();
+	layout.displayData.waterDaysRem= waterTank.getDaysRemaining();
+	
+	layout.displayData.batteryTemperature=sokReader1.getTemperature();
 	layout.displayData.chargerTemperature=bt2Reader.getTemperature();
-	layout.displayData.batteryAmpValue=sokReader.getAmps();
+	layout.displayData.batteryAmpValue=sokReader1.getAmps();
 	layout.displayData.solarAmpValue=bt2Reader.getSolarAmps();
 	layout.displayData.alternaterAmpValue=bt2Reader.getAlternaterAmps();
 
-	layout.displayData.heater=sokReader.isHeating();
+	layout.displayData.heater=sokReader1.isHeating();
 
-	layout.displayData.cmos=sokReader.isCMOS();
-	layout.displayData.dmos=sokReader.isDMOS();
+	layout.displayData.cmos=sokReader1.isCMOS();
+	layout.displayData.dmos=sokReader1.isDMOS();
 }
 
 void loadSimulatedValues()
 {
   layout.displayData.stateOfCharge=random(90)+10;  // 10-->100
-  layout.displayData.stateOfWater=random(4);
-  if(layout.displayData.stateOfWater==0)  { layout.displayData.stateOfWater=0; layout.displayData.rangeForWater=20; }
-  if(layout.displayData.stateOfWater==1)  { layout.displayData.stateOfWater=20; layout.displayData.rangeForWater=50; }
-  if(layout.displayData.stateOfWater==2)  { layout.displayData.stateOfWater=50; layout.displayData.rangeForWater=90; }
-  if(layout.displayData.stateOfWater==3)  { layout.displayData.stateOfWater=90; layout.displayData.rangeForWater=100; }
-
+  layout.displayData.stateOfWater=random(90)+10;  // 10-->100
+  
   layout.displayData.chargeAmps=((double)random(150))/9.2;  // 0 --> 15.0
   layout.displayData.drawAmps=((double)random(100))/9.2;  // 0 --> 10.0
 

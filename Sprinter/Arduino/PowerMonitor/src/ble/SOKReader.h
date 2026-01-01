@@ -16,6 +16,7 @@ class SOKReader : public BTDevice
 public:
 
 	SOKReader();
+	SOKReader(const char* peripheryNameOverride);
 
 	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
 	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphor);

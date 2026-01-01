@@ -2,9 +2,10 @@
 
 extern void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic);
 
-SOKReader::SOKReader()
+
+SOKReader::SOKReader(const char* peripheryNameOverride)
 {
-	peripheryName="SOK-AA12487";
+	peripheryName=peripheryNameOverride;
 	txServiceUUID="ffe0";
 	txCharacteristicUUID="ffe2";
 	rxServiceUUID="ffe0";

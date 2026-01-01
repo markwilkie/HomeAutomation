@@ -1,31 +1,42 @@
 #ifndef WATERTANK_H
 #define WATERTANK_H
 
-//Defines
-#define WATER_SENSOR0_PIN 12
-#define WATER_SENSOR1_PIN 11
-#define WATER_SENSOR2_PIN 10
+#include <Arduino.h>
 
-#define WATER_SENSOR0_LEVEL 90
-#define WATER_SENSOR1_LEVEL 50
-#define WATER_SENSOR2_LEVEL 20
+//Defines
+#define WATER_LEVEL_ANALOG_PIN 10 // GPIO10 is ADC1_CH9 on ESP32-S3
+#define WATER_PUMP_CURRENT_ANALOG_PIN 11 
+#define WATER_PUMP_INDICATOR_LIGHT 12 
+
+#define PUMP_CURRENT_THRESHOLD 2.2 // Remember that we're running the sensor backwards, so less than is more amps
+#define WATER_TANK_FULL_LEVEL .6 // represent full
+#define WATER_TANK_EMPTY_LEVEL 2.5 // represent empty
 
 class WaterTank {
 private:
-
   //properties
-  int stateOfWater;  //perc full the tank is
   long waterRemaining;
-  long lastFilled;
+  int lastLevel = -1;
+  unsigned long lastLevelTime = 0;
+  float dailyPercentUsed = 0;
+  unsigned long lastDayCheck = 0;
    
 public:
    //members
-
-  void init();
-  int readLevel();
-  double getSoW() const { return stateOfWater; }
-  long getLastFilled() const { return lastFilled; }
+  int readWaterLevel(); // Returns tank level as 0-100% from analog input
+  void updateUsage(); // Updates daily usage based on current level and time since last update
   double getDaysRemaining(); //calculates time remaining based on given usage
 };
 
-#endif 
+// Pump class: determines if the pump is running based on analog input from a current sensor
+class WaterPump {
+private:
+  unsigned long runningStart;
+  bool wasRunning;
+public:
+  void init();
+  void updateLight();
+  bool isRunning();
+};
+
+#endif
