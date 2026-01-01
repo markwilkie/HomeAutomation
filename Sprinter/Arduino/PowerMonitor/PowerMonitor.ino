@@ -21,12 +21,12 @@
 //Handles reading from the BT2 Renogy device
 BT2Reader bt2Reader;
 SOKReader sokReader1("SOK-AA12487");  // First SOK battery (default name: SOK-AA12487)
-SOKReader sokReader2("SOK-AA12488");  // Second SOK battery (customize name as needed)
+SOKReader sokReader2("SOK-unknown");  // Second SOK battery (customize name as needed)
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader1,&sokReader2};
 
 Screen screen;
 VanWifi wifi;
-ESP32Time rtc(0);
+ESP32Time rtc(0); 
 Layout layout;
 Logger logger;
 PowerLogger powerLogger;
@@ -48,10 +48,10 @@ int hertzCount=0;
 
 void setup() 
 {
-	#ifdef SERIALLOGGER
+	//#ifdef SERIALLOGGER
 		//Init Serial
 		Serial.begin(115200);
-	#endif
+	//#endif
 	delay(3000);
 
 	//init screen and draw initial form
@@ -120,12 +120,26 @@ void setTime()
 
 	logger.log("Getting latest time...");
     DynamicJsonDocument timeDoc=wifi.sendGetMessage(TIMEAPI_URL);	
+	
+	/*
 	long epoch=timeDoc["unixtime"].as<long>();
     long offset=timeDoc["raw_offset"].as<long>();
     long dstOffset=timeDoc["dst_offset"].as<long>();
 
 	rtc.offset=offset+dstOffset;		
 	rtc.setTime(epoch);
+	*/
+
+	int seconds=timeDoc["seconds"].as<int>();
+	int minutes=timeDoc["minute"].as<int>();
+	int hours=timeDoc["hour"].as<int>();
+	int day=timeDoc["day"].as<int>();
+	int month=timeDoc["month"].as<int>();
+	int year=timeDoc["year"].as<int>();
+
+	rtc.setTime(seconds, minutes, hours, day, month, year);
+	logger.log(INFO,"Time set to %d/%d/%d %d:%d:%d",month,day,year,hours,minutes,seconds);
+
 	lastRTCUpdateTime=millis();
 }
 
@@ -362,8 +376,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		//loadSimulatedValues();
-		loadValues();
+		loadSimulatedValues();
+		//loadValues();
 		layout.updateLCD(&rtc);
 		layout.setWifiIndicator(wifi.isConnected());
 
@@ -383,7 +397,7 @@ void loop()
 		layout.updateBitmaps();
 
 		//Check that we're still receiving BLE data
-		if((!sokReader.isCurrent() && sokReader.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
+		if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!sokReader2.isCurrent() && sokReader2.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
 		{
 			turnOffBLE();
 			delay(1000);

@@ -18,8 +18,12 @@ The screen is pretty self explanatory, but a few notes:
 - There are two small circles in the battery icon.  These are the DMOS and CMOS indicators, or Discharge and Charge "switch".  If they are green, it means the battery is charging and discharging normally.
 - Below the battery icon a heater icon will appear if the BMS turns the heater on
 
+ESP32S3 Dev Notes:
+- Due to the LovyanGFX library, ESP32 2.x core is needed (not 3.x)
+- Be sure to enable USB CDC on boot if you want to print to serial
+
 Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
-- ESP32S3 processor
+- ESP32S3 processor  (use esp32s3 dev module for Arduino IDE)
 - ST7796UI touch panel
 - Uses library https://github.com/lovyan03/LovyanGFX with an update (LGFX_ST32-SC01Plus.hpp)
 - Includes built in Wifi and BLE
@@ -68,44 +72,4 @@ ff 03 0e 00 64 00 85 00 00 10 10 00 7a 00 00 00 00 31 68     Data response from 
                                                              and "main recv data[1e] [" depending on data received.  
                                                              The BT2 seems to respond OK without this ACK, but I do it also, as that's what the
                                                              Renogy BT app does
-
----
-
-## Recent Features (June 2025)
-
-### Dual SOK Battery Support (December 2025)
-- The system now supports two SOK batteries simultaneously.
-- Create multiple `SOKReader` instances with different periphery names:
-  ```cpp
-  SOKReader sokReader1;  // First battery (default name: "SOK-AA12487")
-  SOKReader sokReader2("SOK-AA12488");  // Second battery (custom name)
-  ```
-- The system automatically:
-  - Scans for and connects to both batteries
-  - Polls each battery in round-robin fashion with the BT2 reader
-  - Combines battery data for display:
-    - SOC: Averaged between both batteries
-    - Voltage: Averaged between both batteries
-    - Current (Amps): Summed from both batteries
-    - Capacity: Summed from both batteries
-- Each battery is independently monitored and logged
-- Update the second battery's periphery name in the constructor to match your device
-
-### Water Tank Analog Level Sensing
-- The water tank level is now read using an analog input (GPIO10/ADC1_CH9 on ESP32-S3).
-- The analog pin reads a voltage from a variable resistor (33–240Ω range).
-- 0.57V is mapped to 0% (empty), and 2.73V is mapped to 100% (full).
-- The code automatically constrains the output to 0–100%.
-
-### Pump Monitoring
-- A new `Pump` class monitors if the pump is running using an analog current sensor.
-- If the pump runs for more than 1 minute, an output pin will begin to flash (toggle every 500ms).
-- While the pump is running but before the 1-minute threshold, the output pin stays HIGH.
-- The `Pump` class requires regular calls to its `update()` method (e.g., in your main loop).
-
-### Example Usage
-
-```cpp
-// WaterTank usage
-WaterTank tank;
-int percentFull = tank.readAnalogLevel(); // 0-100%
+```

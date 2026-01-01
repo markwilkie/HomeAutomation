@@ -66,10 +66,21 @@ void VanWifi::startWifi()
 DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
 {
   DynamicJsonDocument doc(512);
-  WiFiClient client;
   HTTPClient http;
 
-  http.begin(client,url);
+  // Check if URL is HTTPS
+  bool isHttps = (strncmp(url, "https://", 8) == 0);
+  
+  if (isHttps) {
+    WiFiClientSecure *clientSecure = new WiFiClientSecure();
+    clientSecure->setInsecure();  // Skip certificate validation for simplicity
+    http.begin(*clientSecure, url);
+  } else {
+    WiFiClient *client = new WiFiClient();
+    http.begin(*client, url);
+  }
+  
+  http.setTimeout(45000);  // Set timeout to 45 seconds
 
   // Send HTTP GET request
   int httpResponseCode = http.GET();
@@ -89,6 +100,9 @@ DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
     
   // Free resources
   http.end();
+
+  Serial.print("GET Response payload: ");
+  Serial.println(payload);
 
   //return payload
   deserializeJson(doc, payload);  

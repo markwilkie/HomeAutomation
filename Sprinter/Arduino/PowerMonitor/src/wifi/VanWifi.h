@@ -5,6 +5,7 @@
 #include <WiFiMulti.h>
 #include <WebServer.h>
 #include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
