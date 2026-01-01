@@ -19,7 +19,7 @@ The screen is pretty self explanatory, but a few notes:
 - Below the battery icon a heater icon will appear if the BMS turns the heater on
 
 Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
-- ESP32S3 processor
+- ESP32S3 processor  (use esp32s3 dev module for Arduino IDE)
 - ST7796UI touch panel
 - Uses library https://github.com/lovyan03/LovyanGFX with an update (LGFX_ST32-SC01Plus.hpp)
 - Includes built in Wifi and BLE
