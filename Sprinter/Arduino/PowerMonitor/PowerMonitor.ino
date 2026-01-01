@@ -28,6 +28,13 @@ Screen screen;
 VanWifi wifi;
 ESP32Time rtc(0); 
 Layout layout;
+
+// Screen state management
+enum ScreenState {
+	MAIN_SCREEN,
+	WATER_DETAIL_SCREEN
+};
+ScreenState currentScreen = MAIN_SCREEN;
 Logger logger;
 PowerLogger powerLogger;
 
@@ -259,7 +266,21 @@ void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
 
 void screenTouchedCallback(int x,int y)
 {
-	//nothing special for short touch
+	// Check if water region touched - toggle between main and detail screens
+	if(currentScreen == MAIN_SCREEN && layout.isWaterRegion(x,y))
+	{
+		// Switch to water detail screen
+		currentScreen = WATER_DETAIL_SCREEN;
+		layout.showWaterDetail();
+		logger.log(INFO,"Water detail screen shown");
+	}
+	else if(currentScreen == WATER_DETAIL_SCREEN)
+	{
+		// Return to main screen
+		currentScreen = MAIN_SCREEN;
+		layout.drawInitialScreen();
+		logger.log(INFO,"Returned to main screen");
+	}
 }
 
 void turnOffBLE()
@@ -378,7 +399,10 @@ void loop()
 		lastScrUpdatetime=millis();
 		loadSimulatedValues();
 		//loadValues();
-		layout.updateLCD(&rtc);
+		if(currentScreen == MAIN_SCREEN)
+		{
+			layout.updateLCD(&rtc);
+		}
 		layout.setWifiIndicator(wifi.isConnected());
 
 		//water pump indicator light
@@ -394,7 +418,10 @@ void loop()
 	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME)
 	{
 		//Update updateBitmaps
-		layout.updateBitmaps();
+		if(currentScreen == MAIN_SCREEN)
+		{
+			layout.updateBitmaps();
+		}
 
 		//Check that we're still receiving BLE data
 		if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!sokReader2.isCurrent() && sokReader2.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))

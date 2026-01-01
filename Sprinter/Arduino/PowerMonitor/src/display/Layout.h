@@ -25,6 +25,8 @@ class Layout
         void setWifiIndicator(boolean online);
         void setBLEIndicator(int color);
         bool isBLERegion(int x,int y);
+        bool isWaterRegion(int x,int y);
+        void showWaterDetail();
         SparkLine<float> *getDaySparkPtr();
         SparkLine<float> *getNightSparkPtr();
 

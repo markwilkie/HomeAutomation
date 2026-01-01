@@ -20,6 +20,12 @@ void Layout::init()
 
 void Layout::drawInitialScreen()
 {
+    // Clear the screen first
+    lcd.fillScreen(TFT_BLACK);
+    
+    // Reset text size to default
+    lcd.setTextSize(1);
+    
     //Static labels
     lcd.setTextColor(TFT_WHITE);
     lcd.drawString("Sprinkle Data",(lcd.width()/2)-(lcd.textWidth("Sprinkle Data")), 5, 4);	
@@ -128,6 +134,17 @@ bool Layout::isBLERegion(int x,int y)
 	return false;
 }
 
+bool Layout::isWaterRegion(int x,int y)
+{
+	// Check if touch is within water meter bounds
+	// waterConfig has x, y, width, height
+	if(x >= waterConfig.x && x <= waterConfig.x + waterConfig.width &&
+	   y >= waterConfig.y && y <= waterConfig.y + waterConfig.height)
+		return true;
+
+	return false;
+}
+
 void Layout::updateBitmaps()
 {
 	//update bitmap meters
@@ -192,6 +209,35 @@ void Layout::updateLCD(ESP32Time *rtc)
 float Layout::cTof(float c)
 {
 	return (c * 9.0 / 5.0) + 32.0;
+}
+
+void Layout::showWaterDetail()
+{
+	// Clear the screen
+	lcd.fillScreen(TFT_BLACK);
+	
+	// Show large water percentage
+	lcd.setTextColor(WATER_BLUE);
+	lcd.setTextSize(4);
+	lcd.setCursor(lcd.width()/2 - 80, lcd.height()/2 - 80);
+	lcd.printf("Water Level");
+	
+	lcd.setTextColor(WATER_FILL);
+	lcd.setTextSize(8);
+	lcd.setCursor(lcd.width()/2 - 80, lcd.height()/2 - 20);
+	lcd.printf("%d%%", (int)displayData.stateOfWater);
+	
+	// Show days remaining
+	lcd.setTextColor(TFT_WHITE);
+	lcd.setTextSize(3);
+	lcd.setCursor(lcd.width()/2 - 100, lcd.height()/2 + 80);
+	lcd.printf("%.1f days left", displayData.waterDaysRem);
+	
+	// Show touch prompt
+	lcd.setTextColor(TFT_DARKGREY);
+	lcd.setTextSize(2);
+	lcd.setCursor(lcd.width()/2 - 80, lcd.height() - 40);
+	lcd.print("Touch to return");
 }
 
 SparkLine<float> *Layout::getDaySparkPtr()
