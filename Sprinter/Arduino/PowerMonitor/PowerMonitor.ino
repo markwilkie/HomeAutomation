@@ -6,6 +6,7 @@
 #include "src/logging/logging.h"
 
 #include "WaterTank.h"
+#include "GasTank.h"
 
 #define TIMEAPI_URL "https://timeapi.io/api/time/current/zone?timeZone=America/Los_Angeles"
 //#define TIMEAPI_URL "http://worldtimeapi.org/api/timezone/America/Los_Angeles"
@@ -21,7 +22,7 @@
 //Handles reading from the BT2 Renogy device
 BT2Reader bt2Reader;
 SOKReader sokReader1("SOK-AA12487");  // First SOK battery (default name: SOK-AA12487)
-SOKReader sokReader2("SOK-unknown");  // Second SOK battery (customize name as needed)
+SOKReader sokReader2("SOK-AA53284");  // Second SOK battery (customize name as needed)
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader1,&sokReader2};
 
 Screen screen;
@@ -40,6 +41,7 @@ PowerLogger powerLogger;
 
 WaterTank waterTank;
 WaterPump waterPump;
+GasTank gasTank;
 
 //state
 BLE_SEMAPHORE bleSemaphore;
@@ -397,8 +399,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		loadSimulatedValues();
-		//loadValues();
+		//loadSimulatedValues();
+		loadValues();
 		if(currentScreen == MAIN_SCREEN)
 		{
 			layout.updateLCD(&rtc);
@@ -409,6 +411,8 @@ void loop()
 		waterPump.updateLight();
 		// Track water usage percentage per day
 		waterTank.updateUsage();
+		// Track gas usage percentage per day
+		gasTank.updateUsage();
 		//If rtc is stale, be sure and update it from the interwebs
 
 		//send logs
@@ -512,23 +516,37 @@ boolean isTimedout()
 
 void loadValues()
 {
-	// Combine data from both SOK batteries
+	// Individual battery data
+	layout.displayData.stateOfCharge = sokReader1.getSoc();
+	layout.displayData.stateOfCharge2 = sokReader2.getSoc();
+	
+	// Combined data from both SOK batteries
 	int avgSoc = (sokReader1.getSoc() + sokReader2.getSoc()) / 2;
 	float avgVolts = (sokReader1.getVolts() + sokReader2.getVolts()) / 2.0;
 	float totalAmps = sokReader1.getAmps() + sokReader2.getAmps();
 	float totalCapacity = sokReader1.getCapacity() + sokReader2.getCapacity();
 	
-	layout.displayData.stateOfCharge=avgSoc;
 	layout.displayData.currentVolts=avgVolts;
+	layout.displayData.batteryVolts=sokReader1.getVolts();
+	layout.displayData.batteryVolts2=sokReader2.getVolts();
 	layout.displayData.chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
 	layout.displayData.drawAmps=layout.displayData.chargeAmps-totalAmps;
-	if(totalAmps<0)
-		layout.displayData.batteryHoursRem=totalCapacity/(totalAmps*-1);
+	
+	// Calculate hours remaining for each battery
+	if(sokReader1.getAmps()<0)
+		layout.displayData.batteryHoursRem=sokReader1.getCapacity()/(sokReader1.getAmps()*-1);
 	else
 		layout.displayData.batteryHoursRem=999;
+		
+	if(sokReader2.getAmps()<0)
+		layout.displayData.batteryHoursRem2=sokReader2.getCapacity()/(sokReader2.getAmps()*-1);
+	else
+		layout.displayData.batteryHoursRem2=999;
 
 	layout.displayData.stateOfWater=waterTank.readWaterLevel();
 	layout.displayData.waterDaysRem= waterTank.getDaysRemaining();
+	layout.displayData.stateOfGas=gasTank.readGasLevel();
+	layout.displayData.gasDaysRem= gasTank.getDaysRemaining();
 	
 	layout.displayData.batteryTemperature=sokReader1.getTemperature();
 	layout.displayData.chargerTemperature=bt2Reader.getTemperature();
@@ -544,15 +562,39 @@ void loadValues()
 
 void loadSimulatedValues()
 {
+  // Static variables to track water percentage cycling
+  static int waterPercent = 0;
+  static bool waterIncreasing = true;
+  
+  // Update water percentage: 0 -> 100 by 10s, then back down
+  if(waterIncreasing)
+  {
+    waterPercent += 1;
+    if(waterPercent >= 100)
+      waterIncreasing = false;
+  }
+  else
+  {
+    waterPercent -= 1;
+    if(waterPercent <= 0)
+      waterIncreasing = true;
+  }
+  
   layout.displayData.stateOfCharge=random(90)+10;  // 10-->100
-  layout.displayData.stateOfWater=random(90)+10;  // 10-->100
+  layout.displayData.stateOfCharge2=random(90)+10;  // 10-->100
+  layout.displayData.stateOfWater=waterPercent;  // 0 -> 100 by 10s
+  layout.displayData.stateOfGas=random(100);  // 0 -> 100
   
   layout.displayData.chargeAmps=((double)random(150))/9.2;  // 0 --> 15.0
   layout.displayData.drawAmps=((double)random(100))/9.2;  // 0 --> 10.0
 
   layout.displayData.currentVolts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
+  layout.displayData.batteryVolts=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
+  layout.displayData.batteryVolts2=((double)random(40)+100.0)/10.0;  // 10.0 --> 14.0
   layout.displayData.batteryHoursRem=((double)random(99))/10.0;   // 0 --> 99
+  layout.displayData.batteryHoursRem2=((double)random(99))/10.0;   // 0 --> 99
   layout.displayData.waterDaysRem=((double)random(10))/10.0;   // 0 --> 10
+  layout.displayData.gasDaysRem=((double)random(10))/10.0;   // 0 --> 10
 
   layout.displayData.batteryTemperature=((double)random(90))-20;  // 20 --> 70
   layout.displayData.chargerTemperature=((double)random(90))-20;  // 20 --> 70

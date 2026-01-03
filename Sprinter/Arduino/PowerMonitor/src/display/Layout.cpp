@@ -44,41 +44,68 @@ void Layout::drawInitialScreen()
 
     //Bitmap based meters
     //(char* label,int vmin, int vmax, int scale, BitmapConfig *bitmapConfig);
-    int lx=5; int ly=80; int imgWidth=66; int imgHeight=160;
+    int lx=5; int ly=80; int imgWidth=30; int imgHeight=160;
 
-	socConfig.bmArray=batteryBitmap;
-	socConfig.x=lx;  socConfig.y=ly;  socConfig.width=imgWidth;  socConfig.height=imgHeight;  
-	socConfig.color=BATTERY_ORANGE;
-	socFill.color=BATTERY_FILL;
-	socFill.height=80;
-	socFill.width=57;
-	socFill.start=16;
-	waterFill.redraw=true;
-    socMeter.drawMeter(&lcd,"SoC", 10, 100, 100, &socConfig, &socFill);
+	// Battery 1 bar meter (30x160 vertical bar)
+	int battery1X = lx;
+	int battery1Y = ly;
+	battery1Config.x = battery1X;
+	battery1Config.y = battery1Y;
+	battery1Config.width = 30;
+	battery1Config.height = 160;
+	battery1Config.color = TFT_ORANGE;  // Outline color
+	battery1Meter.drawMeter(&lcd, battery1X, battery1Y, 30, 160, TFT_WHITE, 3);
+	battery1Title.drawText(battery1X + 15 - (lcd.textWidth("Bat1") / 2), battery1Y - 30, "Bat1", 1, TFT_WHITE);
+	soc.drawCenterText(battery1X + 15, battery1Y - 15, 0, 0, "%", 1, TFT_WHITE);
 
-	waterConfig.bmArray=waterBottleBitmap;
-	waterConfig.x=lcd.width()-imgWidth-lx;  waterConfig.y=ly;  waterConfig.width=imgWidth;  waterConfig.height=imgHeight;  
-	waterConfig.color=WATER_BLUE;
-	waterFill.color=WATER_FILL;
-	//aterFill.rangeColor=WATER_RANGE;	
-	waterFill.height=90;
-	waterFill.width=60;
-	waterFill.start=28;
-	waterFill.redraw=true;
-    waterMeter.drawMeter(&lcd,"Water", 0, 100, 100, &waterConfig, &waterFill);
+	// Battery 2 bar meter (30x160 vertical bar, 3 pixels right of battery 1)
+	int battery2X = battery1X + 30 + 3;
+	int battery2Y = ly;
+	battery2Config.x = battery2X;
+	battery2Config.y = battery2Y;
+	battery2Config.width = 30;
+	battery2Config.height = 160;
+	battery2Config.color = TFT_ORANGE;  // Outline color
+	battery2Meter.drawMeter(&lcd, battery2X, battery2Y, 30, 160, TFT_WHITE, 3);
+	battery2Title.drawText(battery2X + 15 - (lcd.textWidth("Bat2") / 2), battery2Y - 30, "Bat2", 1, TFT_WHITE);
+	soc2.drawCenterText(battery2X + 15, battery2Y - 15, 0, 0, "%", 1, TFT_WHITE);
+
+	// Water bar meter (30x160 vertical bar)
+	int waterX = lcd.width() - 30 - lx;
+	int waterY = ly;
+	waterConfig.x = waterX;
+	waterConfig.y = waterY;
+	waterConfig.width = 30;
+	waterConfig.height = 160;
+	waterConfig.color = TFT_YELLOW;  // Outline color
+	waterMeter.drawMeter(&lcd, waterX, waterY, 30, 160, TFT_WHITE, 3);
+	waterTitle.drawText(waterX + 15 - (lcd.textWidth("Water") / 2), waterY - 30, "Water", 1, TFT_WHITE);
+	waterPercent.drawCenterText(waterX + 15, waterY - 15, 0, 0, "%", 1, TFT_WHITE);
+
+	// Gas bar meter (30x160 vertical bar, 5 pixels left of water meter)
+	int gasX = waterX - 30 - 5;
+	int gasY = ly;
+	gasConfig.x = gasX;
+	gasConfig.y = gasY;
+	gasConfig.width = 30;
+	gasConfig.height = 160;
+	gasConfig.color = TFT_YELLOW;  // Outline color
+	gasMeter.drawMeter(&lcd, gasX, gasY, 30, 160, TFT_WHITE, 3);
+	gasTitle.drawText(gasX + 15 - (lcd.textWidth("Gas") / 2), gasY - 30, "Gas", 1, TFT_WHITE);
+	gasPercent.drawCenterText(gasX + 15, gasY - 15, 0, 0, "%", 1, TFT_WHITE);
 
 	//show moon
-	moonConfig.x=socConfig.x+socConfig.width+20+8;
-	moonConfig.y=socConfig.y+10;
+	moonConfig.x=battery2Config.x+battery2Config.width+20+8;
+	moonConfig.y=battery2Config.y+10;
 	moonConfig.bmArray=moonBitmap;
 	moonConfig.width=30;
 	moonConfig.height=26;
 	moonConfig.color=WATER_RANGE;
 	lcd.drawBitmap(moonConfig.x, moonConfig.y, moonConfig.bmArray,  moonConfig.width,  moonConfig.height,  moonConfig.color);
 
-	//show calendar
-	calendarConfig.x=waterConfig.x-50-8;
-	calendarConfig.y=waterConfig.y+10;
+	//show calendar (position relative to gas meter, which is leftmost)
+	calendarConfig.x=gasConfig.x-50-8;
+	calendarConfig.y=gasConfig.y+10;
 	calendarConfig.bmArray=calendarBitmap;
 	calendarConfig.width=32;
 	calendarConfig.height=32;
@@ -86,19 +113,20 @@ void Layout::drawInitialScreen()
 	lcd.drawBitmap(calendarConfig.x, calendarConfig.y, calendarConfig.bmArray,  calendarConfig.width,  calendarConfig.height,  calendarConfig.color);	
 
 	//Text for night/day
-	nightAh.drawRightText(moonConfig.x+10,moonConfig.y-25,0,1,"Ah",2,WATER_RANGE);
-	dayAh.drawRightText(calendarConfig.x-25,calendarConfig.y-25,0,1,"Ah",2,BATTERY_FILL);
+	nightAh.drawRightText(moonConfig.x+10,moonConfig.y-25,0,0,"Ah",2,WATER_RANGE);
+	dayAh.drawRightText(calendarConfig.x-25,calendarConfig.y-25,0,0,"Ah",2,BATTERY_FILL);
 
 	//Battery icons w/ annotations
 	int batVanOffset=30;   //higher number moves each icon towards the middle
-	lcd.drawBitmap(lx+imgWidth+batVanOffset, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
-	cmosIndicator.drawCircle(lx+imgWidth+batVanOffset+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
-	dmosIndicator.drawCircle(lx+imgWidth+batVanOffset+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
-	batteryAmps.drawCenterText(lx+imgWidth+batVanOffset+25, lcd.height()-80,0,0,"A",2,TFT_LIGHTGRAY);
-	batteryTemp.drawCenterText(lx+imgWidth+batVanOffset+25,lcd.height()-25,0,0,"F",2,TFT_WHITE);
+	int totalBatteryWidth = 63;  // Two 30px meters + 3px gap
+	lcd.drawBitmap(lx+totalBatteryWidth+batVanOffset, lcd.height()-67, batteryIconBitmap,  50,  32,  TFT_LIGHTGRAY);
+	cmosIndicator.drawCircle(lx+totalBatteryWidth+batVanOffset+15,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //c-mos indicator
+	dmosIndicator.drawCircle(lx+totalBatteryWidth+batVanOffset+35,lcd.height()-47,5,TFT_BLACK,TFT_LIGHTGREY);  //d-mos indicator
+	batteryAmps.drawCenterText(lx+totalBatteryWidth+batVanOffset+25, lcd.height()-80,0,0,"A",2,TFT_LIGHTGRAY);
+	batteryTemp.drawCenterText(lx+totalBatteryWidth+batVanOffset+25,lcd.height()-25,0,0,"F",2,TFT_WHITE);
 
 	//config battery heater bitmap
-	heaterConfig.x=lx+imgWidth+batVanOffset;
+	heaterConfig.x=lx+totalBatteryWidth+batVanOffset;
 	heaterConfig.y=lcd.height()-37;
 	heaterConfig.bmArray=heaterBitmap;
 	heaterConfig.width=50;
@@ -106,11 +134,11 @@ void Layout::drawInitialScreen()
 	heaterConfig.color=TFT_RED;
 
 	//Draw van
-	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+25), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
-	solarAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+35), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
-	lcd.drawBitmap(lcd.width()-(lx+imgWidth+batVanOffset+50), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
-	alternaterAmps.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset), lcd.height()-45,0,0,"A",2,TFT_LIGHTGREY);
-	chargerTemp.drawCenterText(lcd.width()-(lx+imgWidth+batVanOffset+20),lcd.height()-25,0,0,"F",2,TFT_WHITE);
+	lcd.drawBitmap(lcd.width()-(lx+totalBatteryWidth+batVanOffset+25), lcd.height()-85, sunBitmap,  40,  40,  BATTERY_FILL);
+	solarAmps.drawCenterText(lcd.width()-(lx+totalBatteryWidth+batVanOffset+35), lcd.height()-83,15,0,"A",2,BATTERY_FILL);
+	lcd.drawBitmap(lcd.width()-(lx+totalBatteryWidth+batVanOffset+50), lcd.height()-70, vanBitmap,  40,  40,  TFT_LIGHTGREY);
+	alternaterAmps.drawCenterText(lcd.width()-(lx+totalBatteryWidth+batVanOffset), lcd.height()-45,0,0,"A",2,TFT_LIGHTGREY);
+	chargerTemp.drawCenterText(lcd.width()-(lx+totalBatteryWidth+batVanOffset+20),lcd.height()-25,0,0,"F",2,TFT_WHITE);
 }
 
 void Layout::setWifiIndicator(bool online)
@@ -147,9 +175,11 @@ bool Layout::isWaterRegion(int x,int y)
 
 void Layout::updateBitmaps()
 {
-	//update bitmap meters
-    socMeter.updateLevel(displayData.stateOfCharge,2,0);
-    waterMeter.updateLevel(displayData.stateOfWater,2,0);	
+	//update bar meters
+    battery1Meter.updateLevel(&lcd, displayData.stateOfCharge);
+    battery2Meter.updateLevel(&lcd, displayData.stateOfCharge2);
+    waterMeter.updateLevel(&lcd, displayData.stateOfWater);
+    gasMeter.updateLevel(&lcd, displayData.stateOfGas);
 }
 
 void Layout::updateLCD(ESP32Time *rtc)
@@ -169,9 +199,20 @@ void Layout::updateLCD(ESP32Time *rtc)
 
 	//(int x,int y,float value,int dec,const char *label,int font);
 	//(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font)
-	soc.drawBitmapTextCenter(socMeter.getBitmapConfig(),displayData.stateOfCharge,0,"%",2,TFT_WHITE,-1);
-    battHoursLeft.drawBitmapTextBottom(socMeter.getBitmapConfig(),10,displayData.batteryHoursRem,1," Hrs",2,socMeter.getBitmapConfig()->color);
-    waterDaysLeft.drawBitmapTextBottom(waterMeter.getBitmapConfig(),10,displayData.waterDaysRem,1," Dys",2,waterMeter.getBitmapConfig()->color);
+	// Battery 1 SoC and hours left
+	soc.updateText(displayData.stateOfCharge);
+    battVolts.drawCenterText(battery1Config.x + 15, battery1Config.y + battery1Config.height + 5, displayData.batteryVolts, 1, "V", 1, TFT_WHITE);
+    battHoursLeft.drawCenterText(battery1Config.x + 15, battery1Config.y + battery1Config.height + 20, displayData.batteryHoursRem, 1, "H", 1, TFT_WHITE);
+    // Battery 2 SoC and hours left
+	soc2.updateText(displayData.stateOfCharge2);
+    battVolts2.drawCenterText(battery2Config.x + 15, battery2Config.y + battery2Config.height + 5, displayData.batteryVolts2, 1, "V", 1, TFT_WHITE);
+    battHoursLeft2.drawCenterText(battery2Config.x + 15, battery2Config.y + battery2Config.height + 20, displayData.batteryHoursRem2, 1, "H", 1, TFT_WHITE);
+    // Water days left - centered below water meter, number only
+    waterDaysLeft.drawCenterText(waterConfig.x + 15, waterConfig.y + waterConfig.height + 5, displayData.waterDaysRem, 1, "D", 1, TFT_WHITE);
+    // Gas days left - centered below gas meter, number only
+    gasDaysLeft.drawCenterText(gasConfig.x + 15, gasConfig.y + gasConfig.height + 5, displayData.gasDaysRem, 1, "D", 1, TFT_WHITE);
+    waterPercent.updateText(displayData.stateOfWater);
+    gasPercent.updateText(displayData.stateOfGas);
     hertz.drawRightText(lcd.width()-10,lcd.height()-15,displayData.currentHertz,0,"Hz",2,TFT_WHITE);
 
 	batteryTemp.updateText(cTof(displayData.batteryTemperature));
