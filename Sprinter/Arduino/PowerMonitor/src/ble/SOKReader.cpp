@@ -191,7 +191,7 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	}
 
 	#ifdef SERIALLOGGER
-	Serial.print(INFO,"Sending command sequence to SOK: ");
+	Serial.print("Sending command sequence to SOK: ");
 	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
 	Serial.println("");
 	#endif

@@ -7,16 +7,21 @@ The screen is pretty self explanatory, but a few notes:
 - The two big rings are the current charge (outer) and draw (inner) in amps.  Charge could be solar or alternater.
 - Big number in the middle is the current net flow.  e.g. if 4A draw, and 3A charge, then the number would show 1A.
 - Below the big graph is current battery volts
-- Graph on left is battery state of charge
-- At the bottom, time in hours is shown based on the capacity (according to the BMS) and current draw
-- Graph on the right is water tank level
+- Two battery bar graphs on the left show state of charge for each SOK battery (Bat1 and Bat2)
+- Below each battery bar: voltage (V) and hours remaining (H)
+- At the bottom, the battery icon can be tapped to cycle through three display modes:
+  - **Combined mode** (no label): Shows averaged temperature and amps from both batteries. CMOS/DMOS indicators use AND logic (both must be on). Heater uses OR logic (on if either is heating).
+  - **SOK 1 mode** (shows '1'): Displays only SOK battery 1 data
+  - **SOK 2 mode** (shows '2'): Displays only SOK battery 2 data
+- Graph on the right is water tank level - tap to see detailed water level view, tap again to return
+- Two bar graphs show water and gas tank levels with days remaining (D) below each
 - There are two spark lines which show net amp flow.  The night spark is from 10pm to 7am (PST), and the day spark is last 24 hours.
 - The numbers by the spark lines are the sum of the spark in amp hours  (e.g. night spark could show 12, which would mean 12ah were used)
 - Bottom icons are battery and charger controller (van icon).
 - Charge controller shows solar and alternater amps - plus temperature of the controller itself
-- Battery shows amps draw/charge, plus temperature of the battery itself.
+- Battery icon shows amps draw/charge, plus temperature. Displays mode-specific data based on selection.
 - There are two small circles in the battery icon.  These are the DMOS and CMOS indicators, or Discharge and Charge "switch".  If they are green, it means the battery is charging and discharging normally.
-- Below the battery icon a heater icon will appear if the BMS turns the heater on
+- Below the battery icon a heater icon will appear if the BMS turns the heater on (in combined mode, shows if either battery is heating)
 
 ESP32S3 Dev Notes:
 - Due to the LovyanGFX library, ESP32 2.x core is needed (not 3.x)

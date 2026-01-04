@@ -173,6 +173,23 @@ bool Layout::isWaterRegion(int x,int y)
 	return false;
 }
 
+bool Layout::isBatteryIconRegion(int x,int y)
+{
+	// Battery icon is at lx+totalBatteryWidth+batVanOffset, lcd.height()-67
+	// Icon is 50x32 pixels
+	int lx=5;
+	int batVanOffset=30;
+	int totalBatteryWidth = 63;
+	int iconX = lx+totalBatteryWidth+batVanOffset;
+	int iconY = lcd.height()-67;
+	
+	if(x >= iconX && x <= iconX + 50 &&
+	   y >= iconY && y <= iconY + 32)
+		return true;
+
+	return false;
+}
+
 void Layout::updateBitmaps()
 {
 	//update bar meters
@@ -232,7 +249,30 @@ void Layout::updateLCD(ESP32Time *rtc)
 	slX=calendarConfig.x-(slLen/2)+(calendarConfig.width/2);
 	slY=calendarConfig.y-30;
 	lcd.fillRect(slX, slY, slLen+2, slHeight,TFT_BLACK);
-    daySparkAh.draw(slX, slY, slLen, slHeight);	
+    daySparkAh.draw(slX, slY, slLen, slHeight);
+
+	// Draw battery mode label if not combined
+	int lx=5;
+	int batVanOffset=30;
+	int totalBatteryWidth = 63;
+	int iconX = lx+totalBatteryWidth+batVanOffset;
+	int iconY = lcd.height()-67;
+	
+	// Clear label area first
+	lcd.fillRect(iconX+52, iconY+8, 15, 16, TFT_BLACK);
+	
+	if(displayData.batteryMode == BATTERY_SOK1)
+	{
+		lcd.setTextColor(TFT_WHITE);
+		lcd.setTextFont(2);
+		lcd.drawString("1", iconX+54, iconY+8);
+	}
+	else if(displayData.batteryMode == BATTERY_SOK2)
+	{
+		lcd.setTextColor(TFT_WHITE);
+		lcd.setTextFont(2);
+		lcd.drawString("2", iconX+54, iconY+8);
+	}	
 	dayAh.updateText((int)(daySparkAh.findAvg()*(double)(daySparkAh.getElements()/(3600.0/DAY_AH_INT))));  
 
 	//Battery heater

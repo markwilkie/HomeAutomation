@@ -27,6 +27,7 @@ class Layout
         void setBLEIndicator(int color);
         bool isBLERegion(int x,int y);
         bool isWaterRegion(int x,int y);
+        bool isBatteryIconRegion(int x,int y);
         void showWaterDetail();
         SparkLine<float> *getDaySparkPtr();
         SparkLine<float> *getNightSparkPtr();

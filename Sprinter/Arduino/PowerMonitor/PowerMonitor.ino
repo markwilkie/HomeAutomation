@@ -66,6 +66,7 @@ void setup()
 	//init screen and draw initial form
 	logger.log("Drawing form");
 	layout.init();
+	layout.displayData.batteryMode = BATTERY_COMBINED;  // Initialize to combined view
 	layout.drawInitialScreen();
 
 	logger.log("Starting wifi...");
@@ -284,6 +285,19 @@ void screenTouchedCallback(int x,int y)
 		layout.drawInitialScreen();
 		logger.log(INFO,"Returned to main screen");
 	}
+	// Check if battery icon touched - cycle through modes
+	else if(currentScreen == MAIN_SCREEN && layout.isBatteryIconRegion(x,y))
+	{
+		// Cycle: COMBINED -> SOK1 -> SOK2 -> COMBINED
+		if(layout.displayData.batteryMode == BATTERY_COMBINED)
+			layout.displayData.batteryMode = BATTERY_SOK1;
+		else if(layout.displayData.batteryMode == BATTERY_SOK1)
+			layout.displayData.batteryMode = BATTERY_SOK2;
+		else
+			layout.displayData.batteryMode = BATTERY_COMBINED;
+		
+		logger.log(INFO,"Battery mode: %d", layout.displayData.batteryMode);
+	}
 }
 
 void turnOffBLE()
@@ -411,8 +425,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		//loadSimulatedValues();
-		loadValues();
+		loadSimulatedValues();
+		//loadValues();
 		if(currentScreen == MAIN_SCREEN)
 		{
 			layout.updateLCD(&rtc);
@@ -536,8 +550,22 @@ void loadValues()
 	layout.displayData.currentVolts=avgVolts;
 	layout.displayData.batteryVolts=sokReader1.getVolts();
 	layout.displayData.batteryVolts2=sokReader2.getVolts();
+	
+	// Calculate charge and draw amps for display rings
+	// chargeAmps: Total incoming power from solar + alternator (displayed as outer ring)
+	// drawAmps: Actual house load consumption (displayed as inner ring)
+	// Center number: chargeAmps - drawAmps = net battery flow (positive=charging, negative=discharging)
 	layout.displayData.chargeAmps=bt2Reader.getSolarAmps()+bt2Reader.getAlternaterAmps();
-	layout.displayData.drawAmps=layout.displayData.chargeAmps-totalAmps;
+	
+	// Calculate actual house load based on battery state:
+	// - If discharging (totalAmps negative): load = solar + battery_discharge
+	//   Example: 5A solar, -10A battery → load = 5 + 10 = 15A
+	// - If charging (totalAmps positive): load = solar - battery_charge
+	//   Example: 15A solar, +10A battery → load = 15 - 10 = 5A
+	if(totalAmps < 0)
+		layout.displayData.drawAmps = layout.displayData.chargeAmps + (-totalAmps);  // Add battery discharge
+	else
+		layout.displayData.drawAmps = layout.displayData.chargeAmps - totalAmps;     // Subtract battery charge
 	
 	// Calculate hours remaining for each battery
 	if(sokReader1.getAmps()<0)
@@ -555,16 +583,38 @@ void loadValues()
 	layout.displayData.stateOfGas=gasTank.readGasLevel();
 	layout.displayData.gasDaysRem= gasTank.getDaysRemaining();
 	
-	layout.displayData.batteryTemperature=sokReader1.getTemperature();
+	// Set battery-specific values based on display mode
+	if(layout.displayData.batteryMode == BATTERY_COMBINED)
+	{
+		// Average temperature and combine amps
+		layout.displayData.batteryTemperature = (sokReader1.getTemperature() + sokReader2.getTemperature()) / 2.0;
+		layout.displayData.batteryAmpValue = sokReader1.getAmps() + sokReader2.getAmps();
+		// AND logic for CMOS/DMOS (both must be on)
+		layout.displayData.cmos = sokReader1.isCMOS() && sokReader2.isCMOS();
+		layout.displayData.dmos = sokReader1.isDMOS() && sokReader2.isDMOS();
+		// OR logic for heater (either heating)
+		layout.displayData.heater = sokReader1.isHeating() || sokReader2.isHeating();
+	}
+	else if(layout.displayData.batteryMode == BATTERY_SOK1)
+	{
+		layout.displayData.batteryTemperature = sokReader1.getTemperature();
+		layout.displayData.batteryAmpValue = sokReader1.getAmps();
+		layout.displayData.cmos = sokReader1.isCMOS();
+		layout.displayData.dmos = sokReader1.isDMOS();
+		layout.displayData.heater = sokReader1.isHeating();
+	}
+	else // BATTERY_SOK2
+	{
+		layout.displayData.batteryTemperature = sokReader2.getTemperature();
+		layout.displayData.batteryAmpValue = sokReader2.getAmps();
+		layout.displayData.cmos = sokReader2.isCMOS();
+		layout.displayData.dmos = sokReader2.isDMOS();
+		layout.displayData.heater = sokReader2.isHeating();
+	}
+	
 	layout.displayData.chargerTemperature=bt2Reader.getTemperature();
-	layout.displayData.batteryAmpValue=sokReader1.getAmps();
 	layout.displayData.solarAmpValue=bt2Reader.getSolarAmps();
 	layout.displayData.alternaterAmpValue=bt2Reader.getAlternaterAmps();
-
-	layout.displayData.heater=sokReader1.isHeating();
-
-	layout.displayData.cmos=sokReader1.isCMOS();
-	layout.displayData.dmos=sokReader1.isDMOS();
 }
 
 void loadSimulatedValues()

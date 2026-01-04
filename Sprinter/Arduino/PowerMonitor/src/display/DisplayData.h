@@ -2,6 +2,12 @@
 #define DISPLAYDATA_H
 
 
+enum BatteryDisplayMode {
+    BATTERY_COMBINED = 0,
+    BATTERY_SOK1 = 1,
+    BATTERY_SOK2 = 2
+};
+
 struct DisplayData
 {
     int stateOfCharge;
@@ -27,6 +33,7 @@ struct DisplayData
     bool dmos;
     bool heater;
     int currentHertz;
+    BatteryDisplayMode batteryMode;
 };
 
 #endif
