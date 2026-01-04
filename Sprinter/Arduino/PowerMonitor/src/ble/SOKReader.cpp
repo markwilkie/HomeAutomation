@@ -3,9 +3,10 @@
 extern void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic);
 
 
-SOKReader::SOKReader(const char* peripheryNameOverride)
+SOKReader::SOKReader(const char* _peripheryName, int _batteryNumber)
 {
-	peripheryName=peripheryNameOverride;
+	peripheryName=_peripheryName;
+	batteryNumber=_batteryNumber;
 	txServiceUUID="ffe0";
 	txCharacteristicUUID="ffe2";
 	rxServiceUUID="ffe0";
@@ -22,14 +23,14 @@ void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore)
 		//Make sure we're not busy
 		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 		{
-			logger.log("BLE busy with %s",bleSemaphore->btDevice->getPerifpheryName());
+			logger.log(INFO,"SOK %d: BLE busy with %s", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
 			return;
 		}
 
 		//Set semaphore for connect
 		updateSemaphore(bleSemaphore);
 
-		logger.log("Found targeted SOK device, attempting connection");
+		logger.log(INFO,"SOK %d: Found targeted SOK device, attempting connection", batteryNumber);
 		memcpy(peripheryAddress,peripheral->address().c_str(),6);
 		peripheral->connect();	
 	} 
@@ -38,14 +39,14 @@ void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore)
 
 boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
 {
-	logger.log("SOK: Discovering Tx service: %s",txServiceUUID);
+	logger.log(INFO,"SOK %d: Discovering Tx service: %s", batteryNumber, txServiceUUID);
 	if(myDevice->discoverService(txServiceUUID))
 	{
-		logger.log("SOK Tx service %s discovered",txServiceUUID);
+		logger.log(INFO,"SOK %d: Tx service %s discovered", batteryNumber, txServiceUUID);
 		txDeviceCharateristic=myDevice->characteristic(txCharacteristicUUID);
 		if(!txDeviceCharateristic)
 		{
-			logger.log("ERROR: SOK Tx characteristic not discovered, disconnecting");
+			logger.log("ERROR: SOK %d: Tx characteristic not discovered, disconnecting", batteryNumber);
 			myDevice->disconnect();
 			connected=false;
 			return false;
@@ -53,16 +54,16 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	} 
 	else 
 	{
-		logger.log("ERROR: SOK Tx service not discovered, disconnecting");
+		logger.log("ERROR: SOK %d: Tx service not discovered, disconnecting", batteryNumber);
 		myDevice->disconnect();
 		connected=false;
 		return false;		
 	}
 
-	logger.log("SOK: Discovering Rx service: %s",rxServiceUUID);
+	logger.log(INFO,"SOK %d: Discovering Rx service: %s", batteryNumber, rxServiceUUID);
 	if(myDevice->discoverService(rxServiceUUID))
 	{
-		logger.log(INFO,"SOK Rx service %s discovered.  Now looking for characteristic %s",rxServiceUUID,rxCharacteristicUUID);
+		logger.log(INFO,"SOK %d: Rx service %s discovered.  Now looking for characteristic %s", batteryNumber, rxServiceUUID, rxCharacteristicUUID);
 		if(rxDeviceCharateristic=myDevice->characteristic(rxCharacteristicUUID))
 		{
 			if(rxDeviceCharateristic.canSubscribe() && rxDeviceCharateristic.subscribe())
@@ -71,7 +72,7 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 			}
 			else
 			{
-				logger.log("ERROR: SOK Rx characteristic not discovered or cannot be subscribed to, disconnecting");
+				logger.log("ERROR: SOK %d: Rx characteristic not discovered or cannot be subscribed to, disconnecting", batteryNumber);
 				myDevice->disconnect();
 				connected=false;
 				return false;
@@ -80,17 +81,17 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	} 
 	else 
 	{
-		logger.log("ERROR: SOK Rx service not discovered, disconnecting");
+		logger.log("ERROR: SOK %d: Rx service not discovered, disconnecting", batteryNumber);
 		myDevice->disconnect();
 		connected=false;
 		return false;
 	}
 
 	connected=true;
-	logger.log("SOK found all needed services and characteristics.");
+	logger.log(INFO,"SOK %d: found all needed services and characteristics.", batteryNumber);
 
 	bleSemaphore->waitingForConnection=false;
-	logger.log("Releasing connect semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
+	logger.log(INFO,"SOK %d: Releasing connect semaphore for BLE device %s", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
 
 	return true;
 }
@@ -144,7 +145,7 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	//Make sure we're clear to send
 	if(bleSemaphore->waitingForResponse)
 	{
-		logger.log("BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+		logger.log(INFO,"SOK %d: BLE device %s in use when another send attempt was tried", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
 		return;
 	}
 

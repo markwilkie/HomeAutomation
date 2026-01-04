@@ -21,8 +21,8 @@
 //Objects to handle connection
 //Handles reading from the BT2 Renogy device
 BT2Reader bt2Reader;
-SOKReader sokReader1("SOK-AA12487");  // First SOK battery (default name: SOK-AA12487)
-SOKReader sokReader2("SOK-AA53284");  // Second SOK battery (customize name as needed)
+SOKReader sokReader1("SOK-AA12487",1);  // First SOK battery (default name: SOK-AA12487)
+SOKReader sokReader2("SOK-AA53284",2);  // Second SOK battery (customize name as needed)
 BTDevice *targetedDevices[] = {&bt2Reader,&sokReader1,&sokReader2};
 
 Screen screen;

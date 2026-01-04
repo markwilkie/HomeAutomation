@@ -15,8 +15,7 @@ class SOKReader : public BTDevice
 
 public:
 
-	SOKReader();
-	SOKReader(const char* peripheryNameOverride);
+	SOKReader(const char* _peripheryName, int batteryNumber);
 
 	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
 	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphor);
@@ -44,6 +43,7 @@ private:
 	int bytesToInt(uint8_t *bytes, int len, boolean isSigned) ;	
 
 	int sendCommandCounter=0;
+	int batteryNumber=-1;
 
 	//variables
 	long lastHeardTime;
