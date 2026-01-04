@@ -39,7 +39,7 @@ class PowerLogger
             {
                 double intervalAh=data.dayAhSum/data.dayAhSamples;  //get avg value for DAY_AH_INT  (e.g. avg last 20 minutes)
                 data.dayHours=layout->getDaySparkPtr()->getElements()/(3600/DAY_AH_INT); //number of hours we have so far
-                logger.log(VERBOSE,"Adding %fAh to day spark line",intervalAh);
+                //logger.log(VERBOSE,"Adding %fAh to day spark line",intervalAh);
                 layout->getDaySparkPtr()->add(intervalAh);
                 resetDay(rtc);
             }
@@ -63,7 +63,7 @@ class PowerLogger
                 {
                     double intervalAh=data.nightAhSum/data.nightAhSamples;  //get avg value for NIGHT_AH_INT  (e.g. avg last 10 minutes)
                     data.nightHours=layout->getNightSparkPtr()->getElements()/(3600/NIGHT_AH_INT); //number of hours we have so far
-                    logger.log(VERBOSE,"Adding %fAh to night spark line",intervalAh);
+                    //logger.log(VERBOSE,"Adding %fAh to night spark line",intervalAh);
                     layout->getNightSparkPtr()->add(intervalAh);
                     resetNight(rtc);
                 }

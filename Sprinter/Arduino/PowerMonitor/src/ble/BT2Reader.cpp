@@ -27,7 +27,8 @@ BT2Reader::BT2Reader()
 	txServiceUUID="ffd0";
 	txCharacteristicUUID="ffd1";
 	rxServiceUUID="fff0";
-	rxCharacteristicUUID="fff1";	
+	rxCharacteristicUUID="fff1";
+	lastHeardTime=millis();
 
 	//Init our register data
 	registerDescriptionSize = sizeof(registerDescription) / sizeof(registerDescription[0]);
@@ -61,6 +62,10 @@ void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 {
  	if (peripheral->localName() == peripheryName)
 	{
+		//Already connected? Skip
+		if(connected)
+			return;
+
 		//Set device
 		bleDevice=peripheral;
 
@@ -129,6 +134,7 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	}
 
 	connected=true;
+	lastHeardTime=millis();
 	logger.log(INFO,"Found all services and characteristics.");
 
 	bleSemaphore->waitingForConnection=false;

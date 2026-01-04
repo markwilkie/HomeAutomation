@@ -10,18 +10,23 @@ SOKReader::SOKReader(const char* _peripheryName, int _batteryNumber)
 	txServiceUUID="ffe0";
 	txCharacteristicUUID="ffe2";
 	rxServiceUUID="ffe0";
-	rxCharacteristicUUID="ffe1";	
+	rxCharacteristicUUID="ffe1";
+	lastHeardTime=millis();
 }
 
 void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore) 
 {
 	if (peripheral->localName() == peripheryName)
 	{
+		//Already connected? Skip
+		if(connected)
+			return;
+
 		//Set device
 		bleDevice=peripheral;
 
-		//Make sure we're not busy
-		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
+		//Make sure we're not busy with a DIFFERENT device
+		if((bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection) && bleSemaphore->btDevice != this)
 		{
 			logger.log(INFO,"SOK %d: BLE busy with %s", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
 			return;
@@ -88,6 +93,7 @@ boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	}
 
 	connected=true;
+	lastHeardTime=millis();
 	logger.log(INFO,"SOK %d: found all needed services and characteristics.", batteryNumber);
 
 	bleSemaphore->waitingForConnection=false;
@@ -185,7 +191,7 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	}
 
 	#ifdef SERIALLOGGER
-	Serial.print("Sending command sequence to SOK: ");
+	Serial.print(INFO,"Sending command sequence to SOK: ");
 	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
 	Serial.println("");
 	#endif

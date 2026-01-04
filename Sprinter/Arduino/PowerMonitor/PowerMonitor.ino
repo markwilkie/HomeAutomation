@@ -100,6 +100,7 @@ void setup()
 
 	//set time to current so it waits before checking the first time
 	lastBleIsAliveTime=millis();
+	lastBitmapUpdatetime=millis();
 
 	logger.sendLogs(wifi.isConnected());
 }
@@ -359,6 +360,17 @@ void reStartBLE()
 	BLE.scan();	
 }
 
+void checkForStaleData()
+{
+	if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!sokReader2.isCurrent() && sokReader2.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
+	{
+		logger.log(INFO,"BLE data is stale!  Restarting BLE");
+		turnOffBLE();
+		delay(1000);
+		turnOnBLE();
+	}
+}
+
 void loop() 
 {
 	//required for the ArduinoBLE library
@@ -368,10 +380,16 @@ void loop()
 	//check for BLE timeouts - and disconnect
 	if(isTimedout())
 	{
+		logger.log(INFO,"BLE operation timed out, disconnecting");
 		if(bleSemaphore.btDevice->getBLEDevice())
 			bleSemaphore.btDevice->getBLEDevice()->disconnect();
 		bleSemaphore.waitingForConnection=false;
 		bleSemaphore.waitingForResponse=false;
+		bleSemaphore.btDevice=nullptr;
+		
+		// Restart scanning to give failed device another chance
+		logger.log(INFO,"Restarting BLE scan after timeout");
+		BLE.scan();
 	}
 
 	//time to update power logs?
@@ -383,13 +401,7 @@ void loop()
 
 	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME)
 	{
-		//Check that we're still receiving BLE data
-		if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
-		{
-			turnOffBLE();
-			delay(1000);
-			turnOnBLE();
-		}
+		checkForStaleData();
 
 		//reset time
 		lastBleIsAliveTime=millis();
@@ -428,12 +440,7 @@ void loop()
 		}
 
 		//Check that we're still receiving BLE data
-		if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!sokReader2.isCurrent() && sokReader2.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
-		{
-			turnOffBLE();
-			delay(1000);
-			turnOnBLE();
-		}
+		checkForStaleData();
 
 		//reset time
 		lastBitmapUpdatetime=millis();
@@ -494,20 +501,20 @@ boolean isTimedout()
 {
 	boolean timedOutFlag=false;
 
-	if((bleSemaphore.startTime+BT_TIMEOUT_MS) > millis()  && (bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse))
+	if((bleSemaphore.startTime+BT_TIMEOUT_MS) < millis()  && (bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse))
 	{
 		timedOutFlag=true;
 		if(bleSemaphore.waitingForConnection)
 		{
-			logger.log("ERROR: Timed out waiting for connection to %s",bleSemaphore.btDevice->getPerifpheryName());
+			logger.log(ERROR,"Timed out waiting for connection to %s",bleSemaphore.btDevice->getPerifpheryName());
 		}
 		else if(bleSemaphore.waitingForResponse)
 		{
-			logger.log("ERROR: Timed out waiting for response from %s",bleSemaphore.btDevice->getPerifpheryName());
+			logger.log(ERROR,"Timed out waiting for response from %s",bleSemaphore.btDevice->getPerifpheryName());
 		}
 		else
 		{
-			logger.log("ERROR: Timed out for an unknown reason");
+			logger.log(ERROR,"Timed out for an unknown reason");
 		}
 	}
 
