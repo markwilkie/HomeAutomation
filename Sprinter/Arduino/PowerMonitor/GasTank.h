@@ -25,6 +25,10 @@ private:
   float baseline = 0.0;       // Force (grams) when new full bottle is installed
   bool bottlePresent = false; // Track if bottle is currently installed
   
+  // Cached sensor values
+  int gasLevel = 0;
+  float gasDaysRem = 0;
+  
   int readADC(); // Helper to read averaged ADC value
   float linearizeADC(int adc); // Linearize FSR using conductance method
    

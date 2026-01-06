@@ -30,6 +30,10 @@ private:
   float lastVoltage = 0.0;       // Track last voltage for change detection
   unsigned long lastCalCheck = 0; // Timestamp for calibration checks
   bool isCalibrated = false;     // Track if we have valid calibration
+  
+  // Cached sensor values
+  int waterLevel = 0;
+  float waterDaysRem = 0;
    
 public:
    //members
