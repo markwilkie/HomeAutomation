@@ -117,8 +117,10 @@ void WaterTank::updateUsage() {
 
 void WaterTank::updateDaysRemaining()  {
     int currentLevel = waterLevel;
-    if (dailyPercentUsed > 0) {
-        waterDaysRem = currentLevel / dailyPercentUsed;
+    if (currentLevel < 5) {
+        waterDaysRem = 0; // Tank is essentially empty
+    } else if (dailyPercentUsed > 0) {
+        waterDaysRem = currentLevel / (dailyPercentUsed * 24);
     } else {
         waterDaysRem = -1; // Not enough data
     }

@@ -37,7 +37,7 @@ private:
 public:
   //members
   void readWaterLevel(); // Reads sensor and updates waterLevel cache
-  void updateUsage(); // Updates daily usage based on current level and time since last update
+  void updateUsage(); // Updates hourly usage based on current level and time since last update
   void updateDaysRemaining(); // Updates waterDaysRem cache based on current usage
   
   // Getters for cached values

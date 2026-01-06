@@ -130,8 +130,10 @@ void GasTank::updateUsage()
 
 void GasTank::updateDaysRemaining() {
     int currentLevel = gasLevel; // Use cached value
-    if (dailyPercentUsed > 0) {
-        gasDaysRem = currentLevel / dailyPercentUsed;
+    if (currentLevel < 5) {
+        gasDaysRem = 0; // Tank is essentially empty
+    } else if (dailyPercentUsed > 0) {
+        gasDaysRem = currentLevel / (dailyPercentUsed * 24);
     } else {
         gasDaysRem = -1; // Not enough data
     }

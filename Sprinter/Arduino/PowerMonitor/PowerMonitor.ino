@@ -440,8 +440,8 @@ void loop()
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
 		lastScrUpdatetime=millis();
-		loadSimulatedValues();
-		//loadValues();
+		//loadSimulatedValues();
+		loadValues();
 		if(currentScreen == MAIN_SCREEN)
 		{
 			layout.updateLCD(&rtc);

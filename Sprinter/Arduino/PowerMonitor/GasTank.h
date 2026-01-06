@@ -36,7 +36,7 @@ private:
 public:
    //members
   void readGasLevel(); // Reads sensor and updates cached gasLevel
-  void updateUsage(); // Updates daily usage based on current level and time since last update
+  void updateUsage(); // Updates hourly usage based on current level and time since last update
   void updateDaysRemaining(); // Calculates time remaining based on given usage and updates cached gasDaysRem
   
   // Getters for cached values
