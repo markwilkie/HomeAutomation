@@ -63,6 +63,15 @@ void VanWifi::startWifi()
   logger.sendLogs(isConnected());
 }
 
+void VanWifi::stopWifi()
+{
+  logger.log(INFO, "Stopping WiFi");
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  esp_wifi_stop();
+  logger.log(INFO, "WiFi stopped");
+}
+
 DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
 {
   DynamicJsonDocument doc(512);

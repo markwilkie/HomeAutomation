@@ -7,7 +7,7 @@
 extern Logger logger;
 
 //Defines
-#define WATER_LEVEL_ANALOG_PIN 10 // GPIO10 is ADC1_CH9 on ESP32-S3
+#define WATER_LEVEL_ANALOG_PIN 10 // GPIO10 for water level sensor
 #define WATER_PUMP_CURRENT_ANALOG_PIN 11 
 #define WATER_PUMP_INDICATOR_LIGHT 12 
 
@@ -36,10 +36,14 @@ private:
   float waterDaysRem = 0;
    
 public:
-   //members
-  int readWaterLevel(); // Returns tank level as 0-100% from analog input
+  //members
+  void readWaterLevel(); // Reads sensor and updates waterLevel cache
   void updateUsage(); // Updates daily usage based on current level and time since last update
-  double getDaysRemaining(); //calculates time remaining based on given usage
+  void updateDaysRemaining(); // Updates waterDaysRem cache based on current usage
+  
+  // Getters for cached values
+  int getWaterLevel() const { return waterLevel; }
+  float getWaterDaysRemaining() const { return waterDaysRem; }
 };
 
 // Pump class: determines if the pump is running based on analog input from a current sensor

@@ -28,9 +28,18 @@ Current sensor is a 5A ACS712, which outputs 2.5V at 0A, and 0V at 5A when run b
 the output of the sensor directly into the 3.3v pin of the ESP32-S3
 */
 
-int WaterTank::readWaterLevel()
+void WaterTank::readWaterLevel()
 {
-    int analogValue = analogRead(WATER_LEVEL_ANALOG_PIN); // 0-4095 for ESP32-S3
+    // Read multiple samples and average to reduce noise
+    const int NUM_SAMPLES = 10;
+    long adcSum = 0;
+    
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+        adcSum += analogRead(WATER_LEVEL_ANALOG_PIN);
+        delay(2); // Small delay between reads
+    }
+    
+    int analogValue = adcSum / NUM_SAMPLES;
     double voltage = (analogValue * 3.3) / 4095;
     
     // Auto-calibration: Detect fill events (rapid voltage increase)
@@ -68,11 +77,16 @@ int WaterTank::readWaterLevel()
     }
     
     percent = constrain(percent, 0, 100);
-    return static_cast<int>(percent);
+    int level = static_cast<int>(percent);
+    
+    logger.log(INFO, "Water Tank: Read level %d%% (voltage: %.2fV, ADC: %d averaged)", 
+               level, voltage, analogValue);
+    
+    waterLevel = level;
 }
 
 void WaterTank::updateUsage() {
-    int currentLevel = readWaterLevel();
+    int currentLevel = waterLevel;
     unsigned long now = millis();
     if (lastLevel == -1) {
         lastLevel = currentLevel;
@@ -93,12 +107,12 @@ void WaterTank::updateUsage() {
     }
 }
 
-double WaterTank::getDaysRemaining()  {
-    int currentLevel = readWaterLevel();
+void WaterTank::updateDaysRemaining()  {
+    int currentLevel = waterLevel;
     if (dailyPercentUsed > 0) {
-        return currentLevel / dailyPercentUsed;
+        waterDaysRem = currentLevel / dailyPercentUsed;
     } else {
-        return -1; // Not enough data
+        waterDaysRem = -1; // Not enough data
     }
 }
 

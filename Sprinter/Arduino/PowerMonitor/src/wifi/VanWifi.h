@@ -23,6 +23,7 @@ class VanWifi
 
   public:
     void startWifi();
+    void stopWifi();
     String getSSID();
     String getIP();
     int getRSSI();

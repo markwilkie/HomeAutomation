@@ -1,6 +1,10 @@
 #include "GasTank.h"
+#include "src/wifi/wifi.h"
+
+extern VanWifi wifi;
 
 // Read averaged ADC value
+// Note: WiFi must be disabled before reading GPIO11 due to hardware conflict
 int GasTank::readADC() {
     long sum = 0;
     for (int i = 0; i < GAS_ADC_SAMPLES; i++) {
@@ -40,7 +44,7 @@ float GasTank::linearizeADC(int adc) {
 }
 
 // Read gas level with auto-calibration for 1lb disposable propane tanks
-int GasTank::readGasLevel()
+void GasTank::readGasLevel()
 {
     int adc = readADC();
     float force = linearizeADC(adc); // Get linearized force reading
@@ -57,42 +61,45 @@ int GasTank::readGasLevel()
             logger.log(INFO, "Gas Tank: New 1lb propane bottle detected!");
             logger.log(INFO, "  Baseline force: %.1fg (auto-calibrated)", baseline);
         }
-        return 0; // No bottle present
+        gasLevel = 0; // No bottle present
     } else {
         // Bottle present - check if removed
         if (force < 50.0) { // <50g indicates bottle removed (tune threshold)
             bottlePresent = false;
             logger.log(INFO, "Gas Tank: Bottle removed (force: %.1fg)", force);
-            return 0; // Bottle removed
-        }
-        
-        // Calculate net weight change from baseline (full bottle)
-        // As gas is used, weight decreases, so net becomes more negative
-        float netForce = force - baseline;
-        
-        // Convert net force to percentage
-        // 1lb propane = ~453 grams
-        // netForce starts at 0 (full) and goes negative as fuel is consumed
-        float percentage;
-        if (netForce >= 0) {
-            percentage = 100.0; // Still at or above baseline (full)
+            gasLevel = 0; // Bottle removed
         } else {
-            // 1lb propane bottle loses ~453g when empty
-            float emptyForceOffset = -453.0; // grams
-            percentage = 100.0 + (netForce / emptyForceOffset * 100.0);
+            // Calculate net weight change from baseline (full bottle)
+            // As gas is used, weight decreases, so net becomes more negative
+            float netForce = force - baseline;
+            
+            // Convert net force to percentage
+            // 1lb propane = ~453 grams
+            // netForce starts at 0 (full) and goes negative as fuel is consumed
+            float percentage;
+            if (netForce >= 0) {
+                percentage = 100.0; // Still at or above baseline (full)
+            } else {
+                // 1lb propane bottle loses ~453g when empty
+                float emptyForceOffset = -453.0; // grams
+                percentage = 100.0 + (netForce / emptyForceOffset * 100.0);
+            }
+            
+            // Bounds checking
+            if (percentage > 100) percentage = 100;
+            if (percentage < 0) percentage = 0;
+            
+            gasLevel = static_cast<int>(percentage);
+            
+            logger.log(INFO, "Gas Tank: Read level %d%% (force: %.1fg, baseline: %.1fg, net: %.1fg, ADC: %d)",
+                       gasLevel, force, baseline, netForce, adc);
         }
-        
-        // Bounds checking
-        if (percentage > 100) percentage = 100;
-        if (percentage < 0) percentage = 0;
-        
-        return (int)percentage;
     }
 }
 
 void GasTank::updateUsage()
 {
-    int currentLevel = readGasLevel();
+    int currentLevel = gasLevel; // Use cached value
     unsigned long currentTime = millis();
 
     // Initialize on first run
@@ -121,11 +128,11 @@ void GasTank::updateUsage()
     }
 }
 
-double GasTank::getDaysRemaining()  {
-    int currentLevel = readGasLevel();
+void GasTank::updateDaysRemaining() {
+    int currentLevel = gasLevel; // Use cached value
     if (dailyPercentUsed > 0) {
-        return currentLevel / dailyPercentUsed;
+        gasDaysRem = currentLevel / dailyPercentUsed;
     } else {
-        return -1; // Not enough data
+        gasDaysRem = -1; // Not enough data
     }
 }

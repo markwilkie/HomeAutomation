@@ -7,7 +7,7 @@
 extern Logger logger;
 
 //Defines
-#define GAS_LEVEL_ANALOG_PIN 13 // GPIO for gas level sensor (adjust as needed)
+#define GAS_LEVEL_ANALOG_PIN 11 // GPIO11 for gas level sensor (WiFi must be disabled during read)
 #define GAS_NO_BOTTLE_THRESH 1000 // ADC threshold below which bottle is considered removed
 #define GAS_NEW_BOTTLE_THRESH 1500 // ADC threshold above which new bottle is detected
 #define GAS_ADC_SAMPLES 40 // Number of samples to average for reading
@@ -34,9 +34,13 @@ private:
    
 public:
    //members
-  int readGasLevel(); // Returns tank level as 0-100% from analog input
+  void readGasLevel(); // Reads sensor and updates cached gasLevel
   void updateUsage(); // Updates daily usage based on current level and time since last update
-  double getDaysRemaining(); //calculates time remaining based on given usage
+  void updateDaysRemaining(); // Calculates time remaining based on given usage and updates cached gasDaysRem
+  
+  // Getters for cached values
+  int getGasLevel() const { return gasLevel; }
+  float getGasDaysRemaining() const { return gasDaysRem; }
 };
 
 #endif

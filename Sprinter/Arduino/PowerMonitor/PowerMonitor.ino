@@ -18,6 +18,7 @@
 #define BT_TIMEOUT_MS	5000
 #define WATER_CHECK_TIME 60000      // Check water tank every 1 minute
 #define GAS_CHECK_TIME 600000       // Check gas tank every 10 minutes
+#define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
 
 //Objects to handle connection
@@ -54,6 +55,7 @@ long lastBleIsAliveTime=0;
 long lastPwrUpdateTime=0;
 long lastWaterCheckTime=0;
 long lastGasCheckTime=0;
+long lastWifiCheckTime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
@@ -425,6 +427,15 @@ void loop()
 		lastBleIsAliveTime=millis();
 	}
 
+	// Check WiFi connection every 60 seconds and reconnect if needed
+	if(millis() - lastWifiCheckTime > WIFI_CHECK_TIME) {
+		if(!wifi.isConnected()) {
+			logger.log(INFO, "WiFi is currently disconnected, attempting reconnection...");
+			wifi.startWifi();
+		}
+		lastWifiCheckTime = millis();
+	}
+
 	//load values
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
@@ -466,15 +477,21 @@ void loop()
 
 	// Check water tank every 1 minute
 	if(millis() - lastWaterCheckTime > WATER_CHECK_TIME) {
-		waterTank.waterLevel = waterTank.readWaterLevel();
-		waterTank.waterDaysRem = waterTank.getDaysRemaining();
+		waterTank.readWaterLevel();
+		waterTank.updateDaysRemaining();
 		lastWaterCheckTime = millis();
 	}
 
 	// Check gas tank every 10 minutes
+	// WiFi must be disabled before reading GPIO11 due to hardware conflict
 	if(millis() - lastGasCheckTime > GAS_CHECK_TIME) {
-		gasTank.gasLevel = gasTank.readGasLevel();
-		gasTank.gasDaysRem = gasTank.getDaysRemaining();
+		if(wifi.isConnected()) {
+			wifi.stopWifi();
+			delay(1000); // Allow WiFi to fully stop
+		}
+		gasTank.readGasLevel();
+		gasTank.updateDaysRemaining();
+		wifi.startWifi();
 		lastGasCheckTime = millis();
 	}
 
@@ -597,10 +614,10 @@ void loadValues()
 		layout.displayData.batteryHoursRem2=999;
 
 	// Use cached water and gas tank values
-	layout.displayData.stateOfWater = waterTank.waterLevel;
-	layout.displayData.waterDaysRem = waterTank.waterDaysRem;
-	layout.displayData.stateOfGas = gasTank.gasLevel;
-	layout.displayData.gasDaysRem = gasTank.gasDaysRem;
+	layout.displayData.stateOfWater = waterTank.getWaterLevel();
+	layout.displayData.waterDaysRem = waterTank.getWaterDaysRemaining();
+	layout.displayData.stateOfGas = gasTank.getGasLevel();
+	layout.displayData.gasDaysRem = gasTank.getGasDaysRemaining();
 	
 	// Set battery-specific values based on display mode
 	if(layout.displayData.batteryMode == BATTERY_COMBINED)
