@@ -2,11 +2,15 @@
 #define GASTANK_H
 
 #include <Arduino.h>
+#include "src/logging/logger.h"
+
+extern Logger logger;
 
 //Defines
 #define GAS_LEVEL_ANALOG_PIN 13 // GPIO for gas level sensor (adjust as needed)
-#define GAS_TANK_FULL_LEVEL 0.6 // represent full
-#define GAS_TANK_EMPTY_LEVEL 2.5 // represent empty
+#define GAS_NO_BOTTLE_THRESH 1000 // ADC threshold below which bottle is considered removed
+#define GAS_NEW_BOTTLE_THRESH 1500 // ADC threshold above which new bottle is detected
+#define GAS_ADC_SAMPLES 40 // Number of samples to average for reading
 
 class GasTank {
 private:
@@ -16,6 +20,13 @@ private:
   unsigned long lastLevelTime = 0;
   float dailyPercentUsed = 0;
   unsigned long lastDayCheck = 0;
+  
+  // Baseline calibration approach
+  float baseline = 0.0;       // Force (grams) when new full bottle is installed
+  bool bottlePresent = false; // Track if bottle is currently installed
+  
+  int readADC(); // Helper to read averaged ADC value
+  float linearizeADC(int adc); // Linearize FSR using conductance method
    
 public:
    //members

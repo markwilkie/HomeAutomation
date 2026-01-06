@@ -14,7 +14,16 @@ The screen is pretty self explanatory, but a few notes:
   - **SOK 1 mode** (shows '1'): Displays only SOK battery 1 data
   - **SOK 2 mode** (shows '2'): Displays only SOK battery 2 data
 - Graph on the right is water tank level - tap to see detailed water level view, tap again to return
+- **Water tank monitoring**: Uses resistive sender (33Ω full → 240Ω empty) with 5V rail and 240Ω voltage divider
+  - Auto-calibrates on fill detection (>0.3V increase in 5 seconds)
+  - Applies calibration offset to both full and empty points for consistent accuracy
+  - Compensates for voltage rail variations, resistor tolerances, and ADC reference drift
 - Two bar graphs show water and gas tank levels with days remaining (D) below each
+- **Gas tank monitoring**: Uses Force Sensing Resistor (FSR) with 1lb disposable propane bottles
+  - Auto-calibrates when new full bottle is detected (>400g force)
+  - Linearizes FSR output using conductance method (1/R) per datasheet equation
+  - Calculates percentage based on ~453g (1lb) weight loss from full to empty
+  - Resets usage tracking when bottle is replaced
 - There are two spark lines which show net amp flow.  The night spark is from 10pm to 7am (PST), and the day spark is last 24 hours.
 - The numbers by the spark lines are the sum of the spark in amp hours  (e.g. night spark could show 12, which would mean 12ah were used)
 - Bottom icons are battery and charger controller (van icon).

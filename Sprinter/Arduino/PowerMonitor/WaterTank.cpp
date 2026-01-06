@@ -2,21 +2,25 @@
 #include "WaterTank.h"
 
 /*
-     3.3V
+     5V (from external rail)
       |
-[ Float Sensor ]  ← 33–240Ω
+[ Tank Sender ]  ← 33Ω (full) to 240Ω (empty)
       |
-      |------- A0 (analog input)
+      |------- A0 (analog input via voltage divider)
       |
-[ 33Ω Resistor ]  ← fixed pull-down
+[ 240Ω Resistor ]  ← fixed pull-down
       |
      GND
 
+Voltage divider: Vout = 5V * R_fixed / (R_sender + R_fixed)
 
-| Sensor Ω | Vout (V) |
-| -------- | -------- |
-| 33Ω      | 2.5V     |
-| 240Ω     |  .6V     |
+| Sender Ω | Vout (5V rail) | ADC sees (3.3V max) |
+| -------- | -------------- | ------------------- |
+| 33Ω      | 4.40V          | 2.90V (via divider) |
+| 240Ω     | 2.50V          | 1.65V (via divider) |
+
+Note: If 5V connects directly to ESP32 ADC, voltage divider needed to scale 5V→3.3V
+Using resistor network: 5V → [R1] → ADC → [R2] → GND where R1/(R1+R2) = 3.3/5 = 0.66
 
 ========================
 
@@ -27,8 +31,42 @@ the output of the sensor directly into the 3.3v pin of the ESP32-S3
 int WaterTank::readWaterLevel()
 {
     int analogValue = analogRead(WATER_LEVEL_ANALOG_PIN); // 0-4095 for ESP32-S3
-    double voltage =(analogValue * 3.3) / 4095;
-    double percent = map((voltage*10), WATER_TANK_EMPTY_LEVEL, WATER_TANK_FULL_LEVEL, 0, 100);
+    double voltage = (analogValue * 3.3) / 4095;
+    
+    // Auto-calibration: Detect fill events (rapid voltage increase)
+    unsigned long now = millis();
+    if (now - lastCalCheck > 5000) { // Check every 5 seconds
+        float voltageChange = voltage - lastVoltage;
+        
+        // Detect filling: voltage increases >0.3V in 5 seconds AND near expected full range
+        if (voltageChange > 0.3 && voltage > 2.5) {
+            // Calculate offset from expected full voltage
+            float offset = voltage - 2.90; // 2.90V is theoretical full (33Ω)
+            
+            // Apply same offset to both full and empty calibration points
+            fullVoltage = voltage;              // Actual measured full
+            emptyVoltage = 1.65 + offset;       // Apply offset to empty (240Ω)
+            isCalibrated = true;
+            
+            logger.log(INFO, "Water Tank: Fill detected! Auto-calibrated.");
+            logger.log(INFO, "  Measured full: %.2fV, Offset: %+.2fV", fullVoltage, offset);
+            logger.log(INFO, "  Calibrated empty: %.2fV, Range: %.2fV", emptyVoltage, fullVoltage - emptyVoltage);
+        }
+        
+        lastVoltage = voltage;
+        lastCalCheck = now;
+    }
+    
+    // Calculate percentage using calibrated or default values
+    // Higher voltage = fuller tank
+    double percent;
+    if (isCalibrated) {
+        percent = ((voltage - emptyVoltage) / (fullVoltage - emptyVoltage)) * 100.0;
+    } else {
+        // Use default theoretical values until calibrated
+        percent = ((voltage - 1.65) / (2.90 - 1.65)) * 100.0;
+    }
+    
     percent = constrain(percent, 0, 100);
     return static_cast<int>(percent);
 }
