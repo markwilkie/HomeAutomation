@@ -88,21 +88,29 @@ void WaterTank::readWaterLevel()
 void WaterTank::updateUsage() {
     int currentLevel = waterLevel;
     unsigned long now = millis();
+    
+    // Initialize on first run
     if (lastLevel == -1) {
         lastLevel = currentLevel;
         lastLevelTime = now;
         lastDayCheck = now;
         return;
     }
-    // If level drops, accumulate percent used
-    if (currentLevel < lastLevel) {
-        dailyPercentUsed += (lastLevel - currentLevel);
-    }
-    lastLevel = currentLevel;
-    lastLevelTime = now;
-    // Reset daily usage every 24 hours
-    if (now - lastDayCheck > 86400000UL) {
-        dailyPercentUsed = 0;
+    
+    // Calculate usage every hour
+    if (now - lastDayCheck >= USAGE_CHECK_INTERVAL) {
+        int levelChange = lastLevel - currentLevel;
+        
+        if (levelChange > 0) {
+            // Update hourly usage as weighted average (70% old, 30% new)
+            if (dailyPercentUsed == 0) {
+                dailyPercentUsed = levelChange;
+            } else {
+                dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3);
+            }
+        }
+        
+        lastLevel = currentLevel;
         lastDayCheck = now;
     }
 }

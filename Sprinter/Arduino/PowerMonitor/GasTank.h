@@ -11,6 +11,7 @@ extern Logger logger;
 #define GAS_NO_BOTTLE_THRESH 1000 // ADC threshold below which bottle is considered removed
 #define GAS_NEW_BOTTLE_THRESH 1500 // ADC threshold above which new bottle is detected
 #define GAS_ADC_SAMPLES 40 // Number of samples to average for reading
+#define USAGE_CHECK_INTERVAL 3600000UL // Check usage every hour (in milliseconds)
 
 class GasTank {
 private:
@@ -18,8 +19,8 @@ private:
   long gasRemaining;
   int lastLevel = -1;
   unsigned long lastLevelTime = 0;
-  float dailyPercentUsed = 0;
-  unsigned long lastDayCheck = 0;
+  float dailyPercentUsed = 0; // Hourly percent used (weighted average)
+  unsigned long lastDayCheck = 0; // Last hourly check time
   
   // Baseline calibration approach
   float baseline = 0.0;       // Force (grams) when new full bottle is installed

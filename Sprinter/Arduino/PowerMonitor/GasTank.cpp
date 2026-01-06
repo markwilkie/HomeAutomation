@@ -110,16 +110,16 @@ void GasTank::updateUsage()
         return;
     }
 
-    // Calculate usage every 24 hours
-    if (currentTime - lastDayCheck >= 86400000) { // 24 hours in milliseconds
+    // Calculate usage every hour
+    if (currentTime - lastDayCheck >= USAGE_CHECK_INTERVAL) {
         int levelChange = lastLevel - currentLevel;
         
         if (levelChange > 0) {
-            // Update daily usage as rolling average
+            // Update hourly usage as weighted average (70% old, 30% new)
             if (dailyPercentUsed == 0) {
                 dailyPercentUsed = levelChange;
             } else {
-                dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3); // Weighted average
+                dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3);
             }
         }
         

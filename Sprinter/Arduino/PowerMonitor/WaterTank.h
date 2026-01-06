@@ -14,6 +14,7 @@ extern Logger logger;
 #define PUMP_CURRENT_THRESHOLD 2.2 // Remember that we're running the sensor backwards, so less than is more amps
 #define WATER_TANK_FULL_LEVEL 1.73 // 33Ω sender (full): 5V * 240/(33+240) = 4.40V, ADC sees 4.40*3.3/5 = 2.90V, but scaled = 1.73V
 #define WATER_TANK_EMPTY_LEVEL 2.5 // 240Ω sender (empty): 5V * 240/(240+240) = 2.5V, ADC sees 2.5*3.3/5 = 1.65V, but scaled = 2.5V
+#define USAGE_CHECK_INTERVAL 3600000UL // Check usage every hour (in milliseconds)
 
 class WaterTank {
 private:
@@ -21,8 +22,8 @@ private:
   long waterRemaining;
   int lastLevel = -1;
   unsigned long lastLevelTime = 0;
-  float dailyPercentUsed = 0;
-  unsigned long lastDayCheck = 0;
+  float dailyPercentUsed = 0; // Hourly percent used (weighted average)
+  unsigned long lastDayCheck = 0; // Last hourly check time
   
   // Auto-calibration using fill detection
   float fullVoltage = 2.90;      // Expected voltage at full (33Ω)
