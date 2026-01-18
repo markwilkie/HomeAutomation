@@ -19,6 +19,7 @@
 #define WATER_CHECK_TIME 60000      // Check water tank every 1 minute
 #define GAS_CHECK_TIME 600000       // Check gas tank every 10 minutes
 #define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
+#define BLE_RECONNECT_TIME 60000    // Restart BLE scan every 60 seconds if not all devices connected
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
 
 //Objects to handle connection
@@ -53,9 +54,10 @@ long lastScrUpdatetime=0;
 long lastBitmapUpdatetime=0;
 long lastBleIsAliveTime=0;
 long lastPwrUpdateTime=0;
-long lastWaterCheckTime=0;
-long lastGasCheckTime=0;
+long lastWaterCheckTime=-60000;  // Start negative so first check happens immediately
+long lastGasCheckTime=0;         // Wait full GAS_CHECK_TIME before first check (WiFi stop was causing crash)
 long lastWifiCheckTime=0;
+long lastBleReconnectTime=0;
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
@@ -66,8 +68,11 @@ void setup()
 	//#ifdef SERIALLOGGER
 		//Init Serial
 		Serial.begin(115200);
+		while(!Serial && millis() < 5000) { } // Wait up to 5 seconds for USB CDC to connect
 	//#endif
-	delay(3000);
+	delay(1000);
+
+	Serial.println("=== PowerMonitor Starting ===");  // Direct serial test
 
 	//init screen and draw initial form
 	logger.log("Drawing form");
@@ -138,6 +143,11 @@ void setTime()
 	logger.log("Getting latest time...");
     DynamicJsonDocument timeDoc=wifi.sendGetMessage(TIMEAPI_URL);	
 	
+	// Debug: log the raw response
+	String debugOutput;
+	serializeJson(timeDoc, debugOutput);
+	logger.log(INFO, "Time API response: %s", debugOutput.c_str());
+	
 	/*
 	long epoch=timeDoc["unixtime"].as<long>();
     long offset=timeDoc["raw_offset"].as<long>();
@@ -153,6 +163,14 @@ void setTime()
 	int day=timeDoc["day"].as<int>();
 	int month=timeDoc["month"].as<int>();
 	int year=timeDoc["year"].as<int>();
+
+	// Sanity check the values
+	if(year < 2020 || month < 1 || month > 12 || day < 1 || day > 31)
+	{
+		logger.log(ERROR, "Invalid time values received: %d/%d/%d - resetting to epoch", month, day, year);
+		rtc.setTime(0);  // Reset to epoch (1/1/1970)
+		return;
+	}
 
 	rtc.setTime(seconds, minutes, hours, day, month, year);
 	logger.log(INFO,"Time set to %d/%d/%d %d:%d:%d",month,day,year,hours,minutes,seconds);
@@ -391,6 +409,32 @@ void checkForStaleData()
 	}
 }
 
+// Check if any targeted BLE devices are not connected and restart scan periodically
+void checkForDisconnectedDevices()
+{
+	int numOfTargetedDevices = sizeof(targetedDevices) / sizeof(targetedDevices[0]);
+	bool allConnected = true;
+	
+	for(int i = 0; i < numOfTargetedDevices; i++)
+	{
+		if(!targetedDevices[i]->isConnected())
+		{
+			allConnected = false;
+			break;
+		}
+	}
+	
+	// If not all devices connected, restart BLE scan
+	if(!allConnected && (millis() - lastBleReconnectTime > BLE_RECONNECT_TIME))
+	{
+		logger.log(INFO, "Not all BLE devices connected, restarting scan...");
+		BLE.stopScan();
+		delay(100);
+		BLE.scan(true);
+		lastBleReconnectTime = millis();
+	}
+}
+
 void loop() 
 {
 	//required for the ArduinoBLE library
@@ -422,6 +466,7 @@ void loop()
 	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME)
 	{
 		checkForStaleData();
+		checkForDisconnectedDevices();
 
 		//reset time
 		lastBleIsAliveTime=millis();
@@ -484,7 +529,7 @@ void loop()
 
 	// Check gas tank every 10 minutes
 	// WiFi must be disabled before reading GPIO11 due to hardware conflict
-	if(millis() - lastGasCheckTime > GAS_CHECK_TIME) {
+	if((millis() - lastGasCheckTime) > GAS_CHECK_TIME) {
 		if(wifi.isConnected()) {
 			wifi.stopWifi();
 			delay(1000); // Allow WiFi to fully stop

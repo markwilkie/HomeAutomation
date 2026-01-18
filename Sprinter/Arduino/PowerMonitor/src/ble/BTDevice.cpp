@@ -34,11 +34,11 @@ BLEDevice *BTDevice::getBLEDevice()
 }
 
 void BTDevice::updateSemaphore(BLE_SEMAPHORE* bleSemaphore, uint16_t expectedBytes)
-	{
+{
 	//Update semaphore
 	bleSemaphore->btDevice=this;
+	bleSemaphore->waitingForConnection=false;
 	bleSemaphore->waitingForResponse=true;
-	bleSemaphore->waitingForResponse=false;
 	bleSemaphore->startTime=millis();
 	bleSemaphore->expectedBytes=expectedBytes;
 }

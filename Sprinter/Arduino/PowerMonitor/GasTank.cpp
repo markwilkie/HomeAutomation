@@ -49,6 +49,9 @@ void GasTank::readGasLevel()
     int adc = readADC();
     float force = linearizeADC(adc); // Get linearized force reading
     
+    logger.log(INFO, "Gas Tank: readGasLevel called - ADC: %d, force: %.1fg, bottlePresent: %s", 
+               adc, force, bottlePresent ? "true" : "false");
+    
     if (!bottlePresent) {
         // No bottle detected - check for new bottle installation
         // Use force threshold instead of raw ADC
@@ -60,13 +63,15 @@ void GasTank::readGasLevel()
             
             logger.log(INFO, "Gas Tank: New 1lb propane bottle detected!");
             logger.log(INFO, "  Baseline force: %.1fg (auto-calibrated)", baseline);
+        } else {
+            logger.log(INFO, "Gas Tank: No bottle present (force %.1fg < 400g threshold)", force);
         }
         gasLevel = 0; // No bottle present
     } else {
         // Bottle present - check if removed
         if (force < 50.0) { // <50g indicates bottle removed (tune threshold)
             bottlePresent = false;
-            logger.log(INFO, "Gas Tank: Bottle removed (force: %.1fg)", force);
+            logger.log(INFO, "Gas Tank: Bottle removed (force: %fg)", force);
             gasLevel = 0; // Bottle removed
         } else {
             // Calculate net weight change from baseline (full bottle)
@@ -91,7 +96,7 @@ void GasTank::readGasLevel()
             
             gasLevel = static_cast<int>(percentage);
             
-            logger.log(INFO, "Gas Tank: Read level %d%% (force: %.1fg, baseline: %.1fg, net: %.1fg, ADC: %d)",
+            logger.log(INFO, "Gas Tank: Read level %d (force: %fg, baseline: %fg, net: %fg, ADC: %d)",
                        gasLevel, force, baseline, netForce, adc);
         }
     }
@@ -102,17 +107,24 @@ void GasTank::updateUsage()
     int currentLevel = gasLevel; // Use cached value
     unsigned long currentTime = millis();
 
-    // Initialize on first run
+    // Don't initialize until we have a valid gas reading
+    // (gasLevel is 0 until readGasLevel() is called and bottle is present)
     if (lastLevel == -1) {
-        lastLevel = currentLevel;
-        lastLevelTime = currentTime;
-        lastDayCheck = currentTime;
+        if (currentLevel > 0) {
+            lastLevel = currentLevel;
+            lastLevelTime = currentTime;
+            lastDayCheck = currentTime;
+            logger.log(INFO, "Gas updateUsage: Initialized with level %d", currentLevel);
+        }
         return;
     }
 
     // Calculate usage every hour
     if (currentTime - lastDayCheck >= USAGE_CHECK_INTERVAL) {
         int levelChange = lastLevel - currentLevel;
+        
+        logger.log(INFO, "Gas updateUsage: Hourly check - lastLevel=%d, currentLevel=%d, change=%d", 
+                   lastLevel, currentLevel, levelChange);
         
         if (levelChange > 0) {
             // Update hourly usage as weighted average (70% old, 30% new)
@@ -121,6 +133,7 @@ void GasTank::updateUsage()
             } else {
                 dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3);
             }
+            logger.log(INFO, "Gas updateUsage: dailyPercentUsed updated to %f", dailyPercentUsed);
         }
         
         lastLevel = currentLevel;

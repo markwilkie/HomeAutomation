@@ -58,8 +58,8 @@ void WaterTank::readWaterLevel()
             isCalibrated = true;
             
             logger.log(INFO, "Water Tank: Fill detected! Auto-calibrated.");
-            logger.log(INFO, "  Measured full: %.2fV, Offset: %+.2fV", fullVoltage, offset);
-            logger.log(INFO, "  Calibrated empty: %.2fV, Range: %.2fV", emptyVoltage, fullVoltage - emptyVoltage);
+            logger.log(INFO, "  Measured full: %fV, Offset: %fV", fullVoltage, offset);
+            logger.log(INFO, "  Calibrated empty: %fV, Range: %fV", emptyVoltage, fullVoltage - emptyVoltage);
         }
         
         lastVoltage = voltage;
@@ -79,7 +79,7 @@ void WaterTank::readWaterLevel()
     percent = constrain(percent, 0, 100);
     int level = static_cast<int>(percent);
     
-    logger.log(INFO, "Water Tank: Read level %d%% (voltage: %.2fV, ADC: %d averaged)", 
+    logger.log(INFO, "Water Tank: Read level %d (voltage: %fV, ADC: %d averaged)", 
                level, voltage, analogValue);
     
     waterLevel = level;
@@ -89,17 +89,23 @@ void WaterTank::updateUsage() {
     int currentLevel = waterLevel;
     unsigned long now = millis();
     
-    // Initialize on first run
+    // Don't initialize until we have a valid water reading
     if (lastLevel == -1) {
-        lastLevel = currentLevel;
-        lastLevelTime = now;
-        lastDayCheck = now;
+        if (currentLevel > 0) {
+            lastLevel = currentLevel;
+            lastLevelTime = now;
+            lastDayCheck = now;
+            logger.log(INFO, "Water updateUsage: Initialized with level %d", currentLevel);
+        }
         return;
     }
     
     // Calculate usage every hour
     if (now - lastDayCheck >= USAGE_CHECK_INTERVAL) {
         int levelChange = lastLevel - currentLevel;
+        
+        logger.log(INFO, "Water updateUsage: Hourly check - lastLevel=%d, currentLevel=%d, change=%d", 
+                   lastLevel, currentLevel, levelChange);
         
         if (levelChange > 0) {
             // Update hourly usage as weighted average (70% old, 30% new)
@@ -108,6 +114,7 @@ void WaterTank::updateUsage() {
             } else {
                 dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3);
             }
+            logger.log(INFO, "Water updateUsage: dailyPercentUsed updated to %f", dailyPercentUsed);
         }
         
         lastLevel = currentLevel;
