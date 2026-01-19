@@ -42,39 +42,10 @@ void WaterTank::readWaterLevel()
     int analogValue = adcSum / NUM_SAMPLES;
     double voltage = (analogValue * 3.3) / 4095;
     
-    // Auto-calibration: Detect fill events (rapid voltage increase)
-    unsigned long now = millis();
-    if (now - lastCalCheck > 5000) { // Check every 5 seconds
-        float voltageChange = voltage - lastVoltage;
-        
-        // Detect filling: voltage increases >0.3V in 5 seconds AND near expected full range
-        if (voltageChange > 0.3 && voltage > 2.5) {
-            // Calculate offset from expected full voltage
-            float offset = voltage - 2.90; // 2.90V is theoretical full (33Ω)
-            
-            // Apply same offset to both full and empty calibration points
-            fullVoltage = voltage;              // Actual measured full
-            emptyVoltage = 1.65 + offset;       // Apply offset to empty (240Ω)
-            isCalibrated = true;
-            
-            logger.log(INFO, "Water Tank: Fill detected! Auto-calibrated.");
-            logger.log(INFO, "  Measured full: %fV, Offset: %fV", fullVoltage, offset);
-            logger.log(INFO, "  Calibrated empty: %fV, Range: %fV", emptyVoltage, fullVoltage - emptyVoltage);
-        }
-        
-        lastVoltage = voltage;
-        lastCalCheck = now;
-    }
-    
-    // Calculate percentage using calibrated or default values
-    // Higher voltage = fuller tank
-    double percent;
-    if (isCalibrated) {
-        percent = ((voltage - emptyVoltage) / (fullVoltage - emptyVoltage)) * 100.0;
-    } else {
-        // Use default theoretical values until calibrated
-        percent = ((voltage - 1.65) / (2.90 - 1.65)) * 100.0;
-    }
+    // Fixed voltage mapping:
+    // Full (33Ω): 2.90V = 100%
+    // Empty (240Ω): 1.65V = 0%
+    double percent = ((voltage - 1.65) / (2.90 - 1.65)) * 100.0;
     
     percent = constrain(percent, 0, 100);
     int level = static_cast<int>(percent);
@@ -133,39 +104,3 @@ void WaterTank::updateDaysRemaining()  {
     }
 }
 
-// Pump class implementation
-void WaterPump::init() {
-    pinMode(WATER_PUMP_INDICATOR_LIGHT, OUTPUT);
-    digitalWrite(WATER_PUMP_INDICATOR_LIGHT, LOW);
-}
-
-void WaterPump::updateLight() {
-  bool running = isRunning();
-  unsigned long now = millis();
-  if (running) {
-    if (!wasRunning) runningStart = now;
-    if (now - runningStart > 60000) {
-      // Flash the output pin (toggle every 500ms)
-      if (((now / 500) % 2) == 0) {
-        digitalWrite(WATER_PUMP_INDICATOR_LIGHT, HIGH);
-      } else {
-        digitalWrite(WATER_PUMP_INDICATOR_LIGHT, LOW);
-      }
-    } else {
-      digitalWrite(WATER_PUMP_INDICATOR_LIGHT, HIGH); // Keep HIGH while running but not yet flashing
-    }
-  } else {
-    runningStart = now;
-    digitalWrite(WATER_PUMP_INDICATOR_LIGHT, LOW);
-  }
-  wasRunning = running;
-}
-
-//
-// sensor zero pint is 2.5v (half of 5v)
-// we're running the sensor backwards so that 0 is 2.5 and 5a is 0 
-bool WaterPump::isRunning() {
-  int analogValue = analogRead(WATER_PUMP_CURRENT_ANALOG_PIN);
-  double voltage = (analogValue / 4095.0) * 3.3;
-  return voltage < PUMP_CURRENT_THRESHOLD;
-}

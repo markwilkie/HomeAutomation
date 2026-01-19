@@ -17,8 +17,7 @@
 #define BITMAP_UPDATE_TIME 5000
 #define BLE_IS_ALIVE_TIME 30000
 #define BT_TIMEOUT_MS	5000
-#define WATER_CHECK_TIME 60000      // Check water tank every 1 minute
-#define GAS_CHECK_TIME  600000       // Check gas tank every 10 minutes
+#define TANK_CHECK_TIME   600000       // Check gas tank every 10 minutes
 #define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
 #define BLE_RECONNECT_TIME 60000    // Restart BLE scan every 60 seconds if not all devices connected
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
@@ -45,7 +44,6 @@ Logger logger;
 PowerLogger powerLogger;
 
 WaterTank waterTank;
-WaterPump waterPump;
 GasTank gasTank;
 
 //state
@@ -55,8 +53,7 @@ long lastScrUpdatetime=0;
 long lastBitmapUpdatetime=0;
 long lastBleIsAliveTime=0;
 long lastPwrUpdateTime=0;
-long lastWaterCheckTime=-60000;  // Start negative so first check happens immediately
-long lastGasCheckTime=0;         // Wait full GAS_CHECK_TIME before first check (WiFi stop was causing crash)
+long lastTankCheckTime=0;
 long lastWifiCheckTime=0;
 long lastBleReconnectTime=0;
 int renogyCmdSequenceToSend=0;
@@ -86,10 +83,6 @@ void setup()
 
 	//Reset power logger
 	powerLogger.reset(&rtc);
-
-	//Init water tank and pump
-	//waterTank.init();
-	waterPump.init();
 
 	//Start BLE
 	startBLE();
@@ -496,8 +489,6 @@ void loop()
 		}
 		layout.setWifiIndicator(wifi.isConnected());
 
-		//water pump indicator light
-		waterPump.updateLight();
 		// Track water usage percentage per day
 		waterTank.updateUsage();
 		// Track gas usage percentage per day
@@ -523,36 +514,28 @@ void loop()
 		lastBitmapUpdatetime=millis();
 	}
 
-	// Check water tank every 1 minute
-	if(millis() - lastWaterCheckTime > WATER_CHECK_TIME) {
-		waterTank.readWaterLevel();
-		waterTank.updateDaysRemaining();
-		lastWaterCheckTime = millis();
-	}
-
-	// Check gas tank every 10 minutes
-	// WiFi must be disabled before reading GPIO11 due to hardware conflict
-	if((millis() - lastGasCheckTime) > GAS_CHECK_TIME) {
+	// Check gas and water tank every 10 minutes
+	if(millis() - lastTankCheckTime > TANK_CHECK_TIME) {
 		if(wifi.isConnected()) {
-			//turnOffBLE();
-			//delay(1000); // Allow BLE to fully stop
 			wifi.stopWifi();
 			delay(1000); // Allow WiFi to fully stop
 		}
-		gasTank.readGasLevel();
-		gasTank.updateDaysRemaining();
+		waterTank.readWaterLevel();
+		waterTank.updateDaysRemaining();
 
-		logger.log("Re-enabling WiFi and BLE after gas tank check");
+		gasTank.readGasLevel();
+		gasTank.updateDaysRemaining();		
 
 		wifi.startWifi();
-		delay(1000); // Allow WiFi to fully start
-		//turnOnBLE();
-		lastGasCheckTime = millis();
+		delay(1000); // Allow WiFi to fully start		
+		logger.log("Re-enabling WiFi and BLE after gas and water tank check");
+		lastTankCheckTime = millis();
 	}
 
 	//Time to ask for data again? Cycle through devices
+	// Only send if not waiting for a response (semaphore is free)
 	static int deviceCycle = 0;
-	if (millis()>lastCheckedTime+POLL_TIME_MS) 
+	if (millis()>lastCheckedTime+POLL_TIME_MS && !bleSemaphore.waitingForResponse && !bleSemaphore.waitingForConnection) 
 	{
 		lastCheckedTime=millis();
 		if (deviceCycle == 0 && bt2Reader.isConnected()) 
