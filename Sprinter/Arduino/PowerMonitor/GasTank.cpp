@@ -47,10 +47,10 @@ float GasTank::linearizeADC(int adc) {
 void GasTank::readGasLevel()
 {
     int adc = readADC();
-    float force = linearizeADC(adc); // Get linearized force reading
-    
-    logger.log(INFO, "Gas Tank: readGasLevel called - ADC: %d, force: %.1fg, bottlePresent: %s", 
-               adc, force, bottlePresent ? "true" : "false");
+    logger.log(INFO, "Gas Tank: Raw ADC reading: %d", adc);
+
+    float force = linearizeADC(adc); // Get linearized force reading  
+    logger.log(INFO, "Gas Tank: readGasLevel called - ADC: %d, force: %fg", adc, force);
     
     if (!bottlePresent) {
         // No bottle detected - check for new bottle installation

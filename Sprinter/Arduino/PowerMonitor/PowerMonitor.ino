@@ -17,7 +17,7 @@
 #define BLE_IS_ALIVE_TIME 30000
 #define BT_TIMEOUT_MS	5000
 #define WATER_CHECK_TIME 60000      // Check water tank every 1 minute
-#define GAS_CHECK_TIME 600000       // Check gas tank every 10 minutes
+#define GAS_CHECK_TIME  600000       // Check gas tank every 10 minutes
 #define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
 #define BLE_RECONNECT_TIME 60000    // Restart BLE scan every 60 seconds if not all devices connected
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
@@ -249,6 +249,7 @@ void disconnectCallback(BLEDevice peripheral)
 {
 	bleSemaphore.waitingForConnection=false;
 	bleSemaphore.waitingForResponse=false;
+	bleSemaphore.btDevice=nullptr;  // Clear stale pointer
 
 	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
 	{	
@@ -326,6 +327,7 @@ void screenTouchedCallback(int x,int y)
 
 void turnOffBLE()
 {
+	logger.log(INFO,"Turning off BLE");
 	layout.setBLEIndicator(TFT_BLACK);			
 	BLE.stopScan();
 	BLE.disconnect();
@@ -531,12 +533,19 @@ void loop()
 	// WiFi must be disabled before reading GPIO11 due to hardware conflict
 	if((millis() - lastGasCheckTime) > GAS_CHECK_TIME) {
 		if(wifi.isConnected()) {
+			//turnOffBLE();
+			//delay(1000); // Allow BLE to fully stop
 			wifi.stopWifi();
 			delay(1000); // Allow WiFi to fully stop
 		}
 		gasTank.readGasLevel();
 		gasTank.updateDaysRemaining();
+
+		logger.log("Re-enabling WiFi and BLE after gas tank check");
+
 		wifi.startWifi();
+		delay(1000); // Allow WiFi to fully start
+		//turnOnBLE();
 		lastGasCheckTime = millis();
 	}
 

@@ -149,9 +149,12 @@ int SOKReader::bytesToInt(uint8_t *bytes, int len, boolean isSigned)
 void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore) 
 {
 	//Make sure we're clear to send
-	if(bleSemaphore->waitingForResponse)
+	if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 	{
-		logger.log(INFO,"SOK %d: BLE device %s in use when another send attempt was tried", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
+		if(bleSemaphore->btDevice)
+			logger.log(INFO,"SOK %d: BLE device %s in use when another send attempt was tried", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
+		else
+			logger.log(INFO,"SOK %d: BLE semaphore busy (no device)", batteryNumber);
 		return;
 	}
 

@@ -248,9 +248,12 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters,BLE_SEMAPHORE* bleSemaphore) 
 {
 	//Make sure we're clear to send
-	if(bleSemaphore->waitingForResponse)
+	if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 	{
-		logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+		if(bleSemaphore->btDevice)
+			logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+		else
+			logger.log(INFO,"BLE semaphore busy (no device)");
 		return;
 	}
 

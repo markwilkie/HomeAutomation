@@ -306,13 +306,13 @@ void Layout::showWaterDetail()
 	lcd.setTextColor(WATER_FILL);
 	lcd.setTextSize(8);
 	lcd.setCursor(lcd.width()/2 - 80, lcd.height()/2 - 20);
-	lcd.printf("%d%%", (int)displayData.stateOfWater);
+	lcd.printf("%d", (int)displayData.stateOfWater);
 	
 	// Show days remaining
 	lcd.setTextColor(TFT_WHITE);
 	lcd.setTextSize(3);
 	lcd.setCursor(lcd.width()/2 - 100, lcd.height()/2 + 80);
-	lcd.printf("%.1f days left", displayData.waterDaysRem);
+	lcd.printf("%f days left", displayData.waterDaysRem);
 	
 	// Show touch prompt
 	lcd.setTextColor(TFT_DARKGREY);
