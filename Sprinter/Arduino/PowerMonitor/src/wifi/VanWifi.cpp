@@ -10,9 +10,11 @@ void VanWifi::startWifi()
   if(isConnected())
     return;
 
-  //Setup wifi
-  esp_wifi_start();
-  WiFi.disconnect(false);  // Reconnect the network
+  logger.log(INFO, "Starting WiFi...");
+
+  //Setup wifi 
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);    // Switch WiFi on
 
   // Add list of wifi networks
@@ -65,12 +67,16 @@ void VanWifi::startWifi()
 
 void VanWifi::stopWifi()
 {
+  if(!isConnected()) {
+    logger.log(INFO, "WiFi not connected, skipping stop");
+    return;
   }
   
   logger.log(INFO, "Stopping WiFi");
-  WiFi.disconnect(true);  // disconnect and turn off station mode
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(true,true);  // disconnect and turn off station mode
   delay(200);  // Allow disconnect to complete
-  esp_wifi_stop();
+  WiFi.mode(WIFI_OFF);  
   delay(200);  // Allow mode change to complete  
   // Note: Don't call esp_wifi_stop() - it causes crashes on ESP32-S3
   // WiFi.mode(WIFI_OFF) is sufficient to release GPIO11
@@ -95,6 +101,11 @@ DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
   }
   
   http.setTimeout(45000);  // Set timeout to 45 seconds
+  
+  // Add RapidAPI headers
+  http.addHeader("X-Rapidapi-Key", "bd06869c8cmsh236b160699d9725p1e8579jsn8c7774bf1408");
+  http.addHeader("X-Rapidapi-Host", "world-time-api3.p.rapidapi.com");
+  http.addHeader("Host", "world-time-api3.p.rapidapi.com");
 
   // Send HTTP GET request
   int httpResponseCode = http.GET();
