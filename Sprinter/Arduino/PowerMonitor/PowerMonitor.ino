@@ -8,7 +8,8 @@
 #include "WaterTank.h"
 #include "GasTank.h"
 
-#define TIMEAPI_URL "https://timeapi.io/api/time/current/zone?timeZone=America/Los_Angeles"
+#define TIMEAPI_URL "https://world-time-api3.p.rapidapi.com/timezone/America/Los_Angeles"
+//#define TIMEAPI_URL "https://timeapi.io/api/time/current/zone?timeZone=America/Los_Angeles"
 //#define TIMEAPI_URL "http://worldtimeapi.org/api/timezone/America/Los_Angeles"
 
 #define POLL_TIME_MS	500
@@ -148,15 +149,14 @@ void setTime()
 	serializeJson(timeDoc, debugOutput);
 	logger.log(INFO, "Time API response: %s", debugOutput.c_str());
 	
-	/*
 	long epoch=timeDoc["unixtime"].as<long>();
     long offset=timeDoc["raw_offset"].as<long>();
     long dstOffset=timeDoc["dst_offset"].as<long>();
 
 	rtc.offset=offset+dstOffset;		
 	rtc.setTime(epoch);
-	*/
 
+	/*
 	int seconds=timeDoc["seconds"].as<int>();
 	int minutes=timeDoc["minute"].as<int>();
 	int hours=timeDoc["hour"].as<int>();
@@ -174,6 +174,7 @@ void setTime()
 
 	rtc.setTime(seconds, minutes, hours, day, month, year);
 	logger.log(INFO,"Time set to %d/%d/%d %d:%d:%d",month,day,year,hours,minutes,seconds);
+	*/
 
 	lastRTCUpdateTime=millis();
 }
