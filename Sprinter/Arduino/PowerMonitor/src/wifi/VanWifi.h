@@ -9,7 +9,6 @@
 #include <HTTPClient.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
 
@@ -34,6 +33,7 @@ class VanWifi
   private: 
 
     WiFiMulti wifiMulti;
+    bool apAdded = false;         // Track if APs have been added
 };
 
 #endif

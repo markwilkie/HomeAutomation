@@ -72,7 +72,10 @@ void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
 		//Make sure we're not busy
 		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 		{
-			logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+			if(bleSemaphore->btDevice)
+				logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+			else
+				logger.log(INFO,"BLE semaphore busy (no device)");
 			return;
 		}
 		//Set semaphore for connect

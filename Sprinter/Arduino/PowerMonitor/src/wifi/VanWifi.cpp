@@ -17,10 +17,12 @@ void VanWifi::startWifi()
   WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);    // Switch WiFi on
 
-  // Add list of wifi networks
-  wifiMulti.addAP(VANSSID, PASSWORD);
-  wifiMulti.addAP(LFPSSID, PASSWORD);
-  //WiFi.begin(SSID, PASSWORD);
+  // Add list of wifi networks (only once)
+  if (!apAdded) {
+    wifiMulti.addAP(VANSSID, PASSWORD);
+    wifiMulti.addAP(LFPSSID, PASSWORD);
+    apAdded = true;
+  }
 
   //Connects to the wifi with the strongest signal
   if(wifiMulti.run(connectTimeoutMs) == WL_CONNECTED) 
@@ -31,35 +33,6 @@ void VanWifi::startWifi()
   {
     logger.log(ERROR,"Could not connect to Wifi.  Moving on....");
   }
-
-  //Init OTA
-  ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-        type = "filesystem";
-
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      logger.log(WARNING,"Starting OTA updating ");
-    })
-    .onEnd([]() {
-      logger.log(INFO,"\nEnd OTA");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      //logger.log("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      logger.log(ERROR,"OTA Problem: %s",error);
-      if (error == OTA_AUTH_ERROR) { logger.log(ERROR,"Auth Failed"); }
-      else if (error == OTA_BEGIN_ERROR){ logger.log(ERROR,"Begin Failed"); }
-      else if (error == OTA_CONNECT_ERROR){ logger.log(ERROR,"Connect Failed"); }
-      else if (error == OTA_RECEIVE_ERROR) { logger.log(ERROR,"Receive Failed"); }
-       else if (error == OTA_END_ERROR) { logger.log(ERROR,"End Failed"); }
-    });
-
-  ArduinoOTA.begin();
 
   //send logs
   logger.sendLogs(isConnected());
@@ -88,16 +61,18 @@ DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
   DynamicJsonDocument doc(512);
   HTTPClient http;
 
+  // Use stack-allocated clients to avoid memory leaks
+  WiFiClientSecure clientSecure;
+  WiFiClient client;
+
   // Check if URL is HTTPS
   bool isHttps = (strncmp(url, "https://", 8) == 0);
   
   if (isHttps) {
-    WiFiClientSecure *clientSecure = new WiFiClientSecure();
-    clientSecure->setInsecure();  // Skip certificate validation for simplicity
-    http.begin(*clientSecure, url);
+    clientSecure.setInsecure();  // Skip certificate validation for simplicity
+    http.begin(clientSecure, url);
   } else {
-    WiFiClient *client = new WiFiClient();
-    http.begin(*client, url);
+    http.begin(client, url);
   }
   
   http.setTimeout(45000);  // Set timeout to 45 seconds
@@ -105,7 +80,6 @@ DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
   // Add RapidAPI headers
   http.addHeader("X-Rapidapi-Key", "bd06869c8cmsh236b160699d9725p1e8579jsn8c7774bf1408");
   http.addHeader("X-Rapidapi-Host", "world-time-api3.p.rapidapi.com");
-  http.addHeader("Host", "world-time-api3.p.rapidapi.com");
 
   // Send HTTP GET request
   int httpResponseCode = http.GET();
@@ -125,9 +99,6 @@ DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
     
   // Free resources
   http.end();
-
-  Serial.print("GET Response payload: ");
-  Serial.println(payload);
 
   //return payload
   deserializeJson(doc, payload);  

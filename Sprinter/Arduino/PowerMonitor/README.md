@@ -30,10 +30,7 @@ The screen is pretty self explanatory, but a few notes:
   - 10-sample averaging reduces noise from electrical interference
 - **Gas tank monitoring**: Uses Force Sensing Resistor (FSR) with 1lb disposable propane bottles on GPIO11
   - GPIO11 requires WiFi to be disabled during reads due to hardware conflict on ESP32-S3
-  - Auto-calibrates when new full bottle is detected (>400g force)
-  - Linearizes FSR output using conductance method (1/R) per datasheet equation
-  - Calculates percentage based on ~453g (1lb) weight loss from full to empty
-  - Resets usage tracking when bottle is replaced
+  - Direct ADC-to-percentage mapping (ADC 1779=empty, ADC 2349=full, includes 379 offset for plumbing weight)
   - 40-sample averaging for stable readings
 - There are two spark lines which show net amp flow.  The night spark is from 10pm to 7am (PST), and the day spark is last 24 hours.
 - The numbers by the spark lines are the sum of the spark in amp hours  (e.g. night spark could show 12, which would mean 12ah were used)

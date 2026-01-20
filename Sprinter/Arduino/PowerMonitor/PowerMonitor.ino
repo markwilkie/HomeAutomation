@@ -17,7 +17,7 @@
 #define BITMAP_UPDATE_TIME 5000
 #define BLE_IS_ALIVE_TIME 30000
 #define BT_TIMEOUT_MS	5000
-#define TANK_CHECK_TIME   600000       // Check gas tank every 10 minutes
+#define TANK_CHECK_TIME 600000       // Check gas and water tank every 10 minutes
 #define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
 #define BLE_RECONNECT_TIME 60000    // Restart BLE scan every 60 seconds if not all devices connected
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
@@ -73,7 +73,7 @@ void setup()
 	Serial.println("=== PowerMonitor Starting ===");  // Direct serial test
 
 	//init screen and draw initial form
-	logger.log("Drawing form");
+	logger.log("Booting...");
 	layout.init();
 	layout.displayData.batteryMode = BATTERY_COMBINED;  // Initialize to combined view
 	layout.drawInitialScreen();
@@ -400,7 +400,7 @@ void checkForStaleData()
 	{
 		logger.log(INFO,"BLE data is stale!  Restarting BLE");
 		turnOffBLE();
-		delay(1000);
+		delay(1000);  // BLE is off, no need for BLE.poll()
 		turnOnBLE();
 	}
 }
@@ -441,11 +441,14 @@ void loop()
 	if(isTimedout())
 	{
 		logger.log(INFO,"BLE operation timed out, disconnecting");
-		if(bleSemaphore.btDevice->getBLEDevice())
+		if(bleSemaphore.btDevice && bleSemaphore.btDevice->getBLEDevice())
 			bleSemaphore.btDevice->getBLEDevice()->disconnect();
 		bleSemaphore.waitingForConnection=false;
 		bleSemaphore.waitingForResponse=false;
 		bleSemaphore.btDevice=nullptr;
+		
+		// Delay to let BLE stack settle before restarting scan
+		delay(500);
 		
 		// Restart scanning to give failed device another chance
 		logger.log(INFO,"Restarting BLE scan after timeout");
@@ -518,7 +521,8 @@ void loop()
 	if(millis() - lastTankCheckTime > TANK_CHECK_TIME) {
 		if(wifi.isConnected()) {
 			wifi.stopWifi();
-			delay(1000); // Allow WiFi to fully stop
+			// Allow WiFi to fully stop while keeping BLE alive
+			for(int i = 0; i < 100; i++) { BLE.poll(); delay(10); }
 		}
 		waterTank.readWaterLevel();
 		waterTank.updateDaysRemaining();
@@ -527,8 +531,9 @@ void loop()
 		gasTank.updateDaysRemaining();		
 
 		wifi.startWifi();
-		delay(1000); // Allow WiFi to fully start		
-		logger.log("Re-enabling WiFi and BLE after gas and water tank check");
+		// Allow WiFi to fully start while keeping BLE alive
+		for(int i = 0; i < 100; i++) { BLE.poll(); delay(10); }
+		logger.log("Re-enabling WiFi after gas and water tank check");
 		lastTankCheckTime = millis();
 	}
 

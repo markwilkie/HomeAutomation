@@ -43,17 +43,16 @@ float GasTank::linearizeADC(int adc) {
     return force; // Returns linearized force in grams
 }
 
-// Read gas level using calibrated ADC values
-// ADC 1400 = empty (0%), ADC 1970 = full (100%)
-#define GAS_ADC_EMPTY 1400
-#define GAS_ADC_FULL  1970
+// Read gas level using direct ADC mapping
+// ADC 1400 = empty (0%), ADC 1970 = full (100%), 379 is extra plumbing on tank
+#define GAS_ADC_EMPTY 1400+379
+#define GAS_ADC_FULL  1970+379
 
 void GasTank::readGasLevel()
 {
     int adc = readADC();
-
+    
     // Simple linear mapping from ADC to percentage
-    // ADC range: 1400 (empty) to 1970 (full) = 570 units
     float percentage = ((float)(adc - GAS_ADC_EMPTY) / (float)(GAS_ADC_FULL - GAS_ADC_EMPTY)) * 100.0;
     
     // Bounds checking

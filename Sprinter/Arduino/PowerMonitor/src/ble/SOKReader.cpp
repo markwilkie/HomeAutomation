@@ -22,6 +22,10 @@ void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore)
 		if(connected)
 			return;
 
+		//Already attempting connection for THIS device? Skip
+		if(bleSemaphore->waitingForConnection && bleSemaphore->btDevice == this)
+			return;
+
 		//Set device
 		bleDevice=peripheral;
 
