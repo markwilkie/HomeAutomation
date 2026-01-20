@@ -75,7 +75,7 @@ DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
     http.begin(client, url);
   }
   
-  http.setTimeout(45000);  // Set timeout to 45 seconds
+  http.setTimeout(10000);  // Set timeout to 10 seconds (was 45)
   
   // Add RapidAPI headers
   http.addHeader("X-Rapidapi-Key", "bd06869c8cmsh236b160699d9725p1e8579jsn8c7774bf1408");

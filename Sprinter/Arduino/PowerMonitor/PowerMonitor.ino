@@ -17,7 +17,7 @@
 #define BITMAP_UPDATE_TIME 5000
 #define BLE_IS_ALIVE_TIME 30000
 #define BT_TIMEOUT_MS	5000
-#define TANK_CHECK_TIME 600000       // Check gas and water tank every 10 minutes
+#define TANK_CHECK_TIME 60000       // Check gas and water tank every 10 minutes
 #define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
 #define BLE_RECONNECT_TIME 60000    // Restart BLE scan every 60 seconds if not all devices connected
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
@@ -56,6 +56,8 @@ long lastPwrUpdateTime=0;
 long lastTankCheckTime=0;
 long lastWifiCheckTime=0;
 long lastBleReconnectTime=0;
+long lastBleConnectAttempt=0;  // Throttle connection attempts
+#define BLE_CONNECT_THROTTLE_MS 2000  // Minimum ms between connection attempts
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
@@ -73,12 +75,11 @@ void setup()
 	Serial.println("=== PowerMonitor Starting ===");  // Direct serial test
 
 	//init screen and draw initial form
-	logger.log("Booting...");
+	logger.log(WARNING,"Booting...");
 	layout.init();
 	layout.displayData.batteryMode = BATTERY_COMBINED;  // Initialize to combined view
 	layout.drawInitialScreen();
 
-	logger.log("Starting wifi...");
     wifi.startWifi();
 
 	//Reset power logger
@@ -98,7 +99,7 @@ void setup()
 
 	// start scanning for peripherals
 	delay(2000);
-	logger.log("Starting BLE scan");	
+	logger.log(WARNING,"Starting BLE scan for the first time");	
 	BLE.scan(true);  //scan with duplicates - meaning, it'll keep showing the same ones over and over
 
 	//setting time
@@ -113,7 +114,7 @@ void setup()
 
 void startBLE()
 {
-	logger.log("ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK battery");
+	logger.log(INFO,"ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK batteries");
 	if (!BLE.begin()) 
 	{
 		logger.log(ERROR,"Starting Bluetooth® Low Energy module failed!.  Restarting in 10 seconds.");
@@ -129,12 +130,12 @@ void setTime()
 		wifi.startWifi();
 		if(!wifi.isConnected())
 		{
-			logger.log("Tried to get latest time, but no internet connection");
+			logger.log(WARNING,"Tried to get latest time, but no internet connection");
 			return;
 		}
 	}
 
-	logger.log("Getting latest time...");
+	logger.log(INFO,"Getting latest time...");
     DynamicJsonDocument timeDoc=wifi.sendGetMessage(TIMEAPI_URL);	
 	
 	// Debug: log the raw response
@@ -204,7 +205,7 @@ void connectCallback(BLEDevice peripheral)
 
 	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
 	{
-		logger.log("SOK Battery 1 connect callback");
+		logger.log(INFO, "SOK Battery 1 connect callback");
 		if (sokReader1.connectCallback(&peripheral,&bleSemaphore)) 
 		{
 			logger.log(INFO,"Connected to SOK Battery 1 %s",peripheral.address().c_str());	
@@ -213,7 +214,7 @@ void connectCallback(BLEDevice peripheral)
 
 	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
 	{
-		logger.log("SOK Battery 2 connect callback");
+		logger.log(INFO, "SOK Battery 2 connect callback");
 		if (sokReader2.connectCallback(&peripheral,&bleSemaphore)) 
 		{
 			logger.log(INFO,"Connected to SOK Battery 2 %s",peripheral.address().c_str());	
@@ -234,7 +235,7 @@ void connectCallback(BLEDevice peripheral)
 	if(stopScanning)
 	{
 		layout.setBLEIndicator(TFT_BLUE);
-		logger.log("All devices connected.  Showing online and stopping scan");
+		logger.log(WARNING,"All devices connected.  Showing online and stopping scan");
 		BLE.stopScan();
 	}
 }
@@ -264,8 +265,8 @@ void disconnectCallback(BLEDevice peripheral)
 	}	
 
 	layout.setBLEIndicator(TFT_DARKGRAY);
-	logger.log(INFO,"Starting BLE scan again");
-	BLE.scan();
+	logger.log(WARNING,"Starting BLE scan again");
+	BLE.scan(true);
 }
 
 void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
@@ -321,7 +322,7 @@ void screenTouchedCallback(int x,int y)
 
 void turnOffBLE()
 {
-	logger.log(INFO,"Turning off BLE");
+	logger.log(WARNING,"Turning off BLE");
 	layout.setBLEIndicator(TFT_BLACK);			
 	BLE.stopScan();
 	BLE.disconnect();
@@ -332,10 +333,9 @@ void turnOnBLE()
 {
 	layout.setBLEIndicator(TFT_DARKGRAY);
 	startBLE();
-	logger.log(INFO,"Starting BLE scan again");
-	BLE.scan();	
+	logger.log(WARNING,"Starting BLE and scanning");
+	BLE.scan(true);	
 }
-
 
 void longScreenTouchedCallback(int x,int y)
 {
@@ -344,14 +344,14 @@ void longScreenTouchedCallback(int x,int y)
 	{
 		static bool BLEOn=true;
 		BLEOn=!BLEOn;
-		logger.log(INFO,"BLE Toggled %d (%d,%d)",BLEOn,x,y);
+		logger.log(WARNING,"BLE Toggled %d (%d,%d)",BLEOn,x,y);
 		if(!BLEOn)
 		{
 			disconnectBLE();
 		}
 		else
 		{
-			reStartBLE();
+			startBLE();
 		}
 	}
 }
@@ -360,7 +360,7 @@ void disconnectBLE()
 {
 	layout.setBLEIndicator(TFT_BLACK);			
 	BLE.stopScan();
-	logger.log(INFO,"after stop scan");
+	logger.log(WARNING,"Disconnecting all BLE devices");
 
 	int numOfTargetedDevices=sizeof(targetedDevices)/(sizeof(targetedDevices[0]));
 	for(int i=0;i<numOfTargetedDevices;i++)
@@ -370,11 +370,7 @@ void disconnectBLE()
 		//targetedDevices[i]->disconnect();
 	}
 
-	logger.log(INFO,"after disconnecting");
-	
 	BLE.disconnect();
-
-	logger.log(INFO,"after ble disconnecting");
 
 	for(int i=0;i<numOfTargetedDevices;i++)
 	{
@@ -386,19 +382,11 @@ void disconnectBLE()
 	//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??	
 }
 
-void reStartBLE()
-{
-	layout.setBLEIndicator(TFT_DARKGRAY);
-	startBLE();
-	logger.log(INFO,"Starting BLE scan again");
-	BLE.scan();	
-}
-
 void checkForStaleData()
 {
 	if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!sokReader2.isCurrent() && sokReader2.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
 	{
-		logger.log(INFO,"BLE data is stale!  Restarting BLE");
+		logger.log(WARNING,"BLE data is stale!  Restarting BLE");
 		turnOffBLE();
 		delay(1000);  // BLE is off, no need for BLE.poll()
 		turnOnBLE();
@@ -423,7 +411,7 @@ void checkForDisconnectedDevices()
 	// If not all devices connected, restart BLE scan
 	if(!allConnected && (millis() - lastBleReconnectTime > BLE_RECONNECT_TIME))
 	{
-		logger.log(INFO, "Not all BLE devices connected, restarting scan...");
+		logger.log(WARNING, "Not all BLE devices connected, restarting scan...");
 		BLE.stopScan();
 		delay(100);
 		BLE.scan(true);
@@ -451,8 +439,8 @@ void loop()
 		delay(500);
 		
 		// Restart scanning to give failed device another chance
-		logger.log(INFO,"Restarting BLE scan after timeout");
-		BLE.scan();
+		logger.log(WARNING,"Restarting BLE scan after timeout");
+		BLE.scan(true);
 	}
 
 	//time to update power logs?
@@ -518,11 +506,13 @@ void loop()
 	}
 
 	// Check gas and water tank every 10 minutes
-	if(millis() - lastTankCheckTime > TANK_CHECK_TIME) {
+	// Only run when BLE is idle to avoid conflicts
+	if(millis() - lastTankCheckTime > TANK_CHECK_TIME && 
+	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse) 
+	{
 		if(wifi.isConnected()) {
 			wifi.stopWifi();
-			// Allow WiFi to fully stop while keeping BLE alive
-			for(int i = 0; i < 100; i++) { BLE.poll(); delay(10); }
+			delay(100);  // Brief delay for WiFi to fully stop
 		}
 		waterTank.readWaterLevel();
 		waterTank.updateDaysRemaining();
@@ -531,9 +521,8 @@ void loop()
 		gasTank.updateDaysRemaining();		
 
 		wifi.startWifi();
-		// Allow WiFi to fully start while keeping BLE alive
-		for(int i = 0; i < 100; i++) { BLE.poll(); delay(10); }
-		logger.log("Re-enabling WiFi after gas and water tank check");
+		delay(100);  // Brief delay for WiFi to start
+		logger.log(INFO, "Re-enabling WiFi after gas and water tank check");
 		lastTankCheckTime = millis();
 	}
 
@@ -574,7 +563,9 @@ void loop()
 	}
 
 	//Time to refresh rtc?
-	if((lastRTCUpdateTime+REFRESH_RTC) < millis())
+	// Only run when BLE is idle to avoid blocking BLE operations
+	if((lastRTCUpdateTime+REFRESH_RTC) < millis() && 
+	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse)
 	{
 		lastRTCUpdateTime=millis();
 		setTime();

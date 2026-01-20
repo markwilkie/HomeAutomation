@@ -61,7 +61,7 @@ void GasTank::readGasLevel()
     
     gasLevel = static_cast<int>(percentage);
     
-    logger.log(INFO, "Gas Tank: Level %d (ADC: %d)", gasLevel, adc);
+    logger.log(INFO, "Gas Tank Level %d (ADC %d)", gasLevel, adc);
 }
 
 void GasTank::updateUsage()
