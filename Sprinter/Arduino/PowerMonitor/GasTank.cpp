@@ -45,8 +45,8 @@ float GasTank::linearizeADC(int adc) {
 
 // Read gas level using direct ADC mapping
 // ADC 1400 = empty (0%), ADC 1970 = full (100%), 379 is extra plumbing on tank
-#define GAS_ADC_EMPTY 1400+379
-#define GAS_ADC_FULL  1970+379
+#define GAS_ADC_EMPTY (1400+379)
+#define GAS_ADC_FULL  (1970+379)
 
 void GasTank::readGasLevel()
 {

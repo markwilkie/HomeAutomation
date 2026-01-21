@@ -47,7 +47,7 @@ WaterTank waterTank;
 GasTank gasTank;
 
 //state
-BLE_SEMAPHORE bleSemaphore;
+BLE_SEMAPHORE bleSemaphore = {nullptr, 0, 0, false, false};  // Initialize all fields
 long lastRTCUpdateTime=0;
 long lastScrUpdatetime=0;
 long lastBitmapUpdatetime=0;
@@ -522,7 +522,7 @@ void loop()
 
 		wifi.startWifi();
 		delay(100);  // Brief delay for WiFi to start
-		logger.log(INFO, "Re-enabling WiFi after gas and water tank check");
+		//logger.log(INFO, "Re-enabling WiFi after gas and water tank check");
 		lastTankCheckTime = millis();
 	}
 
@@ -583,6 +583,21 @@ void loop()
 boolean isTimedout()
 {
 	boolean timedOutFlag=false;
+
+	// Only check timeout if startTime is reasonable (set within the last minute)
+	// This prevents false timeouts from stale/uninitialized semaphore state
+	if(bleSemaphore.startTime == 0 || (millis() - bleSemaphore.startTime) > 60000)
+	{
+		// Stale semaphore - clear it
+		if(bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse)
+		{
+			logger.log(WARNING, "Clearing stale BLE semaphore");
+			bleSemaphore.waitingForConnection = false;
+			bleSemaphore.waitingForResponse = false;
+			bleSemaphore.btDevice = nullptr;
+		}
+		return false;
+	}
 
 	if((bleSemaphore.startTime+BT_TIMEOUT_MS) < millis()  && (bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse))
 	{

@@ -45,7 +45,7 @@ void VanWifi::stopWifi()
     return;
   }
   
-  logger.log(INFO, "Stopping WiFi");
+  //logger.log(INFO, "Stopping WiFi");
   WiFi.setAutoReconnect(false);
   WiFi.disconnect(true,true);  // disconnect and turn off station mode
   delay(200);  // Allow disconnect to complete
@@ -53,7 +53,7 @@ void VanWifi::stopWifi()
   delay(200);  // Allow mode change to complete  
   // Note: Don't call esp_wifi_stop() - it causes crashes on ESP32-S3
   // WiFi.mode(WIFI_OFF) is sufficient to release GPIO11
-  logger.log(INFO, "WiFi stopped");
+  //logger.log(INFO, "WiFi stopped");
 }
 
 DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
