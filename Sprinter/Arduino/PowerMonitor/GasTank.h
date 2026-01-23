@@ -8,8 +8,6 @@ extern Logger logger;
 
 //Defines
 #define GAS_LEVEL_ANALOG_PIN 13 // GPIO13 for gas level sensor (WiFi must be disabled during read)
-#define GAS_NO_BOTTLE_THRESH 1000 // ADC threshold below which bottle is considered removed
-#define GAS_NEW_BOTTLE_THRESH 1500 // ADC threshold above which new bottle is detected
 #define GAS_ADC_SAMPLES 40 // Number of samples to average for reading
 #define USAGE_CHECK_INTERVAL 3600000UL // Check usage every hour (in milliseconds)
 

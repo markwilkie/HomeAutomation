@@ -1,6 +1,14 @@
 # Bluetooth power monitor
 Arduino library to interrogate BT devices and display the results on a small touch screen
 
+## BLE Library
+This project uses **NimBLE-Arduino 2.x** for Bluetooth Low Energy communication. Key implementation notes:
+- NimBLE runs as a FreeRTOS task - the main loop must call `delay(1)` to yield CPU time for BLE event processing
+- Blocking operations (WiFi, HTTP requests, ADC reads) must stop BLE first to avoid notification timeouts
+- SOK batteries use write-without-response (`writeValue(data, len, false)`) - the TX characteristic only supports `canWriteNoResponse`
+- Sequential command pattern: only one command sent at a time, wait for response before sending next
+- Connection parameters: 30-60ms interval, 0 latency, 4s supervision timeout
+
 The screen is pretty self explanatory, but a few notes:
 - Top wifi indicator is white if connected, or black (invisible) if not
 - Top BLE indicator is:  Black=off, Grey=scanning, Yellow=partially connected, Blue=fully connected
@@ -43,6 +51,8 @@ The screen is pretty self explanatory, but a few notes:
 ESP32S3 Dev Notes:
 - Due to the LovyanGFX library, ESP32 2.x core is needed (not 3.x)
 - Be sure to enable USB CDC on boot if you want to print to serial
+- Uses NimBLE-Arduino 2.x (not ArduinoBLE) for better ESP32-S3 compatibility
+- Compile with: `arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc PowerMonitor.ino`
 
 Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
 - ESP32S3 processor  (use esp32s3 dev module for Arduino IDE)
@@ -50,9 +60,9 @@ Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
 - Uses library https://github.com/lovyan03/LovyanGFX with an update (LGFX_ST32-SC01Plus.hpp)
 - Includes built in Wifi and BLE
 
-Supported BT devices as of 9/2023:
-- Renogy BT2
-- SOK bms that ships w/ their batteries
+Supported BT devices as of 1/2026:
+- Renogy BT2 (BT-TH-xxxxxxxx)
+- SOK BMS that ships with their batteries (SOK-xxxxxxx) - supports multiple batteries simultaneously
 
 From [neilsheps Renogy-BT2-Reader](https://github.com/neilsheps/Renogy-BT2-Reader/tree/main) who's great work I've built on top of:
 

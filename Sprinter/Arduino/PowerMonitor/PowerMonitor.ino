@@ -16,10 +16,13 @@
 #define SCR_UPDATE_TIME 500
 #define BITMAP_UPDATE_TIME 5000
 #define BLE_IS_ALIVE_TIME 30000
-#define BT_TIMEOUT_MS	5000
-#define TANK_CHECK_TIME 60000       // Check gas and water tank every 10 minutes
+// Give peripherals more time to deliver the first notify after subscribe/write.
+#define BT_TIMEOUT_MS	15000
+#define TANK_CHECK_TIME 300000       // Check gas and water tank every 5 minutes
 #define WIFI_CHECK_TIME 60000       // Check WiFi connection every 1 minute
+#define SOC_LOG_TIME 60000          // Log SOC from each battery every 1 minute
 #define BLE_RECONNECT_TIME 60000    // Restart BLE scan every 60 seconds if not all devices connected
+#define BLE_STARTUP_TIMEOUT 120000   // Full BLE restart if not all devices connect within 2 minutes
 #define REFRESH_RTC (30L*60L*1000L)    //every 30 minutes
 
 //Objects to handle connection
@@ -48,6 +51,15 @@ GasTank gasTank;
 
 //state
 BLE_SEMAPHORE bleSemaphore = {nullptr, 0, 0, false, false};  // Initialize all fields
+
+// Connection state - matches official NimBLE example pattern
+// NOTE: Do not keep a raw NimBLEAdvertisedDevice pointer; it can become stale and corrupt addresses.
+static NimBLEAddress advAddress;               // Copied address of device to connect to
+static std::string advName;                    // Copied name of device to connect to
+static bool haveAdvDevice = false;             // True when advAddress/advName are valid
+static volatile bool doConnect = false;        // Flag to trigger connection from loop
+static BTDevice* targetDevice = nullptr;       // Our device handler
+
 long lastRTCUpdateTime=0;
 long lastScrUpdatetime=0;
 long lastBitmapUpdatetime=0;
@@ -55,13 +67,54 @@ long lastBleIsAliveTime=0;
 long lastPwrUpdateTime=0;
 long lastTankCheckTime=0;
 long lastWifiCheckTime=0;
+long lastSocLogTime=0;
 long lastBleReconnectTime=0;
 long lastBleConnectAttempt=0;  // Throttle connection attempts
+long bleStartupTime=0;         // Track when BLE was started for startup timeout
 #define BLE_CONNECT_THROTTLE_MS 2000  // Minimum ms between connection attempts
 int renogyCmdSequenceToSend=0;
 long lastCheckedTime=0;
 long hertzTime=0;
 int hertzCount=0;
+
+// NimBLE scan and client callback handlers - NimBLE 2.x API
+class MyScanCallbacks : public NimBLEScanCallbacks {
+public:
+    void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override;
+    void onScanEnd(const NimBLEScanResults& results, int reason) override;
+};
+
+class MyClientCallbacks : public NimBLEClientCallbacks {
+public:
+    void onConnect(NimBLEClient* pClient) override;
+    void onDisconnect(NimBLEClient* pClient, int reason) override;
+};
+
+static MyScanCallbacks scanCallbacks;
+static MyClientCallbacks clientCallbacks;
+static NimBLEScan* pBLEScan = nullptr;
+static bool scanningEnabled = true;
+
+// Forward declarations
+void bt2NotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify);
+void sok1NotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify);
+void sok2NotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify);
+void handleConnection(NimBLEClient* pClient, NimBLEAddress address);
+bool connectToServer();
+
+void startBLE()
+{
+	logger.log(INFO,"NimBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK batteries");
+	NimBLEDevice::init("");
+	NimBLEDevice::setPower(3);  // 3 dBm like official example
+	
+	pBLEScan = NimBLEDevice::getScan();
+	// Use callbacks like official example - no duplicates (false)
+	pBLEScan->setScanCallbacks(&scanCallbacks, false);
+	pBLEScan->setActiveScan(true);
+	pBLEScan->setInterval(100);
+	pBLEScan->setWindow(100);  // Match interval like official example
+}
 
 void setup() 
 {
@@ -88,39 +141,24 @@ void setup()
 	//Start BLE
 	startBLE();
 
-	//Set BLE callback functions
-	BLE.setEventHandler(BLEDiscovered, scanCallback);
-	BLE.setEventHandler(BLEConnected, connectCallback);
-	BLE.setEventHandler(BLEDisconnected, disconnectCallback);	
-
 	//Set touch callback functions
 	screen.addTouchCallback(&screenTouchedCallback);
 	screen.addLongTouchCallback(&longScreenTouchedCallback);
 
+	//setting time BEFORE starting scan (avoids scan callback during HTTP request)
+	setTime();	
+
 	// start scanning for peripherals
 	delay(2000);
 	logger.log(WARNING,"Starting BLE scan for the first time");	
-	BLE.scan(true);  //scan with duplicates - meaning, it'll keep showing the same ones over and over
-
-	//setting time
-	setTime();	
+	scanningEnabled = true;
+	pBLEScan->start(0, false, false);  // Scan continuously
 
 	//set time to current so it waits before checking the first time
 	lastBleIsAliveTime=millis();
 	lastBitmapUpdatetime=millis();
 
 	logger.sendLogs(wifi.isConnected());
-}
-
-void startBLE()
-{
-	logger.log(INFO,"ArduinoBLE (via ESP32-S3) connecting to Renogy BT-2 and SOK batteries");
-	if (!BLE.begin()) 
-	{
-		logger.log(ERROR,"Starting Bluetooth® Low Energy module failed!.  Restarting in 10 seconds.");
-		delay(10000);
-		ESP.restart();
-	}
 }
 
 void setTime()
@@ -141,7 +179,7 @@ void setTime()
 	// Debug: log the raw response
 	String debugOutput;
 	serializeJson(timeDoc, debugOutput);
-	logger.log(INFO, "Time API response: %s", debugOutput.c_str());
+	//logger.log(INFO, "Time API response: %s", debugOutput.c_str());
 	
 	long epoch=timeDoc["unixtime"].as<long>();
     long offset=timeDoc["raw_offset"].as<long>();
@@ -173,119 +211,461 @@ void setTime()
 	lastRTCUpdateTime=millis();
 }
 
-/** Scan callback method.  
- */
-void scanCallback(BLEDevice peripheral) 
+/** Scan callback - matches official NimBLE example pattern exactly */
+void MyScanCallbacks::onResult(const NimBLEAdvertisedDevice* advertisedDevice) 
 {
-    // discovered a peripheral, print out address, local name, and advertised service
-	//logger.log("Found device '%s' at '%s' with uuuid '%s'",peripheral.localName().c_str(),peripheral.address().c_str(),peripheral.advertisedServiceUuid().c_str());
-
-	//Checking with both device handlers to see if this is something they're interested in
-	bt2Reader.scanCallback(&peripheral,&bleSemaphore);
-	sokReader1.scanCallback(&peripheral,&bleSemaphore);
-	sokReader2.scanCallback(&peripheral,&bleSemaphore);
+	// Match official example: use Serial.printf instead of heavy logger
+	Serial.printf("BLE: Found device: %s\n", advertisedDevice->getName().c_str());
+	
+	// Check if this is one of our target devices
+	std::string name = advertisedDevice->getName();
+	BTDevice* matched = nullptr;
+	
+	if(!bt2Reader.isConnected() && name == bt2Reader.getPerifpheryName()) {
+		matched = &bt2Reader;
+	}
+	else if(!sokReader1.isConnected() && name == sokReader1.getPerifpheryName()) {
+		matched = &sokReader1;
+	}
+	else if(!sokReader2.isConnected() && name == sokReader2.getPerifpheryName()) {
+		matched = &sokReader2;
+	}
+	
+	if(matched != nullptr) {
+		Serial.printf("BLE: Target device found! Stopping scan.\n");
+		// Match official example exactly:
+		NimBLEDevice::getScan()->stop();
+		advAddress = advertisedDevice->getAddress();
+		advName = advertisedDevice->getName();
+		haveAdvDevice = true;
+		targetDevice = matched;
+		doConnect = true;
+	}
 }
 
-/** Connect callback method.  Exact order of operations is up to the user.  if bt2Reader attempted a connection
- * it returns true (whether or not it succeeds).  Usually you can then skip any other code in this connectCallback
- * method, because it's unlikely to be relevant for other possible connections, saving CPU cycles
- */ 
-void connectCallback(BLEDevice peripheral) 
+/** Scan end callback */
+void MyScanCallbacks::onScanEnd(const NimBLEScanResults& results, int reason) 
 {
-	logger.log(INFO,"Connect callback for '%s'",peripheral.address().c_str());
-	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
-	{
-		logger.log(INFO,"Renogy connect callback");
-		if (bt2Reader.connectCallback(&peripheral,&bleSemaphore)) 
-		{
-			logger.log(INFO,"Connected to BT device %s",peripheral.address().c_str());
-			bt2Reader.sendStartupCommand(&bleSemaphore);
-		}
+	Serial.printf("BLE: Scan ended, reason=%d, count=%d\n", reason, results.getCount());
+	// Restart scan if not connecting
+	if(!doConnect && scanningEnabled) {
+		NimBLEDevice::getScan()->start(0, false, true);
+	}
+}
+
+/** Connect to server - matches official NimBLE example pattern */
+bool connectToServer()
+{
+	if(!haveAdvDevice || targetDevice == nullptr) {
+		logger.log(ERROR, "BLE: No device to connect to!");
+		return false;
 	}
 
-	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
-	{
-		logger.log(INFO, "SOK Battery 1 connect callback");
-		if (sokReader1.connectCallback(&peripheral,&bleSemaphore)) 
-		{
-			logger.log(INFO,"Connected to SOK Battery 1 %s",peripheral.address().c_str());	
+	// Copy locally, then clear the shared scan result to avoid using stale data.
+	NimBLEAddress connectAddress = advAddress;
+	std::string connectName = advName;
+	haveAdvDevice = false;
+	
+	logger.log(INFO, "BLE: Connecting to %s (%s)...", connectName.c_str(), connectAddress.toString().c_str());
+	
+	NimBLEClient* pClient = nullptr;
+	
+	// Check if we have a client we should reuse (official example pattern)
+	if(NimBLEDevice::getCreatedClientCount()) {
+		pClient = NimBLEDevice::getClientByPeerAddress(connectAddress);
+		if(pClient) {
+			// Match NimBLE 2.x client example: skip full service refresh on reconnect
+			if(!pClient->connect(connectAddress, false)) {
+				logger.log(ERROR, "BLE: Reconnect failed");
+				return false;
+			}
+			//logger.log(INFO, "BLE: Reconnected to existing client");
+		} else {
+			pClient = NimBLEDevice::getDisconnectedClient();
 		}
 	}
-
-	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
-	{
-		logger.log(INFO, "SOK Battery 2 connect callback");
-		if (sokReader2.connectCallback(&peripheral,&bleSemaphore)) 
-		{
-			logger.log(INFO,"Connected to SOK Battery 2 %s",peripheral.address().c_str());	
+	
+	// No client to reuse? Create new one
+	if(!pClient) {
+		pClient = NimBLEDevice::createClient();
+		if(!pClient) {
+			logger.log(ERROR, "BLE: Failed to create client");
+			return false;
+		}
+		//logger.log(INFO, "BLE: New client created");
+		
+		pClient->setClientCallbacks(&clientCallbacks, false);
+		// Looser connection params - some peripherals can't handle tight timing
+		// Min/Max interval: 24*1.25=30ms to 48*1.25=60ms, latency 0, timeout 400*10=4000ms
+		pClient->setConnectionParams(24, 48, 0, 400);
+		pClient->setConnectTimeout(5000);
+		
+		if(!pClient->connect(connectAddress)) {
+			NimBLEDevice::deleteClient(pClient);
+			logger.log(ERROR, "BLE: Failed to connect, deleted client");
+			return false;
 		}
 	}
+	
+	if(!pClient->isConnected()) {
+		if(!pClient->connect(connectAddress)) {
+			logger.log(ERROR, "BLE: Failed to connect");
+			return false;
+		}
+	}
+	
+	//logger.log(INFO, "BLE: Connected to %s, RSSI=%d", 
+	//	pClient->getPeerAddress().toString().c_str(), pClient->getRssi());
+	
+	// Set up semaphore
+	bleSemaphore.btDevice = targetDevice;
+	bleSemaphore.waitingForConnection = true;
+	bleSemaphore.waitingForResponse = false;
+	bleSemaphore.startTime = millis();
+	
+	// Copy address to device
+	const uint8_t* addrVal = connectAddress.getVal();
+	memcpy(targetDevice->getPeripheryAddress(), addrVal, 6);
+	
+	// Handle the connection (service discovery, subscribe, etc)
+	handleConnection(pClient, connectAddress);
+	
+	return true;
+}
 
-	//We're at least partially connected
+// Handle connection and service discovery - matches official NimBLE example pattern
+// Get services FRESH from pClient, subscribe immediately
+void handleConnection(NimBLEClient* pClient, NimBLEAddress address)
+{
+	const uint8_t* addrVal = address.getVal();
+	uint8_t addr[6];
+	memcpy(addr, addrVal, 6);
+	
+	//logger.log(INFO, "BLE: handleConnection for %s", address.toString().c_str());
+	
+	// NimBLE 2.x CRITICAL: Must discover all attributes including CCCD descriptors.
+	// Without this, subscribe() may fail to find/write CCCD and notifications won't work.
+	// discoverAttributes() does full discovery of services, characteristics, AND descriptors.
+	//logger.log(INFO, "BLE: Discovering all attributes...");
+	if(!pClient->discoverAttributes()) {
+		logger.log(ERROR, "BLE: discoverAttributes() failed!");
+		pClient->disconnect();
+		return;
+	}
+	//logger.log(INFO, "BLE: Attribute discovery complete");
+	
+	// BT2 Reader - Renogy device
+	if(memcmp(addr, bt2Reader.getPeripheryAddress(), 6) == 0)
+	{
+		//logger.log(INFO, "BLE: Processing BT2 connection");
+		
+		// Get fresh service/characteristic references (like official example)
+		NimBLERemoteService* pTxSvc = pClient->getService("ffd0");
+		NimBLERemoteService* pRxSvc = pClient->getService("fff0");
+		
+		if(!pTxSvc || !pRxSvc) {
+			logger.log(ERROR, "BLE: BT2 service not found tx=%p rx=%p", pTxSvc, pRxSvc);
+			pClient->disconnect();
+			return;
+		}
+		
+		NimBLERemoteCharacteristic* pTxChar = pTxSvc->getCharacteristic("ffd1");
+		NimBLERemoteCharacteristic* pRxChar = pRxSvc->getCharacteristic("fff1");
+		
+		if(!pTxChar || !pRxChar) {
+			logger.log(ERROR, "BLE: BT2 char not found tx=%p rx=%p", pTxChar, pRxChar);
+			pClient->disconnect();
+			return;
+		}
+		
+		// Log characteristic properties for debugging
+		//logger.log(INFO, "BLE: BT2 RX char props: canRead=%d canWrite=%d canNotify=%d canIndicate=%d", 
+		//	pRxChar->canRead(), pRxChar->canWrite(), pRxChar->canNotify(), pRxChar->canIndicate());
+		
+		// Verify CCCD descriptor exists before subscribing
+		NimBLERemoteDescriptor* pCccd = pRxChar->getDescriptor(NimBLEUUID((uint16_t)0x2902));
+		if(pCccd) {
+			//logger.log(INFO, "BLE: BT2 CCCD found, handle=0x%04X", pCccd->getHandle());
+		} else {
+			logger.log(WARNING, "BLE: BT2 CCCD (0x2902) NOT FOUND - notifications may not work!");
+		}
+		
+		//logger.log(INFO, "BLE: BT2 services found, subscribing to %s (handle=0x%04X)", 
+		//	pRxChar->getUUID().toString().c_str(), pRxChar->getHandle());
+		// Subscribe for notifications using static callback (matches official NimBLE example)
+		bool subscribed = false;
+		if(pRxChar->canNotify()) {
+			subscribed = pRxChar->subscribe(true, bt2NotifyCallback);
+			//logger.log(INFO, "BLE: BT2 subscribe(notify) => %s", subscribed ? "OK" : "FAILED");
+		} else if(pRxChar->canIndicate()) {
+			subscribed = pRxChar->subscribe(false, bt2NotifyCallback);
+			//logger.log(INFO, "BLE: BT2 subscribe(indicate) => %s", subscribed ? "OK" : "FAILED");
+		} else {
+			logger.log(ERROR, "BLE: BT2 RX char has no notify/indicate!");
+		}
+		if(!subscribed) {
+			logger.log(ERROR, "BLE: BT2 subscribe FAILED");
+			pClient->disconnect();
+			return;
+		}
+		// Give NimBLE time to process subscription internally
+		delay(100);
+		
+		// Verify CCCD was written - read it back
+		NimBLERemoteDescriptor* pCccdVerify = pRxChar->getDescriptor(NimBLEUUID((uint16_t)0x2902));
+		if(pCccdVerify) {
+			NimBLEAttValue cccdVal = pCccdVerify->readValue();
+			if(cccdVal.size() >= 2) {
+				uint16_t cccdBits = cccdVal[0] | (cccdVal[1] << 8);
+				//, "BLE: BT2 CCCD readback = 0x%04X (notify=%d, indicate=%d)", cccdBits, (cccdBits & 1), (cccdBits & 2) >> 1);
+			} else {
+				logger.log(WARNING, "BLE: BT2 CCCD readback too short: %d bytes", cccdVal.size());
+			}
+		}
+		
+		// Store references and mark connected
+		bt2Reader.setCharacteristics(pClient, pTxChar, pRxChar);
+		bleSemaphore.waitingForConnection = false;
+		// Let main loop send first command - don't block here
+	}
+	// SOK Battery 1
+	else if(memcmp(addr, sokReader1.getPeripheryAddress(), 6) == 0)
+	{
+		//logger.log(INFO, "BLE: Processing SOK1 connection");
+		
+		// SOK uses same service for tx and rx (ffe0), different characteristics
+		NimBLERemoteService* pSvc = pClient->getService("ffe0");
+		
+		if(!pSvc) {
+			logger.log(ERROR, "BLE: SOK1 service ffe0 not found");
+			pClient->disconnect();
+			return;
+		}
+		
+		NimBLERemoteCharacteristic* pRxChar = pSvc->getCharacteristic("ffe1");
+		NimBLERemoteCharacteristic* pTxChar = pSvc->getCharacteristic("ffe2");
+		
+		if(!pRxChar) {
+			logger.log(ERROR, "BLE: SOK1 rx char ffe1 not found");
+			pClient->disconnect();
+			return;
+		}
+		
+		// Log characteristic properties for debugging
+		//logger.log(INFO, "BLE: SOK1 RX char props: canRead=%d canWrite=%d canNotify=%d canIndicate=%d", 
+		//	pRxChar->canRead(), pRxChar->canWrite(), pRxChar->canNotify(), pRxChar->canIndicate());
+		
+		// Verify CCCD descriptor exists before subscribing
+		NimBLERemoteDescriptor* pCccd = pRxChar->getDescriptor(NimBLEUUID((uint16_t)0x2902));
+		if(pCccd) {
+			//logger.log(INFO, "BLE: SOK1 CCCD found, handle=0x%04X", pCccd->getHandle());
+		} else {
+			logger.log(WARNING, "BLE: SOK1 CCCD (0x2902) NOT FOUND - notifications may not work!");
+		}
+		
+		//logger.log(INFO, "BLE: SOK1 service found, subscribing to %s", pRxChar->getUUID().toString().c_str());
+		
+		// Subscribe using static callback (matches official NimBLE example)
+		bool sok1Subscribed = false;
+		if(pRxChar->canNotify()) {
+			sok1Subscribed = pRxChar->subscribe(true, sok1NotifyCallback);
+			//logger.log(INFO, "BLE: SOK1 subscribe(notify) => %s", sok1Subscribed ? "OK" : "FAILED");
+		} else if(pRxChar->canIndicate()) {
+			sok1Subscribed = pRxChar->subscribe(false, sok1NotifyCallback);
+			//logger.log(INFO, "BLE: SOK1 subscribe(indicate) => %s", sok1Subscribed ? "OK" : "FAILED");
+		} else {
+			logger.log(ERROR, "BLE: SOK1 RX char has no notify/indicate!");
+		}
+		if(!sok1Subscribed) {
+			logger.log(ERROR, "BLE: SOK1 subscribe FAILED");
+			pClient->disconnect();
+			return;
+		}
+		
+		// Verify CCCD was written - read it back
+		NimBLERemoteDescriptor* pCccdVerify = pRxChar->getDescriptor(NimBLEUUID((uint16_t)0x2902));
+		if(pCccdVerify) {
+			NimBLEAttValue cccdVal = pCccdVerify->readValue();
+			if(cccdVal.size() >= 2) {
+				uint16_t cccdBits = cccdVal[0] | (cccdVal[1] << 8);
+				//logger.log(INFO, "BLE: SOK1 CCCD readback = 0x%04X (notify=%d, indicate=%d)", 
+				//	cccdBits, (cccdBits & 1), (cccdBits & 2) >> 1);
+			} else {
+				logger.log(WARNING, "BLE: SOK1 CCCD readback too short: %d bytes", cccdVal.size());
+			}
+		}
+		
+		bleSemaphore.waitingForConnection = false;  // Clear BEFORE setting characteristics
+		sokReader1.setCharacteristics(pClient, pTxChar, pRxChar);
+		// Let main loop send first command - don't block here
+	}
+	// SOK Battery 2
+	else if(memcmp(addr, sokReader2.getPeripheryAddress(), 6) == 0)
+	{
+		//logger.log(INFO, "BLE: Processing SOK2 connection");
+		
+		NimBLERemoteService* pSvc = pClient->getService("ffe0");
+		
+		if(!pSvc) {
+			logger.log(ERROR, "BLE: SOK2 service ffe0 not found");
+			pClient->disconnect();
+			return;
+		}
+		
+		NimBLERemoteCharacteristic* pRxChar = pSvc->getCharacteristic("ffe1");
+		NimBLERemoteCharacteristic* pTxChar = pSvc->getCharacteristic("ffe2");
+		
+		if(!pRxChar) {
+			logger.log(ERROR, "BLE: SOK2 rx char ffe1 not found");
+			pClient->disconnect();
+			return;
+		}
+		if(!pTxChar) {
+			logger.log(ERROR, "BLE: SOK2 tx char ffe2 not found");
+			pClient->disconnect();
+			return;
+		}
+		
+		// Log characteristic properties for debugging
+		//logger.log(INFO, "BLE: SOK2 RX char props: canRead=%d canWrite=%d canNotify=%d canIndicate=%d", 
+		//	pRxChar->canRead(), pRxChar->canWrite(), pRxChar->canNotify(), pRxChar->canIndicate());
+		//logger.log(INFO, "BLE: SOK2 TX char props: canRead=%d canWrite=%d canWriteNoResponse=%d", 
+		//	pTxChar->canRead(), pTxChar->canWrite(), pTxChar->canWriteNoResponse());
+		
+		// Verify CCCD descriptor exists before subscribing
+		NimBLERemoteDescriptor* pCccd = pRxChar->getDescriptor(NimBLEUUID((uint16_t)0x2902));
+		if(pCccd) {
+			//logger.log(INFO, "BLE: SOK2 CCCD found, handle=0x%04X", pCccd->getHandle());
+		} else {
+			logger.log(WARNING, "BLE: SOK2 CCCD (0x2902) NOT FOUND - notifications may not work!");
+		}
+		
+		//logger.log(INFO, "BLE: SOK2 service found, subscribing to %s", pRxChar->getUUID().toString().c_str());
+		
+		// Subscribe using static callback (matches official NimBLE example)
+		bool sok2Subscribed = false;
+		if(pRxChar->canNotify()) {
+			sok2Subscribed = pRxChar->subscribe(true, sok2NotifyCallback);
+			//logger.log	(INFO, "BLE: SOK2 subscribe(notify) => %s", sok2Subscribed ? "OK" : "FAILED");
+		} else if(pRxChar->canIndicate()) {
+			sok2Subscribed = pRxChar->subscribe(false, sok2NotifyCallback);
+			//logger.log(INFO, "BLE: SOK2 subscribe(indicate) => %s", sok2Subscribed ? "OK" : "FAILED");
+		} else {
+			logger.log(ERROR, "BLE: SOK2 RX char has no notify/indicate!");
+		}
+		if(!sok2Subscribed) {
+			logger.log(ERROR, "BLE: SOK2 subscribe FAILED");
+			pClient->disconnect();
+			return;
+		}
+		
+		// Verify CCCD was written - read it back
+		NimBLERemoteDescriptor* pCccdVerify = pRxChar->getDescriptor(NimBLEUUID((uint16_t)0x2902));
+		if(pCccdVerify) {
+			NimBLEAttValue cccdVal = pCccdVerify->readValue();
+			if(cccdVal.size() >= 2) {
+				uint16_t cccdBits = cccdVal[0] | (cccdVal[1] << 8);
+				//logger.log(INFO, "BLE: SOK2 CCCD readback = 0x%04X (notify=%d, indicate=%d)", 
+				//	cccdBits, (cccdBits & 1), (cccdBits & 2) >> 1);
+			} else {
+				logger.log(WARNING, "BLE: SOK2 CCCD readback too short: %d bytes", cccdVal.size());
+			}
+		}
+		
+		bleSemaphore.waitingForConnection = false;  // Clear BEFORE setting characteristics
+		sokReader2.setCharacteristics(pClient, pTxChar, pRxChar);
+		// Let main loop send first command - don't block here
+	}
+	
+	// Update BLE indicator
 	layout.setBLEIndicator(TFT_YELLOW);
-
-	//Should I stop scanning now?
-	boolean stopScanning=true;
-	int numOfTargetedDevices=sizeof(targetedDevices)/(sizeof(targetedDevices[0]));
-	for(int i=0;i<numOfTargetedDevices;i++)
+	
+	// Should I stop scanning now?
+	boolean stopScanning = true;
+	int numOfTargetedDevices = sizeof(targetedDevices) / sizeof(targetedDevices[0]);
+	for(int i = 0; i < numOfTargetedDevices; i++)
 	{
 		if(!targetedDevices[i]->isConnected())
-			stopScanning=false;
+			stopScanning = false;
 	}
 	if(stopScanning)
 	{
 		layout.setBLEIndicator(TFT_BLUE);
-		logger.log(WARNING,"All devices connected.  Showing online and stopping scan");
-		BLE.stopScan();
+		logger.log(INFO, "All devices connected. Showing online and stopping scan");
+		scanningEnabled = false;
+		pBLEScan->stop();
+	}
+	else if(scanningEnabled)
+	{
+		// Resume scanning for other devices
+		pBLEScan->start(0, false, false);
 	}
 }
 
-void disconnectCallback(BLEDevice peripheral) 
+// NimBLE disconnect callback
+void MyClientCallbacks::onConnect(NimBLEClient* pClient) 
 {
-	bleSemaphore.waitingForConnection=false;
-	bleSemaphore.waitingForResponse=false;
-	bleSemaphore.btDevice=nullptr;  // Clear stale pointer
+	// Connection handling done in handleConnection()
+}
 
-	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
-	{	
-		renogyCmdSequenceToSend=0;  //need to start at the beginning since we disconnected
-		bt2Reader.disconnectCallback(&peripheral);
-
-		logger.log(WARNING,"Disconnected BT2 device %s",peripheral.address().c_str());	
+void MyClientCallbacks::onDisconnect(NimBLEClient* pClient, int reason) 
+{
+	logger.log(WARNING, "BLE: onDisconnect called, reason=%d", reason);
+	
+	bleSemaphore.waitingForConnection = false;
+	bleSemaphore.waitingForResponse = false;
+	bleSemaphore.btDevice = nullptr;
+	
+	// Determine which device disconnected
+	NimBLEAddress addr = pClient->getPeerAddress();
+	const uint8_t* addrVal = addr.getVal();
+	uint8_t addrBytes[6];
+	memcpy(addrBytes, addrVal, 6);
+	
+	if(memcmp(addrBytes, bt2Reader.getPeripheryAddress(), 6) == 0)
+	{
+		renogyCmdSequenceToSend = 0;
+		bt2Reader.disconnectCallback(pClient);
+		logger.log(WARNING, "BLE: Disconnected BT2 device %s (reason=%d)", addr.toString().c_str(), reason);
 	}
-
-	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
-	{	
-		logger.log(WARNING,"Disconnected SOK Battery 1 %s",peripheral.address().c_str());
+	else if(memcmp(addrBytes, sokReader1.getPeripheryAddress(), 6) == 0)
+	{
+		sokReader1.disconnectCallback(pClient);
+		logger.log(WARNING, "BLE: Disconnected SOK Battery 1 %s (reason=%d)", addr.toString().c_str(), reason);
 	}
-
-	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
-	{	
-		logger.log(WARNING,"Disconnected SOK Battery 2 %s",peripheral.address().c_str());
-	}	
-
+	else if(memcmp(addrBytes, sokReader2.getPeripheryAddress(), 6) == 0)
+	{
+		sokReader2.disconnectCallback(pClient);
+		logger.log(WARNING, "BLE: Disconnected SOK Battery 2 %s (reason=%d)", addr.toString().c_str(), reason);
+	}
+	else
+	{
+		logger.log(WARNING, "BLE: Disconnected unknown device %s (reason=%d)", addr.toString().c_str(), reason);
+	}
+	
 	layout.setBLEIndicator(TFT_DARKGRAY);
-	logger.log(WARNING,"Starting BLE scan again");
-	BLE.scan(true);
+	logger.log(INFO, "BLE: Restarting scan after disconnect");
+	scanningEnabled = true;
+	pBLEScan->start(0, false, false);
 }
 
-void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic)
+// Notification callbacks for each device - keep minimal, runs in BLE context
+void bt2NotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify)
 {
-	//logger.log("Characteristic notify from %s",peripheral.address().c_str());
-	if(memcmp(peripheral.address().c_str(),bt2Reader.getPeripheryAddress(),6)==0)
-	{		
-		bt2Reader.notifyCallback(&peripheral,&characteristic,&bleSemaphore);
-	}
+	Serial.printf(">>> BT2 NOTIFY: len=%d\n", length);
+	bt2Reader.notifyCallback(pRemoteCharacteristic, pData, length, &bleSemaphore);
+}
 
-	if(memcmp(peripheral.address().c_str(),sokReader1.getPeripheryAddress(),6)==0)
-	{		
-		sokReader1.notifyCallback(&peripheral,&characteristic,&bleSemaphore); 
-	}
+void sok1NotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify)
+{
+	Serial.printf(">>> SOK1 NOTIFY: len=%d\n", length);
+	sokReader1.notifyCallback(pRemoteCharacteristic, pData, length, &bleSemaphore);
+}
 
-	if(memcmp(peripheral.address().c_str(),sokReader2.getPeripheryAddress(),6)==0)
-	{		
-		sokReader2.notifyCallback(&peripheral,&characteristic,&bleSemaphore); 
-	}	
+void sok2NotifyCallback(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify)
+{
+	Serial.printf(">>> SOK2 NOTIFY: len=%d\n", length);
+	sokReader2.notifyCallback(pRemoteCharacteristic, pData, length, &bleSemaphore);
 }
 
 void screenTouchedCallback(int x,int y)
@@ -323,18 +703,29 @@ void screenTouchedCallback(int x,int y)
 void turnOffBLE()
 {
 	logger.log(WARNING,"Turning off BLE");
-	layout.setBLEIndicator(TFT_BLACK);			
-	BLE.stopScan();
-	BLE.disconnect();
-	//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??
+	layout.setBLEIndicator(TFT_BLACK);
+	scanningEnabled = false;
+	pBLEScan->stop();
+	
+	// Disconnect all clients
+	int numOfTargetedDevices = sizeof(targetedDevices) / sizeof(targetedDevices[0]);
+	for(int i = 0; i < numOfTargetedDevices; i++)
+	{
+		if(targetedDevices[i]->isConnected())
+		{
+			targetedDevices[i]->disconnect();
+		}
+	}
 }
 
 void turnOnBLE()
 {
 	layout.setBLEIndicator(TFT_DARKGRAY);
-	startBLE();
 	logger.log(WARNING,"Starting BLE and scanning");
-	BLE.scan(true);	
+	scanningEnabled = true;
+	bleStartupTime = millis();  // Track when BLE started for startup timeout
+	lastBleReconnectTime = millis();  // Reset reconnect timer too
+	pBLEScan->start(0, false, false);
 }
 
 void longScreenTouchedCallback(int x,int y)
@@ -358,38 +749,18 @@ void longScreenTouchedCallback(int x,int y)
 
 void disconnectBLE()
 {
-	layout.setBLEIndicator(TFT_BLACK);			
-	BLE.stopScan();
+	layout.setBLEIndicator(TFT_BLACK);
+	scanningEnabled = false;
+	pBLEScan->stop();
 	logger.log(WARNING,"Disconnecting all BLE devices");
 
 	int numOfTargetedDevices=sizeof(targetedDevices)/(sizeof(targetedDevices[0]));
 	for(int i=0;i<numOfTargetedDevices;i++)
 	{
-		logger.log(INFO,targetedDevices[i]->getPerifpheryName());
-		logger.log(INFO,targetedDevices[i]->isConnected());
-		//targetedDevices[i]->disconnect();
-	}
-
-	BLE.disconnect();
-
-	for(int i=0;i<numOfTargetedDevices;i++)
-	{
-		logger.log(INFO,targetedDevices[i]->getPerifpheryName());
-		logger.log(INFO,targetedDevices[i]->isConnected());
-		//targetedDevices[i]->disconnect();
-	}
-
-	//BLE.end();  //crashes the ESP32-S3  https://github.com/arduino-libraries/ArduinoBLE/issues/192??	
-}
-
-void checkForStaleData()
-{
-	if((!sokReader1.isCurrent() && sokReader1.isConnected()) || (!sokReader2.isCurrent() && sokReader2.isConnected()) || (!bt2Reader.isCurrent() && bt2Reader.isConnected()))
-	{
-		logger.log(WARNING,"BLE data is stale!  Restarting BLE");
-		turnOffBLE();
-		delay(1000);  // BLE is off, no need for BLE.poll()
-		turnOnBLE();
+		//logger.log(INFO,targetedDevices[i]->getPerifpheryName());
+		//logger.log(INFO,targetedDevices[i]->isConnected());
+		if(targetedDevices[i]->isConnected())
+			targetedDevices[i]->disconnect();
 	}
 }
 
@@ -398,49 +769,90 @@ void checkForDisconnectedDevices()
 {
 	int numOfTargetedDevices = sizeof(targetedDevices) / sizeof(targetedDevices[0]);
 	bool allConnected = true;
+	bool anyStale = false;
 	
 	for(int i = 0; i < numOfTargetedDevices; i++)
 	{
 		if(!targetedDevices[i]->isConnected())
 		{
 			allConnected = false;
-			break;
+		}
+		// Check for stale data - device is connected but not receiving data
+		else if(!targetedDevices[i]->isCurrent())
+		{
+			anyStale = true;
+			logger.log(ERROR, "BLE: Device %s is stale (connected but no data), disconnecting...", 
+				targetedDevices[i]->getPerifpheryName());
+			targetedDevices[i]->disconnect();
+			allConnected = false;
 		}
 	}
 	
-	// If not all devices connected, restart BLE scan
-	if(!allConnected && (millis() - lastBleReconnectTime > BLE_RECONNECT_TIME))
+	// If all connected and none stale, reset startup timer so we don't do hard restart later
+	if(allConnected && !anyStale)
+	{
+		bleStartupTime = millis();
+		return;
+	}
+	
+	// If startup timeout exceeded and not all devices connected, do full BLE restart
+	if(millis() - bleStartupTime > BLE_STARTUP_TIMEOUT)
+	{
+		logger.log(WARNING, "BLE startup timeout - not all devices connected. Restarting BLE...");
+		turnOffBLE();
+		delay(500);
+		turnOnBLE();
+		return;
+	}
+	
+	// If not all devices connected, restart BLE scan periodically
+	if(millis() - lastBleReconnectTime > BLE_RECONNECT_TIME)
 	{
 		logger.log(WARNING, "Not all BLE devices connected, restarting scan...");
-		BLE.stopScan();
+		scanningEnabled = true;
+		pBLEScan->stop();
 		delay(100);
-		BLE.scan(true);
+		pBLEScan->start(0, false, false);
 		lastBleReconnectTime = millis();
 	}
 }
 
 void loop() 
 {
-	//required for the ArduinoBLE library
-	BLE.poll();
 	screen.poll();
+	
+	// Process pending connection - matches official NimBLE example pattern
+	if(doConnect) {
+		doConnect = false;
+		if(connectToServer()) {
+			//logger.log(INFO, "BLE: Connection successful!");
+		} else {
+			logger.log(WARNING, "BLE: Connection failed, restarting scan");
+		}
+		// Restart scanning for more devices
+		NimBLEDevice::getScan()->start(0, false, true);
+	}
 
 	//check for BLE timeouts - and disconnect
 	if(isTimedout())
 	{
-		logger.log(INFO,"BLE operation timed out, disconnecting");
-		if(bleSemaphore.btDevice && bleSemaphore.btDevice->getBLEDevice())
-			bleSemaphore.btDevice->getBLEDevice()->disconnect();
+		bleSemaphore.waitingForResponse=false;
+
+		/*
+		logger.log(WARNING,"BLE operation timed out, disconnecting then restarting");
+		if(bleSemaphore.btDevice)
+			bleSemaphore.btDevice->disconnect();
 		bleSemaphore.waitingForConnection=false;
 		bleSemaphore.waitingForResponse=false;
 		bleSemaphore.btDevice=nullptr;
 		
 		// Delay to let BLE stack settle before restarting scan
-		delay(500);
+		delay(50);
 		
 		// Restart scanning to give failed device another chance
-		logger.log(WARNING,"Restarting BLE scan after timeout");
-		BLE.scan(true);
+		scanningEnabled = true;
+		pBLEScan->start(0, false, false);
+		*/
 	}
 
 	//time to update power logs?
@@ -450,29 +862,40 @@ void loop()
 		powerLogger.add(layout.displayData.chargeAmps-layout.displayData.drawAmps,&rtc,&layout);
 	}
 
-	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME)
-	{
-		checkForStaleData();
+	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME) {
 		checkForDisconnectedDevices();
 
-		//reset time
 		lastBleIsAliveTime=millis();
 	}
 
 	// Check WiFi connection every 60 seconds and reconnect if needed
-	if(millis() - lastWifiCheckTime > WIFI_CHECK_TIME) {
+	// Stop BLE during WiFi reconnection to avoid timeouts from blocking operations
+	if(millis() - lastWifiCheckTime > WIFI_CHECK_TIME &&
+	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse) {
 		if(!wifi.isConnected()) {
-			logger.log(INFO, "WiFi is currently disconnected, attempting reconnection...");
+			logger.log(WARNING, "WiFi is currently disconnected, attempting reconnection...");
+			turnOffBLE();
 			wifi.startWifi();
+			turnOnBLE();
 		}
 		lastWifiCheckTime = millis();
+	}
+
+	// Log SOC from each battery every 1 minute
+	if(millis() - lastSocLogTime > SOC_LOG_TIME) {
+		logger.log(INFO, "SOC: SOK1=%d (curr=%d, conn=%d), SOK2=%d (curr=%d, conn=%d)", 
+			sokReader1.getSoc(), sokReader1.isCurrent(), sokReader1.isConnected(),
+			sokReader2.getSoc(), sokReader2.isCurrent(), sokReader2.isConnected());
+		lastSocLogTime = millis();
 	}
 
 	//load values
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
+		delay(1);
 		lastScrUpdatetime=millis();
 		//loadSimulatedValues();
+
 		loadValues();
 		if(currentScreen == MAIN_SCREEN)
 		{
@@ -495,21 +918,22 @@ void loop()
 		//Update updateBitmaps
 		if(currentScreen == MAIN_SCREEN)
 		{
+			delay(1);
 			layout.updateBitmaps();
 		}
-
-		//Check that we're still receiving BLE data
-		checkForStaleData();
 
 		//reset time
 		lastBitmapUpdatetime=millis();
 	}
 
 	// Check gas and water tank every 10 minutes
-	// Only run when BLE is idle to avoid conflicts
+	// Stop BLE during tank check to avoid timeouts from blocking WiFi operations
 	if(millis() - lastTankCheckTime > TANK_CHECK_TIME && 
 	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse) 
 	{
+		// Stop BLE first to avoid timeouts during blocking operations
+		turnOffBLE();
+		
 		if(wifi.isConnected()) {
 			wifi.stopWifi();
 			delay(100);  // Brief delay for WiFi to fully stop
@@ -522,7 +946,10 @@ void loop()
 
 		wifi.startWifi();
 		delay(100);  // Brief delay for WiFi to start
-		//logger.log(INFO, "Re-enabling WiFi after gas and water tank check");
+		
+		// Restart BLE after WiFi is back up
+		turnOnBLE();
+		
 		lastTankCheckTime = millis();
 	}
 
@@ -531,10 +958,16 @@ void loop()
 	static int deviceCycle = 0;
 	if (millis()>lastCheckedTime+POLL_TIME_MS && !bleSemaphore.waitingForResponse && !bleSemaphore.waitingForConnection) 
 	{
+		delay(1);
 		lastCheckedTime=millis();
 		if (deviceCycle == 0 && bt2Reader.isConnected()) 
 		{
-			bt2Reader.sendSolarOrAlternaterCommand(&bleSemaphore);
+			// Send startup command first if needed, otherwise alternate solar/alternator
+			if (bt2Reader.needsStartupCommand()) {
+				bt2Reader.sendStartupCommand(&bleSemaphore);
+			} else {
+				bt2Reader.sendSolarOrAlternaterCommand(&bleSemaphore);
+			}
 		}
 		else if (deviceCycle == 1 && sokReader1.isConnected()) 
 		{
@@ -550,25 +983,39 @@ void loop()
 	//Do we have any data waiting?
 	if(bt2Reader.getIsNewDataAvailable())
 	{
+		delay(1);
+		// Verbose logging removed - uncomment for debugging
+		//logger.log(INFO,"BT2 New data available");
+		hertzCount++;
 		bt2Reader.updateValues();
 	}
 	if(sokReader1.getIsNewDataAvailable())
 	{
+		delay(1);
+		// Verbose logging removed - uncomment for debugging
+		//logger.log(INFO,"SOK1 New data available");
 		hertzCount++;
 		sokReader1.updateValues();
 	}
 	if(sokReader2.getIsNewDataAvailable())
 	{
+		delay(1);
+		// Verbose logging removed - uncomment for debugging
+		//logger.log(INFO,"SOK2 New data available");
+		hertzCount++;
 		sokReader2.updateValues();
 	}
 
 	//Time to refresh rtc?
 	// Only run when BLE is idle to avoid blocking BLE operations
+	// Stop BLE during time sync since HTTP requests can block
 	if((lastRTCUpdateTime+REFRESH_RTC) < millis() && 
 	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse)
 	{
 		lastRTCUpdateTime=millis();
+		turnOffBLE();
 		setTime();
+		turnOnBLE();
 	}
 
 	//calc hertz
@@ -578,6 +1025,10 @@ void loop()
 		hertzTime=millis();
 		hertzCount=0;
 	}
+
+	// CRITICAL: Yield to allow NimBLE host task to process BLE events (notifications, etc.)
+	// Without this, the busy loop can starve the BLE task and notifications won't be delivered.
+	delay(1);
 }
 
 boolean isTimedout()

@@ -1,6 +1,6 @@
 #include "BT2Reader.h"
 
-/**	Code for communicating with Renogy DCC series MPPT solar controllers and DC:DC converters using ArduinoBLE.
+/**	Code for communicating with Renogy DCC series MPPT solar controllers and DC:DC converters using NimBLE.
  * 
  * These include:
  * Renogy DCC30s - https://www.renogy.com/dcc30s-12v-30a-dual-input-dc-dc-on-board-battery-charger-with-mppt/
@@ -13,13 +13,11 @@
  * Currently this library only supports connecting to one BT2 device, future versions will have support for 
  * multiple connected devices  
  * 
- * Written by Neil Shepherd 2022, ported to ArduinoBLE by Mark Wilkie 2023
+ * Written by Neil Shepherd 2022, ported to NimBLE by Mark Wilkie 2023-2026
  * Released under GPL license
  * 
  * Thanks go to Wireshark for allowing me to read the bluetooth packets used 
  */
-
-extern void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic);
 
 BT2Reader::BT2Reader()
 {
@@ -58,47 +56,46 @@ BT2Reader::BT2Reader()
 	invalidRegister.value = 0;
 }
 
-void BT2Reader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE *bleSemaphore)
+void BT2Reader::scanCallback(NimBLEAdvertisedDevice *peripheral, BLE_SEMAPHORE *bleSemaphore)
 {
- 	if (peripheral->localName() == peripheryName)
+ 	if (peripheral->getName() == peripheryName)
 	{
+		// NO LOGGING IN SCAN CALLBACK - runs in BLE task with limited stack!
+		
 		//Already connected? Skip
 		if(connected)
 			return;
 
-		//Set device
-		bleDevice=peripheral;
+		//Store the address for later connection
+		bleAddress = peripheral->getAddress();
 
 		//Make sure we're not busy
 		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
-		{
-			if(bleSemaphore->btDevice)
-				logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
-			else
-				logger.log(INFO,"BLE semaphore busy (no device)");
 			return;
-		}
+		
 		//Set semaphore for connect
 		updateSemaphore(bleSemaphore);
 
-		logger.log(INFO,"Found targeted BT2 device, attempting connection");
-		memcpy(peripheryAddress,peripheral->address().c_str(),6);
-		peripheral->connect();
+		const uint8_t* addrVal = peripheral->getAddress().getVal();
+		memcpy(peripheryAddress, addrVal, 6);
 	} 
 }
 
 
-boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
+boolean BT2Reader::connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSemaphore) 
 {
-	logger.log(INFO,"Discovering Tx service: %s ",txServiceUUID);
-	if(myDevice->discoverService(txServiceUUID))
+	bleClient = myClient;
+	
+	//logger.log(INFO,"Discovering Tx service: %s ",txServiceUUID);
+	NimBLERemoteService *txService = myClient->getService(txServiceUUID);
+	if(txService)
 	{
-		logger.log(INFO,"Renogy Tx service %s discovered.  Now looking for charecteristic %s",txServiceUUID,txCharacteristicUUID);
-		txDeviceCharateristic=myDevice->characteristic(txCharacteristicUUID);
+		//logger.log(INFO,"Renogy Tx service %s discovered.  Now looking for charecteristic %s",txServiceUUID,txCharacteristicUUID);
+		txDeviceCharateristic = txService->getCharacteristic(txCharacteristicUUID);
 		if(!txDeviceCharateristic)
 		{
 			logger.log(ERROR,"Renogy Tx characteristic not discovered, disconnecting");
-			myDevice->disconnect();
+			myClient->disconnect();
 			connected=false;
 			return false;
 		}
@@ -106,58 +103,75 @@ boolean BT2Reader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemapho
 	else 
 	{
 		logger.log(ERROR,"Renogy Tx service not discovered, disconnecting");
-		myDevice->disconnect();
+		myClient->disconnect();
 		return false;
 	}
 
-	logger.log(INFO,"Discovering Rx service: %s ",rxServiceUUID);
-	if(myDevice->discoverService(rxServiceUUID))
+	//logger.log(INFO,"Discovering Rx service: %s ",rxServiceUUID);
+	NimBLERemoteService *rxService = myClient->getService(rxServiceUUID);
+	if(rxService)
 	{
-		logger.log(INFO,"Renogy Rx service %s discovered.  Now looking for charecteristic %s",rxServiceUUID,rxCharacteristicUUID);
-		if(rxDeviceCharateristic=myDevice->characteristic(rxCharacteristicUUID))
+		//logger.log(INFO,"Renogy Rx service %s discovered.  Now looking for charecteristic %s",rxServiceUUID,rxCharacteristicUUID);
+		rxDeviceCharateristic = rxService->getCharacteristic(rxCharacteristicUUID);
+		if(rxDeviceCharateristic)
 		{
-			if(rxDeviceCharateristic.canSubscribe() && rxDeviceCharateristic.subscribe())
+			if(rxDeviceCharateristic->canNotify())
 			{
-				rxDeviceCharateristic.setEventHandler(BLEWritten, mainNotifyCallback);
+				// Subscribe handled by main code with callback
 			}
 			else
 			{
-				logger.log(ERROR,"Renogy Rx characteristic not discovered or cannot be subscribed to, disconnecting");
-				myDevice->disconnect();
+				logger.log(ERROR,"Renogy Rx characteristic cannot notify, disconnecting");
+				myClient->disconnect();
 				connected=false;
 				return false;
 			} 
+		}
+		else
+		{
+			logger.log(ERROR,"Renogy Rx characteristic not discovered, disconnecting");
+			myClient->disconnect();
+			connected=false;
+			return false;
 		}
 	} 
 	else 
 	{
 		logger.log(ERROR,"Renogy Rx service not discovered, disconnecting");
-		myDevice->disconnect();
+		myClient->disconnect();
 		return false;
 	}
 
 	connected=true;
 	lastHeardTime=millis();
-	logger.log(INFO,"Found all services and characteristics.");
+	//logger.log(INFO,"Found all services and characteristics.");
 
 	bleSemaphore->waitingForConnection=false;
-	logger.log(INFO,"Releasing connect semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
+	//logger.log(INFO,"Releasing connect semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
 
 	return true;
 }
 
-void BT2Reader::disconnectCallback(BLEDevice *myDevice) 
+void BT2Reader::disconnectCallback(NimBLEClient *myClient) 
 {
+	logger.log(WARNING, "BT2: disconnectCallback - cleaning up state");
 	connected=false;
 	memset(peripheryAddress, 0, 6);
+	bleClient = nullptr;
+	lastCmdSent = -1;  // Reset so startup command is sent on reconnect
 }
 
-void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphore) 
+void BT2Reader::notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphore) 
 {
-	if (dataError) { return; }									// don't append anything if there's already an error
+	// Minimal logging - this runs in BLE task context with limited stack
+	lastHeardTime = millis();
+	
+	if (dataError) { 
+		return; 
+	}
 
 	//Read data
-	dataError = !appendRenogyPacket(characteristic);		// append second or greater packet
+	dataError = !appendRenogyPacket(pData, length);		// append second or greater packet
 
 	if (!dataError && dataReceivedLength == getExpectedLength(dataReceived)) 
 	{
@@ -179,20 +193,29 @@ void BT2Reader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *character
 				bt2Response[15] = HEX_LOWER_CASE[(dataReceived[i] / 16) & 0x0F];
 				bt2Response[16] = HEX_LOWER_CASE[(dataReceived[i]) & 0x0F];
 				//logger.log(INFO,"Sending response #%d to BT2: %s", i, bt2Response);
-				txDeviceCharateristic.writeValue(bt2Response, 20);
+				if(txDeviceCharateristic)
+					txDeviceCharateristic->writeValue(bt2Response, 20);
 			}
 		} 
 		else 
 		{
-			logger.log(WARNING,"Checksum error: received is %d, calculated is %d", 
-				getProvidedModbusChecksum(dataReceived), getCalculatedModbusChecksum(dataReceived));
+			//logger.log(WARNING,"Checksum error: received is %d, calculated is %d", 
+			//	getProvidedModbusChecksum(dataReceived), getCalculatedModbusChecksum(dataReceived));
 		}
 	} 
 }
 
+boolean BT2Reader::needsStartupCommand()
+{
+	// lastCmdSent is initialized to -1 or 0, and set to 0 after startup command
+	// We need startup if we're connected but haven't sent any command yet
+	// Check if lastCmdSent is not 0 (startup) and not 4 or 5 (solar/alternator)
+	return connected && (lastCmdSent < 0 || lastCmdSent > 5);
+}
+
 void BT2Reader::sendStartupCommand(BLE_SEMAPHORE* bleSemaphore)
 {
-	logger.log(INFO,"Sending Renogy startup command");
+	//logger.log(INFO,"Sending Renogy startup command");
 	int cmdIndex=0;
 	uint16_t startRegister = bt2Commands[cmdIndex].startRegister;
 	uint16_t numberOfRegisters = bt2Commands[cmdIndex].numberOfRegisters;
@@ -226,10 +249,10 @@ void BT2Reader::sendSolarOrAlternaterCommand(BLE_SEMAPHORE* bleSemaphore)
 
 /** Appends received data.  Returns false if there's potential for buffer overrun, true otherwise
  */
-boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic) 
+boolean BT2Reader::appendRenogyPacket(uint8_t *pData, size_t length) 
 {
-	int dataLen=characteristic->valueLength();
-	if(dataLen<0)
+	int dataLen = length;
+	if(dataLen <= 0)
 		return true;
 
 	if (dataLen + dataReceivedLength >= DEFAULT_DATA_BUFFER_LENGTH -1) 
@@ -238,7 +261,7 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 		return false;
 	}
 
-	characteristic->readValue(&dataReceived[dataReceivedLength],dataLen);
+	memcpy(&dataReceived[dataReceivedLength], pData, dataLen);
 	dataReceivedLength += dataLen;
 	if (getExpectedLength(dataReceived) < dataReceivedLength) 
 	{
@@ -250,13 +273,21 @@ boolean BT2Reader::appendRenogyPacket(BLECharacteristic *characteristic)
 
 void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters,BLE_SEMAPHORE* bleSemaphore) 
 {
+	// Verbose logging removed - uncomment for debugging
+	// logger.log(INFO, "BT2: sendReadCommand reg=0x%04X count=%d", startRegister, numberOfRegisters);
+	
 	//Make sure we're clear to send
 	if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 	{
 		if(bleSemaphore->btDevice)
-			logger.log(INFO,"BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+			logger.log(WARNING, "BT2: Cannot send - semaphore busy with %s", bleSemaphore->btDevice->getPerifpheryName());
 		else
-			logger.log(INFO,"BLE semaphore busy (no device)");
+			logger.log(WARNING, "BT2: Cannot send - semaphore busy (no device)");
+		return;
+	}
+	
+	if(!txDeviceCharateristic) {
+		logger.log(ERROR, "BT2: Cannot send - Tx characteristic is null!");
 		return;
 	}
 
@@ -278,7 +309,12 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	Serial.println();
 	#endif
 
-	txDeviceCharateristic.writeValue(command, 8);
+	if(txDeviceCharateristic) {
+		// Use write-with-response to ensure command reaches device
+		bool writeOk = txDeviceCharateristic->writeValue(command, 8, true);
+		// Verbose logging removed - uncomment for debugging
+		// Serial.printf("BT2: writeValue => %s\n", writeOk ? "OK" : "FAILED");
+	}
 	registerExpected = startRegister;
 	dataReceivedLength = 0;
 	dataError = false;

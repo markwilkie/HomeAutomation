@@ -7,13 +7,13 @@ uint8_t *BTDevice::getPeripheryAddress()
 
 boolean BTDevice::isConnected()
 {
-	//return bleDevice->connected();
 	return connected;
 }
 
 void BTDevice::disconnect()
 {
-	bleDevice->disconnect();
+	if(bleClient && bleClient->isConnected())
+		bleClient->disconnect();
 }
 
 boolean BTDevice::getIsNewDataAvailable() 
@@ -28,9 +28,9 @@ const char *BTDevice::getPerifpheryName()
 	return peripheryName;
 }
 
-BLEDevice *BTDevice::getBLEDevice()
+NimBLEClient *BTDevice::getBLEClient()
 {
-	return bleDevice;
+	return bleClient;
 }
 
 void BTDevice::updateSemaphore(BLE_SEMAPHORE* bleSemaphore, uint16_t expectedBytes)

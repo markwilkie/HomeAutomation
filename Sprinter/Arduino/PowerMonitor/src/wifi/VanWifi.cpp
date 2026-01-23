@@ -41,7 +41,7 @@ void VanWifi::startWifi()
 void VanWifi::stopWifi()
 {
   if(!isConnected()) {
-    logger.log(INFO, "WiFi not connected, skipping stop");
+    logger.log(WARNING, "WiFi not connected, skipping stop");
     return;
   }
   

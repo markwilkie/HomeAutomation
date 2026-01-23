@@ -2,7 +2,7 @@
 #define SOK_READER_H
 
 #include "BTDevice.hpp"
-#include "ArduinoBLE.h"
+#include <NimBLEDevice.h>
 #include "../logging/logger.h"
 
 extern Logger logger;
@@ -17,10 +17,10 @@ public:
 
 	SOKReader(const char* _peripheryName, int batteryNumber);
 
-	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
-	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphor);
-	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphor);
-	void disconnectCallback(BLEDevice *myDevice);
+	void scanCallback(NimBLEAdvertisedDevice *myDevice, BLE_SEMAPHORE *bleSemaphore);
+	boolean connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSemaphor);
+	void notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphor);
+	void disconnectCallback(NimBLEClient *myClient);
 
 	void sendReadCommand(BLE_SEMAPHORE* bleSemaphor);
 	void updateValues();
