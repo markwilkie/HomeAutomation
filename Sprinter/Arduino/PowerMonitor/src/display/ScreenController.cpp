@@ -143,29 +143,44 @@ void ScreenController::loadValues() {
     if(!sokReader1 || !sokReader2 || !bt2Reader) return;
     
     // Determine device status for each reader
-    // Offline (red, zero values) > Stale (grey, keep last value) > Online (normal)
+    // Offline (red, zero values) only if in backoff
+    // Stale (grey, keep last value) if disconnected but still trying, or connected but no recent data
+    // Online (normal) if connected and current
     
-    // SOK1 status
+    // SOK1 status - device index 1 (BT2 is 0, SOK1 is 1, SOK2 is 2)
     if(!sokReader1->isConnected()) {
-        layout->displayData.sok1Status = DEVICE_OFFLINE;
+        // Only show as offline (red) if device is in backoff
+        if(bleManager && bleManager->isDeviceInBackoff(1)) {
+            layout->displayData.sok1Status = DEVICE_OFFLINE;
+        } else {
+            layout->displayData.sok1Status = DEVICE_STALE;  // Still trying to connect
+        }
     } else if(!sokReader1->isCurrent()) {
         layout->displayData.sok1Status = DEVICE_STALE;
     } else {
         layout->displayData.sok1Status = DEVICE_ONLINE;
     }
     
-    // SOK2 status
+    // SOK2 status - device index 2
     if(!sokReader2->isConnected()) {
-        layout->displayData.sok2Status = DEVICE_OFFLINE;
+        if(bleManager && bleManager->isDeviceInBackoff(2)) {
+            layout->displayData.sok2Status = DEVICE_OFFLINE;
+        } else {
+            layout->displayData.sok2Status = DEVICE_STALE;
+        }
     } else if(!sokReader2->isCurrent()) {
         layout->displayData.sok2Status = DEVICE_STALE;
     } else {
         layout->displayData.sok2Status = DEVICE_ONLINE;
     }
     
-    // BT2 status
+    // BT2 status - device index 0
     if(!bt2Reader->isConnected()) {
-        layout->displayData.bt2Status = DEVICE_OFFLINE;
+        if(bleManager && bleManager->isDeviceInBackoff(0)) {
+            layout->displayData.bt2Status = DEVICE_OFFLINE;
+        } else {
+            layout->displayData.bt2Status = DEVICE_STALE;
+        }
     } else if(!bt2Reader->isCurrent()) {
         layout->displayData.bt2Status = DEVICE_STALE;
     } else {

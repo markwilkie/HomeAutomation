@@ -63,6 +63,7 @@ public:
     // Status
     bool allDevicesConnected();
     bool isScanning() { return scanningEnabled; }
+    bool isDeviceInBackoff(int deviceIndex);  // Check if device is in backoff mode
     
     // Indicator callback for UI updates
     typedef void (*IndicatorCallback)(uint32_t color);

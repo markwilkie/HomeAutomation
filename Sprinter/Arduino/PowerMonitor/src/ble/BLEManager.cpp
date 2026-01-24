@@ -30,6 +30,7 @@ void BLEManager::startScanning() {
     scanningEnabled = true;
     bleStartupTime = millis();
     lastBleReconnectTime = millis();
+    lastBleIsAliveTime = millis();  // Reset so we don't immediately check for disconnected devices
     pBLEScan->start(0, false, false);  // Scan continuously
     if(indicatorCallback) indicatorCallback(0x808080);  // Dark gray
 }
@@ -58,6 +59,7 @@ void BLEManager::turnOn() {
     scanningEnabled = true;
     bleStartupTime = millis();
     lastBleReconnectTime = millis();
+    lastBleIsAliveTime = millis();  // Reset so we don't immediately check for disconnected devices
     pBLEScan->start(0, false, false);
 }
 
@@ -87,6 +89,11 @@ bool BLEManager::allDevicesConnected() {
         }
     }
     return true;
+}
+
+bool BLEManager::isDeviceInBackoff(int deviceIndex) {
+    if(deviceIndex < 0 || deviceIndex >= deviceCount) return false;
+    return deviceBackoffUntil[deviceIndex] > 0 && millis() < deviceBackoffUntil[deviceIndex];
 }
 
 bool BLEManager::isWaiting() {
