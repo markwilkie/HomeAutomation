@@ -20,7 +20,8 @@ public:
     
     // Update the meter to show a specific level (0-100)
     // level: percentage to display (0-100)
-    void updateLevel(LGFX_Device* lcd, float level);
+    // colorOverride: optional color to use instead of normal color coding (0 = use normal colors)
+    void updateLevel(LGFX_Device* lcd, float level, uint16_t colorOverride = 0);
     
 private:
     // Meter position and dimensions
@@ -38,7 +39,7 @@ private:
     uint16_t getColorForPercent(float percent);
     
     // Draw all blocks based on current level
-    void drawBlocks(LGFX_Device* lcd, float level);
+    void drawBlocks(LGFX_Device* lcd, float level, uint16_t colorOverride = 0);
 };
 
 #endif

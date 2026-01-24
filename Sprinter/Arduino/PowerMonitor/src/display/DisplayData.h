@@ -8,6 +8,13 @@ enum BatteryDisplayMode {
     BATTERY_SOK2 = 2
 };
 
+// Device connection/data status for color coding
+enum DeviceStatus {
+    DEVICE_ONLINE = 0,      // Connected and receiving current data (normal color)
+    DEVICE_STALE = 1,       // Connected but data is stale (grey - keep last value)
+    DEVICE_OFFLINE = 2      // Not connected (red - zero values)
+};
+
 struct DisplayData
 {
     int stateOfCharge;
@@ -34,6 +41,11 @@ struct DisplayData
     bool heater;
     int currentHertz;
     BatteryDisplayMode batteryMode;
+    
+    // Device status for color coding
+    DeviceStatus sok1Status = DEVICE_OFFLINE;
+    DeviceStatus sok2Status = DEVICE_OFFLINE;
+    DeviceStatus bt2Status = DEVICE_OFFLINE;
 };
 
 #endif

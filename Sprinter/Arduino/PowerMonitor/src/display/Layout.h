@@ -28,6 +28,7 @@ class Layout
         bool isBLERegion(int x,int y);
         bool isWaterRegion(int x,int y);
         bool isBatteryIconRegion(int x,int y);
+        bool isCenterRegion(int x, int y);
         void showWaterDetail();
         SparkLine<float> *getDaySparkPtr();
         SparkLine<float> *getNightSparkPtr();
@@ -37,6 +38,7 @@ class Layout
     private:
 
         float cTof(float c);
+        uint16_t getStatusColor(DeviceStatus status);  // Get text color based on device status
 
         //Meters
         CircularMeter centerOutMeter;

@@ -111,24 +111,10 @@ void BLEManager::poll() {
         int connectingDeviceIndex = targetDeviceIndex;  // Save before connectToServer clears it
         
         if(!connectToServer()) {
-            // Track failed connection attempt for this device
-            if(connectingDeviceIndex >= 0 && connectingDeviceIndex < deviceCount) {
-                deviceRetryCount[connectingDeviceIndex]++;
-                logger.log(WARNING, "BLE: Connection failed for %s (attempt %d/%d)", 
-                    devices[connectingDeviceIndex]->getPerifpheryName(),
-                    deviceRetryCount[connectingDeviceIndex], BLE_MAX_RETRIES);
-                
-                if(deviceRetryCount[connectingDeviceIndex] >= BLE_MAX_RETRIES) {
-                    // Enter backoff mode for this device
-                    deviceBackoffUntil[connectingDeviceIndex] = millis() + BLE_BACKOFF_TIME;
-                    logger.log(WARNING, "BLE: Device %s entering 30-minute backoff after %d failed attempts",
-                        devices[connectingDeviceIndex]->getPerifpheryName(), BLE_MAX_RETRIES);
-                }
-            }
-            // Only reset stack if not entering backoff (avoid resetting for known-bad devices)
-            if(connectingDeviceIndex < 0 || deviceRetryCount[connectingDeviceIndex] < BLE_MAX_RETRIES) {
-                resetStack();
-            }
+            logger.log(WARNING, "BLE: Connection failed for %s", 
+                (connectingDeviceIndex >= 0 && connectingDeviceIndex < deviceCount) 
+                    ? devices[connectingDeviceIndex]->getPerifpheryName() : "unknown");
+            // Don't reset stack here - let checkForDisconnectedDevices handle retry logic
         } else {
             // Connection succeeded - reset retry count for this device
             if(connectingDeviceIndex >= 0 && connectingDeviceIndex < deviceCount) {
@@ -167,11 +153,34 @@ void BLEManager::checkForDisconnectedDevices() {
     for(int i = 0; i < deviceCount; i++) {
         if(!devices[i]->isConnected()) {
             // Device is offline - check if it's in backoff (expected to be offline)
-            if(deviceBackoffUntil[i] == 0 || millis() >= deviceBackoffUntil[i]) {
-                // Not in backoff, this is unexpected offline
-                allConnectedOrBackoff = false;
+            if(deviceBackoffUntil[i] > 0 && millis() < deviceBackoffUntil[i]) {
+                // In backoff, treat as "expected offline" and don't trigger reconnect logic
+                continue;
             }
-            // If in backoff, treat as "expected offline" and don't trigger reconnect logic
+            
+            // Backoff expired or never set - this device needs attention
+            if(deviceBackoffUntil[i] > 0 && millis() >= deviceBackoffUntil[i]) {
+                // Backoff just expired, reset counters
+                deviceBackoffUntil[i] = 0;
+                deviceRetryCount[i] = 0;
+                logger.log(INFO, "BLE: Backoff expired for %s, will retry", devices[i]->getPerifpheryName());
+            }
+            
+            // Increment retry count for not being connected during this check cycle
+            deviceRetryCount[i]++;
+            
+            if(deviceRetryCount[i] >= BLE_MAX_RETRIES) {
+                // Enter backoff mode - stop trying for a while
+                deviceBackoffUntil[i] = millis() + BLE_BACKOFF_TIME;
+                logger.log(ERROR, "BLE: Device %s not found after %d attempts, backing off for 30 min", 
+                    devices[i]->getPerifpheryName(), deviceRetryCount[i]);
+                // Don't count this as "unexpected offline" since we're handling it
+            } else {
+                // Still trying to find/connect
+                allConnectedOrBackoff = false;
+                logger.log(WARNING, "BLE: Device %s not connected, attempt %d/%d", 
+                    devices[i]->getPerifpheryName(), deviceRetryCount[i], BLE_MAX_RETRIES);
+            }
         }
         else if(!devices[i]->isCurrent()) {
             anyStale = true;
@@ -179,19 +188,18 @@ void BLEManager::checkForDisconnectedDevices() {
                 devices[i]->getPerifpheryName());
             devices[i]->disconnect();
             allConnectedOrBackoff = false;
+            // Reset retry count since we had a connection
+            deviceRetryCount[i] = 0;
+        }
+        else {
+            // Device is connected and current - reset retry count
+            deviceRetryCount[i] = 0;
         }
     }
     
     // If all connected (or in backoff) and none stale, reset startup timer
     if(allConnectedOrBackoff && !anyStale) {
         bleStartupTime = millis();
-        return;
-    }
-    
-    // If startup timeout exceeded and not all devices connected, do full BLE restart
-    if(millis() - bleStartupTime > BLE_STARTUP_TIMEOUT) {
-        logger.log(WARNING, "BLE startup timeout - not all devices connected. Restarting BLE...");
-        resetStack();
         return;
     }
     
@@ -297,6 +305,8 @@ bool BLEManager::connectToServer() {
     if(NimBLEDevice::getCreatedClientCount()) {
         pClient = NimBLEDevice::getClientByPeerAddress(connectAddress);
         if(pClient) {
+            // Small delay before reconnect to let the device settle
+            delay(500);
             if(!pClient->connect(connectAddress, false)) {
                 logger.log(ERROR, "BLE: Reconnect failed");
                 return false;

@@ -190,11 +190,27 @@ bool Layout::isBatteryIconRegion(int x,int y)
 	return false;
 }
 
+bool Layout::isCenterRegion(int x, int y)
+{
+	// Center region is roughly middle third of screen
+	int centerX = lcd.width() / 2;
+	int centerY = lcd.height() / 2;
+	int regionSize = 80;  // 80 pixel radius from center
+	
+	if(x >= centerX - regionSize && x <= centerX + regionSize &&
+	   y >= centerY - regionSize && y <= centerY + regionSize)
+		return true;
+	
+	return false;
+}
+
 void Layout::updateBitmaps()
 {
-	//update bar meters
-    battery1Meter.updateLevel(&lcd, displayData.stateOfCharge);
-    battery2Meter.updateLevel(&lcd, displayData.stateOfCharge2);
+	//update bar meters - use grey fill for stale devices (offline will be 0 so black anyway)
+    uint16_t sok1Fill = (displayData.sok1Status == DEVICE_STALE) ? TFT_DARKGREY : 0;
+    uint16_t sok2Fill = (displayData.sok2Status == DEVICE_STALE) ? TFT_DARKGREY : 0;
+    battery1Meter.updateLevel(&lcd, displayData.stateOfCharge, sok1Fill);
+    battery2Meter.updateLevel(&lcd, displayData.stateOfCharge2, sok2Fill);
     waterMeter.updateLevel(&lcd, displayData.stateOfWater);
     gasMeter.updateLevel(&lcd, displayData.stateOfGas);
 }
@@ -216,14 +232,16 @@ void Layout::updateLCD(ESP32Time *rtc)
 
 	//(int x,int y,float value,int dec,const char *label,int font);
 	//(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font)
-	// Battery 1 SoC and hours left
-	soc.updateText(displayData.stateOfCharge);
-    battVolts.drawCenterText(battery1Config.x + 15, battery1Config.y + battery1Config.height + 5, displayData.batteryVolts, 1, "V", 1, TFT_WHITE);
-    battHoursLeft.drawCenterText(battery1Config.x + 15, battery1Config.y + battery1Config.height + 20, displayData.batteryHoursRem, 1, "H", 1, TFT_WHITE);
-    // Battery 2 SoC and hours left
-	soc2.updateText(displayData.stateOfCharge2);
-    battVolts2.drawCenterText(battery2Config.x + 15, battery2Config.y + battery2Config.height + 5, displayData.batteryVolts2, 1, "V", 1, TFT_WHITE);
-    battHoursLeft2.drawCenterText(battery2Config.x + 15, battery2Config.y + battery2Config.height + 20, displayData.batteryHoursRem2, 1, "H", 1, TFT_WHITE);
+	// Battery 1 SoC and hours left - color based on device status
+	uint16_t sok1Color = getStatusColor(displayData.sok1Status);
+	soc.updateText(displayData.stateOfCharge, sok1Color);
+    battVolts.drawCenterText(battery1Config.x + 15, battery1Config.y + battery1Config.height + 5, displayData.batteryVolts, 1, "V", 1, sok1Color);
+    battHoursLeft.drawCenterText(battery1Config.x + 15, battery1Config.y + battery1Config.height + 20, displayData.batteryHoursRem, 1, "H", 1, sok1Color);
+    // Battery 2 SoC and hours left - color based on device status
+	uint16_t sok2Color = getStatusColor(displayData.sok2Status);
+	soc2.updateText(displayData.stateOfCharge2, sok2Color);
+    battVolts2.drawCenterText(battery2Config.x + 15, battery2Config.y + battery2Config.height + 5, displayData.batteryVolts2, 1, "V", 1, sok2Color);
+    battHoursLeft2.drawCenterText(battery2Config.x + 15, battery2Config.y + battery2Config.height + 20, displayData.batteryHoursRem2, 1, "H", 1, sok2Color);
     // Water days left - centered below water meter, number only
     waterDaysLeft.drawCenterText(waterConfig.x + 15, waterConfig.y + waterConfig.height + 5, displayData.waterDaysRem, 1, "D", 1, TFT_WHITE);
     // Gas days left - centered below gas meter, number only
@@ -232,11 +250,13 @@ void Layout::updateLCD(ESP32Time *rtc)
     gasPercent.updateText(displayData.stateOfGas);
     hertz.drawRightText(lcd.width()-10,lcd.height()-15,displayData.currentHertz,0,"Hz",2,TFT_WHITE);
 
-	batteryTemp.updateText(cTof(displayData.batteryTemperature));
-	batteryAmps.updateText(displayData.batteryAmpValue);
-	chargerTemp.updateText(cTof(displayData.chargerTemperature));
-	solarAmps.updateText(displayData.solarAmpValue);
-	alternaterAmps.updateText(displayData.alternaterAmpValue);
+	// BT2 values - color based on device status
+	uint16_t bt2Color = getStatusColor(displayData.bt2Status);
+	batteryTemp.updateText(cTof(displayData.batteryTemperature), bt2Color);
+	batteryAmps.updateText(displayData.batteryAmpValue, bt2Color);
+	chargerTemp.updateText(cTof(displayData.chargerTemperature), bt2Color);
+	solarAmps.updateText(displayData.solarAmpValue, bt2Color);
+	alternaterAmps.updateText(displayData.alternaterAmpValue, bt2Color);
 
 	//Sparklines
 	int slLen=70; int slHeight=20;
@@ -290,6 +310,19 @@ void Layout::updateLCD(ESP32Time *rtc)
 float Layout::cTof(float c)
 {
 	return (c * 9.0 / 5.0) + 32.0;
+}
+
+uint16_t Layout::getStatusColor(DeviceStatus status)
+{
+    switch(status) {
+        case DEVICE_OFFLINE:
+            return TFT_RED;
+        case DEVICE_STALE:
+            return TFT_DARKGREY;
+        case DEVICE_ONLINE:
+        default:
+            return TFT_WHITE;
+    }
 }
 
 void Layout::showWaterDetail()

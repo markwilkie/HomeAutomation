@@ -89,8 +89,7 @@ void Screen::setBrightness()
     //Check if we need to dim the screen back down or brighten up because of a touch
     if(currentBrightness < STND_BRIGHTNESS && isTouched())
     {
-        //not only set brightness, but also reset display in case it was in power save mode
-        resetDisplay();
+        setBrightness(STND_BRIGHTNESS);
     }
     else if(currentBrightness > DIM_BRIGHTNESS && millis()-brightTime > SCREEN_BRIGHT_TIME)
     {
@@ -159,6 +158,18 @@ void Text::updateText(float value)
 
 void Text::updateText(int value)
 {
+    drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
+}
+
+void Text::updateText(float value, int color)
+{
+    lastColor = color;
+    drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
+}
+
+void Text::updateText(int value, int color)
+{
+    lastColor = color;
     drawText(lastX,lastY,value,lastDec,lastLabel,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
 }
 

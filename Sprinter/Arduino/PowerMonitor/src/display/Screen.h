@@ -51,6 +51,8 @@ class Text
         void updateText(const char *text);  //update using same parameters as last time
         void updateText(float value);  //update using same parameters as last time
         void updateText(int value);  //update using same parameters as last time
+        void updateText(float value, int color);  //update with new color
+        void updateText(int value, int color);  //update with new color
 
         void drawBitmapTextBottom(BitmapConfig *bmCfg,int offset,float value,int dec,const char *label,int font,int color);
         void drawBitmapTextTop(BitmapConfig *bmCfg,int offset, float value,int dec,const char *label,int font,int color);

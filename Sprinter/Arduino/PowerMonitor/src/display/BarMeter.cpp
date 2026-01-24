@@ -25,13 +25,13 @@ void BarMeter::drawMeter(LGFX_Device* lcd, int x, int y, int width, int height,
     drawBlocks(lcd, 100.0);
 }
 
-void BarMeter::updateLevel(LGFX_Device* lcd, float level)
+void BarMeter::updateLevel(LGFX_Device* lcd, float level, uint16_t colorOverride)
 {
     // Clamp level to 0-100
     if(level < 0) level = 0;
     if(level > 100) level = 100;
     
-    drawBlocks(lcd, level);
+    drawBlocks(lcd, level, colorOverride);
 }
 
 uint16_t BarMeter::getColorForPercent(float percent)
@@ -47,7 +47,7 @@ uint16_t BarMeter::getColorForPercent(float percent)
         return TFT_GREEN;
 }
 
-void BarMeter::drawBlocks(LGFX_Device* lcd, float level)
+void BarMeter::drawBlocks(LGFX_Device* lcd, float level, uint16_t colorOverride)
 {
     // Inner area for blocks
     int inner_left = _x + _outlineWidth;
@@ -56,8 +56,8 @@ void BarMeter::drawBlocks(LGFX_Device* lcd, float level)
     int inner_bottom = _y + _height - _outlineWidth - 1;
     int inner_height = inner_bottom - inner_top + 1;
     
-    // Get color for all blocks based on overall level
-    uint16_t levelColor = getColorForPercent(level);
+    // Get color for all blocks - use override if provided, otherwise normal color coding
+    uint16_t levelColor = (colorOverride != 0) ? colorOverride : getColorForPercent(level);
     
     // Partition height across BLOCK_COUNT using cumulative rounding
     float acc = 0.0;

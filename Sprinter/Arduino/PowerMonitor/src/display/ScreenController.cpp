@@ -90,6 +90,9 @@ void ScreenController::longTouchCallback(int x, int y) {
 }
 
 void ScreenController::handleTouch(int x, int y) {
+    // Any touch increases screen brightness
+    screen->setBrightness(STND_BRIGHTNESS);
+    
     // Check if water region touched - toggle between main and detail screens
     if(currentScreen == MAIN_SCREEN && layout->isWaterRegion(x, y)) {
         currentScreen = WATER_DETAIL_SCREEN;
@@ -116,8 +119,14 @@ void ScreenController::handleTouch(int x, int y) {
 }
 
 void ScreenController::handleLongTouch(int x, int y) {
+    // Long touch in center region - reset screen (for brownout recovery)
+    if(layout->isCenterRegion(x, y)) {
+        logger.log(WARNING, "Screen reset requested via long touch");
+        screen->resetDisplay();
+        layout->drawInitialScreen();
+    }
     // Check if in the BLE region - toggle BLE on/off
-    if(layout->isBLERegion(x, y)) {
+    else if(layout->isBLERegion(x, y)) {
         static bool BLEOn = true;
         BLEOn = !BLEOn;
         logger.log(WARNING, "BLE Toggled %d (%d,%d)", BLEOn, x, y);
@@ -133,36 +142,95 @@ void ScreenController::handleLongTouch(int x, int y) {
 void ScreenController::loadValues() {
     if(!sokReader1 || !sokReader2 || !bt2Reader) return;
     
-    // Individual battery data
-    layout->displayData.stateOfCharge = sokReader1->getSoc();
-    layout->displayData.stateOfCharge2 = sokReader2->getSoc();
+    // Determine device status for each reader
+    // Offline (red, zero values) > Stale (grey, keep last value) > Online (normal)
     
-    // Combined data from both SOK batteries
-    float totalAmps = sokReader1->getAmps() + sokReader2->getAmps();
+    // SOK1 status
+    if(!sokReader1->isConnected()) {
+        layout->displayData.sok1Status = DEVICE_OFFLINE;
+    } else if(!sokReader1->isCurrent()) {
+        layout->displayData.sok1Status = DEVICE_STALE;
+    } else {
+        layout->displayData.sok1Status = DEVICE_ONLINE;
+    }
     
-    layout->displayData.currentVolts = (sokReader1->getVolts() + sokReader2->getVolts()) / 2.0;
-    layout->displayData.batteryVolts = sokReader1->getVolts();
-    layout->displayData.batteryVolts2 = sokReader2->getVolts();
+    // SOK2 status
+    if(!sokReader2->isConnected()) {
+        layout->displayData.sok2Status = DEVICE_OFFLINE;
+    } else if(!sokReader2->isCurrent()) {
+        layout->displayData.sok2Status = DEVICE_STALE;
+    } else {
+        layout->displayData.sok2Status = DEVICE_ONLINE;
+    }
     
-    // Calculate charge and draw amps for display rings
-    layout->displayData.chargeAmps = bt2Reader->getSolarAmps() + bt2Reader->getAlternaterAmps();
+    // BT2 status
+    if(!bt2Reader->isConnected()) {
+        layout->displayData.bt2Status = DEVICE_OFFLINE;
+    } else if(!bt2Reader->isCurrent()) {
+        layout->displayData.bt2Status = DEVICE_STALE;
+    } else {
+        layout->displayData.bt2Status = DEVICE_ONLINE;
+    }
     
-    // Calculate actual house load based on battery state
-    if(totalAmps < 0)
-        layout->displayData.drawAmps = layout->displayData.chargeAmps + (-totalAmps);
-    else
-        layout->displayData.drawAmps = layout->displayData.chargeAmps - totalAmps;
+    // SOK1 values - zero if offline, keep last if stale
+    if(layout->displayData.sok1Status == DEVICE_OFFLINE) {
+        layout->displayData.stateOfCharge = 0;
+        layout->displayData.batteryVolts = 0;
+        layout->displayData.batteryHoursRem = 0;
+    } else if(layout->displayData.sok1Status == DEVICE_ONLINE) {
+        layout->displayData.stateOfCharge = sokReader1->getSoc();
+        layout->displayData.batteryVolts = sokReader1->getVolts();
+        if(sokReader1->getAmps() < 0)
+            layout->displayData.batteryHoursRem = sokReader1->getCapacity() / (sokReader1->getAmps() * -1);
+        else
+            layout->displayData.batteryHoursRem = 999;
+    }
+    // Stale: don't update, keep last values
     
-    // Calculate hours remaining for each battery
-    if(sokReader1->getAmps() < 0)
-        layout->displayData.batteryHoursRem = sokReader1->getCapacity() / (sokReader1->getAmps() * -1);
-    else
-        layout->displayData.batteryHoursRem = 999;
+    // SOK2 values - zero if offline, keep last if stale
+    if(layout->displayData.sok2Status == DEVICE_OFFLINE) {
+        layout->displayData.stateOfCharge2 = 0;
+        layout->displayData.batteryVolts2 = 0;
+        layout->displayData.batteryHoursRem2 = 0;
+    } else if(layout->displayData.sok2Status == DEVICE_ONLINE) {
+        layout->displayData.stateOfCharge2 = sokReader2->getSoc();
+        layout->displayData.batteryVolts2 = sokReader2->getVolts();
+        if(sokReader2->getAmps() < 0)
+            layout->displayData.batteryHoursRem2 = sokReader2->getCapacity() / (sokReader2->getAmps() * -1);
+        else
+            layout->displayData.batteryHoursRem2 = 999;
+    }
+    // Stale: don't update, keep last values
+    
+    // BT2 values - zero if offline, keep last if stale
+    if(layout->displayData.bt2Status == DEVICE_OFFLINE) {
+        layout->displayData.chargeAmps = 0;
+        layout->displayData.chargerTemperature = 0;
+        layout->displayData.solarAmpValue = 0;
+        layout->displayData.alternaterAmpValue = 0;
+    } else if(layout->displayData.bt2Status == DEVICE_ONLINE) {
+        layout->displayData.chargeAmps = bt2Reader->getSolarAmps() + bt2Reader->getAlternaterAmps();
+        layout->displayData.chargerTemperature = bt2Reader->getTemperature();
+        layout->displayData.solarAmpValue = bt2Reader->getSolarAmps();
+        layout->displayData.alternaterAmpValue = bt2Reader->getAlternaterAmps();
+    }
+    // Stale: don't update, keep last values
+    
+    // Combined/derived values - only update if both SOKs are online
+    if(layout->displayData.sok1Status == DEVICE_ONLINE && layout->displayData.sok2Status == DEVICE_ONLINE) {
+        float totalAmps = sokReader1->getAmps() + sokReader2->getAmps();
+        layout->displayData.currentVolts = (sokReader1->getVolts() + sokReader2->getVolts()) / 2.0;
         
-    if(sokReader2->getAmps() < 0)
-        layout->displayData.batteryHoursRem2 = sokReader2->getCapacity() / (sokReader2->getAmps() * -1);
-    else
-        layout->displayData.batteryHoursRem2 = 999;
+        // Calculate actual house load based on battery state
+        if(totalAmps < 0)
+            layout->displayData.drawAmps = layout->displayData.chargeAmps + (-totalAmps);
+        else
+            layout->displayData.drawAmps = layout->displayData.chargeAmps - totalAmps;
+    } else if(layout->displayData.sok1Status == DEVICE_OFFLINE && layout->displayData.sok2Status == DEVICE_OFFLINE) {
+        layout->displayData.currentVolts = 0;
+        layout->displayData.drawAmps = 0;
+    }
+    // If one is stale or mixed, keep last values
 
     // Use cached water and gas tank values
     if(waterTank) {
@@ -176,30 +244,51 @@ void ScreenController::loadValues() {
     
     // Set battery-specific values based on display mode
     if(layout->displayData.batteryMode == BATTERY_COMBINED) {
-        layout->displayData.batteryTemperature = (sokReader1->getTemperature() + sokReader2->getTemperature()) / 2.0;
-        layout->displayData.batteryAmpValue = sokReader1->getAmps() + sokReader2->getAmps();
-        layout->displayData.cmos = sokReader1->isCMOS() && sokReader2->isCMOS();
-        layout->displayData.dmos = sokReader1->isDMOS() && sokReader2->isDMOS();
-        layout->displayData.heater = sokReader1->isHeating() || sokReader2->isHeating();
+        // Only update if both online
+        if(layout->displayData.sok1Status == DEVICE_ONLINE && layout->displayData.sok2Status == DEVICE_ONLINE) {
+            layout->displayData.batteryTemperature = (sokReader1->getTemperature() + sokReader2->getTemperature()) / 2.0;
+            layout->displayData.batteryAmpValue = sokReader1->getAmps() + sokReader2->getAmps();
+            layout->displayData.cmos = sokReader1->isCMOS() && sokReader2->isCMOS();
+            layout->displayData.dmos = sokReader1->isDMOS() && sokReader2->isDMOS();
+            layout->displayData.heater = sokReader1->isHeating() || sokReader2->isHeating();
+        } else if(layout->displayData.sok1Status == DEVICE_OFFLINE && layout->displayData.sok2Status == DEVICE_OFFLINE) {
+            layout->displayData.batteryTemperature = 0;
+            layout->displayData.batteryAmpValue = 0;
+            layout->displayData.cmos = false;
+            layout->displayData.dmos = false;
+            layout->displayData.heater = false;
+        }
     }
     else if(layout->displayData.batteryMode == BATTERY_SOK1) {
-        layout->displayData.batteryTemperature = sokReader1->getTemperature();
-        layout->displayData.batteryAmpValue = sokReader1->getAmps();
-        layout->displayData.cmos = sokReader1->isCMOS();
-        layout->displayData.dmos = sokReader1->isDMOS();
-        layout->displayData.heater = sokReader1->isHeating();
+        if(layout->displayData.sok1Status == DEVICE_ONLINE) {
+            layout->displayData.batteryTemperature = sokReader1->getTemperature();
+            layout->displayData.batteryAmpValue = sokReader1->getAmps();
+            layout->displayData.cmos = sokReader1->isCMOS();
+            layout->displayData.dmos = sokReader1->isDMOS();
+            layout->displayData.heater = sokReader1->isHeating();
+        } else if(layout->displayData.sok1Status == DEVICE_OFFLINE) {
+            layout->displayData.batteryTemperature = 0;
+            layout->displayData.batteryAmpValue = 0;
+            layout->displayData.cmos = false;
+            layout->displayData.dmos = false;
+            layout->displayData.heater = false;
+        }
     }
     else { // BATTERY_SOK2
-        layout->displayData.batteryTemperature = sokReader2->getTemperature();
-        layout->displayData.batteryAmpValue = sokReader2->getAmps();
-        layout->displayData.cmos = sokReader2->isCMOS();
-        layout->displayData.dmos = sokReader2->isDMOS();
-        layout->displayData.heater = sokReader2->isHeating();
+        if(layout->displayData.sok2Status == DEVICE_ONLINE) {
+            layout->displayData.batteryTemperature = sokReader2->getTemperature();
+            layout->displayData.batteryAmpValue = sokReader2->getAmps();
+            layout->displayData.cmos = sokReader2->isCMOS();
+            layout->displayData.dmos = sokReader2->isDMOS();
+            layout->displayData.heater = sokReader2->isHeating();
+        } else if(layout->displayData.sok2Status == DEVICE_OFFLINE) {
+            layout->displayData.batteryTemperature = 0;
+            layout->displayData.batteryAmpValue = 0;
+            layout->displayData.cmos = false;
+            layout->displayData.dmos = false;
+            layout->displayData.heater = false;
+        }
     }
-    
-    layout->displayData.chargerTemperature = bt2Reader->getTemperature();
-    layout->displayData.solarAmpValue = bt2Reader->getSolarAmps();
-    layout->displayData.alternaterAmpValue = bt2Reader->getAlternaterAmps();
 }
 
 void ScreenController::loadSimulatedValues() {

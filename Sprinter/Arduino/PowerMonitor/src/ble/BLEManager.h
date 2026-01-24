@@ -15,7 +15,7 @@ extern Logger logger;
 #define BLE_STARTUP_TIMEOUT 120000  // Full BLE restart if not all devices connect within 2 minutes
 #define BLE_CONNECT_THROTTLE_MS 2000  // Minimum ms between connection attempts
 #define BLE_IS_ALIVE_TIME   30000   // Check for disconnected devices every 30 seconds
-#define BLE_MAX_RETRIES     3       // Max connection retries before entering backoff
+#define BLE_MAX_RETRIES     5       // Max connection retries before entering backoff
 #define BLE_BACKOFF_TIME    1800000 // 30 minutes backoff after max retries
 
 // Forward declaration
