@@ -2,7 +2,7 @@
 #define BT2_READER_H
 
 #include "BTDevice.hpp"
-#include "ArduinoBLE.h"
+#include <NimBLEDevice.h>
 #include <array>
 #include "../logging/logging.h"
 
@@ -43,7 +43,7 @@ static const uint16_t MODBUS_TABLE_A001[256] = {
 	0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-#define BT2_BLE_STALE 20000
+#define BT2_BLE_STALE 120000
 
 #define BT2READER_QUIET					0
 #define BT2READER_ERRORS_ONLY			1
@@ -230,14 +230,15 @@ public:
 
 	BT2Reader();
 
-	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphore);
-	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
-	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore);
-	void disconnectCallback(BLEDevice *myDevice);
+	void notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphore);
+	void scanCallback(NimBLEAdvertisedDevice *myDevice, BLE_SEMAPHORE *bleSemaphore);
+	boolean connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSemaphore);
+	void disconnectCallback(NimBLEClient *myClient);
 
 	void sendStartupCommand(BLE_SEMAPHORE* bleSemaphore);
 	void sendSolarOrAlternaterCommand(BLE_SEMAPHORE* bleSemaphore);
 	void sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters,BLE_SEMAPHORE* bleSemaphore);
+	boolean needsStartupCommand();  // Returns true if startup command hasn't been sent yet
 	void updateValues();
 	float getAlternaterAmps();
 	float getSolarAmps();	
@@ -250,6 +251,7 @@ public:
 	void printUuid(uint8_t * data, int datalen);
 
 	boolean isCurrent();
+	void resetStale();
 
 private:
 
@@ -268,7 +270,7 @@ private:
 
 	long lastHeardTime;
 
-	boolean appendRenogyPacket(BLECharacteristic *characteristic);
+	boolean appendRenogyPacket(uint8_t *pData, size_t length);
 	uint16_t getProvidedModbusChecksum(uint8_t * data);
 	uint16_t getCalculatedModbusChecksum(uint8_t * data);
 	uint16_t getCalculatedModbusChecksum(uint8_t * data, int start, int end);

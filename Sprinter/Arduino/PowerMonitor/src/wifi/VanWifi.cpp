@@ -10,15 +10,19 @@ void VanWifi::startWifi()
   if(isConnected())
     return;
 
-  //Setup wifi
-  esp_wifi_start();
-  WiFi.disconnect(false);  // Reconnect the network
+  logger.log(INFO, "Starting WiFi...");
+
+  //Setup wifi 
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);    // Switch WiFi on
 
-  // Add list of wifi networks
-  wifiMulti.addAP(VANSSID, PASSWORD);
-  wifiMulti.addAP(LFPSSID, PASSWORD);
-  //WiFi.begin(SSID, PASSWORD);
+  // Add list of wifi networks (only once)
+  if (!apAdded) {
+    wifiMulti.addAP(VANSSID, PASSWORD);
+    wifiMulti.addAP(LFPSSID, PASSWORD);
+    apAdded = true;
+  }
 
   //Connects to the wifi with the strongest signal
   if(wifiMulti.run(connectTimeoutMs) == WL_CONNECTED) 
@@ -30,46 +34,52 @@ void VanWifi::startWifi()
     logger.log(ERROR,"Could not connect to Wifi.  Moving on....");
   }
 
-  //Init OTA
-  ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-        type = "filesystem";
-
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      logger.log(WARNING,"Starting OTA updating ");
-    })
-    .onEnd([]() {
-      logger.log(INFO,"\nEnd OTA");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      //logger.log("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      logger.log(ERROR,"OTA Problem: %s",error);
-      if (error == OTA_AUTH_ERROR) { logger.log(ERROR,"Auth Failed"); }
-      else if (error == OTA_BEGIN_ERROR){ logger.log(ERROR,"Begin Failed"); }
-      else if (error == OTA_CONNECT_ERROR){ logger.log(ERROR,"Connect Failed"); }
-      else if (error == OTA_RECEIVE_ERROR) { logger.log(ERROR,"Receive Failed"); }
-       else if (error == OTA_END_ERROR) { logger.log(ERROR,"End Failed"); }
-    });
-
-  ArduinoOTA.begin();
-
   //send logs
   logger.sendLogs(isConnected());
+}
+
+void VanWifi::stopWifi()
+{
+  if(!isConnected()) {
+    logger.log(WARNING, "WiFi not connected, skipping stop");
+    return;
+  }
+  
+  //logger.log(INFO, "Stopping WiFi");
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(true,true);  // disconnect and turn off station mode
+  delay(200);  // Allow disconnect to complete
+  WiFi.mode(WIFI_OFF);  
+  delay(200);  // Allow mode change to complete  
+  // Note: Don't call esp_wifi_stop() - it causes crashes on ESP32-S3
+  // WiFi.mode(WIFI_OFF) is sufficient to release GPIO11
+  //logger.log(INFO, "WiFi stopped");
 }
 
 DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
 {
   DynamicJsonDocument doc(512);
-  WiFiClient client;
   HTTPClient http;
 
-  http.begin(client,url);
+  // Use stack-allocated clients to avoid memory leaks
+  WiFiClientSecure clientSecure;
+  WiFiClient client;
+
+  // Check if URL is HTTPS
+  bool isHttps = (strncmp(url, "https://", 8) == 0);
+  
+  if (isHttps) {
+    clientSecure.setInsecure();  // Skip certificate validation for simplicity
+    http.begin(clientSecure, url);
+  } else {
+    http.begin(client, url);
+  }
+  
+  http.setTimeout(10000);  // Set timeout to 10 seconds (was 45)
+  
+  // Add RapidAPI headers
+  http.addHeader("X-Rapidapi-Key", "bd06869c8cmsh236b160699d9725p1e8579jsn8c7774bf1408");
+  http.addHeader("X-Rapidapi-Host", "world-time-api3.p.rapidapi.com");
 
   // Send HTTP GET request
   int httpResponseCode = http.GET();

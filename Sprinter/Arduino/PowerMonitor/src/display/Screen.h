@@ -32,6 +32,7 @@ class Screen
         void poll();
         void setBrightness(int level);
         void setBrightness(); 
+        void resetDisplay();
         bool isTouched();
         void addTouchCallback(touchCallBackTemplate);
         void addLongTouchCallback(longTouchCallBackTemplate);

@@ -1,31 +1,39 @@
 #ifndef WATERTANK_H
 #define WATERTANK_H
 
-//Defines
-#define WATER_SENSOR0_PIN 12
-#define WATER_SENSOR1_PIN 11
-#define WATER_SENSOR2_PIN 10
+#include <Arduino.h>
+#include "src/logging/logger.h"
 
-#define WATER_SENSOR0_LEVEL 90
-#define WATER_SENSOR1_LEVEL 50
-#define WATER_SENSOR2_LEVEL 20
+extern Logger logger;
+
+//Defines
+#define WATER_LEVEL_ANALOG_PIN 12 // water level sensor
+
+#define PUMP_CURRENT_THRESHOLD 2.2 // Remember that we're running the sensor backwards, so less than is more amps
+#define USAGE_CHECK_INTERVAL 3600000UL // Check usage every hour (in milliseconds)
 
 class WaterTank {
 private:
-
   //properties
-  int stateOfWater;  //perc full the tank is
   long waterRemaining;
-  long lastFilled;
+  int lastLevel = -1;
+  unsigned long lastLevelTime = 0;
+  float dailyPercentUsed = 0; // Hourly percent used (weighted average)
+  unsigned long lastDayCheck = 0; // Last hourly check time
+  
+  // Cached sensor values
+  int waterLevel = 0;
+  float waterDaysRem = 0;
    
 public:
-   //members
-
-  void init();
-  int readLevel();
-  double getSoW() const { return stateOfWater; }
-  long getLastFilled() const { return lastFilled; }
-  double getDaysRemaining(); //calculates time remaining based on given usage
+  //members
+  void readWaterLevel(); // Reads sensor and updates waterLevel cache
+  void updateUsage(); // Updates hourly usage based on current level and time since last update
+  void updateDaysRemaining(); // Updates waterDaysRem cache based on current usage
+  
+  // Getters for cached values
+  int getWaterLevel() const { return waterLevel; }
+  float getWaterDaysRemaining() const { return waterDaysRem; }
 };
 
-#endif 
+#endif

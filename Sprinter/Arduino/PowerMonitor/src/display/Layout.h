@@ -6,6 +6,7 @@
 #include "LGFX_ST32-SC01Plus.hpp"
 #include "bitmaps.h"
 #include "BitmapMeter.h"
+#include "BarMeter.h"
 #include "CircularMeter.h"
 #include "SparkLine.h"
 #include "Screen.h"
@@ -25,6 +26,9 @@ class Layout
         void setWifiIndicator(boolean online);
         void setBLEIndicator(int color);
         bool isBLERegion(int x,int y);
+        bool isWaterRegion(int x,int y);
+        bool isBatteryIconRegion(int x,int y);
+        void showWaterDetail();
         SparkLine<float> *getDaySparkPtr();
         SparkLine<float> *getNightSparkPtr();
 
@@ -37,12 +41,16 @@ class Layout
         //Meters
         CircularMeter centerOutMeter;
         CircularMeter centerInMeter;
-        BitmapMeter socMeter;
-        BitmapMeter waterMeter;
+        BarMeter battery1Meter;
+        BarMeter battery2Meter;
+        BarMeter waterMeter;
+        BarMeter gasMeter;
 
-        BitmapConfig socConfig;
+        BitmapConfig battery1Config;
+        BitmapConfig battery2Config;
         FillConfig socFill;
         BitmapConfig waterConfig;
+        BitmapConfig gasConfig;
         FillConfig waterFill;
 
         BitmapConfig heaterConfig;
@@ -54,8 +62,19 @@ class Layout
 
         //Dynamic text
         Text soc;
+        Text soc2;
+        Text battVolts;
+        Text battVolts2;
         Text battHoursLeft;
+        Text battHoursLeft2;
         Text waterDaysLeft;
+        Text waterPercent;
+        Text gasPercent;
+        Text gasDaysLeft;
+        Text battery1Title;
+        Text battery2Title;
+        Text waterTitle;
+        Text gasTitle;
         Text volts;
         Text hertz;
         Text batteryTemp;

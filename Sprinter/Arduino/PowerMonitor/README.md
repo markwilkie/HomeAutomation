@@ -1,22 +1,58 @@
 # Bluetooth power monitor
 Arduino library to interrogate BT devices and display the results on a small touch screen
 
+## BLE Library
+This project uses **NimBLE-Arduino 2.x** for Bluetooth Low Energy communication. Key implementation notes:
+- NimBLE runs as a FreeRTOS task - the main loop must call `delay(1)` to yield CPU time for BLE event processing
+- Blocking operations (WiFi, HTTP requests, ADC reads) must stop BLE first to avoid notification timeouts
+- SOK batteries use write-without-response (`writeValue(data, len, false)`) - the TX characteristic only supports `canWriteNoResponse`
+- Sequential command pattern: only one command sent at a time, wait for response before sending next
+- Connection parameters: 30-60ms interval, 0 latency, 4s supervision timeout
+
 The screen is pretty self explanatory, but a few notes:
 - Top wifi indicator is white if connected, or black (invisible) if not
 - Top BLE indicator is:  Black=off, Grey=scanning, Yellow=partially connected, Blue=fully connected
 - The two big rings are the current charge (outer) and draw (inner) in amps.  Charge could be solar or alternater.
 - Big number in the middle is the current net flow.  e.g. if 4A draw, and 3A charge, then the number would show 1A.
 - Below the big graph is current battery volts
-- Graph on left is battery state of charge
-- At the bottom, time in hours is shown based on the capacity (according to the BMS) and current draw
-- Graph on the right is water tank level
+- Two battery bar graphs on the left show state of charge for each SOK battery (Bat1 and Bat2)
+- Below each battery bar: voltage (V) and hours remaining (H)
+- At the bottom, the battery icon can be tapped to cycle through three display modes:
+  - **Combined mode** (no label): Shows averaged temperature and amps from both batteries. CMOS/DMOS indicators use AND logic (both must be on). Heater uses OR logic (on if either is heating).
+  - **SOK 1 mode** (shows '1'): Displays only SOK battery 1 data
+  - **SOK 2 mode** (shows '2'): Displays only SOK battery 2 data
+- Graph on the right is water tank level - tap to see detailed water level view, tap again to return
+- **Water tank monitoring**: Uses resistive sender (33Ω full → 240Ω empty) with 5V rail and 240Ω voltage divider
+  - Auto-calibrates on fill detection (>0.3V increase in 5 seconds)
+  - Applies calibration offset to both full and empty points for consistent accuracy
+  - Compensates for voltage rail variations, resistor tolerances, and ADC reference drift
+- Two bar graphs show water and gas tank levels with days remaining (D) below each
+- **Tank usage tracking**: Both water and gas tanks track usage patterns to predict remaining days
+  - Updates every hour using weighted average (70% previous, 30% new measurement)
+  - Calculates days remaining = current level / hourly percent used
+  - More responsive to usage changes while filtering noise
+- **Water tank monitoring**: Uses resistive sender (33Ω full → 240Ω empty) with 5V rail and 240Ω voltage divider on GPIO10
+  - Auto-calibrates on fill detection (>0.3V increase in 5 seconds)
+  - Applies calibration offset to both full and empty points for consistent accuracy
+  - Compensates for voltage rail variations, resistor tolerances, and ADC reference drift
+  - 10-sample averaging reduces noise from electrical interference
+- **Gas tank monitoring**: Uses Force Sensing Resistor (FSR) with 1lb disposable propane bottles on GPIO11
+  - GPIO11 requires WiFi to be disabled during reads due to hardware conflict on ESP32-S3
+  - Direct ADC-to-percentage mapping (ADC 1779=empty, ADC 2349=full, includes 379 offset for plumbing weight)
+  - 40-sample averaging for stable readings
 - There are two spark lines which show net amp flow.  The night spark is from 10pm to 7am (PST), and the day spark is last 24 hours.
 - The numbers by the spark lines are the sum of the spark in amp hours  (e.g. night spark could show 12, which would mean 12ah were used)
 - Bottom icons are battery and charger controller (van icon).
 - Charge controller shows solar and alternater amps - plus temperature of the controller itself
-- Battery shows amps draw/charge, plus temperature of the battery itself.
+- Battery icon shows amps draw/charge, plus temperature. Displays mode-specific data based on selection.
 - There are two small circles in the battery icon.  These are the DMOS and CMOS indicators, or Discharge and Charge "switch".  If they are green, it means the battery is charging and discharging normally.
-- Below the battery icon a heater icon will appear if the BMS turns the heater on
+- Below the battery icon a heater icon will appear if the BMS turns the heater on (in combined mode, shows if either battery is heating)
+
+ESP32S3 Dev Notes:
+- Due to the LovyanGFX library, ESP32 2.x core is needed (not 3.x)
+- Be sure to enable USB CDC on boot if you want to print to serial
+- Uses NimBLE-Arduino 2.x (not ArduinoBLE) for better ESP32-S3 compatibility
+- Compile with: `arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc PowerMonitor.ino`
 
 Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
 - ESP32S3 processor  (use esp32s3 dev module for Arduino IDE)
@@ -24,9 +60,9 @@ Small touch screen is the WT32-SC01 Plus by Wireless-Tag:
 - Uses library https://github.com/lovyan03/LovyanGFX with an update (LGFX_ST32-SC01Plus.hpp)
 - Includes built in Wifi and BLE
 
-Supported BT devices as of 9/2023:
-- Renogy BT2
-- SOK bms that ships w/ their batteries
+Supported BT devices as of 1/2026:
+- Renogy BT2 (BT-TH-xxxxxxxx)
+- SOK BMS that ships with their batteries (SOK-xxxxxxx) - supports multiple batteries simultaneously
 
 From [neilsheps Renogy-BT2-Reader](https://github.com/neilsheps/Renogy-BT2-Reader/tree/main) who's great work I've built on top of:
 

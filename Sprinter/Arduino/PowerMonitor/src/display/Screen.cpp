@@ -21,6 +21,16 @@ void Screen::addLongTouchCallback(longTouchCallBackTemplate cbTemplate)
 	longTouchCallBack=cbTemplate;
 }
 
+void Screen::resetDisplay()
+{
+  lcd.init();                      // Hardware reset + full init
+  lcd.setRotation(3);              // Re-apply rotation after reset
+  lcd.fillScreen(TFT_BLACK);       // Clear any garbage from brownout
+  lcd.setBrightness(STND_BRIGHTNESS);
+  lcd.display();                   // Enable display output
+  lcd.powerSave(false);            // Disable power save mode
+}
+
 void Screen::poll()
 {
     //Brightness
@@ -79,7 +89,8 @@ void Screen::setBrightness()
     //Check if we need to dim the screen back down or brighten up because of a touch
     if(currentBrightness < STND_BRIGHTNESS && isTouched())
     {
-        setBrightness(STND_BRIGHTNESS);
+        //not only set brightness, but also reset display in case it was in power save mode
+        resetDisplay();
     }
     else if(currentBrightness > DIM_BRIGHTNESS && millis()-brightTime > SCREEN_BRIGHT_TIME)
     {

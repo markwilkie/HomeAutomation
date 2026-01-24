@@ -1,118 +1,183 @@
 #include "SOKReader.h"
 
-extern void mainNotifyCallback(BLEDevice peripheral, BLECharacteristic characteristic);
 
-SOKReader::SOKReader()
+SOKReader::SOKReader(const char* _peripheryName, int _batteryNumber)
 {
-	peripheryName="SOK-AA12487";
+	peripheryName=_peripheryName;
+	batteryNumber=_batteryNumber;
 	txServiceUUID="ffe0";
 	txCharacteristicUUID="ffe2";
 	rxServiceUUID="ffe0";
-	rxCharacteristicUUID="ffe1";	
+	rxCharacteristicUUID="ffe1";
+	lastHeardTime=millis();
 }
 
-void SOKReader::scanCallback(BLEDevice *peripheral,BLE_SEMAPHORE* bleSemaphore) 
+void SOKReader::scanCallback(NimBLEAdvertisedDevice *peripheral, BLE_SEMAPHORE* bleSemaphore) 
 {
-	if (peripheral->localName() == peripheryName)
+	if (peripheral->getName() == peripheryName)
 	{
-		//Set device
-		bleDevice=peripheral;
-
-		//Make sure we're not busy
-		if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
-		{
-			logger.log("BLE busy with %s",bleSemaphore->btDevice->getPerifpheryName());
+		// NO LOGGING IN SCAN CALLBACK - runs in BLE task with limited stack!
+		
+		//Already connected? Skip
+		if(connected)
 			return;
-		}
+
+		//Already attempting connection for THIS device? Skip
+		if(bleSemaphore->waitingForConnection && bleSemaphore->btDevice == this)
+			return;
+
+		//Store the address for later connection
+		bleAddress = peripheral->getAddress();
+		const uint8_t* addrVal = peripheral->getAddress().getVal();
+
+		//Make sure we're not busy with a DIFFERENT device
+		if((bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection) && bleSemaphore->btDevice != this)
+			return;
 
 		//Set semaphore for connect
 		updateSemaphore(bleSemaphore);
 
-		logger.log("Found targeted SOK device, attempting connection");
-		memcpy(peripheryAddress,peripheral->address().c_str(),6);
-		peripheral->connect();	
+		memcpy(peripheryAddress, addrVal, 6);
 	} 
 }
 
 
-boolean SOKReader::connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) 
+boolean SOKReader::connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSemaphore) 
 {
-	logger.log("SOK: Discovering Tx service: %s",txServiceUUID);
-	if(myDevice->discoverService(txServiceUUID))
+	bleClient = myClient;
+	
+	//logger.log(INFO,"SOK %d: Discovering Tx service: %s", batteryNumber, txServiceUUID);
+	NimBLERemoteService *txService = myClient->getService(txServiceUUID);
+	if(txService)
 	{
-		logger.log("SOK Tx service %s discovered",txServiceUUID);
-		txDeviceCharateristic=myDevice->characteristic(txCharacteristicUUID);
+		//logger.log(INFO,"SOK %d: Tx service %s discovered", batteryNumber, txServiceUUID);
+		txDeviceCharateristic = txService->getCharacteristic(txCharacteristicUUID);
 		if(!txDeviceCharateristic)
 		{
-			logger.log("ERROR: SOK Tx characteristic not discovered, disconnecting");
-			myDevice->disconnect();
+			logger.log("ERROR: SOK %d: Tx characteristic not discovered, disconnecting", batteryNumber);
+			myClient->disconnect();
 			connected=false;
 			return false;
 		}
 	} 
 	else 
 	{
-		logger.log("ERROR: SOK Tx service not discovered, disconnecting");
-		myDevice->disconnect();
+		logger.log("ERROR: SOK %d: Tx service not discovered, disconnecting", batteryNumber);
+		myClient->disconnect();
 		connected=false;
 		return false;		
 	}
 
-	logger.log("SOK: Discovering Rx service: %s",rxServiceUUID);
-	if(myDevice->discoverService(rxServiceUUID))
+	//logger.log(INFO,"SOK %d: Discovering Rx service: %s", batteryNumber, rxServiceUUID);
+	NimBLERemoteService *rxService = myClient->getService(rxServiceUUID);
+	if(rxService)
 	{
-		logger.log(INFO,"SOK Rx service %s discovered.  Now looking for characteristic %s",rxServiceUUID,rxCharacteristicUUID);
-		if(rxDeviceCharateristic=myDevice->characteristic(rxCharacteristicUUID))
+		//logger.log(INFO,"SOK %d: Rx service %s discovered.  Now looking for characteristic %s", batteryNumber, rxServiceUUID, rxCharacteristicUUID);
+		rxDeviceCharateristic = rxService->getCharacteristic(rxCharacteristicUUID);
+		if(rxDeviceCharateristic)
 		{
-			if(rxDeviceCharateristic.canSubscribe() && rxDeviceCharateristic.subscribe())
+			if(rxDeviceCharateristic->canNotify())
 			{
-				rxDeviceCharateristic.setEventHandler(BLEWritten, mainNotifyCallback);
+				// Subscribe handled by main code with callback
 			}
 			else
 			{
-				logger.log("ERROR: SOK Rx characteristic not discovered or cannot be subscribed to, disconnecting");
-				myDevice->disconnect();
+				logger.log("ERROR: SOK %d: Rx characteristic cannot notify, disconnecting", batteryNumber);
+				myClient->disconnect();
 				connected=false;
 				return false;
 			} 
 		}
+		else
+		{
+			logger.log("ERROR: SOK %d: Rx characteristic not discovered, disconnecting", batteryNumber);
+			myClient->disconnect();
+			connected=false;
+			return false;
+		}
 	} 
 	else 
 	{
-		logger.log("ERROR: SOK Rx service not discovered, disconnecting");
-		myDevice->disconnect();
+		logger.log("ERROR: SOK %d: Rx service not discovered, disconnecting", batteryNumber);
+		myClient->disconnect();
 		connected=false;
 		return false;
 	}
 
 	connected=true;
-	logger.log("SOK found all needed services and characteristics.");
+	lastHeardTime=millis();
+	//logger.log(INFO,"SOK %d: found all needed services and characteristics.", batteryNumber);
 
 	bleSemaphore->waitingForConnection=false;
-	logger.log("Releasing connect semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
+	//logger.log(INFO,"SOK %d: Releasing connect semaphore for BLE device %s", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
 
 	return true;
 }
 
-void SOKReader::disconnectCallback(BLEDevice *myDevice) 
+void SOKReader::disconnectCallback(NimBLEClient *myClient) 
 {
+	//logger.log(INFO, "SOK %d: disconnectCallback - Device disconnected", batteryNumber);
+	//logger.log(INFO, "SOK %d:   Previous state: connected=%s, bleClient=%s", 
+	//	batteryNumber, connected ? "true" : "false", bleClient ? "valid" : "null");
+	
 	connected=false;
 	memset(peripheryAddress, 0, 6);
+	bleClient = nullptr;
+	
+	//logger.log(INFO, "SOK %d:   State cleared, ready for reconnection", batteryNumber);
 }
 
-void SOKReader::notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE *bleSemaphore) 
+void SOKReader::notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE *bleSemaphore) 
 {
-	int dataLen=characteristic->valueLength();
-	characteristic->readValue(dataReceived,dataLen);
-	dataReceivedLength = dataLen;
+	// Minimal processing - this runs in BLE task context with limited stack
 	newDataAvailable=true;
 
-	//Release semaphore?
-	if(bleSemaphore->expectedBytes == dataReceived[0] | (dataReceived[1]<<8))
+	// Check what packet we received
+	uint16_t receivedMarker = pData[0] | (pData[1]<<8);
+	
+	// Store in appropriate buffer - base packet (0xF0) goes to separate buffer to preserve SOC
+	if(receivedMarker == 0xF0CC)  // 0xCC 0xF0 - base packet with SOC
 	{
-		//logger.log("Releasing response semaphore for BLE device %s",bleSemaphore->btDevice->getPerifpheryName());
-		bleSemaphore->waitingForResponse=false;
-	}	
+		memcpy(basePacketData, pData, length);
+		basePacketLength = length;
+	}
+	else
+	{
+		// Secondary packets (0xF2, 0xF3, 0xF9) go to dataReceived
+		memcpy(dataReceived, pData, length);
+		dataReceivedLength = length;
+	}
+	
+	// For C1/C2: need both 0xF0 (base) and 0xF2/0xF3 (secondary) packets - can arrive in any order
+	// For C4: only one packet (0xF9)
+	if(expectedSecondPacket != 0)
+	{
+		// Waiting for two packets (C1 or C2 command)
+		if(bleSemaphore->expectedBytes == receivedMarker)
+		{
+			receivedFirstPacket = true;  // Got the 0xF0 base packet
+		}
+		else if(expectedSecondPacket == receivedMarker)
+		{
+			receivedSecondPacket = true;  // Got the secondary packet (0xF2 or 0xF3)
+		}
+		
+		// Release semaphore when we have both packets (regardless of order)
+		if(receivedFirstPacket && receivedSecondPacket)
+		{
+			bleSemaphore->waitingForResponse = false;
+			receivedFirstPacket = false;
+			receivedSecondPacket = false;
+		}
+	}
+	else
+	{
+		// Single packet command (C4)
+		if(bleSemaphore->expectedBytes == receivedMarker)
+		{
+			bleSemaphore->waitingForResponse = false;
+		}
+	}
 }
 
 //Boolean is to force signed 2 compliment if true
@@ -141,9 +206,12 @@ int SOKReader::bytesToInt(uint8_t *bytes, int len, boolean isSigned)
 void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore) 
 {
 	//Make sure we're clear to send
-	if(bleSemaphore->waitingForResponse)
+	if(bleSemaphore->waitingForResponse || bleSemaphore->waitingForConnection)
 	{
-		logger.log("BLE device %s in use when another send attempt was tried",bleSemaphore->btDevice->getPerifpheryName());
+		if(bleSemaphore->btDevice)
+			logger.log(INFO,"SOK %d: BLE device %s in use when another send attempt was tried", batteryNumber, bleSemaphore->btDevice->getPerifpheryName());
+		else
+			logger.log(INFO,"SOK %d: BLE semaphore busy (no device)", batteryNumber);
 		return;
 	}
 
@@ -182,20 +250,41 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 		sendCommandCounter=0;
 	}
 
-	#ifdef SERIALLOGGER
-	Serial.print("Sending command sequence to SOK: ");
-	for (int i = 0; i < 6; i++) { Serial.printf("%02X ", command[i]); }
-	Serial.println("");
-	#endif
+	// Verbose logging removed - uncomment for debugging
+	// logger.log(INFO, "SOK %d: sendReadCommand - Sending command: %02X %02X %02X %02X %02X %02X",
+	//	batteryNumber, command[0], command[1], command[2], command[3], command[4], command[5]);
 
-	txDeviceCharateristic.writeValue(command, 6);
+	if(txDeviceCharateristic) {
+		// Use write WITHOUT response (false) - SOK TX char likely only supports WriteNoResponse
+		bool writeOk = txDeviceCharateristic->writeValue(command, 6, false);
+		// Verbose logging removed - uncomment for debugging
+		// logger.log(INFO, "SOK %d:   Command write %s", batteryNumber, writeOk ? "OK" : "FAILED");
+	} else {
+		logger.log(ERROR, "SOK %d:   ERROR - txDeviceCharateristic is null!", batteryNumber);
+	}
+	
 	dataReceivedLength = 0;
 	dataError = false;
 	newDataAvailable = false;
+	receivedFirstPacket = false;   // Reset packet tracking
+	receivedSecondPacket = false;  // Reset packet tracking
 
-	//Update semaphore
-	uint16_t expectedBytes=0xCC | (0xF0 << 8);
-	updateSemaphore(bleSemaphore,expectedBytes);		
+	//Update semaphore - set expected response based on command sent
+	uint16_t expectedBytes;
+	if(command[1] == 0xc4) {
+		expectedBytes = 0xCC | (0xF9 << 8);  // C4 returns only 0xCC 0xF9
+		expectedSecondPacket = 0;             // No second packet for C4
+	} else if(command[1] == 0xc1) {
+		expectedBytes = 0xCC | (0xF0 << 8);  // First packet: base data
+		expectedSecondPacket = 0xCC | (0xF2 << 8);  // Second packet: CMOS/DMOS
+	} else {
+		// C2 command
+		expectedBytes = 0xCC | (0xF0 << 8);  // First packet: base data
+		expectedSecondPacket = 0xCC | (0xF3 << 8);  // Second packet: heating
+	}
+	updateSemaphore(bleSemaphore, expectedBytes);
+	// Verbose logging removed - uncomment for debugging
+	// logger.log(INFO, "SOK %d:   Semaphore updated, expecting response marker: %04X", batteryNumber, expectedBytes);		
 }
 
 bool SOKReader::isCurrent()
@@ -203,23 +292,29 @@ bool SOKReader::isCurrent()
 	return (millis()-lastHeardTime)<SOK_BLE_STALE;
 }
 
+void SOKReader::resetStale()
+{
+	lastHeardTime = millis();
+}
+
 void SOKReader::updateValues()
 {
-	//trigger by both xC1 and xC2
-	if(dataReceived[0]==0xCC && dataReceived[1]==0xF0)
+	// Parse base packet (0xF0) from separate buffer - contains SOC, volts, amps, etc.
+	if(basePacketLength > 0 && basePacketData[0]==0xCC && basePacketData[1]==0xF0)
     {
 		lastHeardTime=millis();
 
-		soc=bytesToInt(dataReceived+16,1,false);
-		volts=bytesToInt(dataReceived+2,3,false)*.001;
-		amps=bytesToInt(dataReceived+5,3,true)*.001;
-		capacity=bytesToInt(dataReceived+11,3,true)*.001;
-		cycles=bytesToInt(dataReceived+14,2,false);
+		soc=bytesToInt(basePacketData+16,1,false);
+		volts=bytesToInt(basePacketData+2,3,false)*.001;
+		amps=bytesToInt(basePacketData+5,3,true)*.001;
+		capacity=bytesToInt(basePacketData+11,3,true)*.001;
+		cycles=bytesToInt(basePacketData+14,2,false);
 
 		//debug
 		//logger.log("Loop:  (cycles?): %d",cycles);
 	}
 
+	// Parse secondary packets from dataReceived buffer
 	//Trigger by C1
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF2)
 	{	

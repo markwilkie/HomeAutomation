@@ -1,7 +1,7 @@
 #ifndef DEVICE_WRAPPER_H
 #define DEVICE_WRAPPER_H
 
-#include "ArduinoBLE.h"
+#include <NimBLEDevice.h>
 
 #define DEFAULT_DATA_BUFFER_LENGTH		100
 #define MAX_REGISTER_VALUES		50
@@ -36,16 +36,26 @@ class BTDevice
 	public:
 
 		//Virtual member functions
-		virtual void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) = 0;
-		virtual boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphore) = 0;
-		virtual void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphore) = 0;
-		virtual void disconnectCallback(BLEDevice *myDevice) = 0;
+		virtual void scanCallback(NimBLEAdvertisedDevice *myDevice, BLE_SEMAPHORE* bleSemaphore) = 0;
+		virtual boolean connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSemaphore) = 0;
+		virtual void notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphore) = 0;
+		virtual void disconnectCallback(NimBLEClient *myClient) = 0;
+		virtual bool isCurrent() = 0;  // Check if device data is fresh (not stale)
+		virtual void resetStale() = 0;  // Reset stale timer so device doesn't appear stale after BLE reset
 		
 		//Non Virtual member functions
 		boolean getIsNewDataAvailable();
 		const char *getPerifpheryName();
 		uint8_t *getPeripheryAddress();
-		BLEDevice *getBLEDevice();
+		NimBLEClient *getBLEClient();
+		NimBLERemoteCharacteristic *getRxCharacteristic() { return rxDeviceCharateristic; }
+		NimBLERemoteCharacteristic *getTxCharacteristic() { return txDeviceCharateristic; }
+		void setCharacteristics(NimBLEClient* client, NimBLERemoteCharacteristic* tx, NimBLERemoteCharacteristic* rx) {
+			bleClient = client;
+			txDeviceCharateristic = tx;
+			rxDeviceCharateristic = rx;
+			connected = true;
+		}
 		boolean isConnected();
 		void disconnect();
 
@@ -55,11 +65,12 @@ class BTDevice
 		void updateSemaphore(BLE_SEMAPHORE*);  //for connections
 
 		//Context
-		BLEDevice *bleDevice;    //ArduinoBLE connected device
+		NimBLEClient *bleClient = nullptr;    //NimBLE client for connected device
+		NimBLEAddress bleAddress;             //Address of the device
 		uint8_t peripheryAddress[6];
 		boolean connected = false;
 		boolean newDataAvailable;
-		int lastCmdSent;
+		int lastCmdSent = -1;  // -1 means no command sent yet
 
 		uint8_t dataReceived[DEFAULT_DATA_BUFFER_LENGTH];
 		int dataReceivedLength = 0;
@@ -71,8 +82,8 @@ class BTDevice
 		int registerExpected;
 		REGISTER_VALUE invalidRegister;		
 
-		BLECharacteristic txDeviceCharateristic;
-		BLECharacteristic rxDeviceCharateristic;
+		NimBLERemoteCharacteristic *txDeviceCharateristic = nullptr;
+		NimBLERemoteCharacteristic *rxDeviceCharateristic = nullptr;
 
 		// SOK Tx and Rx service
 		const char* peripheryName;	

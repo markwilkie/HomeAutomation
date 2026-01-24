@@ -2,12 +2,12 @@
 #define SOK_READER_H
 
 #include "BTDevice.hpp"
-#include "ArduinoBLE.h"
+#include <NimBLEDevice.h>
 #include "../logging/logger.h"
 
 extern Logger logger;
 
-#define SOK_BLE_STALE 20000
+#define SOK_BLE_STALE 120000
 #define PROTECTION_COUNT 50
 
 class SOKReader : public BTDevice
@@ -15,12 +15,12 @@ class SOKReader : public BTDevice
 
 public:
 
-	SOKReader();
+	SOKReader(const char* _peripheryName, int batteryNumber);
 
-	void scanCallback(BLEDevice *myDevice,BLE_SEMAPHORE *bleSemaphore);
-	boolean connectCallback(BLEDevice *myDevice,BLE_SEMAPHORE* bleSemaphor);
-	void notifyCallback(BLEDevice *myDevice, BLECharacteristic *characteristic,BLE_SEMAPHORE* bleSemaphor);
-	void disconnectCallback(BLEDevice *myDevice);
+	void scanCallback(NimBLEAdvertisedDevice *myDevice, BLE_SEMAPHORE *bleSemaphore);
+	boolean connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSemaphor);
+	void notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphor);
+	void disconnectCallback(NimBLEClient *myClient);
 
 	void sendReadCommand(BLE_SEMAPHORE* bleSemaphor);
 	void updateValues();
@@ -37,12 +37,19 @@ public:
 	boolean isHeating();
 
 	boolean isCurrent();
+	void resetStale();
 
 private:
 
 	int bytesToInt(uint8_t *bytes, int len, boolean isSigned) ;	
 
 	int sendCommandCounter=0;
+	int batteryNumber=-1;
+	uint16_t expectedSecondPacket=0;  // Track second packet for C1/C2 commands
+	bool receivedFirstPacket=false;   // Track if first packet received
+	bool receivedSecondPacket=false;  // Track if second packet received
+	uint8_t basePacketData[128];      // Separate buffer for 0xF0 base packet (contains SOC)
+	size_t basePacketLength=0;
 
 	//variables
 	long lastHeardTime;
