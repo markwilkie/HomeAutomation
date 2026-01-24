@@ -96,6 +96,25 @@ bool BLEManager::isDeviceInBackoff(int deviceIndex) {
     return deviceBackoffUntil[deviceIndex] > 0 && millis() < deviceBackoffUntil[deviceIndex];
 }
 
+uint32_t BLEManager::getCurrentIndicatorColor() {
+    // Black if BLE is off
+    if(!scanningEnabled && !allDevicesConnected()) {
+        return 0x000000;  // Black - BLE off
+    }
+    // Blue if all devices connected
+    if(allDevicesConnected()) {
+        return 0x0000FF;  // Blue - fully connected
+    }
+    // Yellow if some devices connected
+    for(int i = 0; i < deviceCount; i++) {
+        if(devices[i]->isConnected()) {
+            return 0xFFFF00;  // Yellow - partially connected
+        }
+    }
+    // Grey if scanning but no connections
+    return 0x808080;  // Grey - scanning
+}
+
 bool BLEManager::isWaiting() {
     return bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse;
 }

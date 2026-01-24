@@ -45,6 +45,9 @@ void ScreenController::update(ESP32Time* rtc, bool wifiConnected) {
             layout->updateLCD(rtc);
         }
         layout->setWifiIndicator(wifiConnected);
+        if(bleManager) {
+            layout->setBLEIndicator(bleManager->getCurrentIndicatorColor());
+        }
         
         // Track water usage percentage per day
         if(waterTank) waterTank->updateUsage();
@@ -102,6 +105,10 @@ void ScreenController::handleTouch(int x, int y) {
     else if(currentScreen == WATER_DETAIL_SCREEN) {
         currentScreen = MAIN_SCREEN;
         layout->drawInitialScreen();
+        // Restore correct BLE indicator color after redraw
+        if(bleManager) {
+            layout->setBLEIndicator(bleManager->getCurrentIndicatorColor());
+        }
         logger.log(INFO, "Returned to main screen");
     }
     // Check if battery icon touched - cycle through modes
@@ -124,6 +131,10 @@ void ScreenController::handleLongTouch(int x, int y) {
         logger.log(WARNING, "Screen reset requested via long touch");
         screen->resetDisplay();
         layout->drawInitialScreen();
+        // Restore correct BLE indicator color after reset
+        if(bleManager) {
+            layout->setBLEIndicator(bleManager->getCurrentIndicatorColor());
+        }
     }
     // Check if in the BLE region - toggle BLE on/off
     else if(layout->isBLERegion(x, y)) {

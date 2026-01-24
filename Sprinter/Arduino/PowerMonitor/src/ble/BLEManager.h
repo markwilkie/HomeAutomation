@@ -64,6 +64,7 @@ public:
     bool allDevicesConnected();
     bool isScanning() { return scanningEnabled; }
     bool isDeviceInBackoff(int deviceIndex);  // Check if device is in backoff mode
+    uint32_t getCurrentIndicatorColor();  // Get current BLE indicator color based on state
     
     // Indicator callback for UI updates
     typedef void (*IndicatorCallback)(uint32_t color);
