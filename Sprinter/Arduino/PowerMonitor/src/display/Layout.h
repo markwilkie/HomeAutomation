@@ -12,6 +12,7 @@
 #include "Screen.h"
 #include "DisplayData.h"
 #include "../logging/logger.h"
+#include "../ble/BT2Reader.h"
 
 //Screen
 extern Screen screen;
@@ -27,9 +28,10 @@ class Layout
         void setBLEIndicator(int color);
         bool isBLERegion(int x,int y);
         bool isWaterRegion(int x,int y);
+        bool isVanRegion(int x, int y);
         bool isBatteryIconRegion(int x,int y);
         bool isCenterRegion(int x, int y);
-        void showWaterDetail();
+        void showBT2Detail(BT2Reader* bt2Reader);
         SparkLine<float> *getDaySparkPtr();
         SparkLine<float> *getNightSparkPtr();
 

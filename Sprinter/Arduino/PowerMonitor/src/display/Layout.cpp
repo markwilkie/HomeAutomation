@@ -190,6 +190,25 @@ bool Layout::isBatteryIconRegion(int x,int y)
 	return false;
 }
 
+bool Layout::isVanRegion(int x, int y)
+{
+	// Van icon is at lcd.width()-(lx+totalBatteryWidth+batVanOffset+50), lcd.height()-70
+	// Using a larger touch area for the whole van/solar region
+	int lx=5;
+	int batVanOffset=30;
+	int totalBatteryWidth = 63;
+	int iconX = lcd.width()-(lx+totalBatteryWidth+batVanOffset+60);
+	int iconY = lcd.height()-100;
+	int regionWidth = 80;
+	int regionHeight = 90;
+	
+	if(x >= iconX && x <= iconX + regionWidth &&
+	   y >= iconY && y <= iconY + regionHeight)
+		return true;
+
+	return false;
+}
+
 bool Layout::isCenterRegion(int x, int y)
 {
 	// Center region is roughly middle third of screen
@@ -325,32 +344,136 @@ uint16_t Layout::getStatusColor(DeviceStatus status)
     }
 }
 
-void Layout::showWaterDetail()
+void Layout::showBT2Detail(BT2Reader* bt2Reader)
 {
 	// Clear the screen
 	lcd.fillScreen(TFT_BLACK);
 	
-	// Show large water percentage
-	lcd.setTextColor(WATER_BLUE);
-	lcd.setTextSize(4);
-	lcd.setCursor(lcd.width()/2 - 80, lcd.height()/2 - 80);
-	lcd.printf("Water Level");
-	
-	lcd.setTextColor(WATER_FILL);
-	lcd.setTextSize(8);
-	lcd.setCursor(lcd.width()/2 - 80, lcd.height()/2 - 20);
-	lcd.printf("%d", (int)displayData.stateOfWater);
-	
-	// Show days remaining
-	lcd.setTextColor(TFT_WHITE);
-	lcd.setTextSize(3);
-	lcd.setCursor(lcd.width()/2 - 100, lcd.height()/2 + 80);
-	lcd.printf("%f days left", displayData.waterDaysRem);
-	
-	// Show touch prompt
-	lcd.setTextColor(TFT_DARKGREY);
+	// Title
+	lcd.setTextColor(TFT_YELLOW);
 	lcd.setTextSize(2);
-	lcd.setCursor(lcd.width()/2 - 80, lcd.height() - 40);
+	lcd.setCursor(10, 5);
+	lcd.print("BT2 Charge Controller");
+	
+	if(!bt2Reader || !bt2Reader->isConnected()) {
+		lcd.setTextColor(TFT_RED);
+		lcd.setTextSize(3);
+		lcd.setCursor(lcd.width()/2 - 80, lcd.height()/2 - 20);
+		lcd.print("Not Connected");
+		
+		lcd.setTextColor(TFT_DARKGREY);
+		lcd.setTextSize(2);
+		lcd.setCursor(lcd.width()/2 - 80, lcd.height() - 30);
+		lcd.print("Touch to return");
+		return;
+	}
+	
+	// Two-column layout: Left column for Solar/Alt, Right column for Battery/Stats
+	// Screen is 480x320
+	int leftCol = 10;
+	int rightCol = 250;
+	int lineHeight = 18;
+	int y = 30;
+	
+	lcd.setTextSize(1);  // Smaller text for data density
+	
+	// === LEFT COLUMN: Solar & Alternator ===
+	lcd.setTextColor(BATTERY_FILL);
+	lcd.setCursor(leftCol, y);
+	lcd.print("-- SOLAR --");
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Voltage:  %.1fV", bt2Reader->printRegister(RENOGY_SOLAR_VOLTAGE) / 10.0);
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Current:  %.2fA", bt2Reader->printRegister(RENOGY_SOLAR_CURRENT) / 100.0);
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Power:    %dW", bt2Reader->printRegister(RENOGY_SOLAR_POWER));
+	y += lineHeight + 5;
+	
+	lcd.setTextColor(TFT_LIGHTGREY);
+	lcd.setCursor(leftCol, y);
+	lcd.print("-- ALTERNATOR --");
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Voltage:  %.1fV", bt2Reader->printRegister(RENOGY_ALTERNATOR_VOLTAGE) / 10.0);
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Current:  %.2fA", bt2Reader->printRegister(RENOGY_ALTERNATOR_CURRENT) / 100.0);
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Power:    %dW", bt2Reader->printRegister(RENOGY_ALTERNATOR_POWER));
+	y += lineHeight + 5;
+	
+	lcd.setTextColor(TFT_WHITE);
+	lcd.setCursor(leftCol, y);
+	lcd.print("-- TODAY --");
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Amp Hours:   %d Ah", bt2Reader->printRegister(RENOGY_TODAY_AMP_HOURS));
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Watt Hours:  %d Wh", bt2Reader->printRegister(RENOGY_TODAY_POWER));
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Peak Curr:   %.2fA", bt2Reader->printRegister(RENOGY_TODAY_HIGHEST_CURRENT) / 100.0);
+	y += lineHeight;
+	
+	lcd.setCursor(leftCol, y);
+	lcd.printf("Peak Power:  %dW", bt2Reader->printRegister(RENOGY_TODAY_HIGHEST_POWER));
+	
+	// === RIGHT COLUMN: Battery ===
+	y = 30;
+	lcd.setTextColor(TFT_CYAN);
+	lcd.setCursor(rightCol, y);
+	lcd.print("-- BATTERY --");
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("SOC:      %d%%", bt2Reader->printRegister(RENOGY_AUX_BATT_SOC));
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("Voltage:  %.1fV", bt2Reader->printRegister(RENOGY_AUX_BATT_VOLTAGE) / 10.0);
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("Max Chrg: %.2fA", bt2Reader->printRegister(RENOGY_MAX_CHARGE_CURRENT) / 100.0);
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("Ctrl Tmp: %.0fF", cTof(bt2Reader->getTemperature()));
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("Capacity: %d Ah", bt2Reader->printRegister(RENOGY_AUX_BATT_CAPACITY));
+	y += lineHeight + 5;
+	
+	lcd.setTextColor(TFT_ORANGE);
+	lcd.setCursor(rightCol, y);
+	lcd.print("-- LIMITS --");
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("Low V:    %.1fV", bt2Reader->printRegister(RENOGY_AUX_BATT_LOW_VOLTAGE) / 10.0);
+	y += lineHeight;
+	
+	lcd.setCursor(rightCol, y);
+	lcd.printf("High V:   %.1fV", bt2Reader->printRegister(RENOGY_AUX_BATT_HIGH_VOLTAGE) / 10.0);
+	
+	// Touch prompt at bottom
+	lcd.setTextColor(TFT_DARKGREY);
+	lcd.setCursor(lcd.width()/2 - 50, lcd.height() - 15);
 	lcd.print("Touch to return");
 }
 

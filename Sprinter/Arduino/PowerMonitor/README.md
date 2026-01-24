@@ -102,7 +102,12 @@ The screen is pretty self explanatory, but a few notes:
 - **Short tap anywhere** - Increases screen brightness (resets dim timer)
 - **Long press center of screen** - Reset display (recovers from brownout/corruption)
 - **Long press BLE region (top right)** - Toggle BLE on/off
-- **Tap water region** - Show detailed water level view, tap again to return
+- **Tap van/charger icon (bottom right)** - Show BT2 charge controller detail view with all properties:
+  - Solar: voltage, current, power
+  - Alternator: voltage, current, power
+  - Battery: SOC, voltage, max charge current, controller temperature
+  - Today's stats: amp hours, watt hours, peak current, peak power
+  - Tap again to return to main screen
 - **Tap battery icon** - Cycle through display modes:
   - **Combined mode** (no label): Shows averaged temperature and amps from both batteries. CMOS/DMOS indicators use AND logic (both must be on). Heater uses OR logic (on if either is heating).
   - **SOK 1 mode** (shows '1'): Displays only SOK battery 1 data
@@ -124,9 +129,29 @@ The screen is pretty self explanatory, but a few notes:
   - Direct ADC-to-percentage mapping (ADC 1779=empty, ADC 2349=full, includes 379 offset for plumbing weight)
   - 40-sample averaging for stable readings
 
+### Sparklines (Power Usage History)
+Two sparkline graphs display power flow history:
+
+**Night Sparkline** (moon icon, purple):
+- Tracks overnight power usage from 10pm to 7am
+- 54 data points at 10-minute intervals (9 hours total)
+- Resets at 10pm each night to start fresh
+- Shows net amp flow: positive = charging, negative = discharging
+- The "Ah" number shows total amp-hours for the displayed period
+
+**Day Sparkline** (calendar icon, yellow):
+- Rolling 24-hour window of power usage
+- 72 data points at 20-minute intervals
+- Continuously shifts as new data arrives (no daily reset)
+- Shows net amp flow pattern over the last 24 hours
+- The "Ah" number shows total amp-hours for the displayed period
+
+**How data is collected:**
+1. Every second, the current net amps (charge - draw) is accumulated
+2. At each interval (10 or 20 min), the average is calculated and added to the sparkline
+3. When the sparkline is full, old data shifts out the left side as new data enters
+
 ### Other Display Elements
-- There are two spark lines which show net amp flow.  The night spark is from 10pm to 7am (PST), and the day spark is last 24 hours.
-- The numbers by the spark lines are the sum of the spark in amp hours  (e.g. night spark could show 12, which would mean 12ah were used)
 - Bottom icons are battery and charger controller (van icon).
 - Charge controller shows solar and alternater amps - plus temperature of the controller itself
 - Battery icon shows amps draw/charge, plus temperature. Displays mode-specific data based on selection.

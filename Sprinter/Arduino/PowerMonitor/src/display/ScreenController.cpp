@@ -96,13 +96,13 @@ void ScreenController::handleTouch(int x, int y) {
     // Any touch increases screen brightness
     screen->setBrightness(STND_BRIGHTNESS);
     
-    // Check if water region touched - toggle between main and detail screens
-    if(currentScreen == MAIN_SCREEN && layout->isWaterRegion(x, y)) {
-        currentScreen = WATER_DETAIL_SCREEN;
-        layout->showWaterDetail();
-        logger.log(INFO, "Water detail screen shown");
+    // Check if van region touched - toggle between main and BT2 detail screens
+    if(currentScreen == MAIN_SCREEN && layout->isVanRegion(x, y)) {
+        currentScreen = BT2_DETAIL_SCREEN;
+        layout->showBT2Detail(bt2Reader);
+        logger.log(INFO, "BT2 detail screen shown");
     }
-    else if(currentScreen == WATER_DETAIL_SCREEN) {
+    else if(currentScreen == BT2_DETAIL_SCREEN) {
         currentScreen = MAIN_SCREEN;
         layout->drawInitialScreen();
         // Restore correct BLE indicator color after redraw

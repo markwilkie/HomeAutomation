@@ -51,6 +51,7 @@ class PowerLogger
                 if(rtc->getHour(true)==NIGHT_BEG_HR && (rtc->getEpoch()-data.startNightSeconds) > NIGHT_AH_DUR)
                 {
                     logger.log(VERBOSE,"Resetting night spark");
+                    layout->getNightSparkPtr()->reset();  // Reset sparkline data for new night
                     resetNight(rtc);
                 }
 

@@ -22,7 +22,7 @@ extern Logger logger;
 // Screen state management
 enum ScreenState {
     MAIN_SCREEN,
-    WATER_DETAIL_SCREEN
+    BT2_DETAIL_SCREEN
 };
 
 class ScreenController {
