@@ -897,13 +897,6 @@ void loop()
 		sokReader2.updateValues();
 	}	
 
-	//time to update power logs?
-	if(millis()>lastPwrUpdateTime+PWR_UPD_TIME)
-	{
-		lastPwrUpdateTime=millis();
-		powerLogger.add(layout.displayData.chargeAmps-layout.displayData.drawAmps,&rtc,&layout);
-	}
-
 	if(millis()>lastBleIsAliveTime+BLE_IS_ALIVE_TIME) {
 		checkForDisconnectedDevices();
 
@@ -946,10 +939,20 @@ void loop()
 		waterTank.updateUsage();
 		// Track gas usage percentage per day
 		gasTank.updateUsage();
-		//If rtc is stale, be sure and update it from the interwebs
+
+		//calc hertz
+		if(millis()>hertzTime+1000)
+		{
+			layout.displayData.currentHertz=hertzCount;
+			hertzTime=millis();
+			hertzCount=0;
+		}		
 
 		//send logs
 		logger.sendLogs(wifi.isConnected());
+
+		// Delay after screen refresh to avoid power spike
+		delay(50);
 	}
 
 	//Update bitmaps if needed
@@ -961,9 +964,21 @@ void loop()
 			layout.updateBitmaps();
 		}
 
+		// Delay after screen refresh to avoid power spike
+		delay(100);		
+
 		//reset time
 		lastBitmapUpdatetime=millis();
 	}
+
+	//time to update power logs?
+	if(millis()>lastPwrUpdateTime+PWR_UPD_TIME)
+	{
+		lastPwrUpdateTime=millis();
+		powerLogger.add(layout.displayData.chargeAmps-layout.displayData.drawAmps,&rtc,&layout);
+		
+		delay(50); // Delay after screen refresh to avoid power spike 
+	}	
 
 	// Check gas and water tank every 10 minutes
 	// Note: We already returned early above if waiting for BLE connection/response
@@ -997,14 +1012,6 @@ void loop()
 	{
 		lastRTCUpdateTime=millis();
 		setTime();
-	}
-
-	//calc hertz
-	if(millis()>hertzTime+1000)
-	{
-		layout.displayData.currentHertz=hertzCount;
-		hertzTime=millis();
-		hertzCount=0;
 	}
 
 	// Send BLE command at end of loop - cycle through devices

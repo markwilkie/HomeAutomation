@@ -45,6 +45,11 @@ private:
 
 	int sendCommandCounter=0;
 	int batteryNumber=-1;
+	uint16_t expectedSecondPacket=0;  // Track second packet for C1/C2 commands
+	bool receivedFirstPacket=false;   // Track if first packet received
+	bool receivedSecondPacket=false;  // Track if second packet received
+	uint8_t basePacketData[128];      // Separate buffer for 0xF0 base packet (contains SOC)
+	size_t basePacketLength=0;
 
 	//variables
 	long lastHeardTime;

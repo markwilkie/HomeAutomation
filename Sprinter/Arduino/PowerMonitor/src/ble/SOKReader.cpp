@@ -130,15 +130,53 @@ void SOKReader::disconnectCallback(NimBLEClient *myClient)
 void SOKReader::notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE *bleSemaphore) 
 {
 	// Minimal processing - this runs in BLE task context with limited stack
-	memcpy(dataReceived, pData, length);
-	dataReceivedLength = length;
 	newDataAvailable=true;
 
-	//Release semaphore?
-	uint16_t receivedMarker = dataReceived[0] | (dataReceived[1]<<8);
-	if(bleSemaphore->expectedBytes == receivedMarker)
+	// Check what packet we received
+	uint16_t receivedMarker = pData[0] | (pData[1]<<8);
+	
+	// Store in appropriate buffer - base packet (0xF0) goes to separate buffer to preserve SOC
+	if(receivedMarker == 0xF0CC)  // 0xCC 0xF0 - base packet with SOC
 	{
-		bleSemaphore->waitingForResponse=false;
+		memcpy(basePacketData, pData, length);
+		basePacketLength = length;
+	}
+	else
+	{
+		// Secondary packets (0xF2, 0xF3, 0xF9) go to dataReceived
+		memcpy(dataReceived, pData, length);
+		dataReceivedLength = length;
+	}
+	
+	// For C1/C2: need both 0xF0 (base) and 0xF2/0xF3 (secondary) packets - can arrive in any order
+	// For C4: only one packet (0xF9)
+	if(expectedSecondPacket != 0)
+	{
+		// Waiting for two packets (C1 or C2 command)
+		if(bleSemaphore->expectedBytes == receivedMarker)
+		{
+			receivedFirstPacket = true;  // Got the 0xF0 base packet
+		}
+		else if(expectedSecondPacket == receivedMarker)
+		{
+			receivedSecondPacket = true;  // Got the secondary packet (0xF2 or 0xF3)
+		}
+		
+		// Release semaphore when we have both packets (regardless of order)
+		if(receivedFirstPacket && receivedSecondPacket)
+		{
+			bleSemaphore->waitingForResponse = false;
+			receivedFirstPacket = false;
+			receivedSecondPacket = false;
+		}
+	}
+	else
+	{
+		// Single packet command (C4)
+		if(bleSemaphore->expectedBytes == receivedMarker)
+		{
+			bleSemaphore->waitingForResponse = false;
+		}
 	}
 }
 
@@ -228,10 +266,23 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 	dataReceivedLength = 0;
 	dataError = false;
 	newDataAvailable = false;
+	receivedFirstPacket = false;   // Reset packet tracking
+	receivedSecondPacket = false;  // Reset packet tracking
 
-	//Update semaphore
-	uint16_t expectedBytes=0xCC | (0xF0 << 8);
-	updateSemaphore(bleSemaphore,expectedBytes);
+	//Update semaphore - set expected response based on command sent
+	uint16_t expectedBytes;
+	if(command[1] == 0xc4) {
+		expectedBytes = 0xCC | (0xF9 << 8);  // C4 returns only 0xCC 0xF9
+		expectedSecondPacket = 0;             // No second packet for C4
+	} else if(command[1] == 0xc1) {
+		expectedBytes = 0xCC | (0xF0 << 8);  // First packet: base data
+		expectedSecondPacket = 0xCC | (0xF2 << 8);  // Second packet: CMOS/DMOS
+	} else {
+		// C2 command
+		expectedBytes = 0xCC | (0xF0 << 8);  // First packet: base data
+		expectedSecondPacket = 0xCC | (0xF3 << 8);  // Second packet: heating
+	}
+	updateSemaphore(bleSemaphore, expectedBytes);
 	// Verbose logging removed - uncomment for debugging
 	// logger.log(INFO, "SOK %d:   Semaphore updated, expecting response marker: %04X", batteryNumber, expectedBytes);		
 }
@@ -248,21 +299,22 @@ void SOKReader::resetStale()
 
 void SOKReader::updateValues()
 {
-	//trigger by both xC1 and xC2
-	if(dataReceived[0]==0xCC && dataReceived[1]==0xF0)
+	// Parse base packet (0xF0) from separate buffer - contains SOC, volts, amps, etc.
+	if(basePacketLength > 0 && basePacketData[0]==0xCC && basePacketData[1]==0xF0)
     {
 		lastHeardTime=millis();
 
-		soc=bytesToInt(dataReceived+16,1,false);
-		volts=bytesToInt(dataReceived+2,3,false)*.001;
-		amps=bytesToInt(dataReceived+5,3,true)*.001;
-		capacity=bytesToInt(dataReceived+11,3,true)*.001;
-		cycles=bytesToInt(dataReceived+14,2,false);
+		soc=bytesToInt(basePacketData+16,1,false);
+		volts=bytesToInt(basePacketData+2,3,false)*.001;
+		amps=bytesToInt(basePacketData+5,3,true)*.001;
+		capacity=bytesToInt(basePacketData+11,3,true)*.001;
+		cycles=bytesToInt(basePacketData+14,2,false);
 
 		//debug
 		//logger.log("Loop:  (cycles?): %d",cycles);
 	}
 
+	// Parse secondary packets from dataReceived buffer
 	//Trigger by C1
 	if(dataReceived[0]==0xCC && dataReceived[1]==0xF2)
 	{	
