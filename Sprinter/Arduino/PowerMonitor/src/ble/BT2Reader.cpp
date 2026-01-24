@@ -154,7 +154,7 @@ boolean BT2Reader::connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSem
 
 void BT2Reader::disconnectCallback(NimBLEClient *myClient) 
 {
-	logger.log(WARNING, "BT2: disconnectCallback - cleaning up state");
+	//logger.log(WARNING, "BT2: disconnectCallback - cleaning up state");
 	connected=false;
 	memset(peripheryAddress, 0, 6);
 	bleClient = nullptr;
@@ -352,6 +352,11 @@ void BT2Reader::processDataReceived(BLE_SEMAPHORE* bleSemaphore)
 bool BT2Reader::isCurrent()
 {
 	return (millis()-lastHeardTime)<BT2_BLE_STALE;
+}
+
+void BT2Reader::resetStale()
+{
+	lastHeardTime = millis();
 }
 
 void BT2Reader::updateValues()

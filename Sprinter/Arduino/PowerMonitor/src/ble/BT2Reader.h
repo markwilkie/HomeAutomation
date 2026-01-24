@@ -43,7 +43,7 @@ static const uint16_t MODBUS_TABLE_A001[256] = {
 	0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-#define BT2_BLE_STALE 20000
+#define BT2_BLE_STALE 120000
 
 #define BT2READER_QUIET					0
 #define BT2READER_ERRORS_ONLY			1
@@ -251,6 +251,7 @@ public:
 	void printUuid(uint8_t * data, int datalen);
 
 	boolean isCurrent();
+	void resetStale();
 
 private:
 

@@ -116,9 +116,9 @@ boolean SOKReader::connectCallback(NimBLEClient *myClient, BLE_SEMAPHORE* bleSem
 
 void SOKReader::disconnectCallback(NimBLEClient *myClient) 
 {
-	logger.log(INFO, "SOK %d: disconnectCallback - Device disconnected", batteryNumber);
-	logger.log(INFO, "SOK %d:   Previous state: connected=%s, bleClient=%s", 
-		batteryNumber, connected ? "true" : "false", bleClient ? "valid" : "null");
+	//logger.log(INFO, "SOK %d: disconnectCallback - Device disconnected", batteryNumber);
+	//logger.log(INFO, "SOK %d:   Previous state: connected=%s, bleClient=%s", 
+	//	batteryNumber, connected ? "true" : "false", bleClient ? "valid" : "null");
 	
 	connected=false;
 	memset(peripheryAddress, 0, 6);
@@ -239,6 +239,11 @@ void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore)
 bool SOKReader::isCurrent()
 {
 	return (millis()-lastHeardTime)<SOK_BLE_STALE;
+}
+
+void SOKReader::resetStale()
+{
+	lastHeardTime = millis();
 }
 
 void SOKReader::updateValues()

@@ -41,6 +41,7 @@ class BTDevice
 		virtual void notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphore) = 0;
 		virtual void disconnectCallback(NimBLEClient *myClient) = 0;
 		virtual bool isCurrent() = 0;  // Check if device data is fresh (not stale)
+		virtual void resetStale() = 0;  // Reset stale timer so device doesn't appear stale after BLE reset
 		
 		//Non Virtual member functions
 		boolean getIsNewDataAvailable();

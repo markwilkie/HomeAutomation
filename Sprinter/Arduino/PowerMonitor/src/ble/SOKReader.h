@@ -7,7 +7,7 @@
 
 extern Logger logger;
 
-#define SOK_BLE_STALE 20000
+#define SOK_BLE_STALE 120000
 #define PROTECTION_COUNT 50
 
 class SOKReader : public BTDevice
@@ -37,6 +37,7 @@ public:
 	boolean isHeating();
 
 	boolean isCurrent();
+	void resetStale();
 
 private:
 

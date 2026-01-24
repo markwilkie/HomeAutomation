@@ -148,8 +148,15 @@ void setup()
 	//setting time BEFORE starting scan (avoids scan callback during HTTP request)
 	setTime();	
 
+	//Read tanks initially
+	waterTank.readWaterLevel();
+	waterTank.updateDaysRemaining();
+
+	gasTank.readGasLevel();
+	gasTank.updateDaysRemaining();	
+
 	// start scanning for peripherals
-	delay(2000);
+	delay(1000);
 	logger.log(WARNING,"Starting BLE scan for the first time");	
 	scanningEnabled = true;
 	pBLEScan->start(0, false, false);  // Scan continuously
@@ -425,6 +432,7 @@ void handleConnection(NimBLEClient* pClient, NimBLEAddress address)
 		
 		// Store references and mark connected
 		bt2Reader.setCharacteristics(pClient, pTxChar, pRxChar);
+		bt2Reader.resetStale();  // Reset stale timer on connect
 		bleSemaphore.waitingForConnection = false;
 		// Let main loop send first command - don't block here
 	}
@@ -497,6 +505,7 @@ void handleConnection(NimBLEClient* pClient, NimBLEAddress address)
 		
 		bleSemaphore.waitingForConnection = false;  // Clear BEFORE setting characteristics
 		sokReader1.setCharacteristics(pClient, pTxChar, pRxChar);
+		sokReader1.resetStale();  // Reset stale timer on connect
 		// Let main loop send first command - don't block here
 	}
 	// SOK Battery 2
@@ -574,6 +583,7 @@ void handleConnection(NimBLEClient* pClient, NimBLEAddress address)
 		
 		bleSemaphore.waitingForConnection = false;  // Clear BEFORE setting characteristics
 		sokReader2.setCharacteristics(pClient, pTxChar, pRxChar);
+		sokReader2.resetStale();  // Reset stale timer on connect
 		// Let main loop send first command - don't block here
 	}
 	
@@ -610,7 +620,7 @@ void MyClientCallbacks::onConnect(NimBLEClient* pClient)
 
 void MyClientCallbacks::onDisconnect(NimBLEClient* pClient, int reason) 
 {
-	logger.log(WARNING, "BLE: onDisconnect called, reason=%d", reason);
+	//logger.log(WARNING, "BLE: onDisconnect called, reason=%d", reason);
 	
 	bleSemaphore.waitingForConnection = false;
 	bleSemaphore.waitingForResponse = false;
@@ -626,27 +636,25 @@ void MyClientCallbacks::onDisconnect(NimBLEClient* pClient, int reason)
 	{
 		renogyCmdSequenceToSend = 0;
 		bt2Reader.disconnectCallback(pClient);
-		logger.log(WARNING, "BLE: Disconnected BT2 device %s (reason=%d)", addr.toString().c_str(), reason);
+		//logger.log(WARNING, "BLE: Disconnected BT2 device %s (reason=%d)", addr.toString().c_str(), reason);
 	}
 	else if(memcmp(addrBytes, sokReader1.getPeripheryAddress(), 6) == 0)
 	{
 		sokReader1.disconnectCallback(pClient);
-		logger.log(WARNING, "BLE: Disconnected SOK Battery 1 %s (reason=%d)", addr.toString().c_str(), reason);
+		//logger.log(WARNING, "BLE: Disconnected SOK Battery 1 %s (reason=%d)", addr.toString().c_str(), reason);
 	}
 	else if(memcmp(addrBytes, sokReader2.getPeripheryAddress(), 6) == 0)
 	{
 		sokReader2.disconnectCallback(pClient);
-		logger.log(WARNING, "BLE: Disconnected SOK Battery 2 %s (reason=%d)", addr.toString().c_str(), reason);
+		//logger.log(WARNING, "BLE: Disconnected SOK Battery 2 %s (reason=%d)", addr.toString().c_str(), reason);
 	}
 	else
 	{
-		logger.log(WARNING, "BLE: Disconnected unknown device %s (reason=%d)", addr.toString().c_str(), reason);
+		//logger.log(WARNING, "BLE: Disconnected unknown device %s (reason=%d)", addr.toString().c_str(), reason);
 	}
 	
-	layout.setBLEIndicator(TFT_DARKGRAY);
-	logger.log(INFO, "BLE: Restarting scan after disconnect");
-	scanningEnabled = true;
-	pBLEScan->start(0, false, false);
+	// Let stale check and reconnect logic handle disconnections
+	// Don't reset BLE stack here - it causes cascading resets
 }
 
 // Notification callbacks for each device - keep minimal, runs in BLE context
@@ -764,6 +772,29 @@ void disconnectBLE()
 	}
 }
 
+// Reset the entire BLE stack
+void resetBLEStack()
+{
+	//logger.log(WARNING, "Performing full BLE stack reset");
+	
+	// Clear semaphore
+	bleSemaphore.waitingForConnection = false;
+	bleSemaphore.waitingForResponse = false;
+	bleSemaphore.btDevice = nullptr;
+	renogyCmdSequenceToSend = 0;
+	
+	// Reset stale timers on all devices so they don't immediately appear stale after reconnect
+	int numOfTargetedDevices = sizeof(targetedDevices) / sizeof(targetedDevices[0]);
+	for(int i = 0; i < numOfTargetedDevices; i++)
+	{
+		targetedDevices[i]->resetStale();
+	}
+	
+	turnOffBLE();
+	delay(500);
+	turnOnBLE();
+}
+
 // Check if any targeted BLE devices are not connected and restart scan periodically
 void checkForDisconnectedDevices()
 {
@@ -799,9 +830,7 @@ void checkForDisconnectedDevices()
 	if(millis() - bleStartupTime > BLE_STARTUP_TIMEOUT)
 	{
 		logger.log(WARNING, "BLE startup timeout - not all devices connected. Restarting BLE...");
-		turnOffBLE();
-		delay(500);
-		turnOnBLE();
+		resetBLEStack();
 		return;
 	}
 	
@@ -824,36 +853,49 @@ void loop()
 	// Process pending connection - matches official NimBLE example pattern
 	if(doConnect) {
 		doConnect = false;
-		if(connectToServer()) {
-			//logger.log(INFO, "BLE: Connection successful!");
-		} else {
-			logger.log(WARNING, "BLE: Connection failed, restarting scan");
+		if(!connectToServer()) {
+			logger.log(WARNING, "BLE: Connection failed, resetting BLE stack");
+			resetBLEStack();
 		}
-		// Restart scanning for more devices
-		NimBLEDevice::getScan()->start(0, false, true);
+		// Restart scanning for more devices (if not already restarted by resetBLEStack)
+		if(scanningEnabled && !pBLEScan->isScanning()) {
+			NimBLEDevice::getScan()->start(0, false, true);
+		}
 	}
 
-	//check for BLE timeouts - and disconnect
-	if(isTimedout())
+	// If waiting for BLE connection or response, only poll screen, check timeout, and yield
+	if(bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse)
 	{
-		bleSemaphore.waitingForResponse=false;
-
-		/*
-		logger.log(WARNING,"BLE operation timed out, disconnecting then restarting");
-		if(bleSemaphore.btDevice)
-			bleSemaphore.btDevice->disconnect();
-		bleSemaphore.waitingForConnection=false;
-		bleSemaphore.waitingForResponse=false;
-		bleSemaphore.btDevice=nullptr;
-		
-		// Delay to let BLE stack settle before restarting scan
-		delay(50);
-		
-		// Restart scanning to give failed device another chance
-		scanningEnabled = true;
-		pBLEScan->start(0, false, false);
-		*/
+		// Check for BLE timeouts - just clear semaphore and move on
+		// Stale check will catch persistent issues (likely flaky BMS)
+		if(isTimedout())
+		{
+			logger.log(WARNING, "BLE response timed out, clearing semaphore and moving on");
+			bleSemaphore.waitingForConnection = false;
+			bleSemaphore.waitingForResponse = false;
+			bleSemaphore.btDevice = nullptr;
+			bleSemaphore.startTime = 0;
+		}
+		delay(1);  // Yield to BLE stack
+		return;    // Return early - don't process other tasks while waiting
 	}
+
+	//Do we have any data waiting?
+	if(bt2Reader.getIsNewDataAvailable())
+	{
+		hertzCount++;
+		bt2Reader.updateValues();
+	}
+	if(sokReader1.getIsNewDataAvailable())
+	{
+		hertzCount++;
+		sokReader1.updateValues();
+	}
+	if(sokReader2.getIsNewDataAvailable())
+	{
+		hertzCount++;
+		sokReader2.updateValues();
+	}	
 
 	//time to update power logs?
 	if(millis()>lastPwrUpdateTime+PWR_UPD_TIME)
@@ -869,30 +911,27 @@ void loop()
 	}
 
 	// Check WiFi connection every 60 seconds and reconnect if needed
-	// Stop BLE during WiFi reconnection to avoid timeouts from blocking operations
-	if(millis() - lastWifiCheckTime > WIFI_CHECK_TIME &&
-	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse) {
+	// Note: We already returned early above if waiting for BLE connection/response
+	if(millis() - lastWifiCheckTime > WIFI_CHECK_TIME) {
 		if(!wifi.isConnected()) {
 			logger.log(WARNING, "WiFi is currently disconnected, attempting reconnection...");
-			turnOffBLE();
 			wifi.startWifi();
-			turnOnBLE();
 		}
 		lastWifiCheckTime = millis();
 	}
 
 	// Log SOC from each battery every 1 minute
 	if(millis() - lastSocLogTime > SOC_LOG_TIME) {
-		logger.log(INFO, "SOC: SOK1=%d (curr=%d, conn=%d), SOK2=%d (curr=%d, conn=%d)", 
+		logger.log(INFO, "SOC: SOK1=%d (curr=%d, conn=%d), SOK2=%d (curr=%d, conn=%d), BT2=%f (curr=%d, conn=%d)", 
 			sokReader1.getSoc(), sokReader1.isCurrent(), sokReader1.isConnected(),
-			sokReader2.getSoc(), sokReader2.isCurrent(), sokReader2.isConnected());
+			sokReader2.getSoc(), sokReader2.isCurrent(), sokReader2.isConnected(),
+			bt2Reader.getTemperature(), bt2Reader.isCurrent(), bt2Reader.isConnected());
 		lastSocLogTime = millis();
 	}
 
-	//load values
+	//load values into screen
 	if(millis()>lastScrUpdatetime+SCR_UPDATE_TIME)
 	{
-		delay(1);
 		lastScrUpdatetime=millis();
 		//loadSimulatedValues();
 
@@ -913,12 +952,12 @@ void loop()
 		logger.sendLogs(wifi.isConnected());
 	}
 
+	//Update bitmaps if needed
 	if(millis()>lastBitmapUpdatetime+BITMAP_UPDATE_TIME)
 	{
 		//Update updateBitmaps
 		if(currentScreen == MAIN_SCREEN)
 		{
-			delay(1);
 			layout.updateBitmaps();
 		}
 
@@ -927,9 +966,8 @@ void loop()
 	}
 
 	// Check gas and water tank every 10 minutes
-	// Stop BLE during tank check to avoid timeouts from blocking WiFi operations
-	if(millis() - lastTankCheckTime > TANK_CHECK_TIME && 
-	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse) 
+	// Note: We already returned early above if waiting for BLE connection/response
+	if(millis() - lastTankCheckTime > TANK_CHECK_TIME) 
 	{
 		// Stop BLE first to avoid timeouts during blocking operations
 		turnOffBLE();
@@ -953,16 +991,30 @@ void loop()
 		lastTankCheckTime = millis();
 	}
 
-	//Time to ask for data again? Cycle through devices
-	// Only send if not waiting for a response (semaphore is free)
-	static int deviceCycle = 0;
-	if (millis()>lastCheckedTime+POLL_TIME_MS && !bleSemaphore.waitingForResponse && !bleSemaphore.waitingForConnection) 
+	//Time to refresh rtc?
+	// Note: We already returned early above if waiting for BLE connection/response
+	if((lastRTCUpdateTime+REFRESH_RTC) < millis())
 	{
-		delay(1);
-		lastCheckedTime=millis();
+		lastRTCUpdateTime=millis();
+		setTime();
+	}
+
+	//calc hertz
+	if(millis()>hertzTime+1000)
+	{
+		layout.displayData.currentHertz=hertzCount;
+		hertzTime=millis();
+		hertzCount=0;
+	}
+
+	// Send BLE command at end of loop - cycle through devices
+	// Note: We already returned early above if waiting for response/connection
+	static int deviceCycle = 0;
+	if(millis() - lastCheckedTime > POLL_TIME_MS)
+	{
+		lastCheckedTime = millis();
 		if (deviceCycle == 0 && bt2Reader.isConnected()) 
 		{
-			// Send startup command first if needed, otherwise alternate solar/alternator
 			if (bt2Reader.needsStartupCommand()) {
 				bt2Reader.sendStartupCommand(&bleSemaphore);
 			} else {
@@ -980,52 +1032,6 @@ void loop()
 		deviceCycle = (deviceCycle + 1) % 3;
 	}
 
-	//Do we have any data waiting?
-	if(bt2Reader.getIsNewDataAvailable())
-	{
-		delay(1);
-		// Verbose logging removed - uncomment for debugging
-		//logger.log(INFO,"BT2 New data available");
-		hertzCount++;
-		bt2Reader.updateValues();
-	}
-	if(sokReader1.getIsNewDataAvailable())
-	{
-		delay(1);
-		// Verbose logging removed - uncomment for debugging
-		//logger.log(INFO,"SOK1 New data available");
-		hertzCount++;
-		sokReader1.updateValues();
-	}
-	if(sokReader2.getIsNewDataAvailable())
-	{
-		delay(1);
-		// Verbose logging removed - uncomment for debugging
-		//logger.log(INFO,"SOK2 New data available");
-		hertzCount++;
-		sokReader2.updateValues();
-	}
-
-	//Time to refresh rtc?
-	// Only run when BLE is idle to avoid blocking BLE operations
-	// Stop BLE during time sync since HTTP requests can block
-	if((lastRTCUpdateTime+REFRESH_RTC) < millis() && 
-	   !bleSemaphore.waitingForConnection && !bleSemaphore.waitingForResponse)
-	{
-		lastRTCUpdateTime=millis();
-		turnOffBLE();
-		setTime();
-		turnOnBLE();
-	}
-
-	//calc hertz
-	if(millis()>hertzTime+1000)
-	{
-		layout.displayData.currentHertz=hertzCount;
-		hertzTime=millis();
-		hertzCount=0;
-	}
-
 	// CRITICAL: Yield to allow NimBLE host task to process BLE events (notifications, etc.)
 	// Without this, the busy loop can starve the BLE task and notifications won't be delivered.
 	delay(1);
@@ -1034,21 +1040,6 @@ void loop()
 boolean isTimedout()
 {
 	boolean timedOutFlag=false;
-
-	// Only check timeout if startTime is reasonable (set within the last minute)
-	// This prevents false timeouts from stale/uninitialized semaphore state
-	if(bleSemaphore.startTime == 0 || (millis() - bleSemaphore.startTime) > 60000)
-	{
-		// Stale semaphore - clear it
-		if(bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse)
-		{
-			logger.log(WARNING, "Clearing stale BLE semaphore");
-			bleSemaphore.waitingForConnection = false;
-			bleSemaphore.waitingForResponse = false;
-			bleSemaphore.btDevice = nullptr;
-		}
-		return false;
-	}
 
 	if((bleSemaphore.startTime+BT_TIMEOUT_MS) < millis()  && (bleSemaphore.waitingForConnection || bleSemaphore.waitingForResponse))
 	{
@@ -1059,7 +1050,8 @@ boolean isTimedout()
 		}
 		else if(bleSemaphore.waitingForResponse)
 		{
-			logger.log(ERROR,"Timed out waiting for response from %s",bleSemaphore.btDevice->getPerifpheryName());
+			//SOK is unreliable, so don't log an error for it
+			//logger.log(ERROR,"Timed out waiting for response from %s",bleSemaphore.btDevice->getPerifpheryName());
 		}
 		else
 		{
