@@ -53,7 +53,7 @@ void BLEManager::stopScanning() {
 }
 
 void BLEManager::turnOff() {
-    logger.log(WARNING, "Turning off BLE");
+    logger.log(INFO, "Turning off BLE");
     if(indicatorCallback) indicatorCallback(0x000000);  // Black
     stopScanning();
     
@@ -67,7 +67,7 @@ void BLEManager::turnOff() {
 
 void BLEManager::turnOn() {
     if(indicatorCallback) indicatorCallback(0x808080);  // Dark gray
-    logger.log(WARNING, "Starting BLE and scanning");
+    logger.log(INFO, "Starting BLE and scanning");
     scanningEnabled = true;
     bleStartupTime = millis();
     lastBleReconnectTime = millis();
@@ -75,8 +75,9 @@ void BLEManager::turnOn() {
     pBLEScan->start(0, false, false);
 }
 
+//currently not called
 void BLEManager::resetStack() {
-    //logger.log(WARNING, "Performing full BLE stack reset");
+    logger.log(WARNING, "Performing full BLE stack reset");
     
     // Clear semaphore
     bleSemaphore.waitingForConnection = false;
