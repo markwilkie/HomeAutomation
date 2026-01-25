@@ -477,7 +477,7 @@ bool BLEManager::connectToServer() {
             // Small delay before reconnect to let the device settle
             delay(500);
             if(!pClient->connect(connectAddress, false)) {
-                logger.log(ERROR, "BLE: Reconnect failed");
+                Serial.printf("BLE: Reconnect failed\n");
                 return false;
             }
         } else {
