@@ -522,12 +522,7 @@ void BT2Reader::dumpRenogyData()
 	
 	for (int i = 0; i < numberOfRegisters; i++) 
 	{
-		Serial.printf("Register 0x%04X contains %d",startRegister + i,getRegister(startRegister + i)->value);
-	}
-
-	for (int i = 0; i < numberOfRegisters; i++) 
-	{
-		printRegister(startRegister + i);
+		Serial.printf("Register 0x%04X contains %d\n",startRegister + i,getRegister(startRegister + i)->value);
 	}
 	#endif
 }
@@ -571,4 +566,20 @@ REGISTER_VALUE *BT2Reader::getRegister(uint16_t registerAddress)
 	int registerValueIndex = getRegisterValueIndex(registerAddress);
 	if (registerValueIndex < 0) { return &invalidRegister; }
 	return (&(registerValues[registerValueIndex]));
+}
+
+/**
+ * getRegisterValue() - Get the raw value of a BT2 register
+ * 
+ * Returns the current value stored for the specified register address.
+ * Used by Layout::showBT2Detail() to display register values on screen.
+ * 
+ * @param registerAddress  The Renogy register address (e.g., RENOGY_SOLAR_VOLTAGE)
+ * @return The raw register value, or 0 if register not found
+ * 
+ * Note: Caller is responsible for scaling (e.g., divide by 10 for volts,
+ * divide by 100 for amps) based on the register type.
+ */
+int BT2Reader::getRegisterValue(uint16_t registerAddress) {
+	return getRegister(registerAddress)->value;
 }

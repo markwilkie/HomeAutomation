@@ -428,7 +428,7 @@ uint16_t Layout::getStatusColor(DeviceStatus status)
  * 
  * If BT2 is not connected, shows "Not Connected" message in red.
  * 
- * Register data is read directly from BT2Reader via printRegister().
+ * Register data is read directly from BT2Reader via getRegister()->value.
  * Temperature is converted from Celsius to Fahrenheit for display.
  */
 void Layout::showBT2Detail(BT2Reader* bt2Reader)
@@ -471,15 +471,15 @@ void Layout::showBT2Detail(BT2Reader* bt2Reader)
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Voltage:  %.1fV", bt2Reader->printRegister(RENOGY_SOLAR_VOLTAGE) / 10.0);
+	lcd.printf("Voltage:  %.1fV", bt2Reader->getRegisterValue(RENOGY_SOLAR_VOLTAGE) / 10.0);
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Current:  %.2fA", bt2Reader->printRegister(RENOGY_SOLAR_CURRENT) / 100.0);
+	lcd.printf("Current:  %.2fA", bt2Reader->getRegisterValue(RENOGY_SOLAR_CURRENT) / 100.0);
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Power:    %dW", bt2Reader->printRegister(RENOGY_SOLAR_POWER));
+	lcd.printf("Power:    %dW", bt2Reader->getRegisterValue(RENOGY_SOLAR_POWER));
 	y += lineHeight + 5;
 	
 	lcd.setTextColor(TFT_LIGHTGREY);
@@ -488,15 +488,15 @@ void Layout::showBT2Detail(BT2Reader* bt2Reader)
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Voltage:  %.1fV", bt2Reader->printRegister(RENOGY_ALTERNATOR_VOLTAGE) / 10.0);
+	lcd.printf("Voltage:  %.1fV", bt2Reader->getRegisterValue(RENOGY_ALTERNATOR_VOLTAGE) / 10.0);
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Current:  %.2fA", bt2Reader->printRegister(RENOGY_ALTERNATOR_CURRENT) / 100.0);
+	lcd.printf("Current:  %.2fA", bt2Reader->getRegisterValue(RENOGY_ALTERNATOR_CURRENT) / 100.0);
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Power:    %dW", bt2Reader->printRegister(RENOGY_ALTERNATOR_POWER));
+	lcd.printf("Power:    %dW", bt2Reader->getRegisterValue(RENOGY_ALTERNATOR_POWER));
 	y += lineHeight + 5;
 	
 	lcd.setTextColor(TFT_WHITE);
@@ -505,19 +505,19 @@ void Layout::showBT2Detail(BT2Reader* bt2Reader)
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Amp Hours:   %d Ah", bt2Reader->printRegister(RENOGY_TODAY_AMP_HOURS));
+	lcd.printf("Amp Hours:   %d Ah", bt2Reader->getRegisterValue(RENOGY_TODAY_AMP_HOURS));
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Watt Hours:  %d Wh", bt2Reader->printRegister(RENOGY_TODAY_POWER));
+	lcd.printf("Watt Hours:  %d Wh", bt2Reader->getRegisterValue(RENOGY_TODAY_POWER));
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Peak Curr:   %.2fA", bt2Reader->printRegister(RENOGY_TODAY_HIGHEST_CURRENT) / 100.0);
+	lcd.printf("Peak Curr:   %.2fA", bt2Reader->getRegisterValue(RENOGY_TODAY_HIGHEST_CURRENT) / 100.0);
 	y += lineHeight;
 	
 	lcd.setCursor(leftCol, y);
-	lcd.printf("Peak Power:  %dW", bt2Reader->printRegister(RENOGY_TODAY_HIGHEST_POWER));
+	lcd.printf("Peak Power:  %dW", bt2Reader->getRegisterValue(RENOGY_TODAY_HIGHEST_POWER));
 	
 	// === RIGHT COLUMN: Battery ===
 	y = 30;
@@ -527,15 +527,15 @@ void Layout::showBT2Detail(BT2Reader* bt2Reader)
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
-	lcd.printf("SOC:      %d%%", bt2Reader->printRegister(RENOGY_AUX_BATT_SOC));
+	lcd.printf("SOC:      %d%%", bt2Reader->getRegisterValue(RENOGY_AUX_BATT_SOC));
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
-	lcd.printf("Voltage:  %.1fV", bt2Reader->printRegister(RENOGY_AUX_BATT_VOLTAGE) / 10.0);
+	lcd.printf("Voltage:  %.1fV", bt2Reader->getRegisterValue(RENOGY_AUX_BATT_VOLTAGE) / 10.0);
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
-	lcd.printf("Max Chrg: %.2fA", bt2Reader->printRegister(RENOGY_MAX_CHARGE_CURRENT) / 100.0);
+	lcd.printf("Max Chrg: %.2fA", bt2Reader->getRegisterValue(RENOGY_MAX_CHARGE_CURRENT) / 100.0);
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
@@ -543,7 +543,7 @@ void Layout::showBT2Detail(BT2Reader* bt2Reader)
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
-	lcd.printf("Capacity: %d Ah", bt2Reader->printRegister(RENOGY_AUX_BATT_CAPACITY));
+	lcd.printf("Capacity: %d Ah", bt2Reader->getRegisterValue(RENOGY_AUX_BATT_CAPACITY));
 	y += lineHeight + 5;
 	
 	lcd.setTextColor(TFT_ORANGE);
@@ -552,11 +552,11 @@ void Layout::showBT2Detail(BT2Reader* bt2Reader)
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
-	lcd.printf("Low V:    %.1fV", bt2Reader->printRegister(RENOGY_AUX_BATT_LOW_VOLTAGE) / 10.0);
+	lcd.printf("Low V:    %.1fV", bt2Reader->getRegisterValue(RENOGY_AUX_BATT_LOW_VOLTAGE) / 10.0);
 	y += lineHeight;
 	
 	lcd.setCursor(rightCol, y);
-	lcd.printf("High V:   %.1fV", bt2Reader->printRegister(RENOGY_AUX_BATT_HIGH_VOLTAGE) / 10.0);
+	lcd.printf("High V:   %.1fV", bt2Reader->getRegisterValue(RENOGY_AUX_BATT_HIGH_VOLTAGE) / 10.0);
 	
 	// Touch prompt at bottom
 	lcd.setTextColor(TFT_DARKGREY);

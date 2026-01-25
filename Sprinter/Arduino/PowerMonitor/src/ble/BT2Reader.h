@@ -30,7 +30,9 @@
  * - Startup command (0x000C) must be sent first after connection
  * - Then alternates between solar (0x0100-0x0107) and alternator (0x0107-0x010B) reads
  * 
- * See README.md for detailed register documentation.
+ * REGISTER DOCUMENTATION:
+ * https://www.dropbox.com/s/03vfqklw97hziqr/%E9%80%9A%E7%94%A8%E5%8D%8F%E8%AE%AE%20V2%20%28%E6%94%AF%E6%8C%8130%E4%B8%B2%29%28Engrish%29.xlsx?dl=0
+ * See also README.md for additional documentation.
  */
 
 #include "BTDevice.hpp"
@@ -281,13 +283,13 @@ public:
 	float getTemperature();
 	void dumpRenogyData();
 
-	int printRegister(uint16_t registerAddress);
 	void printHex(uint8_t * data, int datalen);
 	void printHex(uint8_t * data, int datalen, boolean reverse);
 	void printUuid(uint8_t * data, int datalen);
 
 	boolean isCurrent();
 	void resetStale();
+	int getRegisterValue(uint16_t registerAddress);
 
 private:
 
