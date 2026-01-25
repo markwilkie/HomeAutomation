@@ -1,10 +1,30 @@
 #ifndef BARMETER_H
 #define BARMETER_H
 
-#include <LovyanGFX.hpp>
+/*
+ * BarMeter - Vertical bar gauge for tank levels and battery SOC
+ * 
+ * Displays a vertical bar with 20 stacked blocks that fill based on percentage.
+ * Color-coded from red (low) through yellow to green (full).
+ * 
+ * DISPLAY:
+ * - 20 horizontal blocks stacked vertically
+ * - 100% at top, 0% at bottom
+ * - Each block = 5% of capacity
+ * - Colors: Red (0-20%), Orange (21-40%), Yellow (41-60%), Lime (61-80%), Green (81-100%)
+ * 
+ * STALE DATA HANDLING:
+ * - Pass colorOverride to show grey blocks when data is stale
+ * - Grey indicates the display is showing last-known value
+ * 
+ * USAGE:
+ *   BarMeter battery1Meter;
+ *   battery1Meter.drawMeter(&lcd, x, y, 30, 160, TFT_WHITE, 3);
+ *   battery1Meter.updateLevel(&lcd, 75.0);  // 75% full, normal colors
+ *   battery1Meter.updateLevel(&lcd, 75.0, TFT_DARKGREY);  // Stale data
+ */
 
-// Bar meter displays a vertical gauge with color-coded blocks
-// 100% at top, 0% at bottom
+#include <LovyanGFX.hpp>
 class BarMeter
 {
 public:

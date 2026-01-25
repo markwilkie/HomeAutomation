@@ -161,6 +161,27 @@ void BT2Reader::disconnectCallback(NimBLEClient *myClient)
 	lastCmdSent = -1;  // Reset so startup command is sent on reconnect
 }
 
+/*
+ * notifyCallback() - Handle BLE notification from Renogy BT2 device
+ * 
+ * Called when device sends response data via BLE notification.
+ * Runs in BLE task context - keep processing minimal!
+ * 
+ * MODBUS RESPONSE FORMAT:
+ * Byte 0: Device address (0xFF for Renogy)
+ * Byte 1: Function code (0x03 = read holding registers)
+ * Byte 2: Number of data bytes following
+ * Bytes 3-N: Register data (2 bytes per register, MSB first)
+ * Last 2 bytes: CRC-16 checksum
+ * 
+ * PACKET HANDLING:
+ * - BLE may split response across multiple packets (20 byte MTU limit)
+ * - appendRenogyPacket() assembles fragmented responses
+ * - getExpectedLength() calculates total expected bytes from header
+ * - getIsReceivedDataValid() verifies CRC checksum
+ * 
+ * After valid response received, processDataReceived() parses register values.
+ */
 void BT2Reader::notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE* bleSemaphore) 
 {
 	// Minimal logging - this runs in BLE task context with limited stack
@@ -271,6 +292,28 @@ boolean BT2Reader::appendRenogyPacket(uint8_t *pData, size_t length)
 	return true;
 }
 
+/*
+ * sendReadCommand() - Send Modbus read request to Renogy BT2
+ * 
+ * Constructs and transmits a Modbus RTU read holding registers command.
+ * 
+ * MODBUS COMMAND FORMAT (8 bytes):
+ * Byte 0: 0xFF - Device address (Renogy uses 0xFF)
+ * Byte 1: 0x03 - Function code (read holding registers)
+ * Byte 2-3: Starting register address (MSB, LSB)
+ * Byte 4-5: Number of registers to read (MSB, LSB)
+ * Byte 6-7: CRC-16 checksum (LSB, MSB - note reversed!)
+ * 
+ * PARAMETERS:
+ * @param startRegister - First Modbus register address to read
+ * @param numberOfRegisters - How many consecutive registers to read
+ * @param bleSemaphore - Semaphore to track pending response
+ * 
+ * REGISTER EXAMPLES:
+ * - 0x0100: Solar/alternator operating data
+ * - 0x0107: Battery state and temperatures
+ * - 0x010B: Today's statistics
+ */
 void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegisters,BLE_SEMAPHORE* bleSemaphore) 
 {
 	// Verbose logging removed - uncomment for debugging
@@ -324,6 +367,24 @@ void BT2Reader::sendReadCommand(uint16_t startRegister, uint16_t numberOfRegiste
 	updateSemaphore(bleSemaphore,startRegister);		
 }
 
+/*
+ * processDataReceived() - Parse Modbus response and store register values
+ * 
+ * Called after complete valid response is received and checksum verified.
+ * Extracts 16-bit register values from response data and stores in registerValues[].
+ * 
+ * DATA STRUCTURE:
+ * - dataReceived[0]: Device address (0xFF)
+ * - dataReceived[1]: Function code (0x03)
+ * - dataReceived[2]: Number of data bytes (numberOfRegisters * 2)
+ * - dataReceived[3+n*2]: MSB of register n
+ * - dataReceived[4+n*2]: LSB of register n
+ * 
+ * The registerExpected variable tracks which starting register was requested,
+ * allowing us to store values in the correct registerValues[] index.
+ * 
+ * Also releases the BLE semaphore so the next command can be sent.
+ */
 void BT2Reader::processDataReceived(BLE_SEMAPHORE* bleSemaphore) 
 {
 	int registerOffset = 0;
@@ -359,6 +420,23 @@ void BT2Reader::resetStale()
 	lastHeardTime = millis();
 }
 
+/*
+ * updateValues() - Convert raw register values to usable variables
+ * 
+ * Called from main loop when getIsNewDataAvailable() returns true.
+ * Iterates through registerValues[] and extracts meaningful data.
+ * 
+ * REGISTER TO VARIABLE MAPPING:
+ * - RENOGY_AUX_BATT_VOLTAGE (0x0101): Battery voltage (÷10 for volts)
+ * - RENOGY_ALTERNATOR_CURRENT (0x0102): Alternator charging current (÷100 for amps)
+ * - RENOGY_SOLAR_CURRENT (0x0107): Solar panel current (÷100 for amps)
+ * - RENOGY_TODAY_AMP_HOURS (0x010B): Cumulative Ah charged today
+ * - RENOGY_AUX_BATT_TEMPERATURE (0x0103): Battery and controller temps
+ *   - LSB[6:0]: Battery temp in °C, LSB[7]: sign bit
+ *   - MSB[6:0]: Controller temp in °C, MSB[7]: sign bit
+ * 
+ * The registerDescription[] array contains multipliers for unit conversion.
+ */
 void BT2Reader::updateValues()
 {
 	int numRegisters=sizeof(registerValues)/(sizeof(registerValues[0]));

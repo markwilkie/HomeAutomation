@@ -1,6 +1,43 @@
 #ifndef LAYOUT_H
 #define LAYOUT_H
 
+/*
+ * Layout - Display layout manager and UI renderer
+ * 
+ * This class handles all visual rendering on the 480x320 TFT display.
+ * 
+ * SCREEN LAYOUT (Main Dashboard):
+ * ┌──────────────────────────────────────────────────────────┐
+ * │  DateTime          Sprinkle Data          WiFi  BLE     │
+ * ├──────────────────────────────────────────────────────────┤
+ * │ ┌────┐ ┌────┐    [Moon]  [Calendar]    ┌────┐ ┌────┐    │
+ * │ │Bat1│ │Bat2│   NightAh   DayAh        │Gas │ │Water│   │
+ * │ │ %  │ │ %  │  [sparkline][sparkline]  │ %  │ │  %  │   │
+ * │ │    │ │    │                          │    │ │     │   │
+ * │ │    │ │    │      ┌───────────┐       │    │ │     │   │
+ * │ │    │ │    │      │  Center   │       │    │ │     │   │
+ * │ │    │ │    │      │  Meters   │       │    │ │     │   │
+ * │ │    │ │    │      │  ±Amps    │       │    │ │     │   │
+ * │ │    │ │    │      │  Volts    │       │    │ │     │   │
+ * │ └────┘ └────┘      └───────────┘       └────┘ └─────┘   │
+ * │ V1  H1  V2  H2                          D     D         │
+ * │      [Battery Icon]      [Van/Solar Icons]              │
+ * │      Temp  Amps          Solar  Alt  ChargerTemp        │
+ * │      [C/D MOS indicators]                               │
+ * └──────────────────────────────────────────────────────────┘
+ * 
+ * TOUCH REGIONS (detected by is*Region methods):
+ * - isBLERegion: Top-right corner for BLE toggle
+ * - isVanRegion: Van/solar icons for BT2 detail screen
+ * - isBatteryIconRegion: Battery icon for battery mode cycling
+ * - isCenterRegion: Center area for screen reset (long touch)
+ * 
+ * COLOR CODING:
+ * - White: Device online, current data
+ * - Grey: Device stale or disconnected (trying to reconnect)
+ * - Red: Device in backoff (offline)
+ */
+
 #include <ESP32Time.h>
 #include <LovyanGFX.hpp>
 #include "LGFX_ST32-SC01Plus.hpp"

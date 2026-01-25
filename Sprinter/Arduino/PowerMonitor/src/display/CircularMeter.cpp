@@ -15,6 +15,31 @@ void CircularMeter::initMeter(LGFX *_lcd,int _vmin,int _vmax,int _x,int _y,int _
   scheme=_scheme;
 }
 
+/*
+ * drawMeter() - Render the circular arc meter at current value
+ * 
+ * Draws a segmented arc where filled segments represent the current value.
+ * Uses triangle-based rendering for smooth appearance.
+ * 
+ * RENDERING APPROACH:
+ * The arc is divided into segments (CIR_METER_SEG_INC degrees each).
+ * For each segment:
+ * 1. Calculate inner and outer edge coordinates using cos/sin
+ * 2. If segment is below current value: Fill with color from scheme
+ * 3. If segment is above current value: Fill with grey (empty)
+ * 
+ * COLOR SCHEMES:
+ * 0-2: Solid colors (red, green, blue)
+ * 3: Full rainbow spectrum (blue to red)
+ * 4: GREEN2RED - Value increases with temperature (green->yellow->red)
+ * 5: RED2GREEN - Value increases as level drops (red->yellow->green, for battery)
+ * 
+ * PARAMETERS:
+ * @param value - Current value to display (mapped to arc position)
+ * 
+ * The arc spans from -CIR_METER_ANGLE to +CIR_METER_ANGLE degrees,
+ * with 0 degrees pointing up (12 o'clock position).
+ */
 void CircularMeter::drawMeter(int value)
 {
   int text_colour = 0; // To hold the text colour

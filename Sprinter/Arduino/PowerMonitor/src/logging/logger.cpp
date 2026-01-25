@@ -12,6 +12,27 @@ Logger::Logger()
   infoLog = new PapertrailLogger(PAPERTRAIL_HOST, PAPERTRAIL_PORT, LogLevel::Info, "\033[0;34m", PAPERTRAIL_SYSTEMNAME, " ");
 }
 
+/*
+ * sendLogs() - Flush cached log messages to Papertrail
+ * 
+ * Log messages are accumulated in logCache[] (RTC_DATA_ATTR survives deep sleep)
+ * and sent in batches to reduce WiFi overhead.
+ * 
+ * CACHING STRATEGY:
+ * - log() calls append to logCache[] buffer
+ * - sendLogs() transmits entire buffer when WiFi is available
+ * - Buffer is reset after successful send
+ * 
+ * WIFI DEPENDENCY:
+ * - If WiFi connected: Send logs via Papertrail, reset cache
+ * - If WiFi disconnected AND WIFILOGGER defined: Keep cache for later
+ * - If WiFi disconnected AND no WIFILOGGER: Discard cache (serial only)
+ * 
+ * The RTC_DATA_ATTR qualifier on logCache means logs survive deep sleep,
+ * allowing accumulated messages to be sent after waking up.
+ * 
+ * @param wifiConnected - Current WiFi connection status
+ */
 void Logger::sendLogs(bool wifiConnected)
 {
   //just return if there's nothing to send

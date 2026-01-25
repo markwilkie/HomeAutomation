@@ -1,15 +1,56 @@
 #pragma once
+
+/*
+ * PowerLogger - Tracks power consumption for sparkline visualization
+ * 
+ * This class collects amp-hour data over time and feeds it to sparklines
+ * for visual display of power consumption patterns.
+ * 
+ * TWO SPARKLINES:
+ * 
+ * 1. NIGHT SPARKLINE (nightSparkAh)
+ *    - Tracks power draw from 10pm to 7am (typical sleep hours)
+ *    - 54 data points at 10-minute intervals (9 hours)
+ *    - Shows overnight battery drain pattern
+ *    - RESETS at 10pm each night for fresh data
+ *    - Display: Shows Ah consumed overnight next to moon icon
+ * 
+ * 2. DAY SPARKLINE (daySparkAh)
+ *    - Tracks power flow over rolling 24-hour window
+ *    - 72 data points at 20-minute intervals
+ *    - Shows daily charging/consumption pattern
+ *    - Does NOT reset - continuous rolling window
+ *    - Display: Shows Ah consumed today next to calendar icon
+ * 
+ * DATA COLLECTION:
+ * - add() called every PWR_UPD_TIME (1 second) with current amp value
+ * - Values accumulated and averaged over the interval period
+ * - Average added to sparkline at each interval
+ * 
+ * NEGATIVE VALUES:
+ * - Positive amps = charging (solar/alternator input)
+ * - Negative amps = discharging (load consumption)
+ * - SparkLine class handles negative values via offset mechanism
+ */
+
 #include <ESP32Time.h>
 
-#define PWR_UPD_TIME    1000  //will add to the sum (to average) every second.  This resulting avg will be added to the spark line every INT  
+// ============================================================================
+// TIMING CONSTANTS - Adjust these to change sparkline behavior
+// ============================================================================
+#define PWR_UPD_TIME    1000      // Sample current every 1 second, average over interval
 
-#define NIGHT_AH_DUR 	32400 //9 hours (in seconds)
-#define NIGHT_AH_INT	600.0   //every 600 sec, or 10 minutes
-#define DAY_AH_DUR		86400 //24 hours (in seconds)
-#define DAY_AH_INT		1200.0  //every 20 minutes
+// Night sparkline: 9 hours (10pm-7am) at 10-minute intervals = 54 points
+#define NIGHT_AH_DUR 	32400     // 9 hours in seconds
+#define NIGHT_AH_INT	600.0     // 10 minutes in seconds
 
-#define NIGHT_BEG_HR	22
-#define NIGHT_END_HR	7
+// Day sparkline: 24 hours rolling window at 20-minute intervals = 72 points  
+#define DAY_AH_DUR		86400     // 24 hours in seconds
+#define DAY_AH_INT		1200.0    // 20 minutes in seconds
+
+// Night time boundaries (24-hour format)
+#define NIGHT_BEG_HR	22        // Night begins at 10pm
+#define NIGHT_END_HR	7         // Night ends at 7am
 
 struct PowerLogData
 {

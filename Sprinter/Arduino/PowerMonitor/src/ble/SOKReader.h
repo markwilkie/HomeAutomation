@@ -1,14 +1,44 @@
 #ifndef SOK_READER_H
 #define SOK_READER_H
 
+/*
+ * SOKReader - BLE Reader for SOK Battery BMS
+ * 
+ * Communicates with SOK (Shenzhen OK) LiFePO4 battery BMS via BLE.
+ * 
+ * BLE CHARACTERISTICS:
+ * - Service UUID: 0000fff0-0000-1000-8000-00805f9b34fb
+ * - TX (write):   0000fff1-0000-1000-8000-00805f9b34fb (send commands to BMS)
+ * - RX (notify):  0000fff2-0000-1000-8000-00805f9b34fb (receive data from BMS)
+ * 
+ * PROTOCOL:
+ * - Commands: 0x01C1 (basic data) or 0x01C2 (extended data)
+ * - Each command generates TWO response packets:
+ *   1. First packet: 0xF0 header with basic cell/SOC data
+ *   2. Second packet: 0xC1/0xC2 header with voltage/current/capacity
+ * - Both packets must be received to have complete data
+ * 
+ * DATA AVAILABLE:
+ * - State of Charge (SOC) - percentage
+ * - Voltage - total pack voltage
+ * - Current - charge/discharge current (positive = charging)
+ * - Capacity - remaining amp-hours
+ * - Temperature - battery temperature
+ * - CMOS/DMOS status - charge/discharge MOSFET states
+ * - Protection flags - overcurrent, overvoltage, etc.
+ * - Heater status - battery heater on/off
+ * 
+ * See README.md for detailed protocol documentation.
+ */
+
 #include "BTDevice.hpp"
 #include <NimBLEDevice.h>
 #include "../logging/logger.h"
 
 extern Logger logger;
 
-#define SOK_BLE_STALE 120000
-#define PROTECTION_COUNT 50
+#define SOK_BLE_STALE 120000     // Data considered stale after 2 minutes without update
+#define PROTECTION_COUNT 50      // Number of protection flags in BMS data
 
 class SOKReader : public BTDevice
 {

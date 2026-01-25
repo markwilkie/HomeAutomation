@@ -33,6 +33,30 @@ void ScreenController::setTankReaders(WaterTank* water, GasTank* gas) {
     gasTank = gas;
 }
 
+/*
+ * update() - Main screen update handler, called from Arduino loop()
+ * 
+ * Manages display refresh timing and coordinates data loading.
+ * 
+ * TWO UPDATE CYCLES:
+ * 1. SCR_UPDATE_TIME (500ms) - Text and meter values
+ *    - Load current values from BLE readers
+ *    - Update LCD text displays
+ *    - Update WiFi/BLE indicators
+ *    - Track water/gas usage
+ *    - Calculate data rate (hertz)
+ * 
+ * 2. BITMAP_UPDATE_TIME (longer) - Bar meter fills
+ *    - More expensive redraw operation
+ *    - Updates battery/water/gas bar fills
+ * 
+ * PARAMETERS:
+ * @param rtc - Real-time clock for timestamp display
+ * @param wifiConnected - Current WiFi connection status for indicator
+ * 
+ * The delay(50) calls after screen updates help avoid
+ * power spikes that could affect analog readings.
+ */
 void ScreenController::update(ESP32Time* rtc, bool wifiConnected) {
     // Screen update
     if(millis() > lastScrUpdateTime + SCR_UPDATE_TIME) {
@@ -92,6 +116,24 @@ void ScreenController::longTouchCallback(int x, int y) {
     }
 }
 
+/*
+ * handleTouch() - Process short touch events
+ * 
+ * Called via static callback when finger lift is detected (not long press).
+ * Any touch resets screen brightness to full.
+ * 
+ * TOUCH REGIONS AND ACTIONS:
+ * 
+ * VAN REGION (bottom right, van/sun icons):
+ * - From MAIN_SCREEN: Switch to BT2_DETAIL_SCREEN
+ * - From BT2_DETAIL_SCREEN: Return to MAIN_SCREEN
+ * 
+ * BATTERY ICON REGION (bottom left, battery icon):
+ * - Cycles battery display mode: COMBINED -> SOK1 -> SOK2 -> COMBINED
+ * - Affects which battery's amps/temp/CMOS/DMOS are shown
+ * 
+ * Note: Long touches are handled separately in handleLongTouch().
+ */
 void ScreenController::handleTouch(int x, int y) {
     // Any touch increases screen brightness
     screen->setBrightness(STND_BRIGHTNESS);
@@ -125,6 +167,24 @@ void ScreenController::handleTouch(int x, int y) {
     }
 }
 
+/*
+ * handleLongTouch() - Process long press events
+ * 
+ * Called when touch duration exceeds LONG_TOUCH_TIME.
+ * Used for less common maintenance actions.
+ * 
+ * LONG TOUCH REGIONS AND ACTIONS:
+ * 
+ * CENTER REGION (middle of screen):
+ * - Performs full display reset (lcd.init())
+ * - Useful for brownout recovery when display is garbled
+ * - Redraws entire initial screen
+ * 
+ * BLE REGION (top right corner):
+ * - Toggles BLE on/off
+ * - Calls bleManager->turnOff() or turnOn()
+ * - Useful for power saving or debugging BLE issues
+ */
 void ScreenController::handleLongTouch(int x, int y) {
     // Long touch in center region - reset screen (for brownout recovery)
     if(layout->isCenterRegion(x, y)) {
@@ -150,6 +210,30 @@ void ScreenController::handleLongTouch(int x, int y) {
     }
 }
 
+/*
+ * loadValues() - Aggregate data from all BLE readers into displayData
+ * 
+ * Copies current values from device readers to layout.displayData struct.
+ * Handles device status (online/stale/offline) to determine display behavior.
+ * 
+ * DEVICE STATUS LOGIC:
+ * - DEVICE_ONLINE: Connected AND receiving current data
+ *   -> Update displayData with latest values
+ * - DEVICE_STALE: Connected but no recent data, OR disconnected but still trying
+ *   -> Keep previous values (don't update)
+ * - DEVICE_OFFLINE: Disconnected AND in backoff (gave up trying)
+ *   -> Zero out values
+ * 
+ * BATTERY MODE HANDLING:
+ * The batteryMode setting (COMBINED/SOK1/SOK2) determines which battery's
+ * detailed data (amps, temp, CMOS, DMOS, heater) is shown in the battery icon area.
+ * 
+ * DERIVED VALUES:
+ * - chargeAmps: Solar + Alternator from BT2
+ * - drawAmps: chargeAmps minus net battery current (shows house load)
+ * - currentVolts: Average of both battery voltages
+ * - batteryHoursRem: Capacity ÷ discharge rate
+ */
 void ScreenController::loadValues() {
     if(!sokReader1 || !sokReader2 || !bt2Reader) return;
     

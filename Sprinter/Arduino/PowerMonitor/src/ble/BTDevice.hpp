@@ -1,10 +1,33 @@
 #ifndef DEVICE_WRAPPER_H
 #define DEVICE_WRAPPER_H
 
+/*
+ * BTDevice - Abstract Base Class for BLE Peripheral Devices
+ * 
+ * This is the base class for all BLE device readers (BT2Reader, SOKReader).
+ * It provides common functionality for BLE communication and data handling.
+ * 
+ * INHERITANCE:
+ * - BT2Reader: Renogy BT2 DC-DC charger (Modbus over BLE)
+ * - SOKReader: SOK Battery BMS (proprietary protocol)
+ * 
+ * KEY STRUCTURES:
+ * - BLE_SEMAPHORE: Tracks pending BLE operations (connection, response waiting)
+ * - REGISTER_VALUE: Stores parsed register values with timestamps
+ * 
+ * VIRTUAL METHODS (must be implemented by subclasses):
+ * - scanCallback(): Called when device is found during BLE scan
+ * - connectCallback(): Called after BLE connection established
+ * - notifyCallback(): Called when BLE notification received (data from device)
+ * - disconnectCallback(): Called when BLE connection lost
+ * - isCurrent(): Check if device data is fresh (not stale)
+ * - resetStale(): Reset stale timer after BLE stack reset
+ */
+
 #include <NimBLEDevice.h>
 
-#define DEFAULT_DATA_BUFFER_LENGTH		100
-#define MAX_REGISTER_VALUES		50
+#define DEFAULT_DATA_BUFFER_LENGTH		100  // Buffer for incoming BLE data
+#define MAX_REGISTER_VALUES		50               // Max parsed register values to store
 
 class BTDevice;
 

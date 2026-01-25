@@ -1,6 +1,38 @@
 #ifndef BT2_READER_H
 #define BT2_READER_H
 
+/*
+ * BT2Reader - BLE Reader for Renogy BT2 DC-DC Charger
+ * 
+ * Communicates with Renogy DCC50S DC-DC charger via BLE using Modbus protocol.
+ * The BT2 module exposes the charger's Modbus registers over BLE.
+ * 
+ * BLE CHARACTERISTICS:
+ * - Service UUID: 0000ffd0-0000-1000-8000-00805f9b34fb
+ * - TX (write):   0000ffd1-0000-1000-8000-00805f9b34fb (send Modbus commands)
+ * - RX (notify):  0000fff1-0000-1000-8000-00805f9b34fb (receive Modbus responses)
+ * 
+ * MODBUS PROTOCOL:
+ * - Function code 0x03: Read holding registers
+ * - Requests: [DeviceAddr][FuncCode][StartReg][NumRegs][CRC16]
+ * - Responses: [DeviceAddr][FuncCode][ByteCount][Data...][CRC16]
+ * - Uses CRC16 with polynomial 0xA001 (included in MODBUS_TABLE_A001)
+ * 
+ * DATA AVAILABLE:
+ * - Solar voltage, current, power
+ * - Alternator voltage, current, power  
+ * - Battery SOC, voltage, temperature
+ * - Today's amp-hours and watt-hours
+ * - Charging mode and error flags
+ * - Controller temperature
+ * 
+ * COMMAND SEQUENCE:
+ * - Startup command (0x000C) must be sent first after connection
+ * - Then alternates between solar (0x0100-0x0107) and alternator (0x0107-0x010B) reads
+ * 
+ * See README.md for detailed register documentation.
+ */
+
 #include "BTDevice.hpp"
 #include <NimBLEDevice.h>
 #include <array>
@@ -8,6 +40,10 @@
 
 extern Logger logger;
 
+// ============================================================================
+// MODBUS CRC16 LOOKUP TABLE (polynomial 0xA001)
+// Used for validating Modbus responses from BT2
+// ============================================================================
 static const uint16_t MODBUS_TABLE_A001[256] = {
 	0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
 	0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,

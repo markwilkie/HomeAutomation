@@ -1,6 +1,33 @@
 #ifndef SCREEN_CONTROLLER_H
 #define SCREEN_CONTROLLER_H
 
+/*
+ * ScreenController - Central coordinator for display, touch, and data flow
+ * 
+ * RESPONSIBILITIES:
+ * 1. Screen state management (main screen vs detail screens)
+ * 2. Touch event routing (short touch, long touch, region detection)
+ * 3. Data flow from device readers to display (loadValues)
+ * 4. Update timing (screen refresh rate, bitmap update rate)
+ * 5. Hertz counter for BLE data rate monitoring
+ * 
+ * TOUCH INTERACTIONS:
+ * - Short touch on van icon: Toggle to BT2 detail screen
+ * - Short touch on BT2 detail screen: Return to main screen
+ * - Short touch on battery icon: Cycle battery display mode (combined/SOK1/SOK2)
+ * - Long touch on center: Reset display (brownout recovery)
+ * - Long touch on BLE icon region: Toggle BLE on/off
+ * 
+ * DATA FLOW:
+ * - Device readers (BT2Reader, SOKReader) -> loadValues() -> DisplayData -> Layout
+ * - Tank sensors (WaterTank, GasTank) -> loadValues() -> DisplayData -> Layout
+ * 
+ * UPDATE CYCLE (called from main loop):
+ * 1. update() called every loop iteration
+ * 2. If SCR_UPDATE_TIME elapsed: loadValues(), updateLCD(), updateIndicators()
+ * 3. If BITMAP_UPDATE_TIME elapsed: updateBitmaps() (bar meters)
+ */
+
 #include <ESP32Time.h>
 #include "Layout.h"
 #include "Screen.h"
@@ -15,14 +42,16 @@ class GasTank;
 
 extern Logger logger;
 
-// Screen update timing constants
-#define SCR_UPDATE_TIME 500
-#define BITMAP_UPDATE_TIME 5000
+// ============================================================================
+// TIMING CONSTANTS
+// ============================================================================
+#define SCR_UPDATE_TIME 500      // Update screen values every 500ms
+#define BITMAP_UPDATE_TIME 5000  // Update bar meter graphics every 5 seconds
 
 // Screen state management
 enum ScreenState {
-    MAIN_SCREEN,
-    BT2_DETAIL_SCREEN
+    MAIN_SCREEN,           // Primary dashboard view
+    BT2_DETAIL_SCREEN      // BT2 charge controller detail view
 };
 
 class ScreenController {

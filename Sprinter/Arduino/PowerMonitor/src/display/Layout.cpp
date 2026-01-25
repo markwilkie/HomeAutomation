@@ -18,6 +18,44 @@ void Layout::init()
     screen.init();
 }
 
+/*
+ * drawInitialScreen() - Render the main dashboard layout
+ * 
+ * Creates the complete UI structure for the power monitoring screen.
+ * Called once at startup and after returning from detail screens.
+ * 
+ * SCREEN LAYOUT (480x320 pixels, landscape):
+ * 
+ * TOP BAR:
+ * - Title "Sprinkle Data" centered
+ * - DateTime display (left)
+ * - WiFi indicator (right)
+ * - BLE indicator (right of WiFi)
+ * 
+ * LEFT SIDE (y=80):
+ * - Battery 1 bar meter (30x160)
+ * - Battery 2 bar meter (30x160, adjacent)
+ * - SOC % displays above each
+ * - Volts and hours remaining below each
+ * 
+ * CENTER:
+ * - Circular charge meter (outer ring, green-to-red)
+ * - Circular draw meter (inner ring, red-to-green)
+ * - Voltage display below center
+ * - Sparklines: Night (moon icon), Day (calendar icon)
+ * 
+ * RIGHT SIDE:
+ * - Gas bar meter (30x160)
+ * - Water bar meter (30x160, adjacent)
+ * - Percentage displays above
+ * - Days remaining below
+ * 
+ * BOTTOM:
+ * - Battery icon with C-MOS/D-MOS indicators
+ * - Battery amps and temperature
+ * - Van/Sun icons for alternator/solar
+ * - Heater indicator bitmap (shown when active)
+ */
 void Layout::drawInitialScreen()
 {
     // Clear the screen first
@@ -234,6 +272,32 @@ void Layout::updateBitmaps()
     gasMeter.updateLevel(&lcd, displayData.stateOfGas);
 }
 
+/*
+ * updateLCD() - Refresh all dynamic display elements
+ * 
+ * Called every SCR_UPDATE_TIME (500ms) from ScreenController.
+ * Updates text values, meters, and indicators with current data.
+ * 
+ * UPDATE SEQUENCE:
+ * 1. DateTime string (from RTC)
+ * 2. Center circular meters (charge/draw amps)
+ * 3. Voltage display
+ * 4. Battery 1 & 2 values (SOC, volts, hours remaining)
+ * 5. Water/gas percentage and days remaining
+ * 6. Hertz counter (BLE data rate indicator)
+ * 7. BT2 values (temps, solar/alternator amps)
+ * 8. Sparklines (night/day power consumption)
+ * 9. Battery mode label (1, 2, or blank for combined)
+ * 10. Heater bitmap (shown/hidden)
+ * 11. CMOS/DMOS indicator circles
+ * 
+ * COLOR CODING BY DEVICE STATUS:
+ * - DEVICE_ONLINE: TFT_WHITE (normal)
+ * - DEVICE_STALE: TFT_DARKGREY (connected but no recent data)
+ * - DEVICE_OFFLINE: TFT_RED (in backoff, not trying)
+ * 
+ * Note: updateBitmaps() handles bar meter fills separately.
+ */
 void Layout::updateLCD(ESP32Time *rtc)
 {
 	//datetime
@@ -344,6 +408,29 @@ uint16_t Layout::getStatusColor(DeviceStatus status)
     }
 }
 
+/*
+ * showBT2Detail() - Display Renogy BT2 charger detail screen
+ * 
+ * Shows comprehensive data from the BT2 charge controller.
+ * Triggered by touching the van/solar icon region on main screen.
+ * Touch anywhere to return to main screen.
+ * 
+ * TWO-COLUMN LAYOUT:
+ * 
+ * LEFT COLUMN - Solar & Alternator:
+ * - Solar: Voltage, Current, Power
+ * - Alternator: Voltage, Current, Power
+ * - Today's totals: Amp Hours, Watt Hours, Peak Current, Peak Power
+ * 
+ * RIGHT COLUMN - Battery & Limits:
+ * - Battery: SOC%, Voltage, Max Charge Current, Controller Temp, Capacity
+ * - Limits: Low Voltage cutoff, High Voltage cutoff
+ * 
+ * If BT2 is not connected, shows "Not Connected" message in red.
+ * 
+ * Register data is read directly from BT2Reader via printRegister().
+ * Temperature is converted from Celsius to Fahrenheit for display.
+ */
 void Layout::showBT2Detail(BT2Reader* bt2Reader)
 {
 	// Clear the screen

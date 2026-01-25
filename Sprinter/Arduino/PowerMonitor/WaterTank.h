@@ -1,15 +1,45 @@
 #ifndef WATERTANK_H
 #define WATERTANK_H
 
+/*
+ * WaterTank - Fresh Water Tank Level Monitoring via Resistive Sender
+ * 
+ * HARDWARE SETUP:
+ * - Standard automotive-style resistive tank sender
+ * - 33Ω when full, 240Ω when empty
+ * - Powered from 5V rail, read via voltage divider to 3.3V ADC
+ * 
+ * CIRCUIT:
+ *     5V (from external rail)
+ *      |
+ * [ Tank Sender ]  ← 33Ω (full) to 240Ω (empty)
+ *      |
+ *      |------- GPIO12 (analog input via voltage divider)
+ *      |
+ * [ 240Ω Resistor ]  ← fixed pull-down
+ *      |
+ *     GND
+ * 
+ * VOLTAGE READINGS:
+ * - Full (33Ω):  ~2.90V at ADC
+ * - Empty (240Ω): ~1.65V at ADC
+ * 
+ * USAGE TRACKING:
+ * - Hourly weighted average of consumption rate
+ * - Days remaining calculated from current level and usage rate
+ */
+
 #include <Arduino.h>
 #include "src/logging/logger.h"
 
 extern Logger logger;
 
-//Defines
-#define WATER_LEVEL_ANALOG_PIN 12 // water level sensor
+// ============================================================================
+// HARDWARE CONFIGURATION
+// ============================================================================
+#define WATER_LEVEL_ANALOG_PIN 12    // GPIO12 for water level sensor
 
-#define PUMP_CURRENT_THRESHOLD 2.2 // Remember that we're running the sensor backwards, so less than is more amps
+#define PUMP_CURRENT_THRESHOLD 2.2   // ACS712 threshold (sensor runs inverted: lower V = higher A)
 #define USAGE_CHECK_INTERVAL 3600000UL // Check usage every hour (in milliseconds)
 
 class WaterTank {

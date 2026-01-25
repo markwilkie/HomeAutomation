@@ -47,6 +47,30 @@ uint16_t BarMeter::getColorForPercent(float percent)
         return TFT_GREEN;
 }
 
+/*
+ * drawBlocks() - Render the bar meter fill blocks
+ * 
+ * Draws BLOCK_COUNT vertical segments to visualize the level.
+ * Blocks are filled from BOTTOM (0%) to TOP (100%).
+ * 
+ * COLOR LOGIC:
+ * - If colorOverride is provided (non-zero): Use it for all lit blocks
+ *   (Used for stale devices to show grey fill)
+ * - Otherwise: Color based on percentage level
+ *   - < 35%: TFT_RED (critical)
+ *   - < 50%: TFT_ORANGE (warning)
+ *   - < 70%: TFT_YELLOW (attention)
+ *   - >= 70%: TFT_GREEN (good)
+ * 
+ * BLOCK CALCULATION:
+ * Uses cumulative rounding to evenly distribute pixels across blocks.
+ * Each block's center percentage is calculated to determine if it should
+ * be lit based on the current level.
+ * 
+ * @param lcd - Display device pointer
+ * @param level - Current level 0-100%
+ * @param colorOverride - If non-zero, use this color for all lit blocks
+ */
 void BarMeter::drawBlocks(LGFX_Device* lcd, float level, uint16_t colorOverride)
 {
     // Inner area for blocks

@@ -56,6 +56,29 @@ void VanWifi::stopWifi()
   //logger.log(INFO, "WiFi stopped");
 }
 
+/*
+ * sendGetMessage() - Perform HTTP GET request and parse JSON response
+ * 
+ * Used primarily for time synchronization API calls.
+ * Supports both HTTP and HTTPS URLs.
+ * 
+ * REQUEST HANDLING:
+ * 1. Detect URL scheme (http:// vs https://)
+ * 2. For HTTPS: Use WiFiClientSecure with certificate validation disabled
+ *    (setInsecure() - simpler than managing certs on embedded device)
+ * 3. For HTTP: Use standard WiFiClient
+ * 4. Set 10-second timeout to prevent hangs
+ * 5. Add RapidAPI headers for time API authentication
+ * 
+ * RESPONSE HANDLING:
+ * - HTTP errors (negative codes): Log error, return empty JSON
+ * - Success: Parse payload as JSON and return DynamicJsonDocument
+ * 
+ * @param url - Full URL to request (http:// or https://)
+ * @return DynamicJsonDocument containing parsed response (empty on error)
+ * 
+ * NOTE: HTTPClient and WiFiClient are stack-allocated to avoid memory leaks.
+ */
 DynamicJsonDocument VanWifi::sendGetMessage(const char*url)
 {
   DynamicJsonDocument doc(512);

@@ -21,6 +21,22 @@ void Screen::addLongTouchCallback(longTouchCallBackTemplate cbTemplate)
 	longTouchCallBack=cbTemplate;
 }
 
+/*
+ * resetDisplay() - Full display hardware reset for brownout recovery
+ * 
+ * When the ESP32 experiences a brownout (voltage dip), the display
+ * can end up in a corrupted state with garbage pixels or wrong settings.
+ * 
+ * This function performs a complete reset sequence:
+ * 1. lcd.init() - Hardware reset and full display initialization
+ * 2. setRotation(3) - Re-apply landscape orientation
+ * 3. fillScreen(BLACK) - Clear any garbage pixels
+ * 4. setBrightness() - Restore brightness level
+ * 5. display() - Enable display output
+ * 6. powerSave(false) - Ensure display is not in power save mode
+ * 
+ * Triggered by long-press on center screen region.
+ */
 void Screen::resetDisplay()
 {
   lcd.init();                      // Hardware reset + full init
@@ -31,6 +47,29 @@ void Screen::resetDisplay()
   lcd.powerSave(false);            // Disable power save mode
 }
 
+/*
+ * poll() - Main screen polling handler, call from Arduino loop()
+ * 
+ * Handles two responsibilities:
+ * 1. Screen brightness management (auto-dim after timeout)
+ * 2. Touch detection and callback dispatch
+ * 
+ * TOUCH STATE MACHINE:
+ * The touch detection uses a "wait for finger lift" pattern:
+ * 
+ * State: waitForFingerLift=false (idle)
+ *   -> Touch detected: Set waitForFingerLift=true, record startPressTime
+ * 
+ * State: waitForFingerLift=true (finger down)
+ *   -> Touch still detected: Do nothing, wait
+ *   -> Touch released (finger up):
+ *        - If duration < LONG_TOUCH_TIME: Call touchCallback (short tap)
+ *        - If duration >= LONG_TOUCH_TIME: Call longTouchCallback (long press)
+ *        - Reset waitForFingerLift=false
+ * 
+ * This pattern ensures callbacks fire on RELEASE, not on initial touch,
+ * and allows distinguishing between short and long presses.
+ */
 void Screen::poll()
 {
     //Brightness
@@ -84,6 +123,22 @@ bool Screen::isTouched()
     }
 }
 
+/*
+ * setBrightness() - Auto-manage screen brightness based on activity
+ * 
+ * Called every poll() to handle automatic dimming:
+ * 
+ * BRIGHTNESS LEVELS:
+ * - STND_BRIGHTNESS: Normal viewing brightness (set on touch)
+ * - DIM_BRIGHTNESS: Power-saving dim level (after timeout)
+ * 
+ * LOGIC:
+ * - If screen is dim AND touch detected -> Brighten to STND_BRIGHTNESS
+ * - If screen is bright AND timeout exceeded -> Dim to DIM_BRIGHTNESS
+ * 
+ * SCREEN_BRIGHT_TIME controls how long screen stays bright after last touch.
+ * This saves power during long periods of no interaction.
+ */
 void Screen::setBrightness()
 {
     //Check if we need to dim the screen back down or brighten up because of a touch
@@ -178,6 +233,30 @@ void Text::updateText(const char *text)
     drawText(lastX,lastY,text,lastFont,lastColor,lastBgColor,lastRightFlag,lastCenterFlag);
 }
 
+/*
+ * Text::drawText() - Render text with automatic background clearing
+ * 
+ * The core text rendering function that handles:
+ * 1. Building display string from value + label
+ * 2. Clearing the previous text area (prevents ghosting)
+ * 3. Drawing new text with proper alignment
+ * 4. Saving state for subsequent updateText() calls
+ * 
+ * PARAMETERS:
+ * @param x, y - Position (interpretation depends on flags)
+ * @param value - Numeric value to display
+ * @param dec - Decimal places for formatting
+ * @param label - Unit suffix ("A", "V", "%", etc.)
+ * @param font - LovyanGFX font number (2=small, 4=medium)
+ * @param color - Text foreground color
+ * @param bgColor - Background color for clearing (TFT_BLACK typically)
+ * @param rightFlag - If true, x is RIGHT edge of text
+ * @param centerFlag - If true, x is CENTER of text
+ * 
+ * ZERO HANDLING:
+ * Values near zero (|value| < 0.05) display as "--" + label
+ * since near-zero readings are usually noise, not useful data.
+ */
 void Text::drawText(int x,int y,float value,int dec,const char*label,int font,int color,int bgColor,bool rightFlag,bool centerFlag)
 {
     lcd.setTextFont(font);

@@ -1,20 +1,49 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
+/*
+ * Screen - Low-level screen and touch driver wrapper
+ * 
+ * Wraps LovyanGFX for the WT32-SC01 Plus display (480x320 capacitive touch).
+ * Handles touch detection, brightness control, and touch callbacks.
+ * 
+ * BRIGHTNESS LEVELS:
+ * - FULL: Maximum brightness (255) - used rarely, high power draw
+ * - STND: Standard brightness (178) - normal use after touch
+ * - DIM:  Dim brightness (1) - idle state to save power
+ * 
+ * TOUCH HANDLING:
+ * - Short touch: Triggers touchCallback after release
+ * - Long touch: Triggers longTouchCallback after LONG_TOUCH_TIME held
+ * - Any touch: Increases brightness to STND_BRIGHTNESS
+ * - Auto-dim: Returns to DIM_BRIGHTNESS after SCREEN_BRIGHT_TIME
+ * 
+ * USAGE:
+ *   screen.init();
+ *   screen.addTouchCallback(myTouchHandler);
+ *   screen.addLongTouchCallback(myLongTouchHandler);
+ *   screen.poll();  // Call in loop() to process touch events
+ */
+
 #include <LovyanGFX.hpp>
 #include "LGFX_ST32-SC01Plus.hpp"
 #include "BitmapMeter.h"
 
-#define FULL_BRIGHTNESS 255   //(0-255)
-#define STND_BRIGHTNESS 178   //factor of max for standard
-#define DIM_BRIGHTNESS 1      //factor of max for dim  (how it normally sits)
+// ============================================================================
+// BRIGHTNESS CONFIGURATION
+// ============================================================================
+#define FULL_BRIGHTNESS 255   // Maximum (0-255) - high power draw
+#define STND_BRIGHTNESS 178   // Standard use after touch
+#define DIM_BRIGHTNESS 1      // Idle state to save power
 
-#define LONG_TOUCH_TIME 1000
+// ============================================================================
+// TOUCH TIMING
+// ============================================================================
+#define LONG_TOUCH_TIME 1000      // ms to hold for long touch event
+#define SCREEN_BRIGHT_TIME 60000  // ms before auto-dimming (60 seconds)
 
-#define SCREEN_BRIGHT_TIME 60000
-
-extern LGFX lcd;
-extern bool simulatedData;
+extern LGFX lcd;           // Global LCD instance (used by Layout)
+extern bool simulatedData; // Flag for testing with fake data
 
 typedef void (*touchCallBackTemplate)( int x,int y );
 typedef void (*longTouchCallBackTemplate)(  int x,int y  );

@@ -127,6 +127,29 @@ void SOKReader::disconnectCallback(NimBLEClient *myClient)
 	//logger.log(INFO, "SOK %d:   State cleared, ready for reconnection", batteryNumber);
 }
 
+/*
+ * notifyCallback() - Handle BLE notification from SOK battery BMS
+ * 
+ * Called when SOK battery sends response data via BLE notification.
+ * Runs in BLE task context - keep processing minimal!
+ * 
+ * SOK RESPONSE PACKET FORMAT:
+ * Bytes 0-1: Packet marker (identifies packet type)
+ *   - 0xCC 0xF0: Base packet (SOC, voltage, current, capacity, cycles)
+ *   - 0xCC 0xF2: CMOS/DMOS status (from C1 command)
+ *   - 0xCC 0xF3: Heating status (from C2 command)
+ *   - 0xCC 0xF9: Protection status (from C4 command)
+ * 
+ * DUAL-BUFFER STRATEGY:
+ * The base packet (0xF0) with SOC data goes to basePacketData[] buffer.
+ * Secondary packets (0xF2, 0xF3, 0xF9) go to dataReceived[] buffer.
+ * This prevents secondary packets from overwriting SOC data.
+ * 
+ * TWO-PACKET COMMANDS (C1, C2):
+ * These commands return two packets that can arrive in any order:
+ * - 0xF0 base packet + 0xF2 (C1) or 0xF3 (C2) secondary packet
+ * Semaphore is only released when BOTH packets are received.
+ */
 void SOKReader::notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8_t *pData, size_t length, BLE_SEMAPHORE *bleSemaphore) 
 {
 	// Minimal processing - this runs in BLE task context with limited stack
@@ -180,6 +203,25 @@ void SOKReader::notifyCallback(NimBLERemoteCharacteristic *characteristic, uint8
 	}
 }
 
+/*
+ * bytesToInt() - Convert raw bytes to integer (little-endian)
+ * 
+ * SOK battery sends multi-byte values in little-endian format.
+ * This function assembles bytes into an integer.
+ * 
+ * PARAMETERS:
+ * @param bytes - Pointer to byte array
+ * @param len - Number of bytes to process (1-4)
+ * @param isSigned - If true, interpret as signed 2's complement
+ * 
+ * SIGNED CONVERSION:
+ * For signed values (like current which can be negative for discharge):
+ * 1. Check sign bit (MSB of final byte)
+ * 2. If set, sign-extend to 32 bits
+ * Example: 3-byte value 0xFFFF80 (-128) becomes 0xFFFFFF80
+ * 
+ * RETURNS: Integer value (signed or unsigned based on isSigned)
+ */
 //Boolean is to force signed 2 compliment if true
 int SOKReader::bytesToInt(uint8_t *bytes, int len, boolean isSigned) 
 {
@@ -203,6 +245,27 @@ int SOKReader::bytesToInt(uint8_t *bytes, int len, boolean isSigned)
 }
 
 
+/*
+ * sendReadCommand() - Send data request command to SOK battery BMS
+ * 
+ * SOK batteries use a simple 6-byte command protocol:
+ * Byte 0: 0xEE - Start marker
+ * Byte 1: Command code (0xC0, 0xC1, 0xC2, or 0xC4)
+ * Bytes 2-4: 0x00 0x00 0x00 - Padding
+ * Byte 5: Checksum
+ * 
+ * COMMAND CODES AND RESPONSES:
+ * - 0xC1: Returns base data (0xF0) + CMOS/DMOS status (0xF2)
+ * - 0xC2: Returns base data (0xF0) + heating status (0xF3)
+ * - 0xC4: Returns protection status (0xF9) only
+ * 
+ * CYCLING STRATEGY:
+ * Commands alternate C1 -> C2 -> C1 -> ... with periodic C4 for protection.
+ * This ensures all data types are refreshed regularly.
+ * C1/C2 commands return TWO packets; semaphore tracks both.
+ * 
+ * PROTECTION_COUNT controls how often C4 is sent (every N cycles).
+ */
 void SOKReader::sendReadCommand(BLE_SEMAPHORE *bleSemaphore) 
 {
 	//Make sure we're clear to send
@@ -297,6 +360,27 @@ void SOKReader::resetStale()
 	lastHeardTime = millis();
 }
 
+/*
+ * updateValues() - Parse received packets and update battery state variables
+ * 
+ * Called from main loop when getIsNewDataAvailable() returns true.
+ * Parses both basePacketData[] (0xF0) and dataReceived[] (0xF2/F3/F9).
+ * 
+ * BASE PACKET (0xF0) LAYOUT:
+ * - Bytes 2-4: Voltage (3 bytes, ÷1000 for volts)
+ * - Bytes 5-7: Current (3 bytes, signed, ÷1000 for amps, negative=discharge)
+ * - Bytes 11-13: Remaining capacity (3 bytes, ÷1000 for Ah)
+ * - Bytes 14-15: Cycle count (2 bytes)
+ * - Byte 16: State of charge (0-100%)
+ * 
+ * SECONDARY PACKETS:
+ * - 0xF2 (from C1): CMOS flag (byte 2), DMOS flag (byte 3), temperature (bytes 5-6)
+ * - 0xF3 (from C2): Heating flag (byte 8)
+ * - 0xF9 (from C4): Protection flags (bytes 2-16, any non-zero = protected)
+ * 
+ * CMOS = Charge MOSFET, DMOS = Discharge MOSFET
+ * Both should be ON (true) for normal operation.
+ */
 void SOKReader::updateValues()
 {
 	// Parse base packet (0xF0) from separate buffer - contains SOC, volts, amps, etc.

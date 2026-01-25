@@ -1,6 +1,42 @@
 #ifndef BLE_MANAGER_H
 #define BLE_MANAGER_H
 
+/*
+ * BLEManager - Centralized BLE connection manager for ESP32-S3 with NimBLE 2.x
+ * 
+ * ARCHITECTURE OVERVIEW:
+ * -----------------------
+ * This manager handles multiple BLE peripheral devices (BT2 charge controller, SOK batteries).
+ * It uses a single scan + connect pattern with per-device retry tracking and backoff.
+ * 
+ * CONNECTION FLOW:
+ * 1. startScanning() begins continuous BLE scan
+ * 2. onScanResult() matches found devices against registered targets
+ * 3. When target found, sets doConnect=true flag (callback context, can't connect directly)
+ * 4. poll() (called from main loop) processes doConnect and calls connectToServer()
+ * 5. connectToServer() establishes connection and sets up notifications
+ * 6. checkForDisconnectedDevices() monitors health and handles stale/offline devices
+ * 
+ * RETRY & BACKOFF SYSTEM:
+ * -----------------------
+ * Two scenarios need retry tracking:
+ * 
+ * SCENARIO A: Scanner finds device, but connection fails
+ *   - poll() increments deviceRetryCount when connectToServer() returns false
+ *   - After BLE_MAX_RETRIES failures, enters 30-minute backoff
+ *   - deviceLastAttempt[] tracks when last attempt was made for throttling
+ * 
+ * SCENARIO B: Scanner never finds device (device powered off, out of range)
+ *   - checkForDisconnectedDevices() runs every BLE_IS_ALIVE_TIME (30 sec)
+ *   - If deviceLastAttempt[] is stale (>60 sec old), scanner isn't finding it
+ *   - Increments deviceRetryCount each check cycle until backoff triggered
+ * 
+ * IMPORTANT: Only ONE of these should increment retry count at a time:
+ *   - If scanner is finding device (recent deviceLastAttempt), poll() handles retries
+ *   - If scanner isn't finding device, checkForDisconnectedDevices() handles retries
+ *   - "pollHandlingDevice" flag prevents double-counting
+ */
+
 #include <NimBLEDevice.h>
 #include "BTDevice.hpp"
 #include "BT2Reader.h"
@@ -9,14 +45,18 @@
 
 extern Logger logger;
 
-// Timing constants
-#define BT_TIMEOUT_MS       15000   // BLE response timeout
-#define BLE_RECONNECT_TIME  60000   // Restart BLE scan every 60 seconds if not all devices connected
-#define BLE_STARTUP_TIMEOUT 120000  // Full BLE restart if not all devices connect within 2 minutes
-#define BLE_CONNECT_THROTTLE_MS 2000  // Minimum ms between connection attempts
-#define BLE_IS_ALIVE_TIME   30000   // Check for disconnected devices every 30 seconds
-#define BLE_MAX_RETRIES     5       // Max connection retries before entering backoff
-#define BLE_BACKOFF_TIME    1800000 // 30 minutes backoff after max retries
+// ============================================================================
+// TIMING CONSTANTS - Tune these to adjust BLE behavior
+// ============================================================================
+#define BT_TIMEOUT_MS       15000   // Max time to wait for BLE response before giving up
+#define BLE_RECONNECT_TIME  60000   // Restart scan every 60s if not all devices connected
+#define BLE_STARTUP_TIMEOUT 120000  // Full stack reset if no connections after 2 minutes
+#define BLE_CONNECT_THROTTLE_MS 10000 // Min 10 seconds between connection attempts PER DEVICE
+                                      // Prevents rapid retry loops when device is found but
+                                      // connection fails repeatedly
+#define BLE_IS_ALIVE_TIME   30000   // Run health check every 30 seconds
+#define BLE_MAX_RETRIES     5       // Max failed attempts before entering backoff
+#define BLE_BACKOFF_TIME    1800000 // 30 minutes backoff - stops hammering unavailable device
 
 // Forward declaration
 class BLEManager;
@@ -99,9 +139,16 @@ private:
     int deviceCount = 0;
     int deviceCycle = 0;            // For cycling through devices when sending commands
     
-    // Per-device retry tracking
-    int deviceRetryCount[MAX_DEVICES] = {0};           // Failed connection attempts
-    unsigned long deviceBackoffUntil[MAX_DEVICES] = {0}; // Timestamp when backoff ends
+    // ========================================================================
+    // PER-DEVICE RETRY TRACKING
+    // These arrays are indexed by device registration order (same as devices[])
+    // ========================================================================
+    int deviceRetryCount[MAX_DEVICES] = {0};           // Failed connection attempts (resets on success)
+    unsigned long deviceBackoffUntil[MAX_DEVICES] = {0}; // millis() timestamp when backoff ends (0 = not in backoff)
+    unsigned long deviceLastAttempt[MAX_DEVICES] = {0};  // millis() of last connection attempt
+                                                         // Used by: 1) throttle in onScanResult
+                                                         //          2) checkForDisconnectedDevices to know
+                                                         //             if scanner is finding device
     
     // BLE state
     BLE_SEMAPHORE bleSemaphore = {nullptr, 0, 0, false, false};
