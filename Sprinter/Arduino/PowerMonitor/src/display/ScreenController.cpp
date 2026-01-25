@@ -1,6 +1,6 @@
 #include "ScreenController.h"
-#include "../../WaterTank.h"
-#include "../../GasTank.h"
+#include "../tanks/WaterTank.h"
+#include "../tanks/GasTank.h"
 
 // Static instance for callbacks
 ScreenController* ScreenController::instance = nullptr;

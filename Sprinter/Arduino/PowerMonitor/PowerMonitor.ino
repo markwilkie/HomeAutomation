@@ -36,8 +36,8 @@
 #include "src/wifi/wifi.h"
 #include "src/logging/logging.h"
 
-#include "WaterTank.h"
-#include "GasTank.h"
+#include "src/tanks/WaterTank.h"
+#include "src/tanks/GasTank.h"
 
 #define TIMEAPI_URL "https://world-time-api3.p.rapidapi.com/timezone/America/Los_Angeles"
 //#define TIMEAPI_URL "https://timeapi.io/api/time/current/zone?timeZone=America/Los_Angeles"

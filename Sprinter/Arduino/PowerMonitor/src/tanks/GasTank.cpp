@@ -1,5 +1,5 @@
 #include "GasTank.h"
-#include "src/wifi/wifi.h"
+#include "../wifi/wifi.h"
 
 extern VanWifi wifi;
 
