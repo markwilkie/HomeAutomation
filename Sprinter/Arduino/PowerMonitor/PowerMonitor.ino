@@ -47,10 +47,10 @@
 // TIMING CONSTANTS - Adjust these to change system behavior
 // ============================================================================
 #define POLL_TIME_MS	500             // BLE command polling interval (how often we send commands to devices)
-#define TANK_CHECK_TIME 300000       // Check gas and water tank every 5 minutes (WiFi must be off during ADC read)
+#define TANK_CHECK_TIME 900000       // Check gas and water tank every 15 minutes (WiFi must be off during ADC read)
 #define WIFI_CHECK_TIME 60000        // Check/reconnect WiFi every 1 minute
-#define SOC_LOG_TIME 60000           // Log SOC from each battery every 1 minute (for remote debugging)
-#define REFRESH_RTC (30L*60L*1000L)  // Sync RTC with internet time every 30 minutes
+#define SOC_LOG_TIME 300000           // Log SOC from each battery every 5 minutes (for remote debugging)
+#define REFRESH_RTC (60L*60L*1000L)  // Sync RTC with internet time every hour
 
 // ============================================================================
 // GLOBAL OBJECTS
