@@ -151,10 +151,9 @@ bool BLEManager::isTimedOut() {
  * 2. Handle BLE response timeouts
  * 3. Run periodic health check (checkForDisconnectedDevices)
  * 
- * CONNECTION RETRY LOGIC (Scenario A - device found but connection fails):
- * - Each failed connectToServer() increments deviceRetryCount
- * - After BLE_MAX_RETRIES (5), enters 30-minute backoff
- * - deviceLastAttempt is recorded for throttling (prevents rapid retries)
+ * NOTE: poll() does NOT handle retry counting - it only logs connection failures.
+ * All retry counting is done by checkForDisconnectedDevices() which runs every 30s.
+ * This simplifies the logic to a single source of truth for retry/backoff decisions.
  */
 void BLEManager::poll() {
     // ========================================================================
@@ -174,31 +173,14 @@ void BLEManager::poll() {
         }
         
         if(!connectToServer()) {
-            // CONNECTION FAILED - increment retry count
-            // This is the primary retry path when scanner finds device but can't connect
+            // CONNECTION FAILED - log it, but let checkForDisconnectedDevices() handle retry counting
             if(connectingDeviceIndex >= 0 && connectingDeviceIndex < deviceCount) {
-                deviceRetryCount[connectingDeviceIndex]++;
-                
-                if(deviceRetryCount[connectingDeviceIndex] >= BLE_MAX_RETRIES) {
-                    // Too many failures - enter backoff mode
-                    // Device will be ignored by onScanResult until backoff expires
-                    deviceBackoffUntil[connectingDeviceIndex] = millis() + BLE_BACKOFF_TIME;
-                    logger.log(ERROR, "BLE: Device %s failed after %d attempts, backing off for 30 min", 
-                        devices[connectingDeviceIndex]->getPerifpheryName(), deviceRetryCount[connectingDeviceIndex]);
-                } else {
-                    logger.log(WARNING, "BLE: Connection failed for %s, attempt %d/%d", 
-                        devices[connectingDeviceIndex]->getPerifpheryName(), 
-                        deviceRetryCount[connectingDeviceIndex], BLE_MAX_RETRIES);
-                }
-            }
-        } else {
-            // CONNECTION SUCCEEDED - reset all retry tracking for this device
-            if(connectingDeviceIndex >= 0 && connectingDeviceIndex < deviceCount) {
-                deviceRetryCount[connectingDeviceIndex] = 0;
-                deviceBackoffUntil[connectingDeviceIndex] = 0;
-                // Note: deviceLastAttempt stays set - that's fine, it's just for throttling
+                logger.log(WARNING, "BLE: Connection failed for %s", 
+                    devices[connectingDeviceIndex]->getPerifpheryName());
             }
         }
+        // Note: Don't reset retry count on success here - checkForDisconnectedDevices() 
+        // will see the device is connected and handle it
         targetDeviceIndex = -1;  // Clear after processing
         
         // Resume scanning to find other devices
@@ -232,16 +214,18 @@ void BLEManager::poll() {
 /*
  * checkForDisconnectedDevices() - Periodic health check (runs every 30 seconds)
  * 
- * Handles three device states:
- * 1. OFFLINE + IN BACKOFF: Skip - we're intentionally not trying
- * 2. OFFLINE + NOT FOUND BY SCANNER: Increment retry count (Scenario B)
- * 3. STALE (connected but no data): Disconnect and let reconnection happen
- * 4. CONNECTED + CURRENT: All good, reset retry count
+ * This is the SINGLE SOURCE OF TRUTH for retry counting and backoff decisions.
  * 
- * CRITICAL: Coordinates with poll() to avoid double-counting retries!
- * - If scanner IS finding device (deviceLastAttempt recent), poll() handles retries
- * - If scanner is NOT finding device, this function handles retries
- * - pollHandlingDevice flag ensures only one path increments
+ * Handles four device states:
+ * 1. OFFLINE + IN BACKOFF: Skip - we're intentionally waiting
+ * 2. OFFLINE + BACKOFF EXPIRED: Reset counters, restart scan if needed, skip increment this cycle
+ * 3. OFFLINE (not in backoff): Increment retry count, enter backoff after BLE_MAX_RETRIES
+ * 4. STALE (connected but no data): Force disconnect, reset retry count (device is reachable)
+ * 5. CONNECTED + CURRENT: All good, reset retry count
+ * 
+ * This function handles ALL offline scenarios - whether scanner never finds device,
+ * or scanner finds it but connection fails. Either way, device stays offline and
+ * retry count increments here every 30 seconds until backoff is triggered.
  */
 void BLEManager::checkForDisconnectedDevices() {
     bool allConnectedOrBackoff = true;  // Track if we need to keep scanning
@@ -266,39 +250,31 @@ void BLEManager::checkForDisconnectedDevices() {
                 deviceRetryCount[i] = 0;
                 deviceLastAttempt[i] = 0;  // Allow immediate connection attempt
                 logger.log(INFO, "BLE: Backoff expired for %s, will retry", devices[i]->getPerifpheryName());
+                
+                // Make sure scanning is enabled so we can find this device
+                if(!scanningEnabled) {
+                    logger.log(INFO, "BLE: Re-enabling scan after backoff");
+                    scanningEnabled = true;
+                    pBLEScan->start(0, false, false);
+                }
+                
+                // Don't increment retry count this cycle - give scanner a chance to find device
+                allConnectedOrBackoff = false;
+                continue;
             }
             
-            // --- Determine WHO should handle retry counting ---
-            // scannerFindingDevice: Has there been a connection attempt in last 60 seconds?
-            //   If yes, scanner is finding the device and poll() is handling retries
-            // pollHandlingDevice: Is poll() already tracking failures for this device?
-            //   If retryCount > 0 and we have an attempt timestamp, poll() owns it
-            bool scannerFindingDevice = (deviceLastAttempt[i] > 0) && 
-                                        (millis() - deviceLastAttempt[i] < BLE_IS_ALIVE_TIME * 2);
-            bool pollHandlingDevice = (deviceRetryCount[i] > 0) && 
-                                      (deviceLastAttempt[i] > 0);
+            // Device is offline and not in backoff - increment retry count
+            // This catches both: scanner not finding device, AND scanner finding but connection failing
+            deviceRetryCount[i]++;
             
-            if(!scannerFindingDevice && !pollHandlingDevice) {
-                // ============================================================
-                // SCENARIO B: Device not being found by scanner at all
-                // Scanner is running but this device never appears in results
-                // This handles: device powered off, out of range, etc.
-                // ============================================================
-                deviceRetryCount[i]++;
-                
-                if(deviceRetryCount[i] >= BLE_MAX_RETRIES) {
-                    // Too many check cycles without finding device - enter backoff
-                    deviceBackoffUntil[i] = millis() + BLE_BACKOFF_TIME;
-                    logger.log(ERROR, "BLE: Device %s not found by scanner after %d checks, backing off for 30 min", 
-                        devices[i]->getPerifpheryName(), deviceRetryCount[i]);
-                } else {
-                    logger.log(WARNING, "BLE: Device %s not found by scanner, check %d/%d", 
-                        devices[i]->getPerifpheryName(), deviceRetryCount[i], BLE_MAX_RETRIES);
-                    allConnectedOrBackoff = false;
-                }
+            if(deviceRetryCount[i] >= BLE_MAX_RETRIES) {
+                // Too many check cycles without connecting - enter backoff
+                deviceBackoffUntil[i] = millis() + BLE_BACKOFF_TIME;
+                logger.log(ERROR, "BLE: Device %s failed to connect after %d checks, backing off for 30 min", 
+                    devices[i]->getPerifpheryName(), deviceRetryCount[i]);
             } else {
-                // Scanner IS finding device, or poll() is handling retries
-                // Don't increment here - poll() will handle it
+                logger.log(WARNING, "BLE: Device %s offline, check %d/%d", 
+                    devices[i]->getPerifpheryName(), deviceRetryCount[i], BLE_MAX_RETRIES);
                 allConnectedOrBackoff = false;
             }
         }

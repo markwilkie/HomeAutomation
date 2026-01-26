@@ -19,22 +19,31 @@
  * 
  * RETRY & BACKOFF SYSTEM:
  * -----------------------
- * Two scenarios need retry tracking:
+ * checkForDisconnectedDevices() is the SINGLE SOURCE OF TRUTH for retry counting.
+ * It runs every 30 seconds and handles ALL offline scenarios:
  * 
- * SCENARIO A: Scanner finds device, but connection fails
- *   - poll() increments deviceRetryCount when connectToServer() returns false
- *   - After BLE_MAX_RETRIES failures, enters 30-minute backoff
- *   - deviceLastAttempt[] tracks when last attempt was made for throttling
+ * SCENARIO A: Device never found by scanner (powered off, out of range)
+ *   - Device stays offline, retry count increments each 30-second check
+ *   - After 5 checks (~2.5 min), enters 30-minute backoff
  * 
- * SCENARIO B: Scanner never finds device (device powered off, out of range)
- *   - checkForDisconnectedDevices() runs every BLE_IS_ALIVE_TIME (30 sec)
- *   - If deviceLastAttempt[] is stale (>60 sec old), scanner isn't finding it
- *   - Increments deviceRetryCount each check cycle until backoff triggered
+ * SCENARIO B: Device found but connection fails
+ *   - poll() logs the failure but does NOT increment retry count
+ *   - Device stays offline, checkForDisconnectedDevices() increments on next check
+ *   - Same path as Scenario A from there
  * 
- * IMPORTANT: Only ONE of these should increment retry count at a time:
- *   - If scanner is finding device (recent deviceLastAttempt), poll() handles retries
- *   - If scanner isn't finding device, checkForDisconnectedDevices() handles retries
- *   - "pollHandlingDevice" flag prevents double-counting
+ * SCENARIO C: Device was connected, then disconnects mid-session
+ *   - onClientDisconnect() callback fires, device marked offline
+ *   - Scan restarts via BLE_RECONNECT_TIME timer (60s)
+ *   - If reconnection fails, retry count increments each check
+ * 
+ * SCENARIO D: Device goes stale (connected but no data)
+ *   - checkForDisconnectedDevices() detects via isCurrent() check
+ *   - Forces disconnect, resets retry count (device WAS reachable)
+ *   - Reconnection proceeds normally
+ * 
+ * BACKOFF EXPIRATION:
+ *   - When backoff expires, counters reset and scanning restarts if needed
+ *   - First check cycle after backoff gives scanner a chance before counting
  */
 
 #include <NimBLEDevice.h>
