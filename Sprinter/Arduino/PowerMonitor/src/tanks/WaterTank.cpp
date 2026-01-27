@@ -31,15 +31,27 @@ the output of the sensor directly into the 3.3v pin of the ESP32-S3
 void WaterTank::readWaterLevel()
 {
     // Read multiple samples and average to reduce noise
+    // Filter out 0 values (analogRead returns 0 on timeout)
     const int NUM_SAMPLES = 10;
     long adcSum = 0;
+    int validSamples = 0;
     
     for (int i = 0; i < NUM_SAMPLES; i++) {
-        adcSum += analogRead(WATER_LEVEL_ANALOG_PIN);
+        int reading = analogRead(WATER_LEVEL_ANALOG_PIN);
+        if (reading > 0) {
+            adcSum += reading;
+            validSamples++;
+        }
         delay(2); // Small delay between reads
     }
+
+    if(validSamples == 0) {
+        logger.log(WARNING, "WaterTank::readWaterLevel - All samples invalid (0)");
+        waterLevel = 0;
+        return;
+    }
     
-    int analogValue = adcSum / NUM_SAMPLES;
+    int analogValue = adcSum / validSamples;
     double voltage = (analogValue * 3.3) / 4095;
     
     // Fixed voltage mapping:

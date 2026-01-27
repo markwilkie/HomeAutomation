@@ -124,10 +124,9 @@ The screen is pretty self explanatory, but a few notes:
   - Applies calibration offset to both full and empty points for consistent accuracy
   - Compensates for voltage rail variations, resistor tolerances, and ADC reference drift
   - 10-sample averaging reduces noise from electrical interference
-- **Gas tank**: Uses Force Sensing Resistor (FSR) with 1lb disposable propane bottles on GPIO11
-  - GPIO11 requires WiFi to be disabled during reads due to hardware conflict on ESP32-S3
+- **Gas tank**: Uses Force Sensing Resistor (FSR) with 1lb disposable propane bottles on GPIO13
   - Direct ADC-to-percentage mapping (ADC 1779=empty, ADC 2349=full, includes 379 offset for plumbing weight)
-  - 40-sample averaging for stable readings
+  - 40-sample averaging for stable readings, filters out failed reads
 
 ### Sparklines (Power Usage History)
 Two sparkline graphs display power flow history:

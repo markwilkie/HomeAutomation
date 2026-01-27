@@ -15,8 +15,9 @@
  * - Conductance converted to force using FSR datasheet linear equation
  * - Force calibrated to percentage based on full/empty tank weights
  * 
- * NOTE: WiFi must be disabled during ADC reads on GPIO13 due to hardware conflict
- * with ESP32-S3 WiFi radio. Tank reads are done in a WiFi-off window.
+ * ADC NOTES:
+ * - GPIO13 is ADC2, which has mutex protection in ESP-IDF
+ * - analogRead() may occasionally return 0 if ADC2 is busy; these are filtered out
  * 
  * USAGE TRACKING:
  * - Hourly weighted average of consumption rate

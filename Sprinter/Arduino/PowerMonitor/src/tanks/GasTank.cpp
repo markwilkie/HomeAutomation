@@ -3,15 +3,25 @@
 
 extern VanWifi wifi;
 
-// Read averaged ADC value
-// Note: WiFi must be disabled before reading GPIO11 due to hardware conflict
+// Read averaged ADC value, filtering out failed reads (0 values)
+// Note: analogRead returns 0 on timeout; multiple samples provide robustness
 int GasTank::readADC() {
     long sum = 0;
+    int validSamples = 0;
     for (int i = 0; i < GAS_ADC_SAMPLES; i++) {
-        sum += analogRead(GAS_LEVEL_ANALOG_PIN);
+        int reading = analogRead(GAS_LEVEL_ANALOG_PIN);
+        if (reading > 0) {
+            sum += reading;
+            validSamples++;
+        }
         delay(2);
     }
-    return sum / GAS_ADC_SAMPLES;
+
+    if(validSamples == 0) {
+        logger.log(WARNING, "GasTank::readADC - All samples invalid (0)");
+    }
+
+    return (validSamples > 0) ? (sum / validSamples) : 0;
 }
 
 // Linearize FSR reading using conductance (1/R) method

@@ -9,13 +9,9 @@
  * 
  * FEATURES:
  * - Multi-AP support via WiFiMulti (connects to strongest signal)
- * - Auto-reconnect disabled (managed manually to avoid conflicts)
+ * - Auto-reconnect disabled (managed manually to avoid BLE conflicts)
  * - HTTP GET requests with JSON parsing for time API
- * - Graceful stop/start for ADC reading conflicts
- * 
- * IMPORTANT: WiFi must be stopped before reading certain ADC pins
- * (GPIO11, GPIO13) due to ESP32-S3 hardware conflicts. Use stopWifi()
- * before tank sensor reads, then startWifi() after.
+ * - Graceful stop/start for BLE operations
  * 
  * USAGE:
  *   VanWifi wifi;

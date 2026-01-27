@@ -47,7 +47,7 @@
 // TIMING CONSTANTS - Adjust these to change system behavior
 // ============================================================================
 #define POLL_TIME_MS	500             // BLE command polling interval (how often we send commands to devices)
-#define TANK_CHECK_TIME 900000       // Check gas and water tank every 15 minutes (WiFi must be off during ADC read)
+#define TANK_CHECK_TIME 60000  //900000       // Check gas and water tank every 15 minutes (WiFi must be off during ADC read)
 #define WIFI_CHECK_TIME 60000        // Check/reconnect WiFi every 1 minute
 #define SOC_LOG_TIME 300000           // Log SOC from each battery every 5 minutes (for remote debugging)
 #define REFRESH_RTC (60L*60L*1000L)  // Sync RTC with internet time every hour
@@ -381,36 +381,17 @@ void loop()
 	}	
 
 	// ========================================================================
-	// STEP 9: TANK SENSORS (every 5 minutes)
+	// STEP 9: TANK SENSORS
 	// Read water and gas tank levels
-	// 
-	// IMPORTANT: This requires WiFi OFF due to GPIO13/ADC conflict on ESP32-S3
-	// Also turn BLE OFF to avoid timeouts during blocking ADC operations
 	// ========================================================================
 	if(millis() - lastTankCheckTime > TANK_CHECK_TIME) 
-	{
-		// Stop BLE first to avoid timeouts during blocking operations
-		bleManager.turnOff();
-		
-		// Stop WiFi to release GPIO13 for ADC
-		if(wifi.isConnected()) {
-			wifi.stopWifi();
-			delay(100);  // Brief delay for WiFi to fully stop
-		}
-		
+	{	
 		// Read tank sensors (blocking ADC operations)
 		waterTank.readWaterLevel();
 		waterTank.updateDaysRemaining();
 
 		gasTank.readGasLevel();
 		gasTank.updateDaysRemaining();		
-
-		// Restore WiFi
-		wifi.startWifi();
-		delay(100);  // Brief delay for WiFi to start
-		
-		// Restart BLE after WiFi is back up
-		bleManager.turnOn();
 		
 		lastTankCheckTime = millis();
 	}
