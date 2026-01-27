@@ -292,6 +292,7 @@ void ScreenController::loadValues() {
         layout->displayData.batteryVolts = sokReader1->getVolts();
         if(sokReader1->getAmps() < 0) {
             float hours = sokReader1->getCapacity() / (sokReader1->getAmps() * -1);
+            hours = roundf(hours * 10) / 10;  // Round to 1 decimal
             layout->displayData.batteryHoursRem = (hours > 99) ? 0 : hours;
         } else {
             layout->displayData.batteryHoursRem = 0;
@@ -309,6 +310,7 @@ void ScreenController::loadValues() {
         layout->displayData.batteryVolts2 = sokReader2->getVolts();
         if(sokReader2->getAmps() < 0) {
             float hours = sokReader2->getCapacity() / (sokReader2->getAmps() * -1);
+            hours = roundf(hours * 10) / 10;  // Round to 1 decimal
             layout->displayData.batteryHoursRem2 = (hours > 99) ? 0 : hours;
         } else {
             layout->displayData.batteryHoursRem2 = 0;
@@ -347,14 +349,17 @@ void ScreenController::loadValues() {
     // If one is stale or mixed, keep last values
 
     // Use cached water and gas tank values (show '-' if > 9 days)
+    // Round to 1 decimal place to match display format
     if(waterTank) {
         layout->displayData.stateOfWater = waterTank->getWaterLevel();
         float waterDays = waterTank->getWaterDaysRemaining();
+        waterDays = roundf(waterDays * 10) / 10;  // Round to 1 decimal
         layout->displayData.waterDaysRem = (waterDays > 9) ? 0 : waterDays;
     }
     if(gasTank) {
         layout->displayData.stateOfGas = gasTank->getGasLevel();
         float gasDays = gasTank->getGasDaysRemaining();
+        gasDays = roundf(gasDays * 10) / 10;  // Round to 1 decimal
         layout->displayData.gasDaysRem = (gasDays > 9) ? 0 : gasDays;
     }
     
