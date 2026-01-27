@@ -113,7 +113,7 @@ void WaterTank::updateDaysRemaining()  {
     } else if (dailyPercentUsed > 0) {
         waterDaysRem = currentLevel / (dailyPercentUsed * 24);
     } else {
-        waterDaysRem = -1; // Not enough data
+        waterDaysRem = 0; // Not enough data - show '--'
     }
 }
 

@@ -47,10 +47,10 @@ struct DisplayData
     float batteryVolts2;
     float chargeAmps;
     float drawAmps;
-    float batteryHoursRem;
-    float batteryHoursRem2;
-    float waterDaysRem;
-    float gasDaysRem;
+    float batteryHoursRem = 0;
+    float batteryHoursRem2 = 0;
+    float waterDaysRem = 0;
+    float gasDaysRem = 0;
     float batteryTemperature;
     float chargerTemperature;
     float batteryAmpValue;

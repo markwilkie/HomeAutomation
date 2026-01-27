@@ -123,6 +123,6 @@ void GasTank::updateDaysRemaining() {
     } else if (dailyPercentUsed > 0) {
         gasDaysRem = currentLevel / (dailyPercentUsed * 24);
     } else {
-        gasDaysRem = -1; // Not enough data
+        gasDaysRem = 0; // Not enough data - show '--'
     }
 }
