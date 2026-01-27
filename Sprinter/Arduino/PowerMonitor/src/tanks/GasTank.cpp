@@ -62,6 +62,9 @@ void GasTank::readGasLevel()
 {
     int adc = readADC();
     
+    // Convert ADC to voltage and cache it
+    gasVoltage = (adc / 4095.0) * 3.3;
+    
     // Simple linear mapping from ADC to percentage
     float percentage = ((float)(adc - GAS_ADC_EMPTY) / (float)(GAS_ADC_FULL - GAS_ADC_EMPTY)) * 100.0;
     
@@ -71,7 +74,7 @@ void GasTank::readGasLevel()
     
     gasLevel = static_cast<int>(percentage);
     
-    logger.log(INFO, "Gas Tank Level %d (ADC %d)", gasLevel, adc);
+    Serial.printf("Gas Tank Level %d (ADC %d)\n", gasLevel, adc);
 }
 
 void GasTank::updateUsage()
@@ -86,7 +89,7 @@ void GasTank::updateUsage()
             lastLevel = currentLevel;
             lastLevelTime = currentTime;
             lastDayCheck = currentTime;
-            logger.log(INFO, "Gas updateUsage: Initialized with level %d", currentLevel);
+            Serial.printf("Gas updateUsage: Initialized with level %d\n", currentLevel);
         }
         return;
     }
@@ -95,7 +98,7 @@ void GasTank::updateUsage()
     if (currentTime - lastDayCheck >= USAGE_CHECK_INTERVAL) {
         int levelChange = lastLevel - currentLevel;
         
-        logger.log(INFO, "Gas updateUsage: Hourly check - lastLevel=%d, currentLevel=%d, change=%d", 
+        Serial.printf("Gas updateUsage: Hourly check - lastLevel=%d, currentLevel=%d, change=%d\n", 
                    lastLevel, currentLevel, levelChange);
         
         if (levelChange > 0) {
@@ -105,7 +108,7 @@ void GasTank::updateUsage()
             } else {
                 dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3);
             }
-            logger.log(INFO, "Gas updateUsage: dailyPercentUsed updated to %f", dailyPercentUsed);
+            Serial.printf("Gas updateUsage: dailyPercentUsed updated to %f\n", dailyPercentUsed);
         }
         
         lastLevel = currentLevel;

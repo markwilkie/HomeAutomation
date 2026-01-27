@@ -15,9 +15,8 @@
  * - Conductance converted to force using FSR datasheet linear equation
  * - Force calibrated to percentage based on full/empty tank weights
  * 
- * ADC NOTES:
- * - GPIO13 is ADC2, which has mutex protection in ESP-IDF
- * - analogRead() may occasionally return 0 if ADC2 is busy; these are filtered out
+ * NOTE: WiFi must be disabled during ADC reads on GPIO13 due to hardware conflict
+ * with ESP32-S3 WiFi radio. Tank reads are done in a WiFi-off window.
  * 
  * USAGE TRACKING:
  * - Hourly weighted average of consumption rate
@@ -52,6 +51,7 @@ private:
   // Cached sensor values
   int gasLevel = 0;
   float gasDaysRem = 0;
+  float gasVoltage = 0;  // Last ADC voltage reading
   
   int readADC(); // Helper to read averaged ADC value
   float linearizeADC(int adc); // Linearize FSR using conductance method
@@ -65,6 +65,7 @@ public:
   // Getters for cached values
   int getGasLevel() const { return gasLevel; }
   float getGasDaysRemaining() const { return gasDaysRem; }
+  float getGasVoltage() const { return gasVoltage; }
 };
 
 #endif

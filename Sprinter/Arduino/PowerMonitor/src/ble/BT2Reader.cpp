@@ -450,12 +450,12 @@ void BT2Reader::updateValues()
 		uint16_t registerAddress=registerValue.registerAddress;
 		switch(registerAddress)
 		{
-			//Alternater amps
+			//Battery voltage
 			case RENOGY_AUX_BATT_VOLTAGE:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
 				rr = &registerDescription[registerDescriptionIndex];
-				alternaterAmps=(float)(registerValue.value) * rr->multiplier;
-				//logger.log(INFO,"Aux Battery: value=%d multiplier=%f result=%f",registerValue.value,rr->multiplier,alternaterAmps);
+				batteryVolts=(float)(registerValue.value) * rr->multiplier;
+				//logger.log(INFO,"Aux Battery Voltage: value=%d multiplier=%f result=%f",registerValue.value,rr->multiplier,batteryVolts);
 				break;
 			case RENOGY_ALTERNATOR_CURRENT:
 				registerDescriptionIndex = getRegisterDescriptionIndex(registerAddress);
@@ -508,6 +508,11 @@ float BT2Reader::getSolarAmps()
 float BT2Reader::getTemperature()
 {
 	return temperature;
+}
+
+float BT2Reader::getBatteryVolts()
+{
+	return batteryVolts;
 }
 
 void BT2Reader::dumpRenogyData()

@@ -47,9 +47,9 @@
 // TIMING CONSTANTS - Adjust these to change system behavior
 // ============================================================================
 #define POLL_TIME_MS	500             // BLE command polling interval (how often we send commands to devices)
-#define TANK_CHECK_TIME 60000  //900000       // Check gas and water tank every 15 minutes (WiFi must be off during ADC read)
+#define TANK_CHECK_TIME 60000  		// Check gas and water tank every 15 minutes (WiFi must be off during ADC read)
 #define WIFI_CHECK_TIME 60000        // Check/reconnect WiFi every 1 minute
-#define SOC_LOG_TIME 300000           // Log SOC from each battery every 5 minutes (for remote debugging)
+#define STATUS_LOG_TIME 600000        // Log status (batteries + tanks) every 10 minutes (for remote debugging)
 #define REFRESH_RTC (60L*60L*1000L)  // Sync RTC with internet time every hour
 
 // ============================================================================
@@ -86,7 +86,7 @@ long lastRTCUpdateTime=0;
 long lastPwrUpdateTime=0;
 long lastTankCheckTime=0;
 long lastWifiCheckTime=0;
-long lastSocLogTime=0;
+long lastStatusLogTime=0;
 long lastCheckedTime=0;
 
 // BLE indicator callback for UI
@@ -270,7 +270,7 @@ void setTime()
  * 3. Early exit if BLE waiting - Don't block BLE operations
  * 4. Process new BLE data - Update values from device readers
  * 5. WiFi health check - Reconnect if disconnected (every 60s)
- * 6. SOC logging - Remote log battery status (every 60s)
+ * 6. SOC logging - Remote log battery status 
  * 7. Screen updates - Refresh display values (every 500ms)
  * 8. Power logging - Update sparklines (every 1s)
  * 9. Tank sensors - Read water/gas levels (every 5 min, BLE off)
@@ -348,16 +348,17 @@ void loop()
 	}
 
 	// ========================================================================
-	// STEP 6: SOC LOGGING (every 60 seconds)
-	// Remote log battery status for debugging and monitoring
-	// Includes: SOC, amps, isCurrent (stale check), isConnected
+	// STEP 6: STATUS LOGGING 
+	// Remote log battery and tank status for debugging and monitoring
+	// Includes: SOC, amps, isCurrent (stale check), isConnected, tank levels
 	// ========================================================================
-	if(millis() - lastSocLogTime > SOC_LOG_TIME) {
-		logger.log(INFO, "SOC: SOK1=%d/%fA (curr=%d, conn=%d), SOK2=%d/%fA (curr=%d, conn=%d), BT2=%fV/%fA/%fA (curr=%d, conn=%d)", 
+	if(millis() - lastStatusLogTime > STATUS_LOG_TIME) {
+		logger.log(INFO, "Status: SOK1=%d/%fA (curr=%d, conn=%d), SOK2=%d/%fA (curr=%d, conn=%d), BT2=%fV/%fA/%fA (curr=%d, conn=%d), Water=%d%%/%fV, Gas=%d%%/%fV", 
 			sokReader1.getSoc(), sokReader1.getAmps(), sokReader1.isCurrent(), sokReader1.isConnected(),
 			sokReader2.getSoc(), sokReader2.getAmps(), sokReader2.isCurrent(), sokReader2.isConnected(),
-			bt2Reader.getTemperature(), bt2Reader.getSolarAmps(), bt2Reader.getAlternaterAmps(), bt2Reader.isCurrent(), bt2Reader.isConnected());
-		lastSocLogTime = millis();
+			bt2Reader.getBatteryVolts(), bt2Reader.getSolarAmps(), bt2Reader.getAlternaterAmps(), bt2Reader.isCurrent(), bt2Reader.isConnected(),
+			waterTank.getWaterLevel(), waterTank.getWaterVoltage(), gasTank.getGasLevel(), gasTank.getGasVoltage());
+		lastStatusLogTime = millis();
 	}
 
 	// ========================================================================

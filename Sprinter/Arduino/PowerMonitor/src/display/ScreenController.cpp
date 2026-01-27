@@ -290,10 +290,12 @@ void ScreenController::loadValues() {
     } else if(layout->displayData.sok1Status == DEVICE_ONLINE) {
         layout->displayData.stateOfCharge = sokReader1->getSoc();
         layout->displayData.batteryVolts = sokReader1->getVolts();
-        if(sokReader1->getAmps() < 0)
-            layout->displayData.batteryHoursRem = sokReader1->getCapacity() / (sokReader1->getAmps() * -1);
-        else
-            layout->displayData.batteryHoursRem = 999;
+        if(sokReader1->getAmps() < 0) {
+            float hours = sokReader1->getCapacity() / (sokReader1->getAmps() * -1);
+            layout->displayData.batteryHoursRem = (hours > 99) ? 0 : hours;
+        } else {
+            layout->displayData.batteryHoursRem = 0;
+        }
     }
     // Stale: don't update, keep last values
     
@@ -305,10 +307,12 @@ void ScreenController::loadValues() {
     } else if(layout->displayData.sok2Status == DEVICE_ONLINE) {
         layout->displayData.stateOfCharge2 = sokReader2->getSoc();
         layout->displayData.batteryVolts2 = sokReader2->getVolts();
-        if(sokReader2->getAmps() < 0)
-            layout->displayData.batteryHoursRem2 = sokReader2->getCapacity() / (sokReader2->getAmps() * -1);
-        else
-            layout->displayData.batteryHoursRem2 = 999;
+        if(sokReader2->getAmps() < 0) {
+            float hours = sokReader2->getCapacity() / (sokReader2->getAmps() * -1);
+            layout->displayData.batteryHoursRem2 = (hours > 99) ? 0 : hours;
+        } else {
+            layout->displayData.batteryHoursRem2 = 0;
+        }
     }
     // Stale: don't update, keep last values
     
@@ -342,14 +346,16 @@ void ScreenController::loadValues() {
     }
     // If one is stale or mixed, keep last values
 
-    // Use cached water and gas tank values
+    // Use cached water and gas tank values (show '-' if > 9 days)
     if(waterTank) {
         layout->displayData.stateOfWater = waterTank->getWaterLevel();
-        layout->displayData.waterDaysRem = waterTank->getWaterDaysRemaining();
+        float waterDays = waterTank->getWaterDaysRemaining();
+        layout->displayData.waterDaysRem = (waterDays > 9) ? 0 : waterDays;
     }
     if(gasTank) {
         layout->displayData.stateOfGas = gasTank->getGasLevel();
-        layout->displayData.gasDaysRem = gasTank->getGasDaysRemaining();
+        float gasDays = gasTank->getGasDaysRemaining();
+        layout->displayData.gasDaysRem = (gasDays > 9) ? 0 : gasDays;
     }
     
     // Set battery-specific values based on display mode

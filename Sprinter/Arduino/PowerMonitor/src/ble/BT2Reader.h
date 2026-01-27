@@ -281,6 +281,7 @@ public:
 	float getAlternaterAmps();
 	float getSolarAmps();	
 	float getTemperature();
+	float getBatteryVolts();
 	void dumpRenogyData();
 
 	void printHex(uint8_t * data, int datalen);
@@ -305,6 +306,7 @@ private:
 	float solarAmps;
 	float ampHours;
 	float temperature;
+	float batteryVolts;
 
 	long lastHeardTime;
 

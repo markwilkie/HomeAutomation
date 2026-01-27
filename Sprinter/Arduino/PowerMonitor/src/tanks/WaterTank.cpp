@@ -53,6 +53,7 @@ void WaterTank::readWaterLevel()
     
     int analogValue = adcSum / validSamples;
     double voltage = (analogValue * 3.3) / 4095;
+    waterVoltage = voltage;  // Cache voltage for logging
     
     // Fixed voltage mapping:
     // Full (33Ω): 2.90V = 100%
@@ -62,7 +63,7 @@ void WaterTank::readWaterLevel()
     percent = constrain(percent, 0, 100);
     int level = static_cast<int>(percent);
     
-    logger.log(INFO, "Water Tank: Read level %d (voltage: %fV, ADC: %d averaged)", 
+    Serial.printf("Water Tank: Read level %d (voltage: %fV, ADC: %d averaged)\n", 
                level, voltage, analogValue);
     
     waterLevel = level;
@@ -78,7 +79,7 @@ void WaterTank::updateUsage() {
             lastLevel = currentLevel;
             lastLevelTime = now;
             lastDayCheck = now;
-            logger.log(INFO, "Water updateUsage: Initialized with level %d", currentLevel);
+            Serial.printf("Water updateUsage: Initialized with level %d\n", currentLevel);
         }
         return;
     }
@@ -87,7 +88,7 @@ void WaterTank::updateUsage() {
     if (now - lastDayCheck >= USAGE_CHECK_INTERVAL) {
         int levelChange = lastLevel - currentLevel;
         
-        logger.log(INFO, "Water updateUsage: Hourly check - lastLevel=%d, currentLevel=%d, change=%d", 
+        Serial.printf("Water updateUsage: Hourly check - lastLevel=%d, currentLevel=%d, change=%d\n", 
                    lastLevel, currentLevel, levelChange);
         
         if (levelChange > 0) {
@@ -97,7 +98,7 @@ void WaterTank::updateUsage() {
             } else {
                 dailyPercentUsed = (dailyPercentUsed * 0.7) + (levelChange * 0.3);
             }
-            logger.log(INFO, "Water updateUsage: dailyPercentUsed updated to %f", dailyPercentUsed);
+            Serial.printf("Water updateUsage: dailyPercentUsed updated to %f\n", dailyPercentUsed);
         }
         
         lastLevel = currentLevel;

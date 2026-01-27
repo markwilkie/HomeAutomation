@@ -54,6 +54,7 @@ private:
   // Cached sensor values
   int waterLevel = 0;
   float waterDaysRem = 0;
+  float waterVoltage = 0;  // Last ADC voltage reading
    
 public:
   //members
@@ -64,6 +65,7 @@ public:
   // Getters for cached values
   int getWaterLevel() const { return waterLevel; }
   float getWaterDaysRemaining() const { return waterDaysRem; }
+  float getWaterVoltage() const { return waterVoltage; }
 };
 
 #endif
