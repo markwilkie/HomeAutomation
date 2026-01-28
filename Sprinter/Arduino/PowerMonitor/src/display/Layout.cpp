@@ -263,9 +263,9 @@ bool Layout::isCenterRegion(int x, int y)
 
 void Layout::updateBitmaps()
 {
-	//update bar meters - use grey fill for stale devices (offline will be 0 so black anyway)
-    uint16_t sok1Fill = (displayData.sok1Status == DEVICE_STALE) ? TFT_DARKGREY : 0;
-    uint16_t sok2Fill = (displayData.sok2Status == DEVICE_STALE) ? TFT_DARKGREY : 0;
+	//update bar meters - use grey fill for stale or offline devices
+    uint16_t sok1Fill = (displayData.sok1Status != DEVICE_ONLINE) ? TFT_DARKGREY : 0;
+    uint16_t sok2Fill = (displayData.sok2Status != DEVICE_ONLINE) ? TFT_DARKGREY : 0;
     battery1Meter.updateLevel(&lcd, displayData.stateOfCharge, sok1Fill);
     battery2Meter.updateLevel(&lcd, displayData.stateOfCharge2, sok2Fill);
     waterMeter.updateLevel(&lcd, displayData.stateOfWater);
@@ -292,9 +292,8 @@ void Layout::updateBitmaps()
  * 11. CMOS/DMOS indicator circles
  * 
  * COLOR CODING BY DEVICE STATUS:
- * - DEVICE_ONLINE: TFT_WHITE (normal)
- * - DEVICE_STALE: TFT_DARKGREY (connected but no recent data)
- * - DEVICE_OFFLINE: TFT_RED (in backoff, not trying)
+ * - DEVICE_ONLINE: TFT_WHITE text, normal fill
+ * - DEVICE_STALE/OFFLINE: TFT_RED text, TFT_DARKGREY fill
  * 
  * Note: updateBitmaps() handles bar meter fills separately.
  */
@@ -399,9 +398,8 @@ uint16_t Layout::getStatusColor(DeviceStatus status)
 {
     switch(status) {
         case DEVICE_OFFLINE:
-            return TFT_RED;
         case DEVICE_STALE:
-            return TFT_DARKGREY;
+            return TFT_RED;  // Red text for both stale and offline
         case DEVICE_ONLINE:
         default:
             return TFT_WHITE;
