@@ -282,12 +282,8 @@ void ScreenController::loadValues() {
         layout->displayData.bt2Status = DEVICE_ONLINE;
     }
     
-    // SOK1 values - zero if offline, keep last if stale
-    if(layout->displayData.sok1Status == DEVICE_OFFLINE) {
-        layout->displayData.stateOfCharge = 0;
-        layout->displayData.batteryVolts = 0;
-        layout->displayData.batteryHoursRem = 0;
-    } else if(layout->displayData.sok1Status == DEVICE_ONLINE) {
+    // SOK1 values - keep last values if offline (backoff) or stale, only update if online
+    if(layout->displayData.sok1Status == DEVICE_ONLINE) {
         layout->displayData.stateOfCharge = sokReader1->getSoc();
         layout->displayData.batteryVolts = sokReader1->getVolts();
         if(sokReader1->getAmps() < 0) {
@@ -298,14 +294,10 @@ void ScreenController::loadValues() {
             layout->displayData.batteryHoursRem = 0;
         }
     }
-    // Stale: don't update, keep last values
+    // Stale or offline (backoff): don't update, keep last values
     
-    // SOK2 values - zero if offline, keep last if stale
-    if(layout->displayData.sok2Status == DEVICE_OFFLINE) {
-        layout->displayData.stateOfCharge2 = 0;
-        layout->displayData.batteryVolts2 = 0;
-        layout->displayData.batteryHoursRem2 = 0;
-    } else if(layout->displayData.sok2Status == DEVICE_ONLINE) {
+    // SOK2 values - keep last values if offline (backoff) or stale, only update if online
+    if(layout->displayData.sok2Status == DEVICE_ONLINE) {
         layout->displayData.stateOfCharge2 = sokReader2->getSoc();
         layout->displayData.batteryVolts2 = sokReader2->getVolts();
         if(sokReader2->getAmps() < 0) {
@@ -316,15 +308,10 @@ void ScreenController::loadValues() {
             layout->displayData.batteryHoursRem2 = 0;
         }
     }
-    // Stale: don't update, keep last values
+    // Stale or offline (backoff): don't update, keep last values
     
-    // BT2 values - zero if offline, keep last if stale
-    if(layout->displayData.bt2Status == DEVICE_OFFLINE) {
-        layout->displayData.chargeAmps = 0;
-        layout->displayData.chargerTemperature = 0;
-        layout->displayData.solarAmpValue = 0;
-        layout->displayData.alternaterAmpValue = 0;
-    } else if(layout->displayData.bt2Status == DEVICE_ONLINE) {
+    // BT2 values - keep last values if offline (backoff) or stale, only update if online
+    if(layout->displayData.bt2Status == DEVICE_ONLINE) {
         layout->displayData.chargeAmps = bt2Reader->getSolarAmps() + bt2Reader->getAlternaterAmps();
         layout->displayData.chargerTemperature = bt2Reader->getTemperature();
         layout->displayData.solarAmpValue = bt2Reader->getSolarAmps();

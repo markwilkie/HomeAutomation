@@ -30,9 +30,9 @@ enum BatteryDisplayMode {
 // Device connection/data status for color coding
 // This determines text color in the UI to indicate data freshness
 enum DeviceStatus {
-    DEVICE_ONLINE = 0,      // Connected and receiving current data (white - normal)
-    DEVICE_STALE = 1,       // Connected but data is stale (grey - showing last value)
-    DEVICE_OFFLINE = 2      // Not connected / in backoff (red - zero values)
+    DEVICE_ONLINE = 0,      // Connected and receiving current data (white text, normal fill)
+    DEVICE_STALE = 1,       // Connected but data is stale (red text, grey fill, showing last value)
+    DEVICE_OFFLINE = 2      // Not connected / in backoff (red text, grey fill, showing last value)
 };
 
 struct DisplayData

@@ -80,7 +80,7 @@ Abstract base class for BLE device readers (BT2Reader, SOKReader):
 ### Display Status Colors
 The ScreenController uses device status to color-code the display:
 - **White (DEVICE_ONLINE)** - Device connected and receiving current data
-- **Red with grey fill (DEVICE_STALE or DEVICE_OFFLINE)** - Device is disconnected, stale, or in backoff mode. Grey meter fill indicates not receiving current data. Last known values displayed for stale; zero values for offline.
+- **Red with grey fill (DEVICE_STALE or DEVICE_OFFLINE)** - Device is disconnected, stale, or in backoff mode. Grey meter fill indicates not receiving current data. Last known values displayed.
 
 ## Screen Interface
 
