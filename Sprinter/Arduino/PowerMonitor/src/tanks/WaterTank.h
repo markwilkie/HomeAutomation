@@ -21,8 +21,8 @@
  *     GND
  * 
  * VOLTAGE READINGS:
- * - Full (33Ω):  ~2.90V at ADC
- * - Empty (240Ω): ~1.65V at ADC
+ * - Full (33Ω):  ~0.75V at ADC
+ * - Empty (240Ω): ~2.56V at ADC
  * 
  * USAGE TRACKING:
  * - Hourly weighted average of consumption rate

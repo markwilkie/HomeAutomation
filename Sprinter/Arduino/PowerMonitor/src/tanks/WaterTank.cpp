@@ -14,10 +14,10 @@
 
 Voltage divider: Vout = 5V * R_fixed / (R_sender + R_fixed)
 
-| Sender Ω | Vout (5V rail) | ADC sees (3.3V max) |
+| Sender Ω | Vout (5V rail) | ADC sees (measured) |
 | -------- | -------------- | ------------------- |
-| 33Ω      | 4.40V          | 2.90V (via divider) |
-| 240Ω     | 2.50V          | 1.65V (via divider) |
+| 33Ω      | 4.40V          | 0.75V (full)        |
+| 240Ω     | 2.50V          | 2.56V (empty)       |
 
 Note: If 5V connects directly to ESP32 ADC, voltage divider needed to scale 5V→3.3V
 Using resistor network: 5V → [R1] → ADC → [R2] → GND where R1/(R1+R2) = 3.3/5 = 0.66
@@ -55,10 +55,10 @@ void WaterTank::readWaterLevel()
     double voltage = (analogValue * 3.3) / 4095;
     waterVoltage = voltage;  // Cache voltage for logging
     
-    // Fixed voltage mapping:
-    // Full (33Ω): 2.90V = 100%
-    // Empty (240Ω): 1.65V = 0%
-    double percent = ((voltage - 1.65) / (2.90 - 1.65)) * 100.0;
+    // Fixed voltage mapping (measured values):
+    // Full (33Ω): 0.75V = 100%
+    // Empty (240Ω): 2.56V = 0%
+    double percent = ((2.56 - voltage) / (2.56 - 0.75)) * 100.0;
     
     percent = constrain(percent, 0, 100);
     int level = static_cast<int>(percent);

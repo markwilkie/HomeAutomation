@@ -319,21 +319,44 @@ void ScreenController::loadValues() {
     }
     // Stale: don't update, keep last values
     
-    // Combined/derived values - only update if both SOKs are online
+    // Combined/derived values - use available battery data
+    // If both online: average volts, sum amps
+    // If one online: use that battery's data (battery with offline BMS isn't contributing)
+    // If both offline: zero out
+    float totalAmps = 0;
+    float avgVolts = 0;
+    bool hasData = false;
+    
     if(layout->displayData.sok1Status == DEVICE_ONLINE && layout->displayData.sok2Status == DEVICE_ONLINE) {
-        float totalAmps = sokReader1->getAmps() + sokReader2->getAmps();
-        layout->displayData.currentVolts = (sokReader1->getVolts() + sokReader2->getVolts()) / 2.0;
-        
+        // Both batteries online - combine data
+        totalAmps = sokReader1->getAmps() + sokReader2->getAmps();
+        avgVolts = (sokReader1->getVolts() + sokReader2->getVolts()) / 2.0;
+        hasData = true;
+    } else if(layout->displayData.sok1Status == DEVICE_ONLINE) {
+        // Only SOK1 online - use its data directly
+        totalAmps = sokReader1->getAmps();
+        avgVolts = sokReader1->getVolts();
+        hasData = true;
+    } else if(layout->displayData.sok2Status == DEVICE_ONLINE) {
+        // Only SOK2 online - use its data directly
+        totalAmps = sokReader2->getAmps();
+        avgVolts = sokReader2->getVolts();
+        hasData = true;
+    } else if(layout->displayData.sok1Status == DEVICE_OFFLINE && layout->displayData.sok2Status == DEVICE_OFFLINE) {
+        // Both offline (in backoff) - zero out
+        layout->displayData.currentVolts = 0;
+        layout->displayData.drawAmps = 0;
+    }
+    // If both stale (still trying), keep last values
+    
+    if(hasData) {
+        layout->displayData.currentVolts = avgVolts;
         // Calculate actual house load based on battery state
         if(totalAmps < 0)
             layout->displayData.drawAmps = layout->displayData.chargeAmps + (-totalAmps);
         else
             layout->displayData.drawAmps = layout->displayData.chargeAmps - totalAmps;
-    } else if(layout->displayData.sok1Status == DEVICE_OFFLINE && layout->displayData.sok2Status == DEVICE_OFFLINE) {
-        layout->displayData.currentVolts = 0;
-        layout->displayData.drawAmps = 0;
     }
-    // If one is stale or mixed, keep last values
 
     // Use cached water and gas tank values (show '-' if > 9 days)
     // Round to 1 decimal place to match display format
