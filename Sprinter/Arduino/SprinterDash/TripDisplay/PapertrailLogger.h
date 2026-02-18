@@ -1,7 +1,7 @@
 #ifndef __papertrail_logger_h__
 #define __papertrail_logger_h__
 
-class WiFiUDP;
+#include <WiFiUdp.h>
 
 enum LogLevel {
   Error = 3,

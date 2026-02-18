@@ -129,6 +129,24 @@ bool CurrentData::verifyInterfaces(int service, int pid, int value)
   return allOnline;
 }
 
+// Pass-through methods for barometer calibration.
+// These allow ElevationAPI (in TripDisplay.ino) to get/set the offset
+// without direct access to the private Barometer member.
+void CurrentData::setBaroElevationOffset(int offset)
+{
+    barometer.setElevationOffset(offset);
+}
+
+int CurrentData::getRawBaroElevation()
+{
+    return barometer.getRawElevation();
+}
+
+int CurrentData::getBaroElevationOffset()
+{
+    return barometer.getElevationOffset();
+}
+
 void CurrentData::updateDataFromSensors()
 {
     //Barometer
@@ -247,4 +265,5 @@ void CurrentData::dumpData()
   logger.log(INFO,"   Current Light Level: %d",currentLightLevel);
   logger.log(INFO,"   Codes Present Flag: %d",codesPresent);
   logger.log(INFO,"   Ignition State: %d",ignitionState);
+  logger.log(INFO,"   GPS Fix: %d  Sats: %d  Lat: %f  Lon: %f",gpsHasFix,currentSatellites,(double)currentLatitude,(double)currentLongitude);
 }

@@ -11,6 +11,7 @@ i2c addresses
 barameter: 0x60
 rtc: 0x68 
 pressure: 0x28
+gps (PA1010D): 0x10
 */
 
 #define ATMOS_READ_INTERVAL 10   //How many altitude reads are done for each atmos pressure read
@@ -23,6 +24,9 @@ class Barometer
     void setup();
     void update();
     int getElevation();
+    int getRawElevation();       // uncorrected baro reading (for calibration input)
+    void setElevationOffset(int offset);  // set from ElevationAPI auto-calibration
+    int getElevationOffset();    // current offset being applied
     double getPressure();
     
   private: 

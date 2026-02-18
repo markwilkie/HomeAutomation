@@ -38,6 +38,9 @@ class CurrentData
     void updateStatusForm(char *listOfOfflineInterfaces);
     void updateDataFromPIDs(int service,int pid,int value);
     void updateDataFromSensors();
+    void setBaroElevationOffset(int offset);  // set by ElevationAPI auto-calibration
+    int  getRawBaroElevation();               // uncorrected reading for calibration
+    int  getBaroElevationOffset();            // current offset
     void dumpData();
 
     //Data
@@ -58,6 +61,14 @@ class CurrentData
     bool codesPresent=false;
     bool ignitionState=false;
     bool idlingAsStoppedFlag=false;   // we've been idling for more than n time
+
+    //GPS data (updated externally from GPSModule in main loop)
+    //These are here so that dumpData() and the HTTP /current endpoint
+    //can report GPS status alongside other sensor data.
+    float currentLatitude=0;       // decimal degrees, signed (negative = south)
+    float currentLongitude=0;      // decimal degrees, signed (negative = west)
+    int   currentSatellites=0;     // number of GPS satellites in view
+    bool  gpsHasFix=false;         // true when GPS has a valid position fix
 
   private: 
     //Other sensors

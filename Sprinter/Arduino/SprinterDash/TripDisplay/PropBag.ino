@@ -6,6 +6,7 @@ void PropBag::resetPropBag()
     logger.log(INFO,"Resetting Prop Bag");
     data.pitotCalibration=PITOT_CALIB;
     data.instMPGFactor=INST_MPG_FACTOR;
+    data.elevationOffset=0;
 }
 
 int PropBag::getPropDataSize()
@@ -50,4 +51,5 @@ void PropBag::dumpPropBag()
     logger.log(INFO,"Dumping PropBag");
     logger.log(INFO,"   Inst MPG Factor: %f",data.instMPGFactor);
     logger.log(INFO,"   Pitot Calib: %f",data.pitotCalibration);
+    logger.log(INFO,"   Elevation Offset: %d",data.elevationOffset);
 }

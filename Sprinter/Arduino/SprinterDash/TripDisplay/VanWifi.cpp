@@ -33,35 +33,6 @@ void VanWifi::startWifi()
     logger.log(ERROR,"Could not connect to Wifi.  Moving on....");
   }
 
-  //Init OTA
-  ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-        type = "filesystem";
-
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      logger.log(WARNING,"Starting OTA updating ");
-    })
-    .onEnd([]() {
-      logger.log(INFO,"\nEnd OTA");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      logger.log(ERROR,"OTA Problem: %s",error);
-      if (error == OTA_AUTH_ERROR) { logger.log(ERROR,"Auth Failed"); }
-      else if (error == OTA_BEGIN_ERROR){ logger.log(ERROR,"Begin Failed"); }
-      else if (error == OTA_CONNECT_ERROR){ logger.log(ERROR,"Connect Failed"); }
-      else if (error == OTA_RECEIVE_ERROR) { logger.log(ERROR,"Receive Failed"); }
-       else if (error == OTA_END_ERROR) { logger.log(ERROR,"End Failed"); }
-    });
-
-  ArduinoOTA.begin();
-
   //send logs
   logger.sendLogs(isConnected());
 }
@@ -104,7 +75,6 @@ int VanWifi::getRSSI()
 void VanWifi::listen()
 {
   server.handleClient();
-  ArduinoOTA.handle();
 }
 
 void VanWifi::sendResponse(String page)
@@ -121,12 +91,27 @@ bool VanWifi::isPost()
 void VanWifi::setupServerRouting() {
     server.on("/", HTTP_GET, []() {
         server.send(200,"text/html",
-        "/current  --> dump of current data<br>/trip --> dump of sinceLastStop, currentSegment, and Trip");
+        "/current  --> dump of current data<br>"
+        "/trip --> dump of sinceLastStop, currentSegment, and Trip<br>"
+        "/tracks --> list GPX track files<br>"
+        "/tracks/download?file=FILENAME --> download a GPX file<br>"
+        "/tracks/delete?file=FILENAME --> delete a GPX file<br>"
+        "/tracks/storage --> show LittleFS usage<br>"
+        "/elevation --> altitude auto-calibration status &amp; force recalibrate");
     });
 
     //GET
     server.on("/current", HTTP_GET, logCurrentData); 
     server.on("/trip", HTTP_GET, logTripData);
+
+    //GET - Track files
+    server.on("/tracks", HTTP_GET, handleTrackList);
+    server.on("/tracks/download", HTTP_GET, handleTrackDownload);
+    server.on("/tracks/delete", HTTP_GET, handleTrackDelete);
+    server.on("/tracks/storage", HTTP_GET, handleTrackStorage);
+
+    //GET - Elevation calibration status
+    server.on("/elevation", HTTP_GET, handleElevationCalib);
 
     //POST
     //server.on("/handshake", HTTP_POST, syncWithHub);  //set IP, PORT, and Epoch

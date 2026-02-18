@@ -6,6 +6,10 @@
 #include "PropBag.h"
 #include "TripData.h"
 #include "VanWifi.h"
+#include "GPS.h"
+#include "TrackLogger.h"
+#include "TraccarUploader.h"
+#include "ElevationAPI.h"
 
 #include "FormHelpers.h"
 #include "PrimaryForm.h"
@@ -67,6 +71,19 @@ unsigned long turnOffTime;
 //Global objects for LCD
 Genie genie;  
 VanWifi wifi;
+
+//GPS and track logging
+//  GPSModule reads the PA1010D over I2C, caching lat/lon/alt/speed
+//  TrackLogger writes GPX files to ESP32 flash (LittleFS)
+//  TraccarUploader sends positions to a remote Traccar server via HTTP
+GPSModule gpsModule;
+TrackLogger trackLogger;
+TraccarUploader traccarUploader;
+
+//Auto-calibrate barometric altitude using Open Topo Data DEM lookup.
+//Queries the API once on startup (when WiFi + GPS are ready), then
+//re-calibrates every 30 minutes.  Offset is persisted in PropBag.
+ElevationAPI elevationAPI;
 int currentContrast=10;
 bool currentIgnState=false;
 bool currentIdlingState=false;
@@ -117,7 +134,8 @@ void setup()
   delay(2000);
 
   //Used to receive CAN bus info from the other board
-  Serial2.begin(921600); 
+  // Explicit pins required: 3.x changed UART2 defaults to GPIO4/GPIO25 which conflicts with Serial1
+  Serial2.begin(921600, SERIAL_8N1, 16, 17); 
   
   //Used for talking to the display
   Serial1.begin(200000,SERIAL_8N1, RXD1, TXD1);
@@ -154,6 +172,31 @@ void setup()
   currentData.updateDataFromSensors();
   delay(500);
 
+  //Initialize GPS
+  //The PA1010D communicates over I2C at address 0x10 on the shared bus.
+  //It needs ~30 seconds for a cold start fix, or ~1 second for a hot start.
+  //setup() configures NMEA output (RMC+GGA) and 1Hz update rate.
+  logger.log(INFO,"Initializing GPS");
+  bootForm.updateDisplay("Init GPS...",formNavigator.getActiveForm());
+  gpsModule.init(GPS_UPDATE_RATE);
+  gpsModule.setup();
+
+  //Initialize track logger (LittleFS)
+  //LittleFS.begin(true) will format the partition on first use.
+  //Track files are stored in /tracks/ as daily GPX files.
+  logger.log(INFO,"Initializing TrackLogger");
+  bootForm.updateDisplay("Init TrackLogger...",formNavigator.getActiveForm());
+  trackLogger.init();
+
+  //Initialize Traccar uploader
+  //Connects TrackLogger to TraccarUploader so buffered files
+  //can be read and uploaded when WiFi becomes available.
+  traccarUploader.init(&trackLogger);
+
+  //Initialize elevation API for barometric altitude auto-calibration.
+  //The actual calibration happens in loop() once GPS fix + WiFi are both available.
+  elevationAPI.init();
+
   //Load property bag from EEPROM
   logger.log(INFO,"Loading prop data from EEPROM");
   bootForm.updateDisplay("Loading data from EEPROM...",formNavigator.getActiveForm());
@@ -185,6 +228,15 @@ void setup()
 
   //Update pitot calibration
   currentData.setPitotCalibrationFactor(propBag.data.pitotCalibration);
+
+  //Restore saved elevation offset from EEPROM.
+  //This gives us a reasonable altitude reading immediately on boot
+  //before the API has a chance to recalibrate.
+  if(propBag.data.elevationOffset != 0)
+  {
+    currentData.setBaroElevationOffset(propBag.data.elevationOffset);
+    logger.log(INFO,"Restored elevation offset from EEPROM: %d ft",propBag.data.elevationOffset);
+  }
 
   //Reset the data since last stop because we're booting
   logger.log(INFO,"Reseting trip data from last stop");
@@ -328,6 +380,48 @@ void loop()
 
   //Update data from sensors
   currentData.updateDataFromSensors();
+
+  //Update GPS (must be called frequently to consume NMEA data)
+  //The PA1010D has a small internal buffer that can overflow if not read promptly.
+  //The actual position caching only happens at GPS_UPDATE_RATE intervals,
+  //but the I2C reads happen on every call to drain the buffer.
+  gpsModule.update();
+
+  //Log GPS track and upload to Traccar
+  //We use barometric altitude (not GPS altitude) because the MPL3115A2 has
+  //~1m resolution vs GPS's ~10-30m.  Speed comes from OBD-II which is more
+  //accurate than GPS-derived speed at low velocities.
+  if(gpsModule.hasFix())
+  {
+    float lat = gpsModule.getLatitude();
+    float lon = gpsModule.getLongitude();
+    float elev = currentData.currentElevation;  // barometric altitude in feet (more accurate than GPS)
+    float spd = currentData.currentSpeed;       // mph from OBD-II via CAN bus
+
+    // Always log to LittleFS regardless of WiFi state.
+    // Files accumulate on flash and are uploaded when WiFi returns.
+    trackLogger.logPoint(lat, lon, elev, spd, currentData.currentSeconds);
+
+    // If WiFi is up, send live position to Traccar and drain any buffered files
+    if(wifi.isConnected())
+    {
+      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
+      traccarUploader.uploadBuffered();  // uploads a few points per call, non-blocking
+
+      // Auto-calibrate barometric altitude using Open Topo Data DEM lookup.
+      // update() is self-throttled (every 30 min) and manages its own timing.
+      // We pass the RAW (uncorrected) barometer reading so the offset computation
+      // isn't circular.  If a new offset is computed, save it to PropBag/EEPROM.
+      int rawBaro = currentData.getRawBaroElevation();
+      if(elevationAPI.update(lat, lon, rawBaro))
+      {
+        int newOffset = elevationAPI.getElevationOffset();
+        currentData.setBaroElevationOffset(newOffset);
+        propBag.data.elevationOffset = newOffset;
+        propBag.savePropBag();
+      }
+    }
+  }
 
   //new values to process?
   if(retVal)
@@ -821,4 +915,126 @@ void logCurrentData()
   logger.sendLogs(wifi.isConnected());
 
   wifi.sendResponse("Done!");
+}
+
+// ---- HTTP handlers for GPS track files ----
+
+void handleTrackList()
+{
+  int count = trackLogger.getFileCount();
+  String html = "<h2>GPS Track Files</h2>";
+  html += "<p>Storage: " + String(trackLogger.getUsedBytes()) + "/" + String(trackLogger.getTotalBytes()) + " bytes (";
+  html += String(trackLogger.getUsagePercent(), 0) + "%)</p>";
+  html += "<p>Traccar uploads: " + String(traccarUploader.getUploadedCount()) + " sent, " + String(traccarUploader.getFailedCount()) + " failed</p>";
+  
+  if (count == 0)
+  {
+    html += "<p>No track files yet.</p>";
+  }
+  else
+  {
+    html += "<table border='1' cellpadding='5'><tr><th>File</th><th>Actions</th></tr>";
+    for (int i = 0; i < count; i++)
+    {
+      String name = trackLogger.getFileName(i);
+      html += "<tr><td>" + name + "</td><td>";
+      html += "<a href='/tracks/download?file=" + name + "'>Download</a> | ";
+      html += "<a href='/tracks/delete?file=" + name + "'>Delete</a>";
+      html += "</td></tr>";
+    }
+    html += "</table>";
+  }
+  wifi.sendResponse(html);
+}
+
+void handleTrackDownload()
+{
+  // Accessed externally through VanWifi's WebServer
+  extern WebServer server;
+  
+  if (!server.hasArg("file"))
+  {
+    wifi.sendResponse("Missing 'file' parameter");
+    return;
+  }
+  String filename = server.arg("file");
+  String content = trackLogger.getFileContents(filename);
+  if (content.length() == 0)
+  {
+    wifi.sendResponse("File not found: " + filename);
+    return;
+  }
+  server.send(200, "application/gpx+xml", content);
+}
+
+void handleTrackDelete()
+{
+  extern WebServer server;
+  
+  if (!server.hasArg("file"))
+  {
+    wifi.sendResponse("Missing 'file' parameter");
+    return;
+  }
+  String filename = server.arg("file");
+  if (trackLogger.deleteFile(filename))
+  {
+    wifi.sendResponse("Deleted: " + filename);
+  }
+  else
+  {
+    wifi.sendResponse("Failed to delete: " + filename);
+  }
+}
+
+void handleTrackStorage()
+{
+  String html = "Total: " + String(trackLogger.getTotalBytes()) + " bytes<br>";
+  html += "Used: " + String(trackLogger.getUsedBytes()) + " bytes<br>";
+  html += "Usage: " + String(trackLogger.getUsagePercent(), 1) + "%<br>";
+  html += "Files: " + String(trackLogger.getFileCount());
+  wifi.sendResponse(html);
+}
+
+// ---- HTTP handler for altitude auto-calibration status ----
+// GET /elevation — shows calibration state, offset, API elevation, raw baro
+// GET /elevation?recalibrate=1 — forces an immediate recalibration on next loop
+void handleElevationCalib()
+{
+  extern WebServer server;
+
+  // Force recalibration if requested
+  if (server.hasArg("recalibrate"))
+  {
+    elevationAPI.forceRecalibrate();
+    logger.log(INFO, "Elevation recalibration forced via HTTP");
+  }
+
+  String html = "<h2>Altitude Auto-Calibration</h2>";
+  html += "<p><b>API:</b> Open Topo Data (ned10m) — free, no key</p>";
+  html += "<table border='1' cellpadding='5'>";
+  html += "<tr><td>Calibrated</td><td>" + String(elevationAPI.isCalibrated() ? "Yes" : "No") + "</td></tr>";
+  html += "<tr><td>Current Offset</td><td>" + String(elevationAPI.getElevationOffset()) + " ft</td></tr>";
+  html += "<tr><td>EEPROM Offset</td><td>" + String(propBag.data.elevationOffset) + " ft</td></tr>";
+  html += "<tr><td>Last API Elevation</td><td>" + String(elevationAPI.getLastAPIElevation(), 0) + " ft</td></tr>";
+  html += "<tr><td>Current Baro (corrected)</td><td>" + String(currentData.currentElevation) + " ft</td></tr>";
+  html += "<tr><td>Current Baro (raw)</td><td>" + String(currentData.getRawBaroElevation()) + " ft</td></tr>";
+  html += "<tr><td>Calibrations This Session</td><td>" + String(elevationAPI.getCalibrationCount()) + "</td></tr>";
+
+  unsigned long lastCalib = elevationAPI.getLastCalibTime();
+  if (lastCalib > 0)
+  {
+    unsigned long agoSec = (millis() - lastCalib) / 1000;
+    html += "<tr><td>Last Calibration</td><td>" + String(agoSec) + " seconds ago</td></tr>";
+  }
+  else
+  {
+    html += "<tr><td>Last Calibration</td><td>Never (this session)</td></tr>";
+  }
+
+  html += "<tr><td>GPS Fix</td><td>" + String(currentData.gpsHasFix ? "Yes" : "No") + "</td></tr>";
+  html += "</table>";
+
+  html += "<br><a href='/elevation?recalibrate=1'>Force Recalibrate Now</a>";
+  wifi.sendResponse(html);
 }

@@ -11,7 +11,6 @@
 #include <HTTPClient.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
 
@@ -25,6 +24,11 @@ extern Logger logger;
 //declared in main ino program
 extern void logCurrentData();
 extern void logTripData();
+extern void handleTrackList();
+extern void handleTrackDownload();
+extern void handleTrackDelete();
+extern void handleTrackStorage();
+extern void handleElevationCalib();
 
 class VanWifi 
 {

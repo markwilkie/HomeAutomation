@@ -53,7 +53,9 @@ void Barometer::update()
     online=true; 
   }
   
-  //poor man's calibration
+  //If no API-based calibration yet, use poor man's calibration to prevent negative readings
+  //Once ElevationAPI sets a real offset, this block is effectively bypassed because
+  //the API offset will keep readings reasonable.
   if(baroElevation<0 && (baroElevation*-1)>elevationOffset)
   {
     elevationOffset=baroElevation*-1;
@@ -69,6 +71,26 @@ void Barometer::update()
 int Barometer::getElevation()
 {
   return elevation;
+}
+
+// Returns the raw barometer reading before offset is applied.
+// Used by ElevationAPI to compute the calibration offset.
+int Barometer::getRawElevation()
+{
+  return elevation - elevationOffset;
+}
+
+// Set the elevation offset (feet) from external calibration (ElevationAPI).
+// Replaces the poor man's calibration with a DEM-derived value.
+void Barometer::setElevationOffset(int offset)
+{
+  elevationOffset = offset;
+  logger.log(INFO, "Barometer: elevation offset set to %d ft", offset);
+}
+
+int Barometer::getElevationOffset()
+{
+  return elevationOffset;
 }
 
 double Barometer::getPressure()

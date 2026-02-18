@@ -11,6 +11,11 @@ struct PropBagStruct
     //Calibration
     double_t pitotCalibration=PITOT_CALIB;
     double_t instMPGFactor=INST_MPG_FACTOR;
+
+    //Auto-calibration offset for barometric altimeter (feet).
+    //Computed by ElevationAPI using Open Topo Data DEM lookup.
+    //Applied in Barometer::update() as: elevation = rawBaro + elevationOffset
+    int elevationOffset=0;
 };
 
 class PropBag
