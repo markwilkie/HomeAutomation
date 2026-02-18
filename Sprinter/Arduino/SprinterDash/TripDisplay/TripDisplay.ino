@@ -2,19 +2,19 @@
 #include <genieArduino.h>
 
 #include "version.h"
-#include "CurrentData.h"
-#include "PropBag.h"
-#include "TripData.h"
-#include "VanWifi.h"
-#include "GPS.h"
-#include "TrackLogger.h"
-#include "TraccarUploader.h"
-#include "ElevationAPI.h"
+#include "src/data/CurrentData.h"
+#include "src/data/PropBag.h"
+#include "src/data/TripData.h"
+#include "src/net/VanWifi.h"
+#include "src/sensors/GPS.h"
+#include "src/tracking/TrackLogger.h"
+#include "src/tracking/TraccarUploader.h"
+#include "src/tracking/ElevationAPI.h"
 
-#include "FormHelpers.h"
-#include "PrimaryForm.h"
-#include "SummaryForm.h"
-#include "Forms.h"
+#include "src/ui/FormHelpers.h"
+#include "src/ui/PrimaryForm.h"
+#include "src/ui/SummaryForm.h"
+#include "src/ui/Forms.h"
 
 //
 // SUPER IMPORT POST about setting up the programmer so that high speed transfers work
