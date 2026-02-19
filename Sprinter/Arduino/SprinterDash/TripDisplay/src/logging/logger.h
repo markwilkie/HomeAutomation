@@ -24,6 +24,9 @@ extern RTC_DATA_ATTR int logCacheIndex;
 #define INFO 2
 #define VERBOSE 3
 
+// Maximum log level to output (set to INFO to suppress VERBOSE)
+#define LOG_LEVEL INFO
+
 class Logger 
 {
 

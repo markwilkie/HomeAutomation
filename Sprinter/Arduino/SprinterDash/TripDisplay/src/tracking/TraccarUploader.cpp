@@ -55,6 +55,8 @@ void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, flo
     // (seconds since 1970) which is what Traccar expects
     uint32_t unixTs = secondsSince2000 + SECONDS_FROM_1970_TO_2000;
 
+    logger.log(VERBOSE, "Traccar live: %f,%f elev=%fm spd=%fkn", lat, lon, elevMeters, speedKnots);
+
     if (sendToTraccar(lat, lon, elevMeters, speedKnots, unixTs))
     {
         uploadedCount++;
@@ -62,6 +64,7 @@ void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, flo
     else
     {
         failedCount++;
+        logger.log(WARNING, "Traccar live send failed (total failures: %d)", failedCount);
     }
 }
 
@@ -75,6 +78,10 @@ void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, flo
 
 void TraccarUploader::uploadBuffered()
 {
+    // No TrackLogger in simulator mode
+    if (trackLoggerPtr == nullptr)
+        return;
+
     // Don't retry too frequently on errors
     if (millis() < nextBatchRetry)
         return;
@@ -82,6 +89,8 @@ void TraccarUploader::uploadBuffered()
     int fileCount = trackLoggerPtr->getFileCount();
     if (fileCount == 0)
         return;
+
+    logger.log(INFO, "Traccar batch: %d track file(s) to upload", fileCount);
 
     // Process a few points per call to avoid blocking the main loop
     int pointsSent = 0;
@@ -171,6 +180,7 @@ void TraccarUploader::uploadBuffered()
                     currentBatchFileIndex = fi;
                     currentBatchLineIndex = lineNum;
                     nextBatchRetry = millis() + BATCH_RETRY_INTERVAL;
+                    logger.log(WARNING, "Traccar batch failed at line %d, retrying in %ds", lineNum, BATCH_RETRY_INTERVAL / 1000);
                     f.close();
                     return;
                 }
@@ -195,16 +205,35 @@ void TraccarUploader::uploadBuffered()
 // The OsmAnd protocol is fire-and-forget — Traccar responds with 200 OK
 // and stores the position.  No session or authentication needed.
 
-bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp)
+// Send ignition on/off event to Traccar for trip boundary detection.
+// When Traccar server has useIgnition=true, ignition transitions
+// define trip start (on) and trip end (off).
+void TraccarUploader::sendIgnitionEvent(bool ignitionOn, float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000)
+{
+    float elevMeters = elevFeet * 0.3048;
+    float speedKnots = speedMph * 0.868976;
+    uint32_t unixTs = secondsSince2000 + SECONDS_FROM_1970_TO_2000;
+
+    logger.log(INFO, "Traccar ignition %s", ignitionOn ? "ON" : "OFF");
+    sendToTraccar(lat, lon, elevMeters, speedKnots, unixTs, ignitionOn ? 1 : 0);
+}
+
+bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition)
 {
     HTTPClient http;
 
-    // Build OsmAnd protocol URL
+    // Build OsmAnd protocol URL (no timestamp — Traccar uses server time)
     char url[300];
-    snprintf(url, sizeof(url),
-             "http://%s:%d/?id=%s&lat=%.6f&lon=%.6f&altitude=%.1f&speed=%.1f&timestamp=%lu",
+    int len = snprintf(url, sizeof(url),
+             "http://%s:%d/?id=%s&lat=%.6f&lon=%.6f&altitude=%.1f&speed=%.1f",
              TRACCAR_HOST, TRACCAR_PORT, TRACCAR_DEVICE_ID,
-             lat, lon, elevMeters, speedKnots, (unsigned long)unixTimestamp);
+             lat, lon, elevMeters, speedKnots);
+
+    // Append ignition parameter if specified (0=off, 1=on, -1=omit)
+    if (ignition >= 0)
+        snprintf(url + len, sizeof(url) - len, "&ignition=%s", ignition ? "true" : "false");
+
+    logger.log(VERBOSE, "Traccar GET: %s", url);
 
     http.begin(url);
     http.setTimeout(5000);  // 5 second timeout
@@ -213,11 +242,12 @@ bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, floa
 
     if (httpCode == 200)
     {
+        logger.log(VERBOSE, "Traccar send OK (total: %d)", uploadedCount + 1);
         return true;
     }
     else
     {
-        logger.log(WARNING, "Traccar upload failed: HTTP %d", httpCode);
+        logger.log(WARNING, "Traccar upload failed: HTTP %d  URL: %s", httpCode, url);
         return false;
     }
 }

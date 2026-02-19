@@ -38,7 +38,7 @@ void TrackLogger::init()
     }
 
     ready = true;
-    logger.log(INFO, "TrackLogger ready. Used: %d/%d bytes (%.0f%%)", 
+    logger.log(INFO, "TrackLogger ready. Used: %d/%d bytes (%f%%)", 
                getUsedBytes(), getTotalBytes(), getUsagePercent());
 }
 
@@ -255,7 +255,7 @@ void TrackLogger::manageStorage()
     if (usage < FS_WARN_THRESHOLD * 100)
         return;  // plenty of space
 
-    logger.log(WARNING, "LittleFS at %.0f%% - thinning tracks", usage);
+    logger.log(WARNING, "LittleFS at %f%% - thinning tracks", usage);
 
     // Determine thinning aggressiveness
     int keepEveryN = (usage >= FS_CRITICAL_THRESH * 100) ? 4 : 2;
@@ -277,7 +277,7 @@ void TrackLogger::manageStorage()
         thinFile(fullPath, keepEveryN);
     }
 
-    logger.log(INFO, "After thinning: %d/%d bytes (%.0f%%)", 
+    logger.log(INFO, "After thinning: %d/%d bytes (%f%%)", 
                getUsedBytes(), getTotalBytes(), getUsagePercent());
 }
 

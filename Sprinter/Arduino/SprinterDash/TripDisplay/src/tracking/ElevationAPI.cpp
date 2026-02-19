@@ -82,7 +82,7 @@ bool ElevationAPI::update(float lat, float lon, int rawBaroElevFeet)
     // This catches bad GPS fixes, API errors, or being in a tunnel/garage.
     if (abs(newOffset) > MAX_REASONABLE_OFFSET_FT)
     {
-        logger.log(WARNING, "ElevationAPI: Offset %d ft too large, ignoring (API=%.0f, Baro=%d)",
+        logger.log(WARNING, "ElevationAPI: Offset %d ft too large, ignoring (API=%f, Baro=%d)",
                    newOffset, apiElevFeet, rawBaroElevFeet);
         return false;
     }
@@ -93,7 +93,7 @@ bool ElevationAPI::update(float lat, float lon, int rawBaroElevFeet)
     lastCalibMillis = millis();
     calibCount++;
 
-    logger.log(INFO, "ElevationAPI: Calibrated! API=%.0f ft, Baro=%d ft, Offset=%d ft (count=%d)",
+    logger.log(INFO, "ElevationAPI: Calibrated! API=%f ft, Baro=%d ft, Offset=%d ft (count=%d)",
                apiElevFeet, rawBaroElevFeet, elevationOffset, calibCount);
 
     return true;
@@ -168,7 +168,7 @@ bool ElevationAPI::queryAPI(float lat, float lon, float &elevMeters)
     }
 
     elevMeters = results[0]["elevation"].as<float>();
-    logger.log(VERBOSE, "ElevationAPI: API returned %.1f meters (%.0f feet)", elevMeters, elevMeters * 3.28084);
+    logger.log(VERBOSE, "ElevationAPI: API returned %f meters (%f feet)", elevMeters, elevMeters * 3.28084);
 
     return true;
 }

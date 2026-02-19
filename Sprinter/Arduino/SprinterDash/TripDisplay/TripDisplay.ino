@@ -2,14 +2,21 @@
 #include <genieArduino.h>
 
 #include "version.h"
+#include "src/Globals.h"
 #include "src/data/CurrentData.h"
 #include "src/data/PropBag.h"
 #include "src/data/TripData.h"
 #include "src/net/VanWifi.h"
-#include "src/sensors/GPS.h"
-#include "src/tracking/TrackLogger.h"
-#include "src/tracking/TraccarUploader.h"
-#include "src/tracking/ElevationAPI.h"
+#ifdef GPS_ENABLED
+  #ifndef SIMULATE_GPS
+    #include "src/sensors/GPS.h"
+    #include "src/tracking/TrackLogger.h"
+  #else
+    #include "src/tracking/GPSSimulator.h"
+  #endif
+  #include "src/tracking/ElevationAPI.h"
+  #include "src/tracking/TraccarUploader.h"
+#endif
 
 #include "src/ui/FormHelpers.h"
 #include "src/ui/PrimaryForm.h"
@@ -72,18 +79,26 @@ unsigned long turnOffTime;
 Genie genie;  
 VanWifi wifi;
 
-//GPS and track logging
-//  GPSModule reads the PA1010D over I2C, caching lat/lon/alt/speed
-//  TrackLogger writes GPX files to ESP32 flash (LittleFS)
-//  TraccarUploader sends positions to a remote Traccar server via HTTP
-GPSModule gpsModule;
-TrackLogger trackLogger;
+#ifdef GPS_ENABLED
+//TraccarUploader sends positions to a remote Traccar server via HTTP
 TraccarUploader traccarUploader;
 
-//Auto-calibrate barometric altitude using Open Topo Data DEM lookup.
-//Queries the API once on startup (when WiFi + GPS are ready), then
-//re-calibrates every 30 minutes.  Offset is persisted in PropBag.
-ElevationAPI elevationAPI;
+// Home geofence — auto-end Traccar trip when van returns
+#define HOME_LAT  47.756602
+#define HOME_LON -122.274359
+#define HOME_RADIUS_M 200.0   // meters from home to trigger arrival
+bool traccarTripActive = false;  // true after "Start New Trip" sends ignition ON
+
+  #ifndef SIMULATE_GPS
+    //GPS and track logging (real hardware)
+    GPSModule gpsModule;
+    TrackLogger trackLogger;
+  #else
+    //Simulated GPS route: Home → Everett → Home
+    GPSSimulator gpsSimulator;
+  #endif
+  ElevationAPI elevationAPI;
+#endif
 int currentContrast=10;
 bool currentIgnState=false;
 bool currentIdlingState=false;
@@ -172,30 +187,35 @@ void setup()
   currentData.updateDataFromSensors();
   delay(500);
 
-  //Initialize GPS
-  //The PA1010D communicates over I2C at address 0x10 on the shared bus.
-  //It needs ~30 seconds for a cold start fix, or ~1 second for a hot start.
-  //setup() configures NMEA output (RMC+GGA) and 1Hz update rate.
-  logger.log(INFO,"Initializing GPS");
-  bootForm.updateDisplay("Init GPS...",formNavigator.getActiveForm());
-  gpsModule.init(GPS_UPDATE_RATE);
-  gpsModule.setup();
+#ifdef GPS_ENABLED
+  #ifndef SIMULATE_GPS
+    //Initialize real GPS hardware
+    logger.log(INFO,"Initializing GPS");
+    bootForm.updateDisplay("Init GPS...",formNavigator.getActiveForm());
+    gpsModule.init(GPS_UPDATE_RATE);
+    gpsModule.setup();
 
-  //Initialize track logger (LittleFS)
-  //LittleFS.begin(true) will format the partition on first use.
-  //Track files are stored in /tracks/ as daily GPX files.
-  logger.log(INFO,"Initializing TrackLogger");
-  bootForm.updateDisplay("Init TrackLogger...",formNavigator.getActiveForm());
-  trackLogger.init();
+    //Initialize track logger (LittleFS)
+    logger.log(INFO,"Initializing TrackLogger");
+    bootForm.updateDisplay("Init TrackLogger...",formNavigator.getActiveForm());
+    trackLogger.init();
 
-  //Initialize Traccar uploader
-  //Connects TrackLogger to TraccarUploader so buffered files
-  //can be read and uploaded when WiFi becomes available.
-  traccarUploader.init(&trackLogger);
+    //Initialize Traccar uploader with TrackLogger for batch uploads
+    traccarUploader.init(&trackLogger);
 
-  //Initialize elevation API for barometric altitude auto-calibration.
-  //The actual calibration happens in loop() once GPS fix + WiFi are both available.
-  elevationAPI.init();
+    //Initialize elevation API for barometric altitude auto-calibration.
+    elevationAPI.init();
+  #else
+    //Initialize GPS simulator and Traccar uploader (no TrackLogger in sim mode)
+    logger.log(INFO,"Initializing GPS Simulator");
+    bootForm.updateDisplay("Init GPS Sim...",formNavigator.getActiveForm());
+    gpsSimulator.init();
+    traccarUploader.init(nullptr);
+
+    //Initialize elevation API for barometric altitude auto-calibration
+    elevationAPI.init();
+  #endif
+#endif
 
   //Load property bag from EEPROM
   logger.log(INFO,"Loading prop data from EEPROM");
@@ -249,6 +269,17 @@ void setup()
   //Let's go!
   logger.log(INFO,"Starting now....");
   formNavigator.activateForm(STARTING_FORM);    
+
+#if defined(GPS_ENABLED) && defined(SIMULATE_GPS)
+  // In simulator mode, auto-start a Traccar trip so we don't need to press "Start New Trip"
+  if(wifi.isConnected())
+  {
+    logger.log(INFO, "Sim mode: auto-sending ignition ON to start Traccar trip");
+    traccarUploader.sendIgnitionEvent(true, gpsSimulator.getLatitude(), gpsSimulator.getLongitude(),
+        gpsSimulator.getElevation(), gpsSimulator.getSpeed(), currentData.currentSeconds);
+    traccarTripActive = true;
+  }
+#endif
 
   logger.sendLogs(wifi.isConnected());  
 }
@@ -381,37 +412,76 @@ void loop()
   //Update data from sensors
   currentData.updateDataFromSensors();
 
-  //Update GPS (must be called frequently to consume NMEA data)
-  //The PA1010D has a small internal buffer that can overflow if not read promptly.
-  //The actual position caching only happens at GPS_UPDATE_RATE intervals,
-  //but the I2C reads happen on every call to drain the buffer.
-  gpsModule.update();
+#ifdef GPS_ENABLED
+  #ifndef SIMULATE_GPS
+    // ---- Real GPS ----
+    gpsModule.update();
 
-  //Log GPS track and upload to Traccar
-  //We use barometric altitude (not GPS altitude) because the MPL3115A2 has
-  //~1m resolution vs GPS's ~10-30m.  Speed comes from OBD-II which is more
-  //accurate than GPS-derived speed at low velocities.
-  if(gpsModule.hasFix())
-  {
-    float lat = gpsModule.getLatitude();
-    float lon = gpsModule.getLongitude();
-    float elev = currentData.currentElevation;  // barometric altitude in feet (more accurate than GPS)
-    float spd = currentData.currentSpeed;       // mph from OBD-II via CAN bus
-
-    // Always log to LittleFS regardless of WiFi state.
-    // Files accumulate on flash and are uploaded when WiFi returns.
-    trackLogger.logPoint(lat, lon, elev, spd, currentData.currentSeconds);
-
-    // If WiFi is up, send live position to Traccar and drain any buffered files
-    if(wifi.isConnected())
+    if(gpsModule.hasFix())
     {
-      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
-      traccarUploader.uploadBuffered();  // uploads a few points per call, non-blocking
+      float lat = gpsModule.getLatitude();
+      float lon = gpsModule.getLongitude();
+      float elev = currentData.currentElevation;
+      float spd = currentData.currentSpeed;
 
-      // Auto-calibrate barometric altitude using Open Topo Data DEM lookup.
-      // update() is self-throttled (every 30 min) and manages its own timing.
-      // We pass the RAW (uncorrected) barometer reading so the offset computation
-      // isn't circular.  If a new offset is computed, save it to PropBag/EEPROM.
+      trackLogger.logPoint(lat, lon, elev, spd, currentData.currentSeconds);
+
+      if(wifi.isConnected())
+      {
+        traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
+        traccarUploader.uploadBuffered();
+
+        // Auto-end Traccar trip when returning home
+        if(traccarTripActive)
+        {
+          float dLat = (lat - HOME_LAT) * 111320.0;
+          float dLon = (lon - HOME_LON) * 111320.0 * cos(lat * 0.01745329);
+          float distM = sqrt(dLat * dLat + dLon * dLon);
+          if(distM < HOME_RADIUS_M)
+          {
+            logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
+            traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
+            traccarTripActive = false;
+          }
+        }
+
+        int rawBaro = currentData.getRawBaroElevation();
+        if(elevationAPI.update(lat, lon, rawBaro))
+        {
+          int newOffset = elevationAPI.getElevationOffset();
+          currentData.setBaroElevationOffset(newOffset);
+          propBag.data.elevationOffset = newOffset;
+          propBag.savePropBag();
+        }
+      }
+    }
+  #else
+    // ---- Simulated GPS: Home → Everett → Home ----
+    gpsSimulator.update();
+
+    if(gpsSimulator.hasFix() && wifi.isConnected())
+    {
+      float lat = gpsSimulator.getLatitude();
+      float lon = gpsSimulator.getLongitude();
+      float elev = gpsSimulator.getElevation();
+      float spd = gpsSimulator.getSpeed();
+
+      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
+
+      // Auto-end Traccar trip when returning home
+      if(traccarTripActive)
+      {
+        float dLat = (lat - HOME_LAT) * 111320.0;
+        float dLon = (lon - HOME_LON) * 111320.0 * cos(lat * 0.01745329);
+        float distM = sqrt(dLat * dLat + dLon * dLon);
+        if(distM < HOME_RADIUS_M)
+        {
+          logger.log(INFO, "Home geofence (sim): %fm — ending Traccar trip", distM);
+          traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
+          traccarTripActive = false;
+        }
+      }
+
       int rawBaro = currentData.getRawBaroElevation();
       if(elevationAPI.update(lat, lon, rawBaro))
       {
@@ -421,7 +491,8 @@ void loop()
         propBag.savePropBag();
       }
     }
-  }
+  #endif
+#endif
 
   //new values to process?
   if(retVal)
@@ -750,6 +821,29 @@ void myGenieEventHandler(void)
       break;  
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
+      #ifdef GPS_ENABLED
+      {
+        // Signal Traccar: end previous trip (ignition off) then start new one (ignition on)
+        // In sim mode, use simulator coords (currentData GPS fields are 0,0 without real hardware)
+        #ifdef SIMULATE_GPS
+        gpsSimulator.init();  // restart simulated route on new trip
+        float tripLat = gpsSimulator.getLatitude();
+        float tripLon = gpsSimulator.getLongitude();
+        float tripElev = gpsSimulator.getElevation();
+        float tripSpd  = gpsSimulator.getSpeed();
+        #else
+        float tripLat = currentData.currentLatitude;
+        float tripLon = currentData.currentLongitude;
+        float tripElev = currentData.currentElevation;
+        float tripSpd  = currentData.currentSpeed;
+        #endif
+        logger.log(INFO, "Starting new Traccar trip at %f,%f — sending ignition OFF then ON", tripLat, tripLon);
+        traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
+        traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
+        traccarTripActive = true;
+        logger.log(INFO, "Traccar trip active — home geofence armed at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
+      }
+      #endif
       currentData.setTime(10);
       idlingStartSeconds=currentData.currentSeconds; 
       sinceLastStop.resetTripData();
@@ -917,6 +1011,7 @@ void logCurrentData()
   wifi.sendResponse("Done!");
 }
 
+#if defined(GPS_ENABLED) && !defined(SIMULATE_GPS)
 // ---- HTTP handlers for GPS track files ----
 
 void handleTrackList()
@@ -1038,3 +1133,4 @@ void handleElevationCalib()
   html += "<br><a href='/elevation?recalibrate=1'>Force Recalibrate Now</a>";
   wifi.sendResponse(html);
 }
+#endif

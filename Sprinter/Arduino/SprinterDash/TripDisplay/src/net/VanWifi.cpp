@@ -103,6 +103,7 @@ void VanWifi::setupServerRouting() {
     server.on("/current", HTTP_GET, logCurrentData); 
     server.on("/trip", HTTP_GET, logTripData);
 
+#if defined(GPS_ENABLED) && !defined(SIMULATE_GPS)
     //GET - Track files
     server.on("/tracks", HTTP_GET, handleTrackList);
     server.on("/tracks/download", HTTP_GET, handleTrackDownload);
@@ -111,6 +112,7 @@ void VanWifi::setupServerRouting() {
 
     //GET - Elevation calibration status
     server.on("/elevation", HTTP_GET, handleElevationCalib);
+#endif
 }
 
 void VanWifi::sendErrorResponse(const char*errorString)

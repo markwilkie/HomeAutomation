@@ -131,6 +131,10 @@ void Logger::log(const char input[],bool cr)
  */
 bool Logger::log(int logLevel,const char *fmt, ...) 
 { 
+  // Filter out messages below the configured log level
+  if(logLevel > LOG_LEVEL)
+    return true;
+
   /* buffer for storing the formatted data */
   char buf[SERIAL_PRINTF_MAX_BUFF];
   char *pbuf = buf;

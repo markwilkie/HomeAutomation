@@ -42,10 +42,13 @@ public:
     int  getUploadedCount();
     int  getFailedCount();
 
+    // Send ignition on/off event to Traccar (for trip start/end detection)
+    void sendIgnitionEvent(bool ignitionOn, float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000);
+
 private:
     TrackLogger *trackLoggerPtr = nullptr;
     
-    bool sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp);
+    bool sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition = -1);
     
     // Timing
     unsigned long nextLiveSend = 0;
