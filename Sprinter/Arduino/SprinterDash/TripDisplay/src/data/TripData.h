@@ -43,6 +43,7 @@ class TripData
     void updateElevation();
     void updateFuelGallonsUsed();
     void resetTripData();
+    void adjustForTimeSync(uint32_t oldTime, uint32_t newTime);
     void updateStartValuesIfNeeded();
     void saveTripData(int offset);
     void loadTripData(int offset);

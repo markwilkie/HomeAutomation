@@ -73,6 +73,17 @@
 - There are two "boxes".  One is the power supply which switches power based on ignition presence, and provides a stable 5V for the processors. The other contains the sensors, ESP32, CanDual, and interconnections.
 - Pitot is mounted on the front of the van, and static air is in the engine compartment.
 
+### RTC Behavior (PCF8523)
+The PCF8523 real-time clock starts at its default epoch (Jan 1, 2000, 00:00:00) on first power-up, and is then **synced to real time from GPS** once a satellite fix is obtained.
+
+- **On first power-up** (or after battery loss), the RTC `adjust()` method is called with a default `DateTime()` — which is Jan 1, 2000 00:00:00, i.e. `secondsSince2000 = 0`.  The RTC then counts up from zero until GPS provides real time.
+- **GPS time sync** (one-time per boot): Once the GPS module gets a valid fix with a plausible date (`gps.year > 0`), the RTC is set to GPS time via `currentData.setTime()`.  This is a one-time operation — the `rtcSyncedFromGPS` flag prevents subsequent updates.
+- **Trip time preservation**: When the RTC jumps from epoch-0 to real time (potentially ~26 years forward), all active `TripData` instances have their `startSeconds` and `ignOffSeconds` adjusted so that elapsed durations are preserved.  For example, if a trip started 30 seconds before the sync, `startSeconds` is shifted so that `newTime - startSeconds` still equals 30.
+- **`currentData.currentSeconds`** holds the raw RTC value (seconds since Jan 1, 2000).  After GPS sync, this is real wall-clock time.  Before sync, it's a monotonic counter from zero.
+- **Sanity checks**: `getSecondsSinc2000()` guards against the RTC jumping backwards or more than 1 hour forward in a single read — if that happens, it resets the RTC to the last known good value and logs an error.  The GPS sync bypasses this guard by calling `setTime()` directly (which calls `rtc.adjust()`) rather than going through the polling path.
+- **Traccar uploads omit the timestamp**: The `&timestamp=` parameter was removed from the OsmAnd URL.  Traccar uses its own server time instead.  This avoids the problem where Traccar silently drops positions with timestamps older than existing ones.
+- **GPX track files**: After GPS sync, TrackLogger timestamps in GPX files reflect real dates/times.  Before sync (or if GPS never gets a fix), they appear as early 2000.
+
 ### Important classes
 - **CurrentData** holds the live data from both the ECU and sensors.  It does no aggregation and very little calculation.
 - **Sensors** is used by CurrentData
@@ -141,10 +152,23 @@ PCF8523 RTC ──→ timestamp        ─┘                         │
 - **Live mode**: When WiFi is connected, sends current position every 10 seconds
 - **Batch mode**: When WiFi reconnects after being offline, uploads buffered GPX files point-by-point (5 points per loop call to avoid blocking), then deletes the file after successful upload
 - **Error handling**: On HTTP failure, pauses batch uploads for 60 seconds before retrying
+- **Timestamp**: No timestamp is sent in the URL — Traccar uses its own server time.  This avoids the problem where positions with timestamps older than existing ones are silently dropped.
 - **Configuration**: Edit defines in `TraccarUploader.h`:
   - `TRACCAR_HOST` — your Traccar server hostname
   - `TRACCAR_PORT` — OsmAnd listener port (default 5055)
-  - `TRACCAR_DEVICE_ID` — must match the device identifier configured in Traccar
+  - `TRACCAR_DEVICE_ID` — must match the device identifier configured in Traccar (currently a UUID for security)
+
+### Trip Detection (Ignition Events)
+Traccar uses ignition on/off events to define trip boundaries.  The server must have `useIgnition: true` in its attributes (currently set).
+
+- **Trip start**: An `&ignition=true` parameter is appended to the OsmAnd HTTP GET when:
+  - **Real mode**: The "Start New Trip" button is pressed on the LCD
+  - **Simulator mode**: Automatically sent at startup when WiFi is connected
+- **Trip end**: An `&ignition=false` parameter is sent when:
+  - **Home geofence**: The van returns within 200m of home (`HOME_LAT`/`HOME_LON` defines in `TripDisplay.ino`).  This auto-ends the Traccar trip.
+  - **Ignition off**: In real (non-sim) mode, when the physical ignition pin goes low
+- **Between events**: Regular position updates are sent without the ignition parameter — Traccar treats these as mid-trip points
+- **State tracking**: The `traccarTripActive` flag prevents duplicate ignition-off events and ensures the home geofence only fires once per trip
 
 ### HTTP Endpoints for Track Files
 These are available when connected to the same WiFi network as the ESP32:
@@ -198,6 +222,108 @@ correctedElevation = rawBaroElevation + elevationOffset
 
 ### HTTP Diagnostics
 Visit `http://<ESP32_IP>/elevation` to see calibration status, or `http://<ESP32_IP>/elevation?recalibrate=1` to force a recalibration.
+
+## Traccar Server Setup (Azure)
+
+The Traccar server runs as an Azure Container Instance.  Here are the steps taken to set it up.
+
+### Azure Resources Created
+
+All resources live in the **sprinter-rg** resource group in **West US 2**.
+
+| Resource | Type | Name |
+|----------|------|------|
+| Resource Group | `Microsoft.Resources/resourceGroups` | `sprinter-rg` |
+| Container Registry | `Microsoft.ContainerRegistry` | `sprintertraccar` (Basic SKU) |
+| Storage Account | `Microsoft.Storage` | `sprintertraccar` (Standard_LRS, StorageV2) |
+| File Share | Azure Files | `traccar-data` (in the storage account above) |
+| Container Instance | `Microsoft.ContainerInstances` | `sprinter-traccar` |
+
+### Step 1 — Create the Resource Group
+```bash
+az group create --name sprinter-rg --location westus2
+```
+
+### Step 2 — Create the Azure Container Registry (ACR)
+A private registry to hold the Traccar Docker image.
+```bash
+az acr create --name sprintertraccar --resource-group sprinter-rg --sku Basic --admin-enabled true
+```
+
+### Step 3 — Push the Traccar Image to ACR
+Pull the official Traccar image from Docker Hub, tag it for the private registry, and push it.
+```bash
+docker pull traccar/traccar:latest
+docker tag traccar/traccar:latest sprintertraccar.azurecr.io/traccar:latest
+az acr login --name sprintertraccar
+docker push sprintertraccar.azurecr.io/traccar:latest
+```
+
+### Step 4 — Create a Storage Account and File Share
+The file share persists Traccar's H2 database and config across container restarts.
+```bash
+az storage account create --name sprintertraccar --resource-group sprinter-rg --location westus2 --sku Standard_LRS
+az storage share create --name traccar-data --account-name sprintertraccar
+```
+
+### Step 5 — Create the Container Instance
+The container mounts the Azure Files share at `/opt/traccar/data` (where Traccar keeps its database) and exposes ports 8082 (web UI) and 5055 (OsmAnd GPS protocol).
+```bash
+# Get the storage account key
+STORAGE_KEY=$(az storage account keys list --account-name sprintertraccar --resource-group sprinter-rg --query "[0].value" -o tsv)
+
+# Get the ACR password
+ACR_PASSWORD=$(az acr credential show --name sprintertraccar --query "passwords[0].value" -o tsv)
+
+az container create \
+  --name sprinter-traccar \
+  --resource-group sprinter-rg \
+  --image sprintertraccar.azurecr.io/traccar:latest \
+  --registry-login-server sprintertraccar.azurecr.io \
+  --registry-username sprintertraccar \
+  --registry-password "$ACR_PASSWORD" \
+  --cpu 1 \
+  --ports 8082 5055 \
+  --dns-name-label sprinter-traccar \
+  --azure-file-volume-account-name sprintertraccar \
+  --azure-file-volume-account-key "$STORAGE_KEY" \
+  --azure-file-volume-share-name traccar-data \
+  --azure-file-volume-mount-path /opt/traccar/data
+```
+
+### Step 6 — Initial Traccar Configuration
+Once the container is running, open the web UI to create the admin account and device:
+1. Browse to `http://sprinter-traccar.westus2.azurecontainer.io:8082`
+2. Register a new account (first registration creates the admin)
+3. Add a device — the **Identifier** must match `TRACCAR_DEVICE_ID` in `TraccarUploader.h`
+
+### Current Configuration
+| Setting | Value |
+|---------|-------|
+| Web UI | `http://<TRACCAR_HOST>:8082` |
+| GPS Ingest | Port 5055 (OsmAnd HTTP GET, no auth) |
+| FQDN | See `TRACCAR_HOST` in `secrets.h` |
+| Device ID | See `TRACCAR_DEVICE_ID` in `secrets.h` (UUID for security) |
+| Login | *(see secrets.h / Traccar web UI)* |
+
+### Useful Azure CLI Commands
+```bash
+# Check container status
+az container show --name sprinter-traccar --resource-group sprinter-rg --query "{state:instanceView.state, fqdn:ipAddress.fqdn}" -o table
+
+# View container logs
+az container logs --name sprinter-traccar --resource-group sprinter-rg
+
+# Restart the container
+az container restart --name sprinter-traccar --resource-group sprinter-rg
+
+# Update to a newer Traccar image
+docker pull traccar/traccar:latest
+docker tag traccar/traccar:latest sprintertraccar.azurecr.io/traccar:latest
+az acr login --name sprintertraccar
+docker push sprintertraccar.azurecr.io/traccar:latest
+az container restart --name sprinter-traccar --resource-group sprinter-rg
+```
 
 ## Paper Trails Logging
 - Current URL is https://my.papertrailapp.com/systems/tripdisplay/events to see logging events 

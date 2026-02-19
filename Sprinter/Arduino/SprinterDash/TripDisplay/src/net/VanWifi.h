@@ -17,10 +17,7 @@
 
 extern Logger logger;
 
-//Wifi
-#define VANSSID "SPRINKLE"
-#define LFPSSID "WILKIE-LFP"
-#define PASSWORD "4777ne178"
+//Wifi credentials defined in secrets.h
 
 //declared in main ino program
 extern void logCurrentData();

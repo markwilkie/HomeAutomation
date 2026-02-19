@@ -1,0 +1,12 @@
+In file included from C:\Users\mark\AppData\Local\Arduino15\packages\esp32\tools\esp32-libs\3.3.7/include/bt/include/esp32/include/esp_bt.h:16,
+                 from C:\Users\mark\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.7\cores\esp32\esp32-hal-bt.c:30:
+C:/Users/mark/AppData/Local/Arduino15/packages/esp32/tools/esp32-libs/3.3.7/include/controller/esp32/esp_bredr_cfg.h:18:9: note: '#pragma message: BT: forcing BR/EDR max sync conn eff to 1 (Bluedroid HFP requires SCO/eSCO)'
+   18 | #pragma message ("BT: forcing BR/EDR max sync conn eff to 1 (Bluedroid HFP requires SCO/eSCO)")
+      |         ^~~~~~~
+In file included from C:\Users\mark\AppData\Local\Arduino15\packages\esp32\tools\esp32-libs\3.3.7/include/bt/include/esp32/include/esp_bt.h:16,
+                 from C:\Users\mark\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.3.7\cores\esp32\esp32-hal-misc.c:29:
+C:/Users/mark/AppData/Local/Arduino15/packages/esp32/tools/esp32-libs/3.3.7/include/controller/esp32/esp_bredr_cfg.h:18:9: note: '#pragma message: BT: forcing BR/EDR max sync conn eff to 1 (Bluedroid HFP requires SCO/eSCO)'
+   18 | #pragma message ("BT: forcing BR/EDR max sync conn eff to 1 (Bluedroid HFP requires SCO/eSCO)")
+      |         ^~~~~~~
+Sketch uses 1166288 bytes (55%) of program storage space. Maximum is 2097152 bytes.
+Global variables use 55896 bytes (17%) of dynamic memory, leaving 271784 bytes for local variables. Maximum is 327680 bytes.

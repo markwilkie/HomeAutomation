@@ -1,0 +1,16 @@
+# Secrets — never commit credentials
+secrets.h
+
+# Build output
+build/
+*.elf
+*.bin
+
+# IDE
+.vs/
+*.suo
+*.user
+
+# OS
+Thumbs.db
+.DS_Store

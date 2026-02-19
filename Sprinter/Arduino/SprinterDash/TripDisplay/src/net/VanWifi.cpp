@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "VanWifi.h"
+#include "../../secrets.h"
 
 WebServer server(80);
 Logger logger;

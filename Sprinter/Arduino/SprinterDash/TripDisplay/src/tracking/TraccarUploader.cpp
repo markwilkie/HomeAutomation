@@ -2,6 +2,7 @@
 #include "TraccarUploader.h"
 #include "RTClib.h"
 #include "../Globals.h"
+#include "../../secrets.h"
 
 //
 // TraccarUploader.cpp - Uploads GPS positions to a Traccar server

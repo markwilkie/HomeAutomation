@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "logger.h"
+#include "../../secrets.h"
 
 RTC_DATA_ATTR char logCache[MAXLOGSIZE];
 RTC_DATA_ATTR int logCacheIndex=0;

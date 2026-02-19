@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <genieArduino.h>
 
+#include "secrets.h"
 #include "version.h"
 #include "src/Globals.h"
 #include "src/data/CurrentData.h"
@@ -416,6 +417,27 @@ void loop()
   #ifndef SIMULATE_GPS
     // ---- Real GPS ----
     gpsModule.update();
+
+    // One-time RTC sync from GPS time
+    static bool rtcSyncedFromGPS = false;
+    if(!rtcSyncedFromGPS && gpsModule.hasValidTime())
+    {
+      uint32_t oldSeconds = currentData.currentSeconds;
+      uint32_t gpsSeconds = gpsModule.getGPSSecondsSince2000();
+
+      logger.log(INFO, "Syncing RTC from GPS: old=%lu new=%lu (delta %ld s)",
+                 oldSeconds, gpsSeconds, (long)(gpsSeconds - oldSeconds));
+
+      currentData.setTime(gpsSeconds);
+
+      // Adjust TripData start times to preserve elapsed durations
+      sinceLastStop.adjustForTimeSync(oldSeconds, gpsSeconds);
+      currentSegment.adjustForTimeSync(oldSeconds, gpsSeconds);
+      fullTrip.adjustForTimeSync(oldSeconds, gpsSeconds);
+
+      rtcSyncedFromGPS = true;
+      logger.log(INFO, "RTC synced from GPS");
+    }
 
     if(gpsModule.hasFix())
     {

@@ -42,6 +42,23 @@ void TripData::resetTripData()
     data.totalClimb=0;
 }
 
+void TripData::adjustForTimeSync(uint32_t oldTime, uint32_t newTime)
+{
+    // Preserve elapsed durations when the RTC jumps (GPS time sync).
+    // Shifts absolute timestamps so that (newTime - field) == (oldTime - field) before the call.
+    if(data.startSeconds > 0 && data.startSeconds <= oldTime)
+    {
+        uint32_t elapsed = oldTime - data.startSeconds;
+        data.startSeconds = newTime - elapsed;
+        logger.log(INFO, "TimeSync trip %d: startSeconds adjusted (elapsed %lu s)", tripIdx, elapsed);
+    }
+    if(data.ignOffSeconds > 0 && data.ignOffSeconds <= oldTime)
+    {
+        uint32_t elapsed = oldTime - data.ignOffSeconds;
+        data.ignOffSeconds = newTime - elapsed;
+    }
+}
+
 void TripData::updateStartValuesIfNeeded()
 {
     if(startMilesNeedsUpdating && currentDataPtr->currentMilesOnline)

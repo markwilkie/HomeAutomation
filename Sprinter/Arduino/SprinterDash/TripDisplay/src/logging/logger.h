@@ -5,9 +5,7 @@
 #include "PapertrailLogger.h"
 #include "Debug.h"
 
-#define PAPERTRAIL_HOST       "logs4.papertrailapp.com"
-#define PAPERTRAIL_PORT       54449
-#define PAPERTRAIL_SYSTEMNAME "tripdisplay"
+// Papertrail credentials defined in secrets.h
 
 #define MAXLOGSIZE 2048   //Used for caching logs in a char array until there's a wifi connection
 

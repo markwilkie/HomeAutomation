@@ -17,10 +17,7 @@
     http://server:5055/?id=DEVICE_ID&lat=47.606&lon=-122.332&altitude=56&speed=65&timestamp=1708272600
 */
 
-// ---- Configure these for your server ----
-#define TRACCAR_HOST        "sprinter-traccar.westus2.azurecontainer.io"
-#define TRACCAR_PORT        5055
-#define TRACCAR_DEVICE_ID   "sprinter01"
+// ---- Traccar credentials defined in secrets.h ----
 
 #define LIVE_SEND_INTERVAL  10000       // Send live position every 10 seconds when WiFi available
 #define BATCH_POINTS_PER_LOOP 5         // Upload this many buffered points per loop() call (to not block)

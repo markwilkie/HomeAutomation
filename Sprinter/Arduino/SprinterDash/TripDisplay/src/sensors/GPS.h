@@ -3,6 +3,7 @@
 
 #include <Adafruit_GPS.h>
 #include <Wire.h>
+#include "RTClib.h"
 
 /*
   GPS Module: Adafruit PA1010D (MTK3333) over I2C
@@ -33,6 +34,10 @@ public:
     float getGPSAltitudeMeters();   // GPS-reported altitude (less accurate than baro)
     float getSpeedKnots();
     float getCourse();
+
+    // Time (from GPS NMEA sentences)
+    bool     hasValidTime();          // true when GPS has a plausible date/time
+    uint32_t getGPSSecondsSince2000(); // seconds since Jan 1 2000 from GPS clock
 
     // Quality
     int   getFixQuality();     // 0=none, 1=GPS, 2=DGPS

@@ -106,3 +106,16 @@ int GPSModule::getSatellites()
 {
     return satellites;
 }
+
+bool GPSModule::hasValidTime()
+{
+    // GPS year is 2-digit (26 = 2026). Accept anything > 0 with a valid fix.
+    return fix && gps.year > 0;
+}
+
+uint32_t GPSModule::getGPSSecondsSince2000()
+{
+    DateTime dt(2000 + gps.year, gps.month, gps.day,
+                gps.hour, gps.minute, gps.seconds);
+    return dt.secondstime();
+}
