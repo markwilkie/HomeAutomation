@@ -11,7 +11,7 @@ i2c addresses
 barameter: 0x60
 rtc: 0x68 
 pressure: 0x28
-gps (PA1010D): 0x10
+gps (TEL0157): 0x20
 */
 
 #define ATMOS_READ_INTERVAL 10   //How many altitude reads are done for each atmos pressure read
@@ -130,6 +130,11 @@ class IgnState
     //Data
     bool ignState;
 
+    //Sampling (non-blocking)
+    int ignOnCount = 0;
+    int ignOffCount = 0;
+    int sampleCount = 0;
+
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again
 };
@@ -145,6 +150,11 @@ class LDR
 
     //Data
     int lightLevel;
+
+    //Sampling (non-blocking)
+    int sampleCount = 0;
+    int sampleAccum = 0;
+    static const int OVERSAMPLE_COUNT = 5;
 
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again

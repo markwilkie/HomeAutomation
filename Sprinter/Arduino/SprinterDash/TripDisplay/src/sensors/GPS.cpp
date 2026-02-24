@@ -9,49 +9,44 @@ void GPSModule::init(int _refreshTicks)
 
 void GPSModule::setup()
 {
-    if (!gps.begin(GPS_I2C_ADDRESS))
+    if (!gnss.begin())
     {
-        logger.log(ERROR, "Could not find PA1010D GPS at 0x10");
+        logger.log(ERROR, "Could not find TEL0157 GPS at 0x20");
         online = false;
         return;
     }
 
-    gps.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-    gps.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
-    gps.sendCommand(PGCMD_ANTENNA);
+    gnss.enablePower();
+    gnss.setGnss(eGPS_BeiDou_GLONASS);
+    gnss.setRgbOn();
 
     online = true;
-    logger.log(INFO, "GPS PA1010D initialized at 0x10");
+    logger.log(INFO, "GPS TEL0157 (L76K) initialized at 0x20");
 }
 
-void GPSModule::update()
+bool GPSModule::update()
 {
-    while (gps.available())
-    {
-        gps.read();
-    }
-
     if (millis() < nextTickCount)
-        return;
+        return false;
     nextTickCount = millis() + refreshTicks;
 
-    if (gps.newNMEAreceived())
-    {
-        if (!gps.parse(gps.lastNMEA()))
-            return;
-    }
+    sLonLat_t lat = gnss.getLat();
+    sLonLat_t lon = gnss.getLon();
+    satellites = gnss.getNumSatUsed();
+    cachedUTC  = gnss.getUTC();
+    cachedDate = gnss.getDate();
 
-    fix = gps.fix;
-    fixQuality = gps.fixquality;
-    satellites = gps.satellites;
+    // Consider having a fix when we have at least 1 satellite and non-zero coords
+    fix = (satellites > 0 && (lat.latitudeDegree != 0.0 || lon.lonitudeDegree != 0.0));
 
     if (fix)
     {
-        latitude = gps.latitudeDegrees;
-        longitude = gps.longitudeDegrees;
-        gpsAltitude = gps.altitude;
-        speedKnots = gps.speed;
-        course = gps.angle;
+        // Apply sign based on direction (S = negative lat, W = negative lon)
+        latitude  = (lat.latDirection == 'S') ? -lat.latitudeDegree : lat.latitudeDegree;
+        longitude = (lon.lonDirection == 'W') ? -lon.lonitudeDegree : lon.lonitudeDegree;
+        gpsAltitude = gnss.getAlt();
+        speedKnots  = gnss.getSog();
+        course      = gnss.getCog();
 
         if (!online)
         {
@@ -60,6 +55,8 @@ void GPSModule::update()
             online = true;
         }
     }
+
+    return true;
 }
 
 bool GPSModule::isOnline()
@@ -97,11 +94,6 @@ float GPSModule::getCourse()
     return course;
 }
 
-int GPSModule::getFixQuality()
-{
-    return fixQuality;
-}
-
 int GPSModule::getSatellites()
 {
     return satellites;
@@ -109,13 +101,14 @@ int GPSModule::getSatellites()
 
 bool GPSModule::hasValidTime()
 {
-    // GPS year is 2-digit (26 = 2026). Accept anything > 0 with a valid fix.
-    return fix && gps.year > 0;
+    // Uses cached date from last update() — no I2C read
+    return fix && cachedDate.year > 0;
 }
 
 uint32_t GPSModule::getGPSSecondsSince2000()
 {
-    DateTime dt(2000 + gps.year, gps.month, gps.day,
-                gps.hour, gps.minute, gps.seconds);
+    // Uses cached UTC/date from last update() — no I2C read
+    DateTime dt(cachedDate.year, cachedDate.month, cachedDate.date,
+                cachedUTC.hour, cachedUTC.minute, cachedUTC.second);
     return dt.secondstime();
 }

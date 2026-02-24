@@ -1,22 +1,22 @@
 #ifndef GPS_h
 #define GPS_h
 
-#include <Adafruit_GPS.h>
+#include <DFRobot_GNSS.h>
 #include <Wire.h>
 #include "RTClib.h"
 
 /*
-  GPS Module: Adafruit PA1010D (MTK3333) over I2C
-  I2C address: 0x10
-  Library: Adafruit GPS Library (install via Arduino Library Manager)
+  GPS Module: DFRobot TEL0157 (Quectel L76K) over I2C
+  I2C address: 0x20
+  Library: DFRobot_GNSS (https://github.com/DFRobot/DFRobot_GNSS)
   
   Provides lat, lon, altitude (GPS), speed, fix quality, and satellite count.
+  Supports GPS + GLONASS + BeiDou for faster fix and better accuracy.
   Barometric altitude from MPL3115A2 is preferred for elevation accuracy —
   GPS altitude is available here as a cross-reference but should not be used
   as the primary elevation source in GPX files.
 */
 
-#define GPS_I2C_ADDRESS 0x10
 #define GPS_UPDATE_RATE 1000   // How often to check for new GPS data (ms)
 
 class GPSModule
@@ -24,7 +24,7 @@ class GPSModule
 public:
     void init(int refreshTicks);
     void setup();
-    void update();
+    bool update();   // returns true when new data was polled
     bool isOnline();
     bool hasFix();
 
@@ -40,11 +40,10 @@ public:
     uint32_t getGPSSecondsSince2000(); // seconds since Jan 1 2000 from GPS clock
 
     // Quality
-    int   getFixQuality();     // 0=none, 1=GPS, 2=DGPS
     int   getSatellites();
 
 private:
-    Adafruit_GPS gps = Adafruit_GPS(&Wire);
+    DFRobot_GNSS_I2C gnss = DFRobot_GNSS_I2C(&Wire, GNSS_DEVICE_ADDR);
     bool online = false;
     bool fix = false;
 
@@ -54,12 +53,15 @@ private:
     float gpsAltitude = 0;     // meters
     float speedKnots = 0;
     float course = 0;
-    int   fixQuality = 0;
     int   satellites = 0;
 
     // Timing
     int refreshTicks;
     unsigned long nextTickCount = 0;
+
+    // Cached time from last update()
+    sTim_t cachedUTC  = {};
+    sTim_t cachedDate = {};
 };
 
 #endif

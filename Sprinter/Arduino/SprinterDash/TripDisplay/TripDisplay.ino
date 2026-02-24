@@ -8,16 +8,10 @@
 #include "src/data/PropBag.h"
 #include "src/data/TripData.h"
 #include "src/net/VanWifi.h"
-#ifdef GPS_ENABLED
-  #ifndef SIMULATE_GPS
-    #include "src/sensors/GPS.h"
-    #include "src/tracking/TrackLogger.h"
-  #else
-    #include "src/tracking/GPSSimulator.h"
-  #endif
-  #include "src/tracking/ElevationAPI.h"
-  #include "src/tracking/TraccarUploader.h"
-#endif
+#include "src/sensors/GPS.h"
+#include "src/tracking/TrackLogger.h"
+#include "src/tracking/ElevationAPI.h"
+#include "src/tracking/TraccarUploader.h"
 
 #include "src/ui/FormHelpers.h"
 #include "src/ui/PrimaryForm.h"
@@ -80,7 +74,6 @@ unsigned long turnOffTime;
 Genie genie;  
 VanWifi wifi;
 
-#ifdef GPS_ENABLED
 //TraccarUploader sends positions to a remote Traccar server via HTTP
 TraccarUploader traccarUploader;
 
@@ -90,16 +83,10 @@ TraccarUploader traccarUploader;
 #define HOME_RADIUS_M 200.0   // meters from home to trigger arrival
 bool traccarTripActive = false;  // true after "Start New Trip" sends ignition ON
 
-  #ifndef SIMULATE_GPS
-    //GPS and track logging (real hardware)
-    GPSModule gpsModule;
-    TrackLogger trackLogger;
-  #else
-    //Simulated GPS route: Home → Everett → Home
-    GPSSimulator gpsSimulator;
-  #endif
-  ElevationAPI elevationAPI;
-#endif
+//GPS and track logging
+GPSModule gpsModule;
+TrackLogger trackLogger;
+ElevationAPI elevationAPI;
 int currentContrast=10;
 bool currentIgnState=false;
 bool currentIdlingState=false;
@@ -188,35 +175,22 @@ void setup()
   currentData.updateDataFromSensors();
   delay(500);
 
-#ifdef GPS_ENABLED
-  #ifndef SIMULATE_GPS
-    //Initialize real GPS hardware
-    logger.log(INFO,"Initializing GPS");
-    bootForm.updateDisplay("Init GPS...",formNavigator.getActiveForm());
-    gpsModule.init(GPS_UPDATE_RATE);
-    gpsModule.setup();
+  //Initialize GPS hardware
+  logger.log(INFO,"Initializing GPS");
+  bootForm.updateDisplay("Init GPS...",formNavigator.getActiveForm());
+  gpsModule.init(GPS_UPDATE_RATE);
+  gpsModule.setup();
 
-    //Initialize track logger (LittleFS)
-    logger.log(INFO,"Initializing TrackLogger");
-    bootForm.updateDisplay("Init TrackLogger...",formNavigator.getActiveForm());
-    trackLogger.init();
+  //Initialize track logger (LittleFS)
+  logger.log(INFO,"Initializing TrackLogger");
+  bootForm.updateDisplay("Init TrackLogger...",formNavigator.getActiveForm());
+  trackLogger.init();
 
-    //Initialize Traccar uploader with TrackLogger for batch uploads
-    traccarUploader.init(&trackLogger);
+  //Initialize Traccar uploader with TrackLogger for batch uploads
+  traccarUploader.init(&trackLogger);
 
-    //Initialize elevation API for barometric altitude auto-calibration.
-    elevationAPI.init();
-  #else
-    //Initialize GPS simulator and Traccar uploader (no TrackLogger in sim mode)
-    logger.log(INFO,"Initializing GPS Simulator");
-    bootForm.updateDisplay("Init GPS Sim...",formNavigator.getActiveForm());
-    gpsSimulator.init();
-    traccarUploader.init(nullptr);
-
-    //Initialize elevation API for barometric altitude auto-calibration
-    elevationAPI.init();
-  #endif
-#endif
+  //Initialize elevation API for barometric altitude auto-calibration.
+  elevationAPI.init();
 
   //Load property bag from EEPROM
   logger.log(INFO,"Loading prop data from EEPROM");
@@ -270,17 +244,6 @@ void setup()
   //Let's go!
   logger.log(INFO,"Starting now....");
   formNavigator.activateForm(STARTING_FORM);    
-
-#if defined(GPS_ENABLED) && defined(SIMULATE_GPS)
-  // In simulator mode, auto-start a Traccar trip so we don't need to press "Start New Trip"
-  if(wifi.isConnected())
-  {
-    logger.log(INFO, "Sim mode: auto-sending ignition ON to start Traccar trip");
-    traccarUploader.sendIgnitionEvent(true, gpsSimulator.getLatitude(), gpsSimulator.getLongitude(),
-        gpsSimulator.getElevation(), gpsSimulator.getSpeed(), currentData.currentSeconds);
-    traccarTripActive = true;
-  }
-#endif
 
   logger.sendLogs(wifi.isConnected());  
 }
@@ -413,82 +376,43 @@ void loop()
   //Update data from sensors
   currentData.updateDataFromSensors();
 
-#ifdef GPS_ENABLED
-  #ifndef SIMULATE_GPS
-    // ---- Real GPS ----
-    gpsModule.update();
+  // ---- GPS ----
+  bool gpsUpdated = gpsModule.update();
 
-    // One-time RTC sync from GPS time
-    static bool rtcSyncedFromGPS = false;
-    if(!rtcSyncedFromGPS && gpsModule.hasValidTime())
+  // One-time RTC sync from GPS time (only check when GPS actually polled new data)
+  static bool rtcSyncedFromGPS = false;
+  if(gpsUpdated && !rtcSyncedFromGPS && gpsModule.hasValidTime())
+  {
+    uint32_t oldSeconds = currentData.currentSeconds;
+    uint32_t gpsSeconds = gpsModule.getGPSSecondsSince2000();
+
+    logger.log(INFO, "Syncing RTC from GPS: old=%lu new=%lu (delta %ld s)",
+               oldSeconds, gpsSeconds, (long)(gpsSeconds - oldSeconds));
+
+    currentData.setTime(gpsSeconds);
+
+    // Adjust TripData start times to preserve elapsed durations
+    sinceLastStop.adjustForTimeSync(oldSeconds, gpsSeconds);
+    currentSegment.adjustForTimeSync(oldSeconds, gpsSeconds);
+    fullTrip.adjustForTimeSync(oldSeconds, gpsSeconds);
+
+    rtcSyncedFromGPS = true;
+    logger.log(INFO, "RTC synced from GPS");
+  }
+
+  if(gpsUpdated && gpsModule.hasFix())
+  {
+    float lat = gpsModule.getLatitude();
+    float lon = gpsModule.getLongitude();
+    float elev = currentData.currentElevation;
+    float spd = currentData.currentSpeed;
+
+    trackLogger.logPoint(lat, lon, elev, spd, currentData.currentSeconds);
+
+    if(wifi.isConnected())
     {
-      uint32_t oldSeconds = currentData.currentSeconds;
-      uint32_t gpsSeconds = gpsModule.getGPSSecondsSince2000();
-
-      logger.log(INFO, "Syncing RTC from GPS: old=%lu new=%lu (delta %ld s)",
-                 oldSeconds, gpsSeconds, (long)(gpsSeconds - oldSeconds));
-
-      currentData.setTime(gpsSeconds);
-
-      // Adjust TripData start times to preserve elapsed durations
-      sinceLastStop.adjustForTimeSync(oldSeconds, gpsSeconds);
-      currentSegment.adjustForTimeSync(oldSeconds, gpsSeconds);
-      fullTrip.adjustForTimeSync(oldSeconds, gpsSeconds);
-
-      rtcSyncedFromGPS = true;
-      logger.log(INFO, "RTC synced from GPS");
-    }
-
-    if(gpsModule.hasFix())
-    {
-      float lat = gpsModule.getLatitude();
-      float lon = gpsModule.getLongitude();
-      float elev = currentData.currentElevation;
-      float spd = currentData.currentSpeed;
-
-      trackLogger.logPoint(lat, lon, elev, spd, currentData.currentSeconds);
-
-      if(wifi.isConnected())
-      {
-        traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
-        traccarUploader.uploadBuffered();
-
-        // Auto-end Traccar trip when returning home
-        if(traccarTripActive)
-        {
-          float dLat = (lat - HOME_LAT) * 111320.0;
-          float dLon = (lon - HOME_LON) * 111320.0 * cos(lat * 0.01745329);
-          float distM = sqrt(dLat * dLat + dLon * dLon);
-          if(distM < HOME_RADIUS_M)
-          {
-            logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
-            traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
-            traccarTripActive = false;
-          }
-        }
-
-        int rawBaro = currentData.getRawBaroElevation();
-        if(elevationAPI.update(lat, lon, rawBaro))
-        {
-          int newOffset = elevationAPI.getElevationOffset();
-          currentData.setBaroElevationOffset(newOffset);
-          propBag.data.elevationOffset = newOffset;
-          propBag.savePropBag();
-        }
-      }
-    }
-  #else
-    // ---- Simulated GPS: Home → Everett → Home ----
-    gpsSimulator.update();
-
-    if(gpsSimulator.hasFix() && wifi.isConnected())
-    {
-      float lat = gpsSimulator.getLatitude();
-      float lon = gpsSimulator.getLongitude();
-      float elev = gpsSimulator.getElevation();
-      float spd = gpsSimulator.getSpeed();
-
       traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
+      traccarUploader.uploadBuffered();
 
       // Auto-end Traccar trip when returning home
       if(traccarTripActive)
@@ -498,7 +422,7 @@ void loop()
         float distM = sqrt(dLat * dLat + dLon * dLon);
         if(distM < HOME_RADIUS_M)
         {
-          logger.log(INFO, "Home geofence (sim): %fm — ending Traccar trip", distM);
+          logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
           traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
           traccarTripActive = false;
         }
@@ -513,8 +437,7 @@ void loop()
         propBag.savePropBag();
       }
     }
-  #endif
-#endif
+  }
 
   //new values to process?
   if(retVal)
@@ -843,29 +766,18 @@ void myGenieEventHandler(void)
       break;  
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
-      #ifdef GPS_ENABLED
       {
         // Signal Traccar: end previous trip (ignition off) then start new one (ignition on)
-        // In sim mode, use simulator coords (currentData GPS fields are 0,0 without real hardware)
-        #ifdef SIMULATE_GPS
-        gpsSimulator.init();  // restart simulated route on new trip
-        float tripLat = gpsSimulator.getLatitude();
-        float tripLon = gpsSimulator.getLongitude();
-        float tripElev = gpsSimulator.getElevation();
-        float tripSpd  = gpsSimulator.getSpeed();
-        #else
         float tripLat = currentData.currentLatitude;
         float tripLon = currentData.currentLongitude;
         float tripElev = currentData.currentElevation;
         float tripSpd  = currentData.currentSpeed;
-        #endif
         logger.log(INFO, "Starting new Traccar trip at %f,%f — sending ignition OFF then ON", tripLat, tripLon);
         traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
         traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
         traccarTripActive = true;
         logger.log(INFO, "Traccar trip active — home geofence armed at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
       }
-      #endif
       currentData.setTime(10);
       idlingStartSeconds=currentData.currentSeconds; 
       sinceLastStop.resetTripData();
@@ -1033,7 +945,6 @@ void logCurrentData()
   wifi.sendResponse("Done!");
 }
 
-#if defined(GPS_ENABLED) && !defined(SIMULATE_GPS)
 // ---- HTTP handlers for GPS track files ----
 
 void handleTrackList()
@@ -1155,4 +1066,3 @@ void handleElevationCalib()
   html += "<br><a href='/elevation?recalibrate=1'>Force Recalibrate Now</a>";
   wifi.sendResponse(html);
 }
-#endif

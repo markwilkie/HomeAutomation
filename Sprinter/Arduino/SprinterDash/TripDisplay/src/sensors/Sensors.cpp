@@ -333,28 +333,26 @@ void IgnState::init(int _refreshTicks)
 
 bool IgnState::getIgnState()
 {
-    //don't update if it's not time to
+    //Sample one digitalRead per call, spaced 50ms apart (non-blocking)
     if(millis()<nextTickCount)
         return ignState;
+    nextTickCount=millis()+50;
 
-    //Update timing
-    nextTickCount=millis()+refreshTicks;
-
-    //Read state - accounting for noise
-    int ignOn=0;
-    int ignOff=0;
-    for(int i=0;i<10;i++)
-    {
-      delay(50);
-      if(digitalRead(IGN_PIN))
-        ignOn++;
-      else
-        ignOff++;
-    }
-    if(ignOn>=ignOff)
-      ignState=true;
+    //Accumulate samples
+    if(digitalRead(IGN_PIN))
+      ignOnCount++;
     else
-      ignState=false;
+      ignOffCount++;
+    sampleCount++;
+
+    //After 10 samples (~500ms total), decide
+    if(sampleCount>=10)
+    {
+      ignState=(ignOnCount>=ignOffCount);
+      ignOnCount=0;
+      ignOffCount=0;
+      sampleCount=0;
+    }
 
     return ignState;
 }
@@ -374,18 +372,22 @@ void LDR::init(int _refreshTicks)
 
 int LDR::readLightLevel()
 {
-    //don't update if it's not time to
+    //Sample one ADC read per call, spaced refreshTicks/OVERSAMPLE_COUNT apart (non-blocking)
     if(millis()<nextTickCount)
         return lightLevel;
+    nextTickCount=millis()+(refreshTicks/OVERSAMPLE_COUNT);
 
-    //Update timing
-    nextTickCount=millis()+refreshTicks;
+    //Accumulate samples
+    sampleAccum += analogRead(LDR_ADC_PIN);
+    sampleCount++;
 
-    //Read LDR with some smoothing
-    for(int i=0;i<LDR_ADC_OVERSAMPLE;i++)
+    //After OVERSAMPLE_COUNT samples, average and smooth
+    if(sampleCount>=OVERSAMPLE_COUNT)
     {
-      lightLevel = analogRead(LDR_ADC_PIN)*0.25 + lightLevel*0.75;
-      delay(10);
+      int avg = sampleAccum / OVERSAMPLE_COUNT;
+      lightLevel = avg * 0.25 + lightLevel * 0.75;
+      sampleCount=0;
+      sampleAccum=0;
     }
 
     return lightLevel;

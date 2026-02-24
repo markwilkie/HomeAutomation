@@ -1,15 +1,6 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-// ---- Feature flags ----
-#define DISABLE_GPS      // Comment out or remove this line to re-enable real GPS hardware
-#define SIMULATE_GPS     // When defined (with DISABLE_GPS), uses fake route data and still uploads to Traccar
-
-// Convenience: true when Traccar/tracking code should be compiled (real OR simulated GPS)
-#if !defined(DISABLE_GPS) || defined(SIMULATE_GPS)
-  #define GPS_ENABLED
-#endif
-
 //
 // Globals.h — extern declarations for shared objects
 //

@@ -12,7 +12,7 @@
 - Pressure sensor for altitude and MAF.  (I'm using MPL3115A2 from Adafruit)
 - Differential pressure sensor for pitot. (I'm using P1J-12.5MB-AX16PA https://www.sensata.com/products/pressure-sensors-switches/p1j-low-pressure-sensor-125-mbar-i2c-p1j-125mb-ax16pa)
 - Real Time Clock (I'm using PCF8523 from Adafruit)
-- GPS module for position tracking (Adafruit PA1010D / MTK3333, I2C at 0x10)
+- GPS module for position tracking (DFRobot TEL0157 / Quectel L76K, I2C at 0x20)
 
 ### Arduino Libraries Required
 | Library | Used By | Install Via |
@@ -21,7 +21,7 @@
 | `RTClib` | PCF8523 real-time clock | Library Manager |
 | `genieArduino` | 4D Systems LCD | Library Manager |
 | `ArduinoJson` | WiFi server responses | Library Manager |
-| `Adafruit GPS Library` | PA1010D GPS module | Library Manager |
+| `DFRobot_GNSS` | TEL0157 GPS module | Library Manager |
 | `LittleFS` | Track file storage | Built into ESP32 core |
 
 # Screens
@@ -88,7 +88,7 @@ The PCF8523 real-time clock starts at its default epoch (Jan 1, 2000, 00:00:00) 
 - **CurrentData** holds the live data from both the ECU and sensors.  It does no aggregation and very little calculation.
 - **Sensors** is used by CurrentData
 - **TripData** has three instances - since last stop, current segment, full trip.  Calculations are done on an as-needed basis when requested.
-- **GPSModule** wraps the Adafruit PA1010D GPS over I2C.  Reads NMEA sentences every loop, caches lat/lon/alt/speed/satellites.  Must call `update()` frequently to drain the NMEA buffer.
+- **GPSModule** wraps the DFRobot TEL0157 (Quectel L76K) GPS over I2C.  Polls position/time registers periodically, caches lat/lon/alt/speed/satellites.
 - **TrackLogger** writes GPX trackpoint files to LittleFS.  Manages file rotation (one per day), storage monitoring, and automatic thinning of older files when flash nears capacity.  Preserves start/end of each trip at full resolution.
 - **TraccarUploader** sends positions to a remote Traccar server using the OsmAnd HTTP protocol.  Operates in live mode (immediate send when WiFi is up) and batch mode (replays stored GPX files when WiFi returns after offline driving).
 - **ElevationAPI** auto-calibrates the barometric altimeter by querying the Open Topo Data public API (NED 10m DEM).  Computes an offset that corrects weather-induced barometric drift, persisted in PropBag/EEPROM.
@@ -107,7 +107,7 @@ The system logs GPS position data to the ESP32's flash storage (LittleFS) as sta
 All sensors share a single I2C bus:
 | Address | Device | Data |
 |---------|--------|------|
-| `0x10` | **Adafruit PA1010D** (MTK3333 GPS) | Latitude, longitude, GPS altitude, speed, satellites |
+| `0x20` | **DFRobot TEL0157** (Quectel L76K GPS) | Latitude, longitude, GPS altitude, speed, satellites |
 | `0x28` | **Sensata P1J** (pitot pressure) | Differential pressure for airspeed |
 | `0x60` | **Adafruit MPL3115A2** (barometer) | Barometric altitude (feet), atmospheric pressure |
 | `0x68` | **PCF8523** (RTC) | Time (seconds since 2000) |
@@ -115,7 +115,7 @@ All sensors share a single I2C bus:
 ### How It Works
 
 **Every loop iteration:**
-1. `gpsModule.update()` reads NMEA sentences from the PA1010D over I2C
+1. `gpsModule.update()` reads position data from the TEL0157 over I2C
 2. When GPS has a fix, a trackpoint is logged combining:
    - **Lat/lon** from GPS (horizontal position)
    - **Elevation** from the MPL3115A2 barometer, not GPS (barometric altitude has ~1m resolution vs GPS's ~10-30m)
@@ -126,7 +126,7 @@ All sensors share a single I2C bus:
 
 ### Data Flow
 ```
-PA1010D GPS ──→ lat/lon          ─┐
+TEL0157 GPS  ──→ lat/lon          ─┐
 MPL3115A2   ──→ elevation (feet)  ├──→ TrackLogger ──→ LittleFS (/tracks/*.gpx)
 OBD-II/CAN  ──→ speed (mph)      │                         │
 PCF8523 RTC ──→ timestamp        ─┘                         │

@@ -22,13 +22,11 @@ extern Logger logger;
 //declared in main ino program
 extern void logCurrentData();
 extern void logTripData();
-#if defined(GPS_ENABLED) && !defined(SIMULATE_GPS)
 extern void handleTrackList();
 extern void handleTrackDownload();
 extern void handleTrackDelete();
 extern void handleTrackStorage();
 extern void handleElevationCalib();
-#endif
 
 class VanWifi 
 {
