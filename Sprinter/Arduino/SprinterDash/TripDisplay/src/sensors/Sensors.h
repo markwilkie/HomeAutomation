@@ -43,6 +43,11 @@ class Barometer
     int elevation=0;
     double pressure=0;
 
+    //Non-blocking state machine
+    enum BaroState { BARO_IDLE, BARO_CONVERTING };
+    BaroState baroState = BARO_IDLE;
+    bool readingPressure = false;  //false=altitude, true=pressure
+
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again
 };

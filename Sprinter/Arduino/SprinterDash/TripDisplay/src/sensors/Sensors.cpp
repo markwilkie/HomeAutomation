@@ -18,6 +18,12 @@ void Barometer::setup()
 
   //For filtering out outlier values  (9 value window, 50 threshold, and 3x outlier override)
   filter.init(9, 50, 3);
+
+  //Kick off the first conversion so we have data ASAP
+  baro.setMode(MPL3115A2_ALTIMETER);
+  baro.startOneShot();
+  baroState = BARO_CONVERTING;
+  readingPressure = false;
 }
 
 bool Barometer::isOnline()
@@ -27,47 +33,78 @@ bool Barometer::isOnline()
 
 void Barometer::update()
 {
-  //don't update if it's not time to
-  if(millis()<nextTickCount)
-      return;
-  nextTickCount=millis()+refreshTicks;
-
-  //handle interval
-  currentElevReadCount++;
-
-  //Alternate between altimeter and pressure readings because it takes almost 400ms per reading
-  if(currentElevReadCount>ATMOS_READ_INTERVAL || pressure==0)
+  //State machine: IDLE waits for refresh interval, then starts a conversion.
+  //CONVERTING polls conversionComplete() — no blocking.
+  switch(baroState)
   {
-    pressure = baro.getPressure();  //in pascals
-    currentElevReadCount=0;
-    return;
+    case BARO_IDLE:
+    {
+      //don't start a new conversion until it's time
+      if(millis()<nextTickCount)
+          return;
 
-    //logger.log(VERBOSE,"Pressure: %f",pressure);
+      //Decide what to read next
+      currentElevReadCount++;
+      if(currentElevReadCount>ATMOS_READ_INTERVAL || pressure==0)
+      {
+        readingPressure=true;
+        baro.setMode(MPL3115A2_BAROMETER);
+      }
+      else
+      {
+        readingPressure=false;
+        baro.setMode(MPL3115A2_ALTIMETER);
+      }
+
+      //Kick off one-shot conversion (non-blocking since OST is already clear)
+      baro.startOneShot();
+      baroState=BARO_CONVERTING;
+      break;
+    }
+
+    case BARO_CONVERTING:
+    {
+      //Poll — just reads one I2C status byte, ~0.1ms
+      if(!baro.conversionComplete())
+        return;
+
+      //Conversion done — schedule next read
+      nextTickCount=millis()+refreshTicks;
+      baroState=BARO_IDLE;
+
+      if(readingPressure)
+      {
+        //Read pressure result (same units as getPressure() — hPa)
+        pressure = baro.getLastConversionResults(MPL3115A2_PRESSURE);
+        currentElevReadCount=0;
+        return;
+      }
+
+      //Read altitude result
+      int baroElevation = baro.getLastConversionResults(MPL3115A2_ALTITUDE) * 3.28084;
+
+      if(!online && pressure!=0)
+      {
+        logger.log(INFO,"Barometer online!  Altitude: %d Pressure: %f",baroElevation,pressure); 
+        online=true; 
+      }
+      
+      //If no API-based calibration yet, use poor man's calibration to prevent negative readings
+      //Once ElevationAPI sets a real offset, this block is effectively bypassed because
+      //the API offset will keep readings reasonable.
+      if(baroElevation<0 && (baroElevation*-1)>elevationOffset)
+      {
+        elevationOffset=baroElevation*-1;
+      }
+
+      bool isNotOutlierFlag = filter.writeIfNotOutlier(baroElevation);
+      if(isNotOutlierFlag)
+        elevation = baroElevation+elevationOffset;
+      else
+        logger.log(VERBOSE,"Elevation Outlier: %d   Avg: %d",baroElevation,filter.readAvg());
+      break;
+    }
   }
-
-  //Let's read elevation with some bounds checking thrown
-  int baroElevation = baro.getAltitude() * 3.28084;
-
-  //debg info
-  if(!online && pressure!=0)
-  {
-    logger.log(INFO,"Barometer online!  Altitude: %d Pressure: %f",baroElevation,pressure); 
-    online=true; 
-  }
-  
-  //If no API-based calibration yet, use poor man's calibration to prevent negative readings
-  //Once ElevationAPI sets a real offset, this block is effectively bypassed because
-  //the API offset will keep readings reasonable.
-  if(baroElevation<0 && (baroElevation*-1)>elevationOffset)
-  {
-    elevationOffset=baroElevation*-1;
-  }
-
-  bool isNotOutlierFlag = filter.writeIfNotOutlier(baroElevation);
-  if(isNotOutlierFlag)
-    elevation = baroElevation+elevationOffset;
-  else
-    logger.log(VERBOSE,"Elevation Outlier: %d   Avg: %d",baroElevation,filter.readAvg());  
 }
 
 int Barometer::getElevation()
