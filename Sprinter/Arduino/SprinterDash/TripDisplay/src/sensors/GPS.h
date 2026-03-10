@@ -46,6 +46,7 @@ private:
     DFRobot_GNSS_I2C gnss = DFRobot_GNSS_I2C(&Wire, GNSS_DEVICE_ADDR);
     bool online = false;
     bool fix = false;
+    bool firstFixLogged = false;
 
     // Cached values
     float latitude = 0;

@@ -14,8 +14,8 @@
       correctedElevation = rawBaroElevation + elevationOffset
 
   API details:
-    Endpoint:  https://api.opentopodata.org/v1/ned10m?locations={lat},{lon}
-    Dataset:   NED 10m (~10m horizontal resolution, covers CONUS)
+    Endpoint:  https://api.opentopodata.org/v1/aster30m?locations={lat},{lon}
+    Dataset:   ASTER 30m (~30m horizontal resolution, near-global 83N-83S)
     Rate limit: 1 request/second, 1000 requests/day (free, no API key)
     Response:  {"results":[{"elevation":815.0,...}],"status":"OK"}
 
@@ -42,7 +42,7 @@ extern Logger logger;
 
 // Open Topo Data public API (free, no key required, 1000 calls/day)
 #define ELEVATION_API_HOST    "api.opentopodata.org"
-#define ELEVATION_API_DATASET "ned10m"
+#define ELEVATION_API_DATASET "aster30m"    // near-global (83N-83S), 30m res.  Was ned10m (CONUS only)
 
 // How often to re-calibrate (milliseconds)
 // 30 minutes = 48 calls/day, well under the 1000/day free limit

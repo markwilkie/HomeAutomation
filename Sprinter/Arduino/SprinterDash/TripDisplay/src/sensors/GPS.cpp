@@ -41,19 +41,36 @@ bool GPSModule::update()
 
     if (fix)
     {
-        // Apply sign based on direction (S = negative lat, W = negative lon)
-        latitude  = (lat.latDirection == 'S') ? -lat.latitudeDegree : lat.latitudeDegree;
-        longitude = (lon.lonDirection == 'W') ? -lon.lonitudeDegree : lon.lonitudeDegree;
+        // Raw unsigned degree values from the TEL0157
+        latitude  = lat.latitudeDegree;
+        longitude = lon.lonitudeDegree;
+
+        // TEL0157 BUG: direction characters are swapped between getLat/getLon.
+        // getLat().latDirection actually contains the LONGITUDE direction (W/E)
+        // getLon().lonDirection actually contains the LATITUDE direction (N/S)
+        char latD = lon.lonDirection;   // N or S (swapped from lon register)
+        char lonD = lat.latDirection;   // W or E (swapped from lat register)
+        if (latD == 'S' || latD == 's') latitude  = -latitude;
+        if (lonD == 'W' || lonD == 'w') longitude = -longitude;
+
         gpsAltitude = gnss.getAlt();
         speedKnots  = gnss.getSog();
         course      = gnss.getCog();
 
-        if (!online)
+        if (!firstFixLogged)
         {
-            logger.log(INFO, "GPS has fix!  Lat: %f  Lon: %f  Sats: %d", 
-                       (double)latitude, (double)longitude, satellites);
-            online = true;
+            firstFixLogged = true;
+            // Logger doesn't support %X or width specifiers — use %d for hex-like diag
+            logger.log(INFO, "GPS fix! Sats:%d latDir=%c(%d) lonDir=%c(%d)",
+                       satellites,
+                       latD, (int)latD,
+                       lonD, (int)lonD);
+            logger.log(INFO, "GPS raw lat:%f lon:%f", (double)lat.latitudeDegree, (double)lon.lonitudeDegree);
+            logger.log(INFO, "GPS signed lat:%f lon:%f", (double)latitude, (double)longitude);
         }
+
+        if (!online)
+            online = true;
     }
 
     return true;

@@ -117,7 +117,9 @@ bool ElevationAPI::queryAPI(float lat, float lon, float &elevMeters)
              "https://%s/v1/%s?locations=%.6f,%.6f",
              ELEVATION_API_HOST, ELEVATION_API_DATASET, lat, lon);
 
-    logger.log(VERBOSE, "ElevationAPI: GET %s", url);
+    logger.log(INFO, "ElevationAPI: GET %s", url);
+    logger.log(INFO, "ElevationAPI: lat=%f lon=%f", (double)lat, (double)lon);
+
 
     http.begin(url);
     http.setTimeout(ELEVATION_API_TIMEOUT);

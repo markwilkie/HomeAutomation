@@ -82,6 +82,7 @@ void Barometer::update()
 
       //Read altitude result
       int baroElevation = baro.getLastConversionResults(MPL3115A2_ALTITUDE) * 3.28084;
+      rawElevation = baroElevation;  // store true raw value before any offset
 
       if(!online && pressure!=0)
       {
@@ -116,7 +117,7 @@ int Barometer::getElevation()
 // Used by ElevationAPI to compute the calibration offset.
 int Barometer::getRawElevation()
 {
-  return elevation - elevationOffset;
+  return rawElevation;
 }
 
 // Set the elevation offset (feet) from external calibration (ElevationAPI).

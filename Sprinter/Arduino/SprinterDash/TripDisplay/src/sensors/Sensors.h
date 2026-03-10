@@ -41,6 +41,7 @@ class Barometer
 
     //Data
     int elevation=0;
+    int rawElevation=0;   // raw baro reading before offset (for ElevationAPI)
     double pressure=0;
 
     //Non-blocking state machine

@@ -215,9 +215,9 @@ correctedElevation = rawBaroElevation + elevationOffset
 - Falls back to the original "poor man's calibration" (prevent-negative) if no API calibration has occurred
 
 ### API Details
-- **Endpoint**: `https://api.opentopodata.org/v1/ned10m?locations={lat},{lon}`
+- **Endpoint**: `https://api.opentopodata.org/v1/aster30m?locations={lat},{lon}`
 - **Rate limit**: 1 request/second, 1000 requests/day (free, no API key required)
-- **Dataset**: NED 1/3 arcsecond (~10m resolution, covers continental US)
+- **Dataset**: ASTER 30m (~30m resolution, near-global coverage 83°N–83°S)
 - **Response**: `{"results":[{"elevation":815.0,...}],"status":"OK"}`
 
 ### HTTP Diagnostics
