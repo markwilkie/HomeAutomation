@@ -82,6 +82,8 @@ TraccarUploader traccarUploader;
 #define HOME_LON -122.274359
 #define HOME_RADIUS_M 200.0   // meters from home to trigger arrival
 bool traccarTripActive = false;  // true after "Start New Trip" sends ignition ON
+bool pendingTraccarTripStart = false;  // deferred until GPS fix available
+bool leftHomeAfterTripStart = false;   // true once GPS confirms we've left the home radius
 
 //GPS and track logging
 GPSModule gpsModule;
@@ -411,16 +413,36 @@ void loop()
 
     if(wifi.isConnected())
     {
+      // Deferred trip start: send ignition ON now that we have real coordinates
+      if(pendingTraccarTripStart)
+      {
+        logger.log(INFO, "Traccar deferred trip start at %f,%f", (double)lat, (double)lon);
+        traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
+        traccarUploader.sendIgnitionEvent(true, lat, lon, elev, spd, currentData.currentSeconds + 1);  // +1s so Traccar sees OFF before ON
+        traccarTripActive = true;
+        pendingTraccarTripStart = false;
+        leftHomeAfterTripStart = false;
+        logger.log(INFO, "Traccar trip active — geofence armed once we leave home at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
+      }
+
       traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
       traccarUploader.uploadBuffered();
 
-      // Auto-end Traccar trip when returning home
+      // Auto-end Traccar trip when returning home (only after we've left home first)
       if(traccarTripActive)
       {
         float dLat = (lat - HOME_LAT) * 111320.0;
         float dLon = (lon - HOME_LON) * 111320.0 * cos(lat * 0.01745329);
         float distM = sqrt(dLat * dLat + dLon * dLon);
-        if(distM < HOME_RADIUS_M)
+
+        // Track when we've actually left the home area (2km to avoid GPS jitter)
+        if(!leftHomeAfterTripStart && distM >= 2000.0)
+        {
+          leftHomeAfterTripStart = true;
+          logger.log(INFO, "Left home geofence: %fm — trip end now armed", distM);
+        }
+
+        if(leftHomeAfterTripStart && distM < HOME_RADIUS_M)
         {
           logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
           traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
@@ -768,15 +790,9 @@ void myGenieEventHandler(void)
       logger.log(VERBOSE,"Start Trip button pressed!");
       {
         // Signal Traccar: end previous trip (ignition off) then start new one (ignition on)
-        float tripLat = currentData.currentLatitude;
-        float tripLon = currentData.currentLongitude;
-        float tripElev = currentData.currentElevation;
-        float tripSpd  = currentData.currentSpeed;
-        logger.log(INFO, "Starting new Traccar trip at %f,%f — sending ignition OFF then ON", tripLat, tripLon);
-        traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
-        traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
-        traccarTripActive = true;
-        logger.log(INFO, "Traccar trip active — home geofence armed at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
+        // Defer Traccar ignition events until GPS has a fix (avoids sending 0,0)
+        pendingTraccarTripStart = true;
+        logger.log(INFO, "New trip — Traccar trip start deferred until GPS fix");
       }
       currentData.setTime(10);
       idlingStartSeconds=currentData.currentSeconds; 
