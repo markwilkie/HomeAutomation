@@ -14,6 +14,10 @@ struct PropBagStruct
 
     //Auto-calibration offset for barometric altimeter (feet).
     int elevationOffset=0;
+
+    //Last known GPS position (saved on shutdown, restored on boot)
+    float lastLat=0;
+    float lastLon=0;
 };
 
 class PropBag

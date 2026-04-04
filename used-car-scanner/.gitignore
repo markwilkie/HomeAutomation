@@ -1,0 +1,25 @@
+# Temp / generated folders
+__pycache__/
+logs/
+output/
+
+# Browser profiles (Playwright/Chromium)
+.browser-profile/
+.cg_profile/
+.fb_profile/
+
+# Python
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.venv/
+venv/
+
+# Caches
+*.cache
+distance_cache.json

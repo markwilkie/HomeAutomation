@@ -9,6 +9,7 @@ void PropBag::resetPropBag()
     data.pitotCalibration=PITOT_CALIB;
     data.instMPGFactor=INST_MPG_FACTOR;
     data.elevationOffset=0;
+    //lastLat/lastLon intentionally preserved — they represent physical location, not trip state
 }
 
 int PropBag::getPropDataSize()
@@ -46,4 +47,5 @@ void PropBag::dumpPropBag()
     logger.log(INFO,"   Inst MPG Factor: %f",data.instMPGFactor);
     logger.log(INFO,"   Pitot Calib: %f",data.pitotCalibration);
     logger.log(INFO,"   Elevation Offset: %d",data.elevationOffset);
+    logger.log(INFO,"   Last GPS: %f,%f",(double)data.lastLat,(double)data.lastLon);
 }

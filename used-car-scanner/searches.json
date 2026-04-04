@@ -1,0 +1,27 @@
+{
+    "Frontier": {
+    "make": "Nissan",
+    "model": "Frontier",
+    "facebook_query": "nissan frontier 4x4",
+    "min_year": 2009,
+    "max_year": 2020,
+    "min_price": 9000,
+    "max_price": 16100,
+    "max_miles": 150000,
+    "title": "Nissan Frontier",
+    "pre_reject": {
+      "cab": {
+        "reject": "crew cab|Crew/Super Crew|4D Crew",
+        "override": "king cab|extended cab"
+      },
+      "rwd": {
+        "reject": "4x2|4\u00d72|2x4|2\u00d74|RWD|2WD|rear-wheel drive|rear wheel drive",
+        "override": "4x4|4\u00d74|4WD|AWD|four-wheel drive|all-wheel drive"
+      },
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      }
+    },
+    "prompt": ""
+  }
+}

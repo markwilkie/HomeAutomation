@@ -35,6 +35,9 @@ public:
     float getSpeedKnots();
     float getCourse();
 
+    // Seed with last known position from EEPROM (used before first fix)
+    void setLastKnownPosition(float lat, float lon);
+
     // Time (from GPS NMEA sentences)
     bool     hasValidTime();          // true when GPS has a plausible date/time
     uint32_t getGPSSecondsSince2000(); // seconds since Jan 1 2000 from GPS clock

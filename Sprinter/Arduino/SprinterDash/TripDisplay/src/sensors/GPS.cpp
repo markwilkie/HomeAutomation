@@ -106,6 +106,12 @@ float GPSModule::getSpeedKnots()
     return speedKnots;
 }
 
+void GPSModule::setLastKnownPosition(float lat, float lon)
+{
+    latitude = lat;
+    longitude = lon;
+}
+
 float GPSModule::getCourse()
 {
     return course;

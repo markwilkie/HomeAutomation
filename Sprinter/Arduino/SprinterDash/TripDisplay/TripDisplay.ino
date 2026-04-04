@@ -199,6 +199,13 @@ void setup()
   bootForm.updateDisplay("Loading data from EEPROM...",formNavigator.getActiveForm());
   propBag.loadPropBag();
 
+  //Seed GPS with last known position from EEPROM
+  if(propBag.data.lastLat != 0.0 || propBag.data.lastLon != 0.0)
+  {
+    gpsModule.setLastKnownPosition(propBag.data.lastLat, propBag.data.lastLon);
+    logger.log(INFO,"Seeded GPS with last known position: %f,%f",(double)propBag.data.lastLat,(double)propBag.data.lastLon);
+  }
+
   //Initialize or load data from EEPROM for each of the trip bucket objects
   logger.log(INFO,"Loading trip data from EEPROM");
   currentSegment.loadTripData(propBag.getPropDataSize());
@@ -639,6 +646,8 @@ void handleStatupAndShutdown()
         //Save to EEPROM
         logger.log(INFO,"Saving trip and prop bag data to EEPROM and activating STOPPING form");
         logger.sendLogs(wifi.isConnected());
+        propBag.data.lastLat=gpsModule.getLatitude();
+        propBag.data.lastLon=gpsModule.getLongitude();
         propBag.savePropBag();
         currentSegment.saveTripData(propBag.getPropDataSize());
         fullTrip.saveTripData(propBag.getPropDataSize());
@@ -790,9 +799,28 @@ void myGenieEventHandler(void)
       logger.log(VERBOSE,"Start Trip button pressed!");
       {
         // Signal Traccar: end previous trip (ignition off) then start new one (ignition on)
-        // Defer Traccar ignition events until GPS has a fix (avoids sending 0,0)
-        pendingTraccarTripStart = true;
-        logger.log(INFO, "New trip — Traccar trip start deferred until GPS fix");
+        float tripLat = gpsModule.getLatitude();
+        float tripLon = gpsModule.getLongitude();
+        if(wifi.isConnected() && (tripLat != 0.0 || tripLon != 0.0))
+        {
+          // Use current fix or last known position
+          float tripElev = currentData.currentElevation;
+          float tripSpd = currentData.currentSpeed;
+          logger.log(INFO, "Traccar trip start at %s fix %f,%f",
+                     gpsModule.hasFix() ? "current" : "last known",
+                     (double)tripLat, (double)tripLon);
+          traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
+          traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds + 1);
+          traccarTripActive = true;
+          pendingTraccarTripStart = false;
+          leftHomeAfterTripStart = false;
+        }
+        else
+        {
+          // No coordinates at all — defer until GPS gets a fix
+          pendingTraccarTripStart = true;
+          logger.log(INFO, "New trip — Traccar trip start deferred until GPS fix");
+        }
       }
       currentData.setTime(10);
       idlingStartSeconds=currentData.currentSeconds; 

@@ -105,7 +105,6 @@ void TrackLogger::openNewFile(uint32_t secondsSince2000)
         {
             f.print(GPX_HEADER);
             f.close();
-            logger.log(INFO, "New track file: %s", currentFileName.c_str());
         }
     }
 }

@@ -31,7 +31,55 @@
 void TraccarUploader::init(TrackLogger *_trackLogger)
 {
     trackLoggerPtr = _trackLogger;
-    logger.log(INFO, "TraccarUploader ready -> %s:%d id=%s", TRACCAR_HOST, TRACCAR_PORT, TRACCAR_DEVICE_ID);
+
+    // Create the request queue and background task on Core 0
+    _requestQueue = xQueueCreate(TRACCAR_QUEUE_SIZE, sizeof(TraccarRequest));
+    xTaskCreatePinnedToCore(backgroundTask, "TraccarHTTP", 8192, this, 1, &_taskHandle, 0);
+
+    logger.log(INFO, "TraccarUploader ready (async) -> %s:%d id=%s", TRACCAR_HOST, TRACCAR_PORT, TRACCAR_DEVICE_ID);
+}
+
+// ---- Background task running on Core 0 ----
+// Drains the queue and does the blocking HTTP calls off the main loop.
+
+void TraccarUploader::backgroundTask(void* param)
+{
+    TraccarUploader* self = (TraccarUploader*)param;
+    TraccarRequest req;
+
+    for (;;)
+    {
+        // Block until a request is available (portMAX_DELAY = wait forever)
+        if (xQueueReceive(self->_requestQueue, &req, portMAX_DELAY) == pdTRUE)
+        {
+            if (self->sendToTraccar(req.lat, req.lon, req.elevMeters, req.speedKnots, req.unixTimestamp, req.ignition))
+                self->uploadedCount++;
+            else
+                self->failedCount++;
+        }
+    }
+}
+
+// ---- Enqueue a request for the background task ----
+// Returns true if queued, false if the queue is full (request is dropped).
+
+bool TraccarUploader::enqueue(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition)
+{
+    if (_requestQueue == nullptr)
+        return false;
+
+    TraccarRequest req = { lat, lon, elevMeters, speedKnots, unixTimestamp, ignition };
+
+    // If queue is full, drop the oldest entry to make room for the newest
+    if (xQueueSend(_requestQueue, &req, 0) != pdTRUE)
+    {
+        TraccarRequest discarded;
+        xQueueReceive(_requestQueue, &discarded, 0);  // remove oldest
+        logger.log(WARNING, "Traccar queue full — dropped oldest position");
+        failedCount++;
+        xQueueSend(_requestQueue, &req, 0);  // now guaranteed to succeed
+    }
+    return true;
 }
 
 // ---- Live position sending ----
@@ -58,15 +106,7 @@ void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, flo
 
     logger.log(VERBOSE, "Traccar live: %f,%f elev=%fm spd=%fkn", lat, lon, elevMeters, speedKnots);
 
-    if (sendToTraccar(lat, lon, elevMeters, speedKnots, unixTs))
-    {
-        uploadedCount++;
-    }
-    else
-    {
-        failedCount++;
-        logger.log(WARNING, "Traccar live send failed (total failures: %d)", failedCount);
-    }
+    enqueue(lat, lon, elevMeters, speedKnots, unixTs);
 }
 
 // ---- Batch upload of stored GPX files ----
@@ -91,8 +131,6 @@ void TraccarUploader::uploadBuffered()
     if (fileCount == 0)
         return;
 
-    logger.log(INFO, "Traccar batch: %d track file(s) to upload", fileCount);
-
     // Process a few points per call to avoid blocking the main loop
     int pointsSent = 0;
 
@@ -107,8 +145,7 @@ void TraccarUploader::uploadBuffered()
         if (!f)
             continue;
 
-        // Parse each <trkpt> line and upload
-        bool allSent = true;
+        // Parse each <trkpt> line and enqueue for background upload
         int lineNum = 0;
 
         while (f.available() && pointsSent < BATCH_POINTS_PER_LOOP)
@@ -169,34 +206,18 @@ void TraccarUploader::uploadBuffered()
 
             if (lat != 0 && lon != 0)
             {
-                if (sendToTraccar(lat, lon, ele, spd, ts))
-                {
-                    uploadedCount++;
-                    pointsSent++;
-                }
-                else
-                {
-                    // Upload failed - pause and retry later
-                    allSent = false;
-                    currentBatchFileIndex = fi;
-                    currentBatchLineIndex = lineNum;
-                    nextBatchRetry = millis() + BATCH_RETRY_INTERVAL;
-                    logger.log(WARNING, "Traccar batch failed at line %d, retrying in %ds", lineNum, BATCH_RETRY_INTERVAL / 1000);
-                    f.close();
-                    return;
-                }
+                enqueue(lat, lon, ele, spd, ts);
+                pointsSent++;
             }
         }
 
         f.close();
 
-        // If we processed the whole file, delete it
-        if (allSent && !f.available())
-        {
-            trackLoggerPtr->deleteFile(filename);
-            logger.log(INFO, "Uploaded and deleted track: %s", filename.c_str());
-            currentBatchLineIndex = 0;  // reset for next file
-        }
+        // Fire-and-forget: delete after all points are queued.
+        // Some may be dropped if the queue is full, but that's acceptable.
+        trackLoggerPtr->deleteFile(filename);
+        logger.log(INFO, "Queued and deleted track: %s", filename.c_str());
+        currentBatchLineIndex = 0;  // reset for next file
     }
 }
 

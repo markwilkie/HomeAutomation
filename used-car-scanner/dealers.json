@@ -1,0 +1,682 @@
+[
+  {
+    "name": "Carter Subaru Shoreline",
+    "address": "17225 Aurora Ave N, Seattle, WA 98133",
+    "phone": "(206) 970-3537",
+    "distance_miles": 2,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.cartersubarushoreline.com/search/used-seattle-wa/?cy=98133&tp=used",
+    "base_url": "https://www.cartersubarushoreline.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Carter Subaru Ballard",
+    "address": "5208 Leary Ave NW, Seattle, WA 98107",
+    "phone": "(206) 782-7474",
+    "distance_miles": 8,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.cartersubaruballard.com/search/used-seattle-wa/?cy=98107&tp=used",
+    "base_url": "https://www.cartersubaruballard.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Carter Volkswagen",
+    "address": "5202 Leary Ave NW, Seattle, WA 98107",
+    "phone": "(206) 944-0203",
+    "distance_miles": 8,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.cartervw.com/search/used-seattle-wa/?cy=98107&tp=used",
+    "base_url": "https://www.cartervw.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Carter Acura of Lynnwood",
+    "address": "21515 Hwy 99, Lynnwood, WA 98036",
+    "phone": "(425) 510-0612",
+    "distance_miles": 15,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.carteracura.com/search/used-lynnwood-wa/?cy=98036&tp=used",
+    "base_url": "https://www.carteracura.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Toyota of Lake City",
+    "address": "13355 Lake City Way NE, Seattle, WA 98125",
+    "phone": "(206) 366-3136",
+    "distance_miles": 3,
+    "platform": "dealeron",
+    "inventory_url": "https://www.toyotaoflakecity.com/searchused.aspx",
+    "base_url": "https://www.toyotaoflakecity.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Honda of Seattle",
+    "address": "2005 Airport Way S, Seattle, WA 98134",
+    "phone": "(206) 759-8984",
+    "distance_miles": 10,
+    "platform": "team_velocity",
+    "inventory_url": "https://www.hondaofseattle.com/inventory/used",
+    "base_url": "https://www.hondaofseattle.com"
+  },
+  {
+    "name": "Lee Johnson Chevrolet",
+    "address": "11845 NE 85th St, Kirkland, WA 98033",
+    "phone": "(425) 903-2085",
+    "distance_miles": 10,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.leejohnsonchevrolet.com/VehicleSearchResults?search=preowned",
+    "base_url": "https://www.leejohnsonchevrolet.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Rodland Toyota of Everett",
+    "address": "6816 Evergreen Way, Everett, WA 98203",
+    "phone": "(425) 595-5510",
+    "distance_miles": 15,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.rodlandtoyota.com/search/used-everett-wa/?cy=98203&tp=used",
+    "base_url": "https://www.rodlandtoyota.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Younker Nissan",
+    "address": "3401 East Valley Rd, Renton, WA 98057",
+    "phone": "(425) 264-4486",
+    "distance_miles": 15,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.younkernissan.com/search/used-renton-wa/?cy=98057&tp=used",
+    "base_url": "https://www.younkernissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Rairdon Auto Group",
+    "address": "Multiple locations, Puget Sound area",
+    "phone": "",
+    "distance_miles": 25,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.rairdon.com/used-cars/",
+    "base_url": "https://www.rairdon.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Sound Ford",
+    "address": "101 SW Grady Way, Renton, WA 98057",
+    "phone": "(888) 716-3232",
+    "distance_miles": 15,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.soundford.com/used-inventory/index.htm",
+    "base_url": "https://www.soundford.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Advantage Nissan",
+    "address": "5101 Auto Center Blvd, Bremerton, WA 98312",
+    "phone": "(360) 373-6300",
+    "distance_miles": 60,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.advantagenissan.com/used-vehicles/",
+    "base_url": "https://www.advantagenissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Seattle Lux Auto",
+    "address": "18660 NE Woodinville Duvall Rd, Woodinville, WA 98077",
+    "phone": "(425) 844-0400",
+    "distance_miles": 15,
+    "platform": "automanager",
+    "inventory_url": "https://www.seattleluxauto.com/view-inventory",
+    "base_url": "https://www.seattleluxauto.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Campbell Nissan of Edmonds",
+    "address": "24325 Highway 99, Edmonds, WA 98026",
+    "phone": "(425) 774-2174",
+    "distance_miles": 15,
+    "platform": "team_velocity",
+    "inventory_url": "https://www.campbellnissanofedmonds.com/inventory/used",
+    "base_url": "https://www.campbellnissanofedmonds.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Campbell Volkswagen of Edmonds",
+    "address": "24329 Highway 99, Edmonds, WA 98026",
+    "phone": "(425) 778-1131",
+    "distance_miles": 15,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.campbellvwofedmonds.com/inventory/?type=used",
+    "base_url": "https://www.campbellvwofedmonds.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Burien Nissan",
+    "address": "16042 1st Ave S, Burien, WA 98148",
+    "phone": "(206) 242-7070",
+    "distance_miles": 15,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.buriennissan.com/search/used-burien-wa/?cy=98148&tp=used",
+    "base_url": "https://www.buriennissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Bellevue Nissan",
+    "address": "14762 SE Eastgate Way, Bellevue, WA 98007",
+    "phone": "(425) 289-1200",
+    "distance_miles": 12,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.bellevuenissan.com/search/used-bellevue-wa/?cy=98007&tp=used",
+    "base_url": "https://www.bellevuenissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Nissan of Everett",
+    "address": "10500 Evergreen Way, Everett, WA 98204",
+    "phone": "(425) 347-5763",
+    "distance_miles": 25,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.nissanofeverett.com/used-inventory/index.htm",
+    "base_url": "https://www.nissanofeverett.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Lee Johnson Nissan of Kirkland",
+    "address": "13400 NE 124th St, Kirkland, WA 98034",
+    "phone": "(425) 821-1400",
+    "distance_miles": 10,
+    "platform": "motive",
+    "inventory_url": "https://kirklandnissan.com/inventory",
+    "base_url": "https://kirklandnissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Kendall Ford Marysville",
+    "address": "15900 Smokey Point Blvd, Marysville, WA 98271",
+    "phone": "(360) 658-0000",
+    "distance_miles": 35,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.kendallfordmarysville.com/used-vehicles/",
+    "base_url": "https://www.kendallfordmarysville.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Custom Trucks NW",
+    "address": "300 Valley Ave NE, Puyallup, WA 98372",
+    "phone": "(253) 697-9129",
+    "distance_miles": 45,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.customtrucksnw.com/used-inventory/index.htm",
+    "base_url": "https://www.customtrucksnw.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Trucks Plus USA",
+    "address": "3500 Main St, Yakima, WA 98903",
+    "phone": "(877) 331-6649",
+    "distance_miles": 140,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.trucksplususa.com/used-inventory/index.htm",
+    "base_url": "https://www.trucksplususa.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Evergreen Ford",
+    "address": "1500 18th Ave NW, Issaquah, WA 98027",
+    "phone": "(425) 395-8573",
+    "distance_miles": 20,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.evergreenford.com/used-inventory/index.htm",
+    "base_url": "https://www.evergreenford.com",
+    "needs_browser": true
+  },
+  {
+    "name": "ZAG Motors",
+    "address": "15431 Highway 99, Lynnwood, WA 98087",
+    "phone": "(888) 764-7979",
+    "distance_miles": 12,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.zagmotors.com/search/used-lynnwood-wa/?tp=used",
+    "base_url": "https://www.zagmotors.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Pierre Ford of Seattle",
+    "address": "11525 Lake City Way NE, Seattle, WA 98125",
+    "phone": "",
+    "distance_miles": 3,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.pierrefordofseattle.com/used-inventory/index.htm",
+    "base_url": "https://www.pierrefordofseattle.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Ford of Kirkland",
+    "address": "11800 NE 85th St, Kirkland, WA 98033",
+    "phone": "",
+    "distance_miles": 10,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.fordofkirkland.com/used-vehicles/",
+    "base_url": "https://www.fordofkirkland.com",
+    "needs_browser": true
+  },
+  {
+    "name": "AutoNation Ford Bellevue",
+    "address": "411 116th Ave NE, Bellevue, WA 98004",
+    "phone": "",
+    "distance_miles": 15,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.autonationfordbellevue.com/used-inventory/index.htm",
+    "base_url": "https://www.autonationfordbellevue.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Toyota of Seattle",
+    "address": "1925 Airport Way S, Seattle, WA 98134",
+    "phone": "",
+    "distance_miles": 12,
+    "platform": "team_velocity",
+    "inventory_url": "https://www.toyotaofseattle.com/inventory/used",
+    "base_url": "https://www.toyotaofseattle.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Michael's Toyota of Bellevue",
+    "address": "3080 148th Ave SE, Bellevue, WA 98007",
+    "phone": "",
+    "distance_miles": 15,
+    "platform": "dealeron",
+    "inventory_url": "https://www.toyotaofbellevue.com/searchused.aspx",
+    "base_url": "https://www.toyotaofbellevue.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Swickard Toyota of Edmonds",
+    "address": "21300 Highway 99, Edmonds, WA 98026",
+    "phone": "",
+    "distance_miles": 12,
+    "platform": "dealeron",
+    "inventory_url": "https://www.swickardtoyota.com/searchused.aspx",
+    "base_url": "https://www.swickardtoyota.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Marysville Toyota",
+    "address": "16225 Auto Ln, Marysville, WA 98271",
+    "phone": "",
+    "distance_miles": 30,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.marysvilletoyota.com/used-vehicles/",
+    "base_url": "https://www.marysvilletoyota.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Burien Toyota",
+    "address": "15025 1st Ave S, Burien, WA 98148",
+    "phone": "",
+    "distance_miles": 18,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.burientoyota.com/used-vehicles/",
+    "base_url": "https://www.burientoyota.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Eastside Subaru",
+    "address": "11803 NE 116th St, Kirkland, WA 98034",
+    "phone": "",
+    "distance_miles": 10,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.eastsidesubaru.com/used-inventory/index.htm",
+    "base_url": "https://www.eastsidesubaru.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Michael's Subaru of Bellevue",
+    "address": "15150 SE Eastgate Way, Bellevue, WA 98007",
+    "phone": "",
+    "distance_miles": 15,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.michaelssubaru.com/used-inventory/index.htm",
+    "base_url": "https://www.michaelssubaru.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Walker's Renton Subaru",
+    "address": "555 S Grady Way, Renton, WA 98057",
+    "phone": "",
+    "distance_miles": 15,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.rentonsubaru.com/used-inventory/index.htm",
+    "base_url": "https://www.rentonsubaru.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Pierre Chevrolet",
+    "address": "11323 Lake City Way NE, Seattle, WA 98125",
+    "phone": "",
+    "distance_miles": 3,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.pierrechevrolet.com/used-inventory/index.htm",
+    "base_url": "https://www.pierrechevrolet.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Chuck Olson Chevrolet",
+    "address": "17037 Aurora Ave N, Shoreline, WA 98133",
+    "phone": "",
+    "distance_miles": 2,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.chuckolsonchev.com/used-inventory/index.htm",
+    "base_url": "https://www.chuckolsonchev.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Chevrolet of Bellevue",
+    "address": "13400 NE 20th St, Bellevue, WA 98005",
+    "phone": "",
+    "distance_miles": 12,
+    "platform": "dealeron",
+    "inventory_url": "https://www.chevroletofbellevue.com/searchused.aspx",
+    "base_url": "https://www.chevroletofbellevue.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Chevrolet of Everett",
+    "address": "7301 Evergreen Way, Everett, WA 98203",
+    "phone": "",
+    "distance_miles": 25,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.chevroletofeverett.com/used-inventory/index.htm",
+    "base_url": "https://www.chevroletofeverett.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Jet Chevrolet",
+    "address": "35700 Enchanted Pkwy S, Federal Way, WA 98003",
+    "phone": "",
+    "distance_miles": 30,
+    "platform": "dealeron",
+    "inventory_url": "https://www.jetchevrolet.com/searchused.aspx",
+    "base_url": "https://www.jetchevrolet.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Honda of Kirkland",
+    "address": "12420 NE 85th St, Kirkland, WA 98033",
+    "phone": "",
+    "distance_miles": 7,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.kirklandhonda.com/used-vehicles/",
+    "base_url": "https://www.kirklandhonda.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Honda Auto Center of Bellevue",
+    "address": "13291 SE 36th St, Bellevue, WA 98006",
+    "phone": "(425) 373-5247",
+    "distance_miles": 14,
+    "platform": "dealeron",
+    "inventory_url": "https://www.bellevuehonda.com/searchused.aspx",
+    "base_url": "https://www.bellevuehonda.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Mazda of Seattle",
+    "address": "2121 Roosevelt Way NE, Seattle, WA 98105",
+    "phone": "",
+    "distance_miles": 8,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.mazdaofseattle.com/search/used-seattle-wa/?cy=98105&tp=used",
+    "base_url": "https://www.mazdaofseattle.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Lee Johnson Mazda of Kirkland",
+    "address": "11828 NE 85th St, Kirkland, WA 98033",
+    "phone": "",
+    "distance_miles": 7,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.leejohnsonmazda.com/search/used-kirkland-wa/?cy=98033&tp=used",
+    "base_url": "https://www.leejohnsonmazda.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Mazda of Everett",
+    "address": "7607 Evergreen Way, Everett, WA 98203",
+    "phone": "",
+    "distance_miles": 17,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.mazdaofeverett.com/search/used-everett-wa/?cy=98204&tp=used",
+    "base_url": "https://www.mazdaofeverett.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Hyundai of Kirkland",
+    "address": "11706 124th Ave NE, Kirkland, WA 98034",
+    "phone": "(877) 746-4180",
+    "distance_miles": 7,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.hyundaiofkirkland.com/used-inventory/index.htm",
+    "base_url": "https://www.hyundaiofkirkland.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Seattle Hyundai",
+    "address": "14005 Aurora Ave N, Seattle, WA 98133",
+    "phone": "(206) 362-9500",
+    "distance_miles": 3,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.seattlehyundai.com/search/used-seattle-wa/?cy=98133&tp=used",
+    "base_url": "https://www.seattlehyundai.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Lee Johnson Hyundai of Everett",
+    "address": "7800 Evergreen Way, Everett, WA 98203",
+    "phone": "(833) 448-2296",
+    "distance_miles": 18,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.hyundaiofeverett.com/used-inventory/index.htm",
+    "base_url": "https://www.hyundaiofeverett.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Lee Johnson Kia of Kirkland",
+    "address": "11845 NE 85th St, Kirkland, WA 98033",
+    "phone": "(425) 952-9121",
+    "distance_miles": 7,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.leejohnsonkia.com/search/used-kirkland-wa/?cy=98033&tp=used",
+    "base_url": "https://www.leejohnsonkia.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Chuck Olson Kia",
+    "address": "17001 Aurora Ave N, Seattle, WA 98133",
+    "phone": "(206) 219-4040",
+    "distance_miles": 3,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.chuckolsonkia.com/search/used-seattle-wa/?cy=98133&tp=used",
+    "base_url": "https://www.chuckolsonkia.com",
+    "needs_browser": true
+  },
+  {
+    "name": "University Volkswagen",
+    "address": "4724 Roosevelt Way NE, Seattle, WA 98105",
+    "phone": "",
+    "distance_miles": 8,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.universityvw.com/used-vehicles/",
+    "base_url": "https://www.universityvw.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Volkswagen of Kirkland",
+    "address": "12612 NE 124th St, Kirkland, WA 98034",
+    "phone": "(425) 898-2500",
+    "distance_miles": 7,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.vwofkirkland.com/used-inventory/index.htm",
+    "base_url": "https://www.vwofkirkland.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Brooks Biddle Automotive",
+    "address": "17909 Bothell Way NE, Bothell, WA 98011",
+    "phone": "(425) 486-1212",
+    "distance_miles": 5,
+    "platform": "dealeron",
+    "inventory_url": "https://www.brooksbiddle.com/searchused.aspx",
+    "base_url": "https://www.brooksbiddle.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Rairdon's Nissan of Auburn",
+    "address": "713 35th St NE, Auburn, WA 98002",
+    "phone": "",
+    "distance_miles": 30,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.rairdon.com/nissan-auburn/used-cars/",
+    "base_url": "https://www.rairdon.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Olympia Nissan",
+    "address": "2220 Carriage St SW, Olympia, WA 98502",
+    "phone": "",
+    "distance_miles": 60,
+    "platform": "dealer_inspire",
+    "inventory_url": "https://www.olympianissan.com/used-vehicles/",
+    "base_url": "https://www.olympianissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Bellingham Nissan",
+    "address": "1516 Iowa St, Bellingham, WA 98229",
+    "phone": "",
+    "distance_miles": 90,
+    "platform": "dealer_com",
+    "inventory_url": "https://www.bellinghamnissan.com/used-inventory/index.htm",
+    "base_url": "https://www.bellinghamnissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Alan Webb Nissan",
+    "address": "3608 NE Auto Mall Dr, Vancouver, WA 98662",
+    "phone": "",
+    "distance_miles": 170,
+    "platform": "dealeron",
+    "inventory_url": "https://www.alanwebbnissan.com/used-vehicles/",
+    "base_url": "https://www.alanwebbnissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Tacoma Nissan",
+    "address": "4030 S Tacoma Way, Tacoma, WA 98409",
+    "phone": "253-579-1200",
+    "distance_miles": 40,
+    "platform": "foxdealer",
+    "foxdealer_id": 998,
+    "inventory_url": "https://www.tacomanissan.com/inventory/?type=used",
+    "base_url": "https://www.tacomanissan.com",
+    "needs_browser": false
+  },
+  {
+    "name": "KarMART Nissan",
+    "address": "1005 S Burlington Blvd, Burlington, WA 98233",
+    "phone": "",
+    "distance_miles": 60,
+    "platform": "dealer_eprocess",
+    "inventory_url": "https://www.karmartnissan.com/search/used-burlington-wa/?cy=98233&tp=used",
+    "base_url": "https://www.karmartnissan.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Craigslist Seattle",
+    "address": "Seattle metro area",
+    "phone": "",
+    "distance_miles": 0,
+    "platform": "craigslist",
+    "inventory_url": "https://seattle.craigslist.org/search/cta",
+    "base_url": "https://seattle.craigslist.org",
+    "needs_browser": true
+  },
+  {
+    "name": "Craigslist Portland",
+    "address": "Portland metro area",
+    "phone": "",
+    "distance_miles": 150,
+    "platform": "craigslist",
+    "inventory_url": "https://portland.craigslist.org/search/cta",
+    "base_url": "https://portland.craigslist.org",
+    "needs_browser": true
+  },
+  {
+    "name": "Craigslist Bellingham",
+    "address": "Bellingham metro area",
+    "phone": "",
+    "distance_miles": 90,
+    "platform": "craigslist",
+    "inventory_url": "https://bellingham.craigslist.org/search/cta",
+    "base_url": "https://bellingham.craigslist.org",
+    "needs_browser": true
+  },
+  {
+    "name": "Craigslist Boise",
+    "address": "Boise metro area",
+    "phone": "",
+    "distance_miles": 500,
+    "platform": "craigslist",
+    "inventory_url": "https://boise.craigslist.org/search/cta",
+    "base_url": "https://boise.craigslist.org",
+    "needs_browser": true
+  },
+  {
+    "name": "Facebook Marketplace",
+    "address": "Seattle metro area",
+    "phone": "",
+    "distance_miles": 0,
+    "platform": "facebook",
+    "inventory_url": "https://www.facebook.com/marketplace/seattle/search/",
+    "base_url": "https://www.facebook.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Facebook Marketplace Bellingham",
+    "address": "Bellingham metro area",
+    "phone": "",
+    "distance_miles": 90,
+    "platform": "facebook",
+    "inventory_url": "https://www.facebook.com/marketplace/bellingham/search/",
+    "base_url": "https://www.facebook.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Facebook Marketplace Boise",
+    "address": "Boise metro area",
+    "phone": "",
+    "distance_miles": 500,
+    "platform": "facebook",
+    "inventory_url": "https://www.facebook.com/marketplace/boise/search/",
+    "base_url": "https://www.facebook.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Cars.com",
+    "address": "Online aggregator",
+    "phone": "",
+    "distance_miles": 0,
+    "platform": "carscom",
+    "inventory_url": "https://www.cars.com/shopping/results/?stock_type=used&maximum_distance=75&zip=98155",
+    "base_url": "https://www.cars.com",
+    "needs_browser": true
+  },
+  {
+    "name": "Cars.com Boise",
+    "address": "Online aggregator",
+    "phone": "",
+    "distance_miles": 500,
+    "platform": "carscom",
+    "inventory_url": "https://www.cars.com/shopping/results/?stock_type=used&maximum_distance=75&zip=83702",
+    "base_url": "https://www.cars.com",
+    "needs_browser": true
+  }
+]
