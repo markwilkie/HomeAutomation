@@ -9,7 +9,6 @@ void PropBag::resetPropBag()
     data.pitotCalibration=PITOT_CALIB;
     data.instMPGFactor=INST_MPG_FACTOR;
     data.elevationOffset=0;
-    //lastLat/lastLon intentionally preserved — they represent physical location, not trip state
 }
 
 int PropBag::getPropDataSize()
@@ -47,5 +46,21 @@ void PropBag::dumpPropBag()
     logger.log(INFO,"   Inst MPG Factor: %f",data.instMPGFactor);
     logger.log(INFO,"   Pitot Calib: %f",data.pitotCalibration);
     logger.log(INFO,"   Elevation Offset: %d",data.elevationOffset);
-    logger.log(INFO,"   Last GPS: %f,%f",(double)data.lastLat,(double)data.lastLon);
+    logger.log(INFO,"   Last GPS: %f,%f",(double)lastLat,(double)lastLon);
+}
+
+void PropBag::saveGpsPosition()
+{
+  EEPROM.begin(512);
+  EEPROM.put(GPS_EEPROM_OFFSET, lastLat);
+  EEPROM.put(GPS_EEPROM_OFFSET + sizeof(float), lastLon);
+  EEPROM.commit();
+}
+
+void PropBag::loadGpsPosition()
+{
+  EEPROM.begin(512);
+  EEPROM.get(GPS_EEPROM_OFFSET, lastLat);
+  EEPROM.get(GPS_EEPROM_OFFSET + sizeof(float), lastLon);
+  EEPROM.end();
 }

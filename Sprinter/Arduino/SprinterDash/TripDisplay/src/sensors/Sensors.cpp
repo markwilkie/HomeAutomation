@@ -58,13 +58,19 @@ void Barometer::update()
 
       //Kick off one-shot conversion (non-blocking since OST is already clear)
       baro.startOneShot();
+      conversionStartTime = millis();
       baroState=BARO_CONVERTING;
       break;
     }
 
     case BARO_CONVERTING:
     {
-      //Poll — just reads one I2C status byte, ~0.1ms
+      //Wait at least 550ms for conversion to complete before polling
+      //Avoids hammering I2C bus with conversionComplete() polls which
+      //can interfere with pitot sensor reads on the same bus
+      if(millis() < conversionStartTime + 550)
+        return;
+
       if(!baro.conversionComplete())
         return;
 
@@ -316,8 +322,26 @@ int Pitot::readSpeed()
     _tempmph *= _calibrationFactor;
   }
 
-  //Smooth
+  //Slew rate limiter: cap change to 5 mph/sec to reject fast manifold-vacuum spikes
+  //while allowing real airspeed changes to track normally
+  unsigned long now = millis();
+  float elapsed = (now - _lastReadTime) / 1000.0;
+  _lastReadTime = now;
+  if(elapsed > 0 && elapsed < 2.0)  //skip first call and guard against stale timestamps
+  {
+    int maxChange = 5 * elapsed;  //5 mph per second max
+    if(maxChange < 1) maxChange = 1;
+    int delta = _tempmph - _mph;
+    if(delta > maxChange) delta = maxChange;
+    if(delta < -maxChange) delta = -maxChange;
+    _tempmph = _mph + delta;
+  }
+
+  //Light EMA on top of slew-limited value
   _mph = _tempmph*0.25 + _mph*0.75;
+
+  //Diagnostic: log raw sensor data to help diagnose throttle correlation
+  //logger.log(VERBOSE,"Pitot raw=%lu calc=%d calib=%d slew=%d smooth=%d", _sensorCount, calcSpeed(), _tempmph, _tempmph, _mph);
 
   return _mph;
 }

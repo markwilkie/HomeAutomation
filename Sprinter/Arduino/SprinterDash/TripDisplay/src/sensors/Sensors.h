@@ -51,6 +51,7 @@ class Barometer
 
     //Timing
     unsigned long nextTickCount;      //when to update/refresh the gauge again
+    unsigned long conversionStartTime = 0;  //when the current conversion started
 };
 
 //  RTC_PCF8523
@@ -116,12 +117,13 @@ private:
 
   TwoWire*  _wire;
   uint32_t _sensorCount;
-  int      _mph;
+  int      _mph = 0;
   double_t _calibrationFactor;
   
   uint8_t  _state;
   int refreshTicks;
   unsigned long nextTickCount;      //when to update/refresh the gauge again
+  unsigned long _lastReadTime = 0;  //for slew rate limiting
 };
 
 class IgnState 

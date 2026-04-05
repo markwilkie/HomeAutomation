@@ -198,12 +198,13 @@ void setup()
   logger.log(INFO,"Loading prop data from EEPROM");
   bootForm.updateDisplay("Loading data from EEPROM...",formNavigator.getActiveForm());
   propBag.loadPropBag();
+  propBag.loadGpsPosition();
 
   //Seed GPS with last known position from EEPROM
-  if(propBag.data.lastLat != 0.0 || propBag.data.lastLon != 0.0)
+  if(propBag.lastLat != 0.0 || propBag.lastLon != 0.0)
   {
-    gpsModule.setLastKnownPosition(propBag.data.lastLat, propBag.data.lastLon);
-    logger.log(INFO,"Seeded GPS with last known position: %f,%f",(double)propBag.data.lastLat,(double)propBag.data.lastLon);
+    gpsModule.setLastKnownPosition(propBag.lastLat, propBag.lastLon);
+    logger.log(INFO,"Seeded GPS with last known position: %f,%f",(double)propBag.lastLat,(double)propBag.lastLon);
   }
 
   //Initialize or load data from EEPROM for each of the trip bucket objects
@@ -646,9 +647,10 @@ void handleStatupAndShutdown()
         //Save to EEPROM
         logger.log(INFO,"Saving trip and prop bag data to EEPROM and activating STOPPING form");
         logger.sendLogs(wifi.isConnected());
-        propBag.data.lastLat=gpsModule.getLatitude();
-        propBag.data.lastLon=gpsModule.getLongitude();
+        propBag.lastLat=gpsModule.getLatitude();
+        propBag.lastLon=gpsModule.getLongitude();
         propBag.savePropBag();
+        propBag.saveGpsPosition();
         currentSegment.saveTripData(propBag.getPropDataSize());
         fullTrip.saveTripData(propBag.getPropDataSize());
 
@@ -822,7 +824,6 @@ void myGenieEventHandler(void)
           logger.log(INFO, "New trip — Traccar trip start deferred until GPS fix");
         }
       }
-      currentData.setTime(10);
       idlingStartSeconds=currentData.currentSeconds; 
       sinceLastStop.resetTripData();
       currentSegment.resetTripData();

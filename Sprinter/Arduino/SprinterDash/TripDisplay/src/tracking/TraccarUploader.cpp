@@ -216,7 +216,6 @@ void TraccarUploader::uploadBuffered()
         // Fire-and-forget: delete after all points are queued.
         // Some may be dropped if the queue is full, but that's acceptable.
         trackLoggerPtr->deleteFile(filename);
-        logger.log(INFO, "Queued and deleted track: %s", filename.c_str());
         currentBatchLineIndex = 0;  // reset for next file
     }
 }
