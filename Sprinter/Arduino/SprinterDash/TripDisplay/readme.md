@@ -2,10 +2,7 @@
 # Requirements / Components
 - ESP32 Arduino Core **V3.x** (tested with 3.3.x).  V1.6 was unstable with I2C.  V2.x also works (tested through 2.0.17).  Serial2 pins are set explicitly in code to avoid the 3.x default-pin change.
     - ESP lives here when installed by the IDE: C:\Users\mark\AppData\Local\Arduino15\packages
-    - Uses **no_ota** partition scheme (2MB APP / 2MB SPIFFS) since OTA is not used.  Compile with:
-      ```
-      arduino-cli compile --fqbn esp32:esp32:firebeetle32 --build-property "build.partitions=no_ota" --build-property "upload.maximum_size=2097152" TripDisplay.ino
-      ```
+    - Uses **no_ota** partition scheme (2MB APP / 2MB SPIFFS) since OTA is not used.
 - FireBeetle ESP32 board.  Note that the board name is 'FireBeetle-ESP32 (esp32)' 
 - Longan Canbed Dual board (https://docs.longan-labs.cc/1030019/)
 - LCD screen (I'm using SK-pixxiLCD-39P4-CTP from 4D Systems)
@@ -23,6 +20,55 @@
 | `ArduinoJson` | WiFi server responses | Library Manager |
 | `DFRobot_GNSS` | TEL0157 GPS module | Library Manager |
 | `LittleFS` | Track file storage | Built into ESP32 core |
+
+## New Computer Setup
+
+### 1. Install arduino-cli
+```powershell
+winget install ArduinoSA.ArduinoCLI
+```
+Or download from https://arduino.github.io/arduino-cli/latest/installation/
+
+### 2. Configure board manager URLs
+```powershell
+arduino-cli config init
+arduino-cli config add board_manager.additional_urls https://dl.espressif.com/dl/package_esp32_index.json
+arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+```
+
+### 3. Install ESP32 core
+```powershell
+arduino-cli core update-index
+arduino-cli core install esp32:esp32@3.3.7
+```
+
+### 4. Install required libraries
+```powershell
+arduino-cli lib install "Adafruit MPL3115A2 Library"
+arduino-cli lib install "RTClib"
+arduino-cli lib install "genieArduino"
+arduino-cli lib install "ArduinoJson"
+arduino-cli lib install "DFRobot_GNSS"
+```
+
+### 5. Create secrets.h
+Copy `secrets.h.example` to `secrets.h` and fill in WiFi credentials and Papertrail/Traccar config.
+
+### 6. Compile
+```powershell
+arduino-cli compile --fqbn esp32:esp32:firebeetle32 TripDisplay
+```
+
+### 7. Upload
+Find the COM port (plug in the ESP32 via USB):
+```powershell
+arduino-cli board list
+```
+Then upload:
+```powershell
+arduino-cli upload --fqbn esp32:esp32:firebeetle32 -p COM5 TripDisplay
+```
+Replace `COM5` with the actual port shown by `board list`.
 
 # Screens
 
