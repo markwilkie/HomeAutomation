@@ -310,10 +310,11 @@ int Pitot::readSpeed()
   nextTickCount=millis()+refreshTicks;
 
   //read sensor
+  _reads++;
   int retVal=read();
   if(retVal<0)
   {
-    logger.log(ERROR,"Error reading pressure sensor (pitot)");
+    _i2cErrors++;
     return _mph;  //return last good value, not error code
   }
 
@@ -344,8 +345,20 @@ int Pitot::readSpeed()
   //Light EMA on top of slew-limited value
   _mph = _tempmph*0.25 + _mph*0.75;
 
-  //Diagnostic: log raw sensor data to help diagnose throttle correlation
-  logger.log(VERBOSE,"Pitot raw=%lu calc=%d calib=%d slew=%d smooth=%d", _sensorCount, calcSpeed(), _tempmph, _tempmph, _mph);
+  //Periodic diagnostic logging (every 10 seconds)
+  if(millis() - _lastLogTime > 10000)
+  {
+    _lastLogTime = millis();
+    logger.log(INFO,"Pitot: raw=%lu Pa=%d calc=%d calib=%f mph=%d errs=%d/%d",
+      _sensorCount, 
+      (int)map(_sensorCount, MIN_COUNT, MAX_COUNT, 0, PASCAL_RANGE),
+      calcSpeed(),
+      _calibrationFactor,
+      _mph,
+      _i2cErrors, _reads);
+    _i2cErrors = 0;
+    _reads = 0;
+  }
 
   return _mph;
 }

@@ -124,6 +124,9 @@ private:
   int refreshTicks;
   unsigned long nextTickCount;      //when to update/refresh the gauge again
   unsigned long _lastReadTime = 0;  //for slew rate limiting
+  unsigned long _lastLogTime = 0;   //for periodic diagnostic logging
+  int _i2cErrors = 0;               //count errors between logs
+  int _reads = 0;                   //count reads between logs
 };
 
 class IgnState 
