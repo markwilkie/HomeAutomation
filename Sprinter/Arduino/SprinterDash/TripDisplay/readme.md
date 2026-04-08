@@ -59,6 +59,36 @@ Copy `secrets.h.example` to `secrets.h` and fill in WiFi credentials and Papertr
 arduino-cli compile --fqbn esp32:esp32:firebeetle32 TripDisplay
 ```
 
+#### Windows App Control note
+On this machine, ESP32 core 3.3.7 helper tools such as `esptool.exe` and `gen_esp32part.exe` were blocked by Windows App Control because they are PyInstaller-packed executables that extract Python DLLs under `%LOCALAPPDATA%\Temp\_MEI...` at runtime.
+
+If compile fails with an error like `Failed to load Python DLL ... LoadLibrary: An Application Control policy has blocked this file`, this workaround is known to work:
+
+```powershell
+winget install -e --id Python.Python.3.13 --scope user --accept-package-agreements --accept-source-agreements --silent
+& "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" -m pip install --user esptool
+```
+
+Then create this file so the ESP32 platform uses plain Python invocations instead of the blocked helper executables:
+
+`%LOCALAPPDATA%\Arduino15\packages\esp32\hardware\esp32\3.3.7\platform.local.txt`
+
+```text
+tools.esptool_py.network_cmd.windows="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" "{runtime.platform.path}\\tools\\espota.py" -r
+tools.esp_ota.cmd.windows="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" "{runtime.platform.path}\\tools\\espota.py" -r
+tools.gen_esp32part.cmd.windows="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" "{runtime.platform.path}\\tools\\gen_esp32part.py"
+tools.gen_insights_pkg.cmd.windows="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" "{runtime.platform.path}\\tools\\gen_insights_package.py"
+recipe.hooks.prebuild.4.pattern.windows=cmd /c IF EXIST "{build.source.path}\bootloader.bin" ( COPY /y "{build.source.path}\bootloader.bin" "{build.path}\{build.project_name}.bootloader.bin" ) ELSE ( IF EXIST "{build.variant.path}\{build.custom_bootloader}.bin" ( COPY "{build.variant.path}\{build.custom_bootloader}.bin" "{build.path}\{build.project_name}.bootloader.bin" ) ELSE ( "C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool --chip {build.mcu} elf2image --flash-mode {build.flash_mode} --flash-freq {build.img_freq} --flash-size {build.flash_size} -o "{build.path}\{build.project_name}.bootloader.bin" "{compiler.sdk.path}\bin\bootloader_{build.boot}_{build.boot_freq}.elf" ) )
+recipe.objcopy.bin.pattern="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool --chip {build.mcu} elf2image --flash-mode "{build.flash_mode}" --flash-freq "{build.img_freq}" --flash-size "{build.flash_size}" --elf-sha256-offset 0xb0 -o "{build.path}/{build.project_name}.bin" "{build.path}/{build.project_name}.elf"
+recipe.hooks.objcopy.postobjcopy.3.pattern="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool --chip {build.mcu} merge-bin -o "{build.path}/{build.project_name}.merged.bin" --pad-to-size {build.flash_size} --flash-mode keep --flash-freq keep --flash-size keep {build.bootloader_addr} "{build.path}/{build.project_name}.bootloader.bin" 0x8000 "{build.path}/{build.project_name}.partitions.bin" 0xe000 "{runtime.platform.path}/tools/partitions/boot_app0.bin" 0x10000 "{build.path}/{build.project_name}.bin"
+tools.esptool_py.erase.pattern="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool {erase.pattern_args}
+tools.esptool_py.program.pattern="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool {program.pattern_args}
+tools.esptool_py.upload.pattern="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool {upload.pattern_args}
+tools.esptool_py_app_only.upload.pattern="C:\Users\<your-user>\AppData\Local\Programs\Python\Python313\python.exe" -m esptool --chip esp32 --port "{serial.port}" --baud 921600  --before default-reset --after hard-reset write-flash --flash-mode dio --flash-freq 80m --flash-size 4MB {build.flash_offset} "{build.path}/{build.project_name}.bin"
+```
+
+Replace `<your-user>` with your Windows username. After that, the normal `arduino-cli compile` and `arduino-cli upload` commands should work again.
+
 ### 7. Upload
 Find the COM port (plug in the ESP32 via USB):
 ```powershell
