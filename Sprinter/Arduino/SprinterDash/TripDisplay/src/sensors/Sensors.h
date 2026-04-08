@@ -19,7 +19,7 @@ gps (TEL0157): 0x20
 class Barometer 
 {
   public:
-    void init(int _refreshTicks);
+    void init(int _refreshTicks, int _offset=0);
     bool isOnline();
     void setup();
     void update();
@@ -61,7 +61,7 @@ class Barometer
 class RTC 
 {
   public:
-    void init(int _refreshTicks);
+    void init(int _refreshTicks, int _offset=0);
     bool isOnline();
     void setup();
     uint32_t getSecondsSinc2000();
@@ -100,7 +100,7 @@ class Pitot
 {
 public:
 
-  bool     init(int);
+  bool     init(int, int _offset=0);
   bool     isOnline();
   uint8_t  getAddress();
 
@@ -129,7 +129,7 @@ private:
 class IgnState 
 {
   public:
-    void init(int _refreshTicks);
+    void init(int _refreshTicks, int _offset=0);
     bool getIgnState();
     
   private: 
@@ -150,7 +150,7 @@ class IgnState
 class LDR 
 {
   public:
-    void init(int _refreshTicks);
+    void init(int _refreshTicks, int _offset=0);
     int readLightLevel();
     
   private: 

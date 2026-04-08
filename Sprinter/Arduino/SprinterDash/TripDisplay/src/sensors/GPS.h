@@ -22,7 +22,7 @@
 class GPSModule
 {
 public:
-    void init(int refreshTicks);
+    void init(int refreshTicks, int _offset=0);
     void setup();
     bool update();   // returns true when new data was polled
     bool isOnline();

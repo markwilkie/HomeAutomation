@@ -180,7 +180,7 @@ void setup()
   //Initialize GPS hardware
   logger.log(INFO,"Initializing GPS");
   bootForm.updateDisplay("Init GPS...",formNavigator.getActiveForm());
-  gpsModule.init(GPS_UPDATE_RATE);
+  gpsModule.init(GPS_UPDATE_RATE, 350);  //offset 350ms to stagger I2C reads
   gpsModule.setup();
 
   //Initialize track logger (LittleFS)

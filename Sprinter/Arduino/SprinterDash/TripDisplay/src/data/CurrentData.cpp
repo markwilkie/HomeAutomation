@@ -19,12 +19,12 @@ PIDStruct* pidArray[]={&load,&distance,&fuel,&maf,&speed,&coolant,&trans,&manPre
 
 CurrentData::CurrentData()
 {
-    //Other sensors
-    pitot.init(200); 
-    ignState.init(1000);
-    barometer.init(10000);  //It takes about 400ms to get a reading, so this is expensive
-    rtc.init(1000);
-    ldr.init(1000);
+    //Other sensors - stagger I2C reads to avoid bus collisions
+    pitot.init(500, 0);       //reads at 0, 500, 1000...
+    ignState.init(1000, 0);   //digital pin, not I2C
+    barometer.init(10000, 0); //non-blocking state machine handles its own timing
+    rtc.init(1000, 150);      //offset 150ms from pitot
+    ldr.init(1000, 300);      //offset 300ms (analog, not I2C, but keeps loop balanced)
 }
 
 void CurrentData::init()
@@ -247,6 +247,8 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     if(service==manPres.service && pid==manPres.pid)
     {        
       double bara=barometer.getPressure()/10.0;
+      if(bara < 1.0)
+        return;  //barometer not ready yet — skip to avoid wild gauge swings
       float boost=value-bara;
       currentBoost=boost*.145;
     } 

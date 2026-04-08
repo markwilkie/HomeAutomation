@@ -2,9 +2,10 @@
 #include "GPS.h"
 #include "../Globals.h"
 
-void GPSModule::init(int _refreshTicks)
+void GPSModule::init(int _refreshTicks, int _offset)
 {
     refreshTicks = _refreshTicks;
+    nextTickCount = _offset;
 }
 
 void GPSModule::setup()

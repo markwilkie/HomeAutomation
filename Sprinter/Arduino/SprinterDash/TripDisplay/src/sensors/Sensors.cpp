@@ -3,9 +3,10 @@
 #include "../Globals.h"
 #include "../net/VanWifi.h"
 
-void Barometer::init(int _refreshTicks)
+void Barometer::init(int _refreshTicks, int _offset)
 {
     refreshTicks=_refreshTicks;
+    nextTickCount=_offset;
 }
 
 void Barometer::setup()
@@ -20,10 +21,11 @@ void Barometer::setup()
   filter.init(9, 50, 3);
 
   //Kick off the first conversion so we have data ASAP
-  baro.setMode(MPL3115A2_ALTIMETER);
+  //Read pressure first so boost calculation has a valid bara immediately
+  baro.setMode(MPL3115A2_BAROMETER);
   baro.startOneShot();
   baroState = BARO_CONVERTING;
-  readingPressure = false;
+  readingPressure = true;
 }
 
 bool Barometer::isOnline()
@@ -144,9 +146,10 @@ double Barometer::getPressure()
   return pressure;
 }
 
-void RTC::init(int _refreshTicks)
+void RTC::init(int _refreshTicks, int _offset)
 {
     refreshTicks=_refreshTicks;
+    nextTickCount=_offset;
 }
 
 void RTC::setup()
@@ -250,9 +253,10 @@ uint32_t RTC::getSecondsSinc2000()
 // Calculating airspeed using a pitot and the Sensata P1J-12.5MB-AX16PA sensor
 //
 
-bool Pitot::init(int _refreshTicks)
+bool Pitot::init(int _refreshTicks, int _offset)
 {
   refreshTicks=_refreshTicks;
+  nextTickCount=_offset;
 
   _wire = &Wire;
   if(!_wire->begin())
@@ -310,7 +314,7 @@ int Pitot::readSpeed()
   if(retVal<0)
   {
     logger.log(ERROR,"Error reading pressure sensor (pitot)");
-    return retVal;
+    return _mph;  //return last good value, not error code
   }
 
   //Now convert to mph
@@ -341,7 +345,7 @@ int Pitot::readSpeed()
   _mph = _tempmph*0.25 + _mph*0.75;
 
   //Diagnostic: log raw sensor data to help diagnose throttle correlation
-  //logger.log(VERBOSE,"Pitot raw=%lu calc=%d calib=%d slew=%d smooth=%d", _sensorCount, calcSpeed(), _tempmph, _tempmph, _mph);
+  logger.log(VERBOSE,"Pitot raw=%lu calc=%d calib=%d slew=%d smooth=%d", _sensorCount, calcSpeed(), _tempmph, _tempmph, _mph);
 
   return _mph;
 }
@@ -388,9 +392,10 @@ int Pitot::read()
 //Pin used for reads
 #define IGN_PIN D4
 
-void IgnState::init(int _refreshTicks)
+void IgnState::init(int _refreshTicks, int _offset)
 {
     refreshTicks=_refreshTicks;
+    nextTickCount=_offset;
 }
 
 bool IgnState::getIgnState()
@@ -427,9 +432,10 @@ bool IgnState::getIgnState()
 #define LDR_ADC_PIN A2
 #define LDR_ADC_OVERSAMPLE 5
 
-void LDR::init(int _refreshTicks)
+void LDR::init(int _refreshTicks, int _offset)
 {
   refreshTicks=_refreshTicks;
+  nextTickCount=_offset;
 }
 
 int LDR::readLightLevel()
