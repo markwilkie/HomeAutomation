@@ -41,6 +41,9 @@ Connect the 433MHz RF transmitter to your FireBeetle ESP32:
 
 ## Configuration
 
+### MQTT Broker
+The MQTT broker runs on the Synology NAS at `192.168.15.10`.
+
 ### 1. Credentials Setup
 For security, credentials are stored separately:
 1. Copy `credentials_template.h` to `credentials.h`
