@@ -56,6 +56,8 @@ const char* mqtt_server = "YOUR_ACTUAL_MQTT_BROKER_IP";
 ```
 **Note:** `credentials.h` is excluded from version control via `.gitignore`
 
+**MQTT auth note:** This controller works with brokers that require authentication and with brokers that allow anonymous clients. If your broker does not require auth, leave `mqtt_user` and `mqtt_pass` empty.
+
 ### 3. Blind RF Codes
 You need to capture the RF codes from your original A-OK remote. Update the `blinds[]` array:
 ```cpp
@@ -127,10 +129,14 @@ If you don't have the RF codes, you can use an RF receiver and scanner to captur
 
 2. **MQTT Connection Issues:**
    - Verify broker IP and port
-   - Check authentication credentials
+   - Check authentication credentials (or clear them if your broker uses anonymous access)
    - Ensure firewall allows connections
 
-3. **RF Transmission Problems:**
+3. **SmartThings MQTTDevices Stability:**
+   - In testing, MQTTDevices has occasionally hung and stopped updating/publishing.
+   - Rebooting the SmartThings hub restored operation when this happened.
+
+4. **RF Transmission Problems:**
    - Check wiring connections
    - Verify RF transmitter is working
    - Ensure correct codes are programmed
