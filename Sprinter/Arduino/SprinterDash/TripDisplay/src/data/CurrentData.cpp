@@ -159,6 +159,9 @@ int CurrentData::getBaroElevationOffset()
 
 void CurrentData::updateDataFromSensors()
 {
+  //Pitot is sampled on its own timer so wind speed is not gated by CAN speed PID timing.
+  currentPitotSpeed=pitot.readSpeed(currentSpeed);
+
     //Barometer
     barometer.update();
     currentElevation=barometer.getElevation();
@@ -230,7 +233,6 @@ void CurrentData::updateDataFromPIDs(int service,int pid,int value)
     if(service==speed.service && pid==speed.pid)
     {
         currentSpeed=value*0.621371;
-        currentPitotSpeed=pitot.readSpeed();
         return;
     } 
     //Coolant temp

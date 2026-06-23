@@ -98,12 +98,14 @@ void Barometer::update()
         online=true; 
       }
       
-      //If no API-based calibration yet, use poor man's calibration to prevent negative readings
-      //Once ElevationAPI sets a real offset, this block is effectively bypassed because
-      //the API offset will keep readings reasonable.
-      if(baroElevation<0 && (baroElevation*-1)>elevationOffset)
+      //If no offset has been set yet (either from API or stored in EEPROM),
+      //establish an initial offset once to prevent negative readings.
+      //This runs only once at cold start; once ElevationAPI calibrates or
+      //EEPROM offset is restored, this is bypassed.
+      if(elevationOffset==0 && baroElevation<0)
       {
         elevationOffset=baroElevation*-1;
+        logger.log(INFO,"Barometer: Initial offset set to %d ft",elevationOffset);
       }
 
       bool isNotOutlierFlag = filter.writeIfNotOutlier(baroElevation);
@@ -130,10 +132,12 @@ int Barometer::getRawElevation()
 
 // Set the elevation offset (feet) from external calibration (ElevationAPI).
 // Replaces the poor man's calibration with a DEM-derived value.
+// Resets the elevation filter to prevent the large jump from being rejected as an outlier.
 void Barometer::setElevationOffset(int offset)
 {
   elevationOffset = offset;
-  logger.log(INFO, "Barometer: elevation offset set to %d ft", offset);
+  filter.reset();  // Clear filter state so the new elevation readings aren't seen as outliers
+  logger.log(INFO, "Barometer: elevation offset set to %d ft (filter reset)", offset);
 }
 
 int Barometer::getElevationOffset()
@@ -276,7 +280,7 @@ uint8_t Pitot::getAddress()
 
 bool Pitot::isOnline()
 {
-  if(!_state==I2C_OK)
+  if(_state != I2C_OK)
     return false;
 
   return true;
@@ -302,8 +306,11 @@ void Pitot::setCalibrationFactor(double_t _factor)
   _calibrationFactor=_factor;
 }
 
-int Pitot::readSpeed()
+int Pitot::readSpeed(int obdMph)
 {
+  const int maxChangeMphPerSecond = 20;
+  const float emaNewWeight = 0.60f;
+
   //don't update if it's not time to
   if(millis()<nextTickCount)
       return _mph;
@@ -334,7 +341,7 @@ int Pitot::readSpeed()
   _lastReadTime = now;
   if(elapsed > 0 && elapsed < 2.0)  //skip first call and guard against stale timestamps
   {
-    int maxChange = 5 * elapsed;  //5 mph per second max
+    int maxChange = maxChangeMphPerSecond * elapsed;
     if(maxChange < 1) maxChange = 1;
     int delta = _tempmph - _mph;
     if(delta > maxChange) delta = maxChange;
@@ -343,22 +350,7 @@ int Pitot::readSpeed()
   }
 
   //Light EMA on top of slew-limited value
-  _mph = _tempmph*0.25 + _mph*0.75;
-
-  //Periodic diagnostic logging (every 10 seconds)
-  if(millis() - _lastLogTime > 10000)
-  {
-    _lastLogTime = millis();
-    logger.log(INFO,"Pitot: raw=%lu Pa=%d calc=%d calib=%f mph=%d errs=%d/%d",
-      _sensorCount, 
-      (int)map(_sensorCount, MIN_COUNT, MAX_COUNT, 0, PASCAL_RANGE),
-      calcSpeed(),
-      _calibrationFactor,
-      _mph,
-      _i2cErrors, _reads);
-    _i2cErrors = 0;
-    _reads = 0;
-  }
+  _mph = _tempmph * emaNewWeight + _mph * (1.0f - emaNewWeight);
 
   return _mph;
 }
@@ -425,10 +417,23 @@ bool IgnState::getIgnState()
       ignOffCount++;
     sampleCount++;
 
-    //After 10 samples (~500ms total), decide
-    if(sampleCount>=10)
+    //After 50 samples (~2.5s total), decide
+    if(sampleCount>=50)
     {
-      ignState=(ignOnCount>=ignOffCount);
+      bool priorState = ignState;
+      ignState=(ignOnCount>0);
+
+      //Only log when the debounced ignition state actually changes.
+      if(ignState != priorState)
+      {
+        logger.log(INFO,"Ignition state changed: %d -> %d (on=%d off=%d samples=%d)",
+          priorState,
+          ignState,
+          ignOnCount,
+          ignOffCount,
+          sampleCount);
+      }
+
       ignOnCount=0;
       ignOffCount=0;
       sampleCount=0;

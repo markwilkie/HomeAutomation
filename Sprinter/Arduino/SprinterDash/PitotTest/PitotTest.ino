@@ -48,5 +48,5 @@ void loop()
   float mph = sqrt((2.0 * pascals) / AIR_DENSITY) * MS_2_MPH;
 
   Serial.printf("count=%d\tPa=%.1f\tmph=%.1f\n", count, pascals, mph);
-  delay(200);
+  delay(2000);
 }

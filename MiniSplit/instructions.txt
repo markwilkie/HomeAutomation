@@ -1,0 +1,72 @@
+Goal:  Create matter device on esp32 to control the tuya mini-split via smartthings
+
+Tuya API specifics:
+
+example:  https://github.com/tuya/tuyaopen
+
+curl --request GET "https://openapi.tuyaus.com/v1.0/iot-03/devices/status?device_ids=eb11d9ff75ef37d109pihg" --header "sign_method: HMAC-SHA256" --header "client_id: qt4e7qf9mnagnhptxn37" --header "t: 1782229755127" --header "mode: cors" --header "Content-Type: application/json" --header "sign: 5629AE97E9350DAF48D776EB1A03D1C9EF5768AE0CC48D9D547AD420DFB3881D" --header "access_token: 9494026c5f60a888df0a3a151f8da8a9"
+ResponseCopy
+{
+  "result": [
+    {
+      "id": "eb11d9ff75ef37d109pihg",
+      "status": [
+        {
+          "code": "switch",
+          "value": true
+        },
+        {
+          "code": "temp_set",
+          "value": 2100
+        },
+        {
+          "code": "temp_current",
+          "value": 1950
+        },
+        {
+          "code": "mode_auto",
+          "value": true
+        },
+        {
+          "code": "mode_eco",
+          "value": false
+        },
+        {
+          "code": "mode_dry",
+          "value": false
+        },
+        {
+          "code": "heat",
+          "value": false
+        },
+        {
+          "code": "light",
+          "value": true
+        },
+        {
+          "code": "beep",
+          "value": true
+        },
+        {
+          "code": "temp_set_f",
+          "value": 70
+        },
+        {
+          "code": "health",
+          "value": false
+        },
+        {
+          "code": "cleaning",
+          "value": false
+        },
+        {
+          "code": "fresh_air_valve",
+          "value": true
+        }
+      ]
+    }
+  ],
+  "success": true,
+  "t": 1782229755232,
+  "tid": "162b02cc6f1b11f1a5674ec5547161f4"
+}

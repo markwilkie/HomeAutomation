@@ -108,7 +108,7 @@ public:
   //  returns status OK (0) or ERROR ( not 0 )
   double   calibrate(int actualSpeed);
   void     setCalibrationFactor(double_t factor);
-  int      readSpeed();
+  int      readSpeed(int obdMph = -1);
   int      state()        { return _state; };
 
 private:

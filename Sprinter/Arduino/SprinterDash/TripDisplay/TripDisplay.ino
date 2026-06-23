@@ -61,6 +61,7 @@ unsigned long turnOffTime;
 
 //timing
 #define LCD_REFRESH_RATE 5000
+#define SUMMARY_REFRESH_RATE 1000
 #define SHUTDOWN_STARTUP_RATE 1000 //how often we check ignition
 #define CHECK_START_VALUES 60000 //how often we check if we need to update start state
 #define CAN_VERIFY_TIMEOUT 5000    //How long we'll wait for something from the CAN controller before showing error screen
@@ -81,9 +82,12 @@ TraccarUploader traccarUploader;
 #define HOME_LAT  47.756602
 #define HOME_LON -122.274359
 #define HOME_RADIUS_M 200.0   // meters from home to trigger arrival
-bool traccarTripActive = false;  // true after "Start New Trip" sends ignition ON
-bool pendingTraccarTripStart = false;  // deferred until GPS fix available
-bool leftHomeAfterTripStart = false;   // true once GPS confirms we've left the home radius
+// traccarTripActive and leftHomeAfterTripStart are now stored in propBag.data
+// so they survive power cycles (rest stops in the middle of a trip).
+// These macros make the rest of the code read/write the persisted copies.
+#define traccarTripActive      propBag.data.traccarTripActive
+#define leftHomeAfterTripStart propBag.data.leftHomeAfterTripStart
+bool pendingTraccarTripStart = false;  // deferred until GPS fix available (session-only)
 
 //GPS and track logging
 GPSModule gpsModule;
@@ -94,6 +98,7 @@ bool currentIgnState=false;
 bool currentIdlingState=false;
 unsigned long idlingStartSeconds=0;   //seconds when mph went to zero
 unsigned long nextLCDRefresh=0;
+unsigned long nextSummaryRefresh=0;
 unsigned long nextIgnRefresh=0;
 unsigned long nextIdlingRefresh=0;
 unsigned long nextUpdateStartValues=0;
@@ -127,6 +132,7 @@ unsigned long totalMessages;
 unsigned long totalCRC;
 double crcFailureRate;
 double lastCrcFailureRate;
+unsigned long lastCrcLogTimeMs = 0;
 
 void setup()
 {
@@ -230,6 +236,15 @@ void setup()
   bool allOnline=verifyInterfaces();
   if(!allOnline)
     showOfflineLinks();
+
+  //Reject persisted bad pitot calibration values and fall back to the default.
+  if(propBag.data.pitotCalibration <= 0.01)
+  {
+    logger.log(WARNING,"Invalid stored pitot calibration %f. Resetting to default %f",
+      (double)propBag.data.pitotCalibration,
+      (double)PITOT_CALIB);
+    propBag.data.pitotCalibration = PITOT_CALIB;
+  }
 
   //Update pitot calibration
   currentData.setPitotCalibrationFactor(propBag.data.pitotCalibration);
@@ -425,11 +440,12 @@ void loop()
       if(pendingTraccarTripStart)
       {
         logger.log(INFO, "Traccar deferred trip start at %f,%f", (double)lat, (double)lon);
-        traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
-        traccarUploader.sendIgnitionEvent(true, lat, lon, elev, spd, currentData.currentSeconds + 1);  // +1s so Traccar sees OFF before ON
+        // Only send ignition ON — do not send a leading OFF that would split an existing trip.
+        traccarUploader.sendIgnitionEvent(true, lat, lon, elev, spd, currentData.currentSeconds);
         traccarTripActive = true;
         pendingTraccarTripStart = false;
         leftHomeAfterTripStart = false;
+        propBag.savePropBag();
         logger.log(INFO, "Traccar trip active — geofence armed once we leave home at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
       }
 
@@ -447,6 +463,7 @@ void loop()
         if(!leftHomeAfterTripStart && distM >= 2000.0)
         {
           leftHomeAfterTripStart = true;
+          propBag.savePropBag();
           logger.log(INFO, "Left home geofence: %fm — trip end now armed", distM);
         }
 
@@ -455,6 +472,8 @@ void loop()
           logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
           traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
           traccarTripActive = false;
+          leftHomeAfterTripStart = false;
+          propBag.savePropBag();
         }
       }
 
@@ -493,6 +512,7 @@ void loop()
 
   //Take care of business
   updateContrast();
+  refreshSummaryDisplay();
   updateStartValues();
   handleIdlingAsStop();
   handleStatupAndShutdown();
@@ -733,7 +753,20 @@ void showPitotInfo()
     statusForm.updateTitle("Calibrated Pitot");
 
     //Calibrate
-    propBag.data.pitotCalibration=currentData.calibratePitot();
+    double newPitotCalibration = currentData.calibratePitot();
+    if(newPitotCalibration > 0.01)
+    {
+      propBag.data.pitotCalibration = newPitotCalibration;
+      currentData.setPitotCalibrationFactor(propBag.data.pitotCalibration);
+    }
+    else
+    {
+      logger.log(WARNING,
+        "Pitot calibration rejected. Speed=%d Pitot=%d Existing=%f",
+        currentData.currentSpeed,
+        currentData.readPitot(),
+        (double)propBag.data.pitotCalibration);
+    }
     statusForm.updateText(displayBuffer);
 
     //Show what we're doing
@@ -760,6 +793,28 @@ void showPitotInfo()
     }
 }
 
+void updateCurrentSummaryForm()
+{
+  if(currentActiveSummaryData==0)
+    sinceLastStopSummaryForm.updateDisplay();
+  else if(currentActiveSummaryData==1)
+    currentSegmentSummaryForm.updateDisplay();
+  else
+    fullTripSummaryForm.updateDisplay();
+}
+
+void refreshSummaryDisplay()
+{
+  if(formNavigator.getActiveForm()!=SUMMARY_FORM)
+    return;
+
+  if(millis()<nextSummaryRefresh)
+    return;
+
+  nextSummaryRefresh=millis()+SUMMARY_REFRESH_RATE;
+  updateCurrentSummaryForm();
+}
+
 void myGenieEventHandler(void)
 {
   genieFrame event;
@@ -776,7 +831,9 @@ void myGenieEventHandler(void)
       break;
     case ACTION_ACTIVATE_SUMMARY_FORM:
       formNavigator.activateForm(SUMMARY_FORM);
-      sinceLastStopSummaryForm.updateDisplay();
+      currentActiveSummaryData=0;
+      updateCurrentSummaryForm();
+      nextSummaryRefresh=millis()+SUMMARY_REFRESH_RATE;
       break;
     case ACTION_CYCLE_SUMMARY:
       logger.log(VERBOSE,"Cycling SUMMARY form");
@@ -784,12 +841,8 @@ void myGenieEventHandler(void)
       if(currentActiveSummaryData>=NUMBER_OF_SUMMARY_FORMS)
         currentActiveSummaryData=0;
 
-      if(currentActiveSummaryData==0)
-        sinceLastStopSummaryForm.updateDisplay();
-      if(currentActiveSummaryData==1)
-        currentSegmentSummaryForm.updateDisplay();
-      if(currentActiveSummaryData==2)
-        fullTripSummaryForm.updateDisplay();                    
+      updateCurrentSummaryForm();
+      nextSummaryRefresh=millis()+SUMMARY_REFRESH_RATE;
       break; 
     case ACTION_ACTIVATE_STARTING_FORM:
       formNavigator.activateForm(STARTING_FORM);
@@ -800,17 +853,17 @@ void myGenieEventHandler(void)
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
       {
-        // Signal Traccar: end previous trip (ignition off) then start new one (ignition on)
         float tripLat = gpsModule.getLatitude();
         float tripLon = gpsModule.getLongitude();
         if(wifi.isConnected() && (tripLat != 0.0 || tripLon != 0.0))
         {
-          // Use current fix or last known position
           float tripElev = currentData.currentElevation;
           float tripSpd = currentData.currentSpeed;
-          logger.log(INFO, "Traccar trip start at %s fix %f,%f",
+          logger.log(INFO, "Traccar new trip start at %s fix %f,%f",
                      gpsModule.hasFix() ? "current" : "last known",
                      (double)tripLat, (double)tripLon);
+          // Always send OFF then ON: cleanly closes any prior Traccar trip
+          // and starts a new one, regardless of what the device thinks is open.
           traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
           traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds + 1);
           traccarTripActive = true;
@@ -819,16 +872,28 @@ void myGenieEventHandler(void)
         }
         else
         {
-          // No coordinates at all — defer until GPS gets a fix
+          // No coordinates yet — defer until GPS gets a fix
           pendingTraccarTripStart = true;
+          traccarTripActive = false;
           logger.log(INFO, "New trip — Traccar trip start deferred until GPS fix");
         }
       }
       idlingStartSeconds=currentData.currentSeconds; 
       sinceLastStop.resetTripData();
       currentSegment.resetTripData();
-      fullTrip.resetTripData();    
-      propBag.resetPropBag();    
+      fullTrip.resetTripData();
+      {
+        // resetPropBag() resets calibration values but must not clobber the
+        // Traccar trip flags or the elevation offset we may have just set above.  Capture them first.
+        bool savedTripActive = traccarTripActive;
+        bool savedLeftHome   = leftHomeAfterTripStart;
+        int savedElevationOffset = propBag.data.elevationOffset;
+        propBag.resetPropBag();
+        traccarTripActive      = savedTripActive;
+        leftHomeAfterTripStart = savedLeftHome;
+        propBag.data.elevationOffset = savedElevationOffset;
+      }
+      propBag.savePropBag();
       formNavigator.activateForm(PRIMARY_FORM);
       break;
     case ACTION_START_NEW_SEGMENT:
@@ -938,16 +1003,19 @@ bool processIncoming(int *service,int *pid,int *value)
       totalCRC++;
 
       crcFailureRate=(double)totalCRC/(double)totalMessages;
-      if(crcFailureRate >= .05)
+      bool shouldLogCrc = (lastCrcLogTimeMs == 0 || (millis() - lastCrcLogTimeMs) >= 1000);
+      if(shouldLogCrc && crcFailureRate >= .30)
       {
+        lastCrcLogTimeMs = millis();
+        logger.log(ERROR,"CRC Failure rate is VERY high: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
+        logger.sendLogs(wifi.isConnected());
+      }
+      else if(shouldLogCrc && crcFailureRate >= .05)
+      {
+        lastCrcLogTimeMs = millis();
         logger.log(INFO,"CRC Failure rate is over 5%: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
         logger.sendLogs(wifi.isConnected());
       }
-      if(crcFailureRate >= .30)
-      {
-        logger.log(ERROR,"CRC Failure rate is VERY high: %lu/%lu  Rate: %f",totalMessages,totalCRC,crcFailureRate);
-        logger.sendLogs(wifi.isConnected());
-      }      
 
       //Just drop it and move on
       return false;

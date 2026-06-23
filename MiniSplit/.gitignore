@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+.pio/
+
+# ESP-IDF
+sdkconfig.old
+.idf_monitor_log
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Credentials (NEVER COMMIT)
+config/CONFIG.local.md
+config/*.secret*
+secrets/
+.env
+.env.local
+include/secrets.h
+
+# Local development
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Matter/commissioning artifacts
+*.qr
+commissioning_code.txt

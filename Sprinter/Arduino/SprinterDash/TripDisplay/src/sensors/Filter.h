@@ -17,6 +17,7 @@ public:
   bool writeIfNotOutlier(int i_new_value);  // returns true if not an outlier - and not more than override_num in a row
   bool checkIfOutlier(int i_qry_value); // check if queried value is an outlier
   int readAvg();
+  void reset();  // clear filter state to start fresh
 
 private:
   //running avg

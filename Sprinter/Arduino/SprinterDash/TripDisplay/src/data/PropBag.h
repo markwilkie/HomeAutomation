@@ -15,6 +15,12 @@ struct PropBagStruct
 
     //Auto-calibration offset for barometric altimeter (feet).
     int elevationOffset=0;
+
+    // Traccar trip state — persisted so power cycles (rest stops) don't split a trip.
+    // traccarTripActive: true after ignition=ON sent, cleared only when arriving home.
+    // leftHome: true once we've moved >2km from home; gates the home-arrival end-trip.
+    bool traccarTripActive=false;
+    bool leftHomeAfterTripStart=false;
 };
 
 class PropBag

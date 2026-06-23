@@ -100,3 +100,13 @@ bool Filter::checkIfOutlier(int i_qry_value) {
         int lastdelta=abs(i_qry_value-inbuffer[buffer_ptr]);
         return (avgdelta>scaling_factor)&&(lastdelta>scaling_factor);
 }
+
+void Filter::reset() {
+        outlierCount = 0;
+        outlierSum = 0;
+        buffer_filled = false;
+        currentSum = 0;
+        buffer_ptr = window_size;
+        for(int i=0; i<window_size; i++)
+          inbuffer[i] = 0;
+}

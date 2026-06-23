@@ -46,6 +46,7 @@ void PropBag::dumpPropBag()
     logger.log(INFO,"   Inst MPG Factor: %f",data.instMPGFactor);
     logger.log(INFO,"   Pitot Calib: %f",data.pitotCalibration);
     logger.log(INFO,"   Elevation Offset: %d",data.elevationOffset);
+    logger.log(INFO,"   Traccar trip active: %d  leftHome: %d",data.traccarTripActive,data.leftHomeAfterTripStart);
     logger.log(INFO,"   Last GPS: %f,%f",(double)lastLat,(double)lastLon);
 }
 
