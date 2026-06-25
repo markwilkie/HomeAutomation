@@ -1,5 +1,5 @@
 /*
- * RF Blind Controller for FireBeetle ESP32
+ * RF Blind Controller for ESP32 DevKit v1
  * 
  * Controls A-OK blinds via RF transmission based on MQTT messages
  * Uses PubSubClient library for MQTT communication
@@ -29,11 +29,11 @@
 #include "blind_data.h"   // Contains all RF timing data for blinds 1-6
 const char* mqtt_topic = "blinds/control";
 
-// RF transmission pin for FireBeetle ESP32
-const int RF_TX_PIN = 14;  // GPIO2 on FireBeetle ESP32
+// RF transmission pin 
+const int RF_TX_PIN = 14; 
 
 // A-OK remote configuration
-// You'll need to capture these codes from your actual remote
+// You'll need to capture (or generate using .py scripts) these codes from your actual remote
 // Each blind should have unique codes for up and down
 struct BlindCodes {
   unsigned long up_code;

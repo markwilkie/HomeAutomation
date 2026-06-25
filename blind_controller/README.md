@@ -5,7 +5,7 @@ This project controls A-OK blinds via RF transmission based on MQTT messages usi
 ## Hardware Requirements
 
 - ESP32 DevKit v1 board (DOIT esp32 devkitv1)
-- 433MHz RF transmitter module (connected to GPIO2)
+- 433MHz RF transmitter module (connected to GPIO14)
 - A-OK compatible blinds
 
 ## Libraries Required
@@ -37,7 +37,7 @@ Connect the 433MHz RF transmitter to your ESP32 DevKit v1:
 
 - **VCC** → 3.3V
 - **GND** → GND  
-- **DATA** → GPIO2 (defined as RF_TX_PIN in code)
+- **DATA** → GPIO14 (defined as `RF_TX_PIN` in code)
 
 ## Configuration
 
@@ -83,6 +83,31 @@ Send JSON messages in this format:
 ```json
 {"blind": 2, "action": "down"}
 ```
+
+### Group control
+
+Blinds can also be driven as groups:
+
+**End blinds (1, 2, 6):**
+```json
+{"group": "endblinds", "action": "up"}
+{"group": "endblinds", "action": "down"}
+```
+
+**Side blinds (3, 4, 5):**
+```json
+{"group": "sideblinds", "action": "up"}
+{"group": "sideblinds", "action": "down"}
+```
+
+A helper script [mqtt_pub.py](mqtt_pub.py) can publish group commands directly:
+`python mqtt_pub.py endblinds up`
+
+### Adding a new blind
+
+Blinds 1–5 were captured from the original remote; blind 6 was derived
+analytically. To add another channel (up to 16 total) without a remote, see
+[ADDING_A_BLIND.md](ADDING_A_BLIND.md) and use `python gen_blind.py <N>`.
 
 ### Status Topic: `blinds/status`
 
