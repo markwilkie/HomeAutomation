@@ -65,6 +65,27 @@ void matter_update_cooling_setpoint(int16_t temp_c);
 void matter_update_system_mode(uint8_t mode);
 
 /**
+ * @brief Update additional Tuya mode flags for bridge diagnostics/state
+ * @param mode_auto True when auto mode is active
+ * @param mode_eco True when eco mode is active
+ * @param mode_dry True when dry mode is active
+ * @param heat True when heat mode is active
+ */
+void matter_update_mode_flags(bool mode_auto, bool mode_eco, bool mode_dry, bool heat);
+
+/**
+ * @brief Update auxiliary Light state from Tuya status
+ * @param on_off Light state
+ */
+void matter_update_light(bool on_off);
+
+/**
+ * @brief Update auxiliary Beep state from Tuya status
+ * @param on_off Beep state
+ */
+void matter_update_beep(bool on_off);
+
+/**
  * @brief Check if SmartThings sent an OnOff command
  * @return true if command is pending, false otherwise
  */
@@ -83,10 +104,40 @@ bool matter_get_onoff_state(void);
 int16_t matter_get_heating_setpoint_command(void);
 
 /**
+ * @brief Get pending cooling setpoint command from SmartThings
+ * @return Setpoint in Celsius (×100), or -1 if no pending command
+ */
+int16_t matter_get_cooling_setpoint_command(void);
+
+/**
  * @brief Get pending system mode command from SmartThings
  * @return Mode (0=off, 1=heat, 2=cool, 3=auto), or 0xFF if no pending command
  */
 uint8_t matter_get_system_mode_command(void);
+
+/**
+ * @brief Check if SmartThings sent a Light OnOff command
+ * @return true if command is pending, false otherwise
+ */
+bool matter_get_light_command(void);
+
+/**
+ * @brief Get current desired Light state
+ * @return true when ON is desired, false when OFF is desired
+ */
+bool matter_get_light_state(void);
+
+/**
+ * @brief Check if SmartThings sent a Beep OnOff command
+ * @return true if command is pending, false otherwise
+ */
+bool matter_get_beep_command(void);
+
+/**
+ * @brief Get current desired Beep state
+ * @return true when ON is desired, false when OFF is desired
+ */
+bool matter_get_beep_state(void);
 
 /**
  * @brief Clear the pending OnOff command flag
@@ -100,9 +151,29 @@ void matter_clear_onoff_command(void);
 void matter_clear_setpoint_command(void);
 
 /**
+ * @brief Clear only the pending heating setpoint command flag
+ */
+void matter_clear_heating_setpoint_command(void);
+
+/**
+ * @brief Clear only the pending cooling setpoint command flag
+ */
+void matter_clear_cooling_setpoint_command(void);
+
+/**
  * @brief Clear the pending mode command flag
  */
 void matter_clear_mode_command(void);
+
+/**
+ * @brief Clear pending Light command flag
+ */
+void matter_clear_light_command(void);
+
+/**
+ * @brief Clear pending Beep command flag
+ */
+void matter_clear_beep_command(void);
 
 /**
  * @brief Cleanup/deinit Matter device

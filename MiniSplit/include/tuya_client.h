@@ -66,6 +66,20 @@ esp_err_t tuya_set_temperature(int16_t temp_c);
 esp_err_t tuya_set_mode(uint8_t mode);
 
 /**
+ * @brief Set front panel light state
+ * @param on True to turn on, false to turn off
+ * @return ESP_OK on success
+ */
+esp_err_t tuya_set_light(bool on);
+
+/**
+ * @brief Set beep feedback state
+ * @param on True to enable, false to disable
+ * @return ESP_OK on success
+ */
+esp_err_t tuya_set_beep(bool on);
+
+/**
  * @brief Refresh access token (if expired)
  * @return ESP_OK on success
  */

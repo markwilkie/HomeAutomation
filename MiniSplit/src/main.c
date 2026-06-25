@@ -19,6 +19,8 @@ static const char *TAG = "MAIN";
 #define WIFI_CONNECTED_BIT BIT0
 
 static EventGroupHandle_t g_app_event_group = NULL;
+static tuya_device_status_t g_last_device_status = {0};
+static bool g_last_device_status_valid = false;
 
 // Timing configuration
 #define STATUS_POLL_INTERVAL_MS 30000   // Poll Tuya every 30 seconds
@@ -35,6 +37,59 @@ typedef struct {
 } sync_state_t;
 
 static sync_state_t g_sync_state = {0};
+
+static int16_t normalize_tuya_setpoint(int16_t temp_c)
+{
+    if (temp_c < 1600) {
+        temp_c = 1600;
+    } else if (temp_c > 3000) {
+        temp_c = 3000;
+    }
+    return (int16_t)(((temp_c + 50) / 100) * 100);
+}
+
+static uint8_t map_tuya_mode_to_matter(const tuya_device_status_t *device_status)
+{
+    if (device_status->heat) {
+        return 1; // Heat
+    }
+    if (device_status->mode_dry) {
+        return 2; // Cool
+    }
+    if (device_status->mode_auto || device_status->mode_eco) {
+        return 3; // Auto
+    }
+    return 0; // Off
+}
+
+static void apply_status_to_matter(const tuya_device_status_t *device_status)
+{
+    matter_update_onoff(device_status->switch_state);
+    matter_update_local_temperature(device_status->temp_current);
+    matter_update_heating_setpoint(device_status->temp_set);
+    matter_update_cooling_setpoint(device_status->temp_set);
+    matter_update_system_mode(map_tuya_mode_to_matter(device_status));
+    matter_update_mode_flags(device_status->mode_auto,
+                             device_status->mode_eco,
+                             device_status->mode_dry,
+                             device_status->heat);
+    matter_update_light(device_status->light);
+    matter_update_beep(device_status->beep);
+}
+
+static void cache_and_apply_status(const tuya_device_status_t *device_status)
+{
+    g_last_device_status = *device_status;
+    g_last_device_status_valid = true;
+    apply_status_to_matter(device_status);
+}
+
+static void revert_from_last_status_if_available(void)
+{
+    if (g_last_device_status_valid) {
+        apply_status_to_matter(&g_last_device_status);
+    }
+}
 
 /**
  * @brief Wait until system time is synchronized via SNTP
@@ -195,22 +250,8 @@ static void sync_task(void *param)
                  device_status.mode_dry ? "Dry " : "",
                  device_status.heat ? "Heat" : "");
         
-        // Update Matter attributes with Tuya status
-        matter_update_onoff(device_status.switch_state);
-        matter_update_local_temperature(device_status.temp_current);
-        matter_update_heating_setpoint(device_status.temp_set);
-        matter_update_cooling_setpoint(device_status.temp_set);
-        
-        // Map Tuya modes to Matter SystemMode (0=off, 1=heat, 2=cool, 3=auto)
-        uint8_t matter_mode = 0;
-        if (device_status.heat) {
-            matter_mode = 1;  // Heat
-        } else if (device_status.mode_dry) {
-            matter_mode = 2;  // Cool
-        } else if (device_status.mode_auto || device_status.mode_eco) {
-            matter_mode = 3;  // Auto
-        }
-        matter_update_system_mode(matter_mode);
+        // Update cached status and Matter attributes with source-of-truth Tuya status.
+        cache_and_apply_status(&device_status);
         
         g_sync_state.last_status_update = xTaskGetTickCount();
     }
@@ -248,6 +289,7 @@ static void command_task(void *param)
             esp_err_t result = tuya_set_power(desired_onoff);
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send power command to Tuya");
+                revert_from_last_status_if_available();
             } else {
                 ESP_LOGI(TAG, "Power command sent successfully");
             }
@@ -255,21 +297,97 @@ static void command_task(void *param)
             matter_clear_onoff_command();
         }
         
+        // ===== Check for Light command =====
+        if (matter_get_light_command()) {
+            bool desired_light = matter_get_light_state();
+            ESP_LOGI(TAG, "Processing light command from SmartThings: %s",
+                     desired_light ? "ON" : "OFF");
+
+            esp_err_t result = tuya_set_light(desired_light);
+            if (result != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send light command to Tuya");
+                revert_from_last_status_if_available();
+            } else {
+                ESP_LOGI(TAG, "Light command sent successfully");
+            }
+
+            matter_clear_light_command();
+        }
+
+        // ===== Check for Beep command =====
+        if (matter_get_beep_command()) {
+            bool desired_beep = matter_get_beep_state();
+            ESP_LOGI(TAG, "Processing beep command from SmartThings: %s",
+                     desired_beep ? "ON" : "OFF");
+
+            esp_err_t result = tuya_set_beep(desired_beep);
+            if (result != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send beep command to Tuya");
+                revert_from_last_status_if_available();
+            } else {
+                ESP_LOGI(TAG, "Beep command sent successfully");
+            }
+
+            matter_clear_beep_command();
+        }
+
         // ===== Check for Heating Setpoint command =====
-        int16_t setpoint_cmd = matter_get_heating_setpoint_command();
-        if (setpoint_cmd >= 0 && setpoint_cmd != 0) {
+        int16_t heat_setpoint_cmd = matter_get_heating_setpoint_command();
+        if (heat_setpoint_cmd >= 0) {
             ESP_LOGI(TAG, "Processing heating setpoint command: %.1f°C", 
-                     setpoint_cmd / 100.0f);
+                     heat_setpoint_cmd / 100.0f);
             
             // Send to Tuya
-            esp_err_t result = tuya_set_temperature(setpoint_cmd);
+            int16_t expected_setpoint = normalize_tuya_setpoint(heat_setpoint_cmd);
+            esp_err_t result = tuya_set_temperature(expected_setpoint);
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send temperature command to Tuya");
+                revert_from_last_status_if_available();
             } else {
-                ESP_LOGI(TAG, "Temperature command sent successfully");
+                tuya_device_status_t verify_status = {0};
+                if (tuya_get_device_status(&verify_status) == ESP_OK) {
+                    if (verify_status.temp_set != expected_setpoint) {
+                        ESP_LOGE(TAG, "Temperature command not applied by Tuya (expected=%d actual=%d)",
+                                 expected_setpoint, verify_status.temp_set);
+                    } else {
+                        ESP_LOGI(TAG, "Temperature command verified (setpoint=%d)", verify_status.temp_set);
+                    }
+                    cache_and_apply_status(&verify_status);
+                } else {
+                    ESP_LOGW(TAG, "Temperature command sent but verification poll failed");
+                }
             }
             
-            matter_clear_setpoint_command();
+            matter_clear_heating_setpoint_command();
+        }
+
+        // ===== Check for Cooling Setpoint command =====
+        int16_t cool_setpoint_cmd = matter_get_cooling_setpoint_command();
+        if (cool_setpoint_cmd >= 0) {
+            ESP_LOGI(TAG, "Processing cooling setpoint command: %.1f°C", 
+                     cool_setpoint_cmd / 100.0f);
+
+            int16_t expected_setpoint = normalize_tuya_setpoint(cool_setpoint_cmd);
+            esp_err_t result = tuya_set_temperature(expected_setpoint);
+            if (result != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send cooling temperature command to Tuya");
+                revert_from_last_status_if_available();
+            } else {
+                tuya_device_status_t verify_status = {0};
+                if (tuya_get_device_status(&verify_status) == ESP_OK) {
+                    if (verify_status.temp_set != expected_setpoint) {
+                        ESP_LOGE(TAG, "Cooling command not applied by Tuya (expected=%d actual=%d)",
+                                 expected_setpoint, verify_status.temp_set);
+                    } else {
+                        ESP_LOGI(TAG, "Cooling command verified (setpoint=%d)", verify_status.temp_set);
+                    }
+                    cache_and_apply_status(&verify_status);
+                } else {
+                    ESP_LOGW(TAG, "Cooling command sent but verification poll failed");
+                }
+            }
+
+            matter_clear_cooling_setpoint_command();
         }
         
         // ===== Check for System Mode command =====
@@ -282,8 +400,13 @@ static void command_task(void *param)
             esp_err_t result = tuya_set_mode(mode_cmd);
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send mode command to Tuya");
+                revert_from_last_status_if_available();
             } else {
                 ESP_LOGI(TAG, "Mode command sent successfully");
+                tuya_device_status_t verify_status = {0};
+                if (tuya_get_device_status(&verify_status) == ESP_OK) {
+                    cache_and_apply_status(&verify_status);
+                }
             }
             
             matter_clear_mode_command();
