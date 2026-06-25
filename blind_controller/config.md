@@ -18,7 +18,7 @@ Install these libraries through Arduino IDE Library Manager:
 2. **Set RF codes:**
    - Update A-OK blind RF codes in the `blinds[]` array in `blind_controller.ino`
 
-3. **Upload to FireBeetle ESP32**
+3. **Upload to ESP32 DevKit v1** (`esp32:esp32:esp32doit-devkit-v1`)
 
 ## MQTT Commands
 

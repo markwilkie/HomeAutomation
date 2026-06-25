@@ -1,10 +1,10 @@
-# RF Blind Controller for FireBeetle ESP32
+# RF Blind Controller for ESP32 DevKit v1
 
-This project controls A-OK blinds via RF transmission based on MQTT messages using a FireBeetle ESP32 board.
+This project controls A-OK blinds via RF transmission based on MQTT messages using an ESP32 DevKit v1 board (`esp32:esp32:esp32doit-devkit-v1`).
 
 ## Hardware Requirements
 
-- FireBeetle ESP32 board
+- ESP32 DevKit v1 board (DOIT esp32 devkitv1)
 - 433MHz RF transmitter module (connected to GPIO2)
 - A-OK compatible blinds
 
@@ -33,7 +33,7 @@ Since the A-OK library may not be in the Arduino Library Manager:
 
 ## Wiring
 
-Connect the 433MHz RF transmitter to your FireBeetle ESP32:
+Connect the 433MHz RF transmitter to your ESP32 DevKit v1:
 
 - **VCC** → 3.3V
 - **GND** → GND  

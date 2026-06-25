@@ -17,7 +17,7 @@
  * Payload: {"blind": 1, "action": "up"} or {"blind": 1, "action": "down"}
  * 
  * Group blind control:
- * End blinds (1-2): {"group": "endblinds", "action": "up"} or {"group": "endblinds", "action": "down"}
+ * End blinds (1, 2, 6): {"group": "endblinds", "action": "up"} or {"group": "endblinds", "action": "down"}
  * Side blinds (3-5): {"group": "sideblinds", "action": "up"} or {"group": "sideblinds", "action": "down"}
  */
 
@@ -26,7 +26,7 @@
 #include <ArduinoJson.h>
 #include "AOK.h"
 #include "credentials.h"  // Contains WiFi and MQTT credentials
-#include "blind_data.h"   // Contains all RF timing data for blinds 1-5
+#include "blind_data.h"   // Contains all RF timing data for blinds 1-6
 const char* mqtt_topic = "blinds/control";
 
 // RF transmission pin for FireBeetle ESP32
@@ -48,7 +48,8 @@ BlindCodes blinds[] = {
   {0x789ABC, 0xCBA987},  // Blind 2: up_code, down_code
   {0xDEF012, 0x210FED},  // Blind 3: up_code, down_code
   {0x345678, 0x876543},  // Blind 4: up_code, down_code
-  {0x9ABCDE, 0xEDCBA9}   // Blind 5: up_code, down_code
+  {0x9ABCDE, 0xEDCBA9},  // Blind 5: up_code, down_code
+  {0x000000, 0x000000}   // Blind 6: derived (uses raw data, see blind_data.h)
 };
 
 const int MAX_BLINDS = sizeof(blinds) / sizeof(blinds[0]);
@@ -130,11 +131,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (doc.containsKey("group")) {
     String group = doc["group"];
     if (group == "endblinds") {
-      // Control blinds 1-2 (end blinds)
-      Serial.println("Controlling end blinds (1-2) - Action: " + action);
+      // Control blinds 1, 2 and 6 (end blinds)
+      Serial.println("Controlling end blinds (1, 2, 6) - Action: " + action);
       control_blind(1, action);
       delay(500);  // Small delay between commands
       control_blind(2, action);
+      delay(500);
+      control_blind(6, action);
     } else if (group == "sideblinds") {
       // Control blinds 3-5 (side blinds)
       Serial.println("Controlling side blinds (3-5) - Action: " + action);
@@ -188,8 +191,8 @@ void control_blind(int blind_number, String action) {
   Serial.println(action);
   
   // Validate blind number
-  if (blind_number < 1 || blind_number > 5) {
-    Serial.println("Error: Invalid blind number. Must be 1-5");
+  if (blind_number < 1 || blind_number > 6) {
+    Serial.println("Error: Invalid blind number. Must be 1-6");
     return;
   }
   
@@ -218,6 +221,10 @@ void control_blind(int blind_number, String action) {
     rawData = blind5_down;
   } else if (blind_number == 5 && action == "up") {
     rawData = blind5_up;
+  } else if (blind_number == 6 && action == "down") {
+    rawData = blind6_down;
+  } else if (blind_number == 6 && action == "up") {
+    rawData = blind6_up;
   }
   
   if (rawData != nullptr) {
