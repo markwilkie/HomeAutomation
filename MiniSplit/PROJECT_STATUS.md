@@ -86,11 +86,16 @@
 
 ## Build Status
 
+> Full, verified build procedure: **[BUILD.md](BUILD.md)**
+
 ### Prerequisites
-- ✅ ESP-IDF v5.0+
-- ⏳ ESP-Matter SDK (needs installation)
+- ✅ ESP-IDF **v5.4.1** (do NOT use 6.x — it dropped the bundled `json` component)
+- ✅ Target: **esp32c6** (RISC-V)
+- ✅ ESP-Matter 1.5.0 (auto-pulled by IDF Component Manager)
 - ✅ cJSON library
 - ✅ mbedtls
+- ✅ Custom `partitions.csv` — factory app bumped to `0x300000` (3 MB) for Matter+BLE
+- ✅ `IDF_COMPONENT_CACHE_PATH=C:\icc` to avoid Windows path-length limit
 
 ### Configuration
 - ✅ CMakeLists.txt updated

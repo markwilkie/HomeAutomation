@@ -4,7 +4,8 @@
 set -e
 
 PROJECT_NAME="minisplit-matter-bridge"
-TARGET="${1:-esp32s3}"
+# This project targets the ESP32-C6 (RISC-V). Do NOT use esp32-s3.
+TARGET="${1:-esp32c6}"
 
 echo "=========================================="
 echo "MiniSplit Matter Bridge Build Script"
@@ -43,7 +44,8 @@ echo
 echo "Ready to flash. Connect your ESP32 and press Enter."
 read
 
-PORT="${2:-/dev/ttyUSB0}"
+# Default port: COM6 on Windows; override as arg 2 (e.g. /dev/ttyUSB0 on Linux).
+PORT="${2:-COM6}"
 echo "Flashing to $PORT..."
 idf.py flash -p $PORT
 

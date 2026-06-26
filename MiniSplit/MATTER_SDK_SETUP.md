@@ -119,26 +119,34 @@ idf_component_register(
 
 ## Step 4: Build for Target
 
-### ESP32-S3 (Recommended for Matter)
+> **This project targets the ESP32-C6** (RISC-V, WiFi 6 + BLE 5 + Thread). The S3/C3
+> instructions below are kept for reference only. See **[BUILD.md](BUILD.md)** for the
+> authoritative, verified build procedure.
+
+### ESP32-C6 (this project)
 
 ```bash
 cd ~/github/HomeAutomation/MiniSplit
 
 # Set target
-idf.py set-target esp32s3
-
-# Configure
-idf.py menuconfig
-# (Enable options from Step 2)
+idf.py set-target esp32c6
 
 # Build
 idf.py build
 
-# Flash
+# Flash (COM6 on Windows; /dev/ttyUSB0 on Linux)
+idf.py -p COM6 flash monitor
+```
+
+### ESP32-S3 (reference only)
+
+```bash
+idf.py set-target esp32s3
+idf.py build
 idf.py flash -p /dev/ttyUSB0 monitor
 ```
 
-### ESP32-C3 (Alternative)
+### ESP32-C3 (reference only)
 
 ```bash
 idf.py set-target esp32c3
@@ -150,7 +158,8 @@ idf.py build
 | Chip | Matter Support | Flash | RAM | BLE | Thread | Recommended |
 |------|---|-------|-----|-----|--------|-------------|
 | ESP32 | ⚠️ Limited | 4MB | 520KB | ✓ | ✗ | No |
-| ESP32-S3 | ✅ Full | 16MB | 520KB | ✓ | ✓ | **YES** |
+| **ESP32-C6** | ✅ Full | 4–16MB | 512KB | ✓ | ✓ | **THIS PROJECT** |
+| ESP32-S3 | ✅ Full | 16MB | 520KB | ✓ | ✓ | Yes |
 | ESP32-C3 | ✅ Good | 8MB | 400KB | ✓ | ✗ | Yes |
 | ESP32-H2 | ✅ Full | 8MB | 320KB | ✓ | ✓ | Emerging |
 
@@ -162,7 +171,7 @@ Create `config/BUILD_CONFIG.md`:
 # Build Configuration
 
 ## Target
-ESP32-S3
+ESP32-C6
 
 ## Features Enabled
 - Matter commissioning
@@ -244,9 +253,9 @@ esp_log_level_set("esp_matter", ESP_LOG_INFO);
 **Cause:** ESP32 (2MB) doesn't have enough space
 
 **Solution:**
-- Use ESP32-S3 (16MB) instead
+- Use the ESP32-C6 (this project's target) with a 4MB+ flash module
+- Ensure the custom `partitions.csv` is used (factory app = 0x300000 / 3MB)
 - Or reduce other components
-- Recommended: Upgrade to ESP32-S3
 
 ## Verification Checklist
 

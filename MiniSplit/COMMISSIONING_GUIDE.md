@@ -6,7 +6,7 @@ This guide walks through commissioning the MiniSplit Matter Bridge to SmartThing
 
 Before attempting commissioning:
 
-- [ ] ESP32-S3 (or ESP32-C3) with firmware flashed
+- [ ] ESP32-C6 with firmware flashed
 - [ ] Device powered on and running
 - [ ] WiFi connected (check serial logs)
 - [ ] SmartThings Hub with Matter support (U8000 or Hub 3+)

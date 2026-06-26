@@ -4,41 +4,41 @@ A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to Smart
 
 ## Quick Start
 
+> **Building?** See **[BUILD.md](BUILD.md)** for the authoritative, verified build
+> procedure (exact toolchain versions, partition sizing, and Windows gotchas).
+
 ### Prerequisites
-- ESP32-S3 or ESP32-C3 development board
+- ESP32-C6 development board (RISC-V)
+- **ESP-IDF v5.4.1** — do **NOT** use 6.x (it removed the bundled `json` component)
 - Tuya mini-split AC unit with IoT module
 - SmartThings Hub with Matter support
-- ESP-IDF v5.0+ or Arduino IDE with Matter support
+- A short component-cache path on Windows (`$env:IDF_COMPONENT_CACHE_PATH = "C:\icc"`)
+
+> ESP-Matter (esp_matter 1.5.0) is pulled automatically by the IDF Component Manager —
+> no manual `git clone` required.
 
 ### Setup
 
-1. **Install ESP-Matter SDK**
-   ```bash
-   # Follow MATTER_SDK_SETUP.md for detailed instructions
-   cd $IDF_PATH/components
-   git clone https://github.com/espressif/esp-matter.git
-   cd esp-matter && git submodule update --init --recursive
+1. **Configure secrets**
+   ```powershell
+   cd C:\Users\mawilkie\github\HomeAutomation\MiniSplit
+   copy include\secrets.example.h include\secrets.h
+   # Edit include\secrets.h with WiFi + Tuya credentials (git-ignored)
    ```
 
-2. **Configure Project**
-   ```bash
-   cd ~/github/HomeAutomation/MiniSplit
-   cp config/CONFIG.md config/CONFIG.local.md
-   # Edit CONFIG.local.md with your credentials
-   ```
-
-3. **Build**
-   ```bash
-   idf.py set-target esp32s3
-   idf.py menuconfig  # Enable Matter, BLE (see MATTER_SDK_SETUP.md)
+2. **Build (PowerShell on Windows)**
+   ```powershell
+   . C:\esp-idf-v5.4.1\export.ps1
+   $env:IDF_COMPONENT_CACHE_PATH = "C:\icc"
+   idf.py set-target esp32c6   # first time / after fullclean only
    idf.py build
    ```
 
-4. **Flash & Commission**
-   ```bash
-   idf.py flash -p /dev/ttyUSB0 monitor
-   # Watch for setup code in serial output
-   # Use SmartThings app to scan QR code
+3. **Flash & Commission**
+   ```powershell
+   idf.py -p COM6 flash monitor   # close any open monitor first
+   # Watch for the Matter setup QR / pairing code in serial output
+   # Use the SmartThings app to scan the QR code
    ```
 
 ## Project Status
@@ -57,6 +57,7 @@ A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to Smart
 MiniSplit/
 ├── instructions.txt           # Original requirements
 ├── README.md                  # This file
+├── BUILD.md                   # ✅ Verified build & flash guide (read this first)
 ├── ARCHITECTURE.md            # System design (Phase 0)
 ├── PHASE1_COMPLETE.md         # Tuya API details (Phase 1)
 ├── PHASE2_MATTER.md           # Matter integration (Phase 2)
