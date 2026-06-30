@@ -9,9 +9,11 @@
 #include "esp_wifi.h"
 #include "esp_sntp.h"
 #include <time.h>
+#include <math.h>
 
 #include "tuya_client.h"
 #include "matter_device.h"
+#include "bme280.h"
 #include "secrets.h"
 
 static const char *TAG = "MAIN";
@@ -25,6 +27,7 @@ static bool g_last_device_status_valid = false;
 // Timing configuration
 #define STATUS_POLL_INTERVAL_MS 30000   // Poll Tuya every 30 seconds
 #define COMMAND_POLL_INTERVAL_MS 5000   // Check Matter commands every 5 seconds
+#define ENV_POLL_INTERVAL_MS 30000      // Read BME280 every 30 seconds
 #define RETRY_DELAY_MS 2000             // Wait before retry on error
 #define MAX_RETRIES 3                   // Retry up to 3 times before giving up
 
@@ -66,6 +69,12 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
 {
     matter_update_onoff(device_status->switch_state);
     matter_update_local_temperature(device_status->temp_current);
+    // When no BME280 is attached, surface the indoor temperature on the
+    // standalone temperature-sensor endpoint so SmartThings routines still have
+    // a value. With a BME280 present, env_task drives that endpoint instead.
+    if (!bme280_is_present()) {
+        matter_update_aux_temperature(device_status->temp_current);
+    }
     matter_update_heating_setpoint(device_status->temp_set);
     matter_update_cooling_setpoint(device_status->temp_set);
     matter_update_system_mode(map_tuya_mode_to_matter(device_status));
@@ -415,6 +424,32 @@ static void command_task(void *param)
 }
 
 /**
+ * @brief Environment sensor task: reads BME280 and updates the standalone
+ *        Matter temperature + humidity sensor endpoints.
+ */
+static void env_task(void *param)
+{
+    ESP_LOGI(TAG, "Environment sensor task started (BME280, interval: %ums)",
+             ENV_POLL_INTERVAL_MS);
+
+    while (1) {
+        bme280_reading_t reading = {0};
+        if (bme280_read(&reading) == ESP_OK) {
+            int16_t temp_centi = (int16_t)lroundf(reading.temperature_c * 100.0f);
+            uint16_t hum_centi = (uint16_t)lroundf(reading.humidity_pct * 100.0f);
+            matter_update_aux_temperature(temp_centi);
+            matter_update_aux_humidity(hum_centi);
+            ESP_LOGI(TAG, "BME280: %.2f\u00b0C  %.1f%%RH  %.1f hPa",
+                     reading.temperature_c, reading.humidity_pct, reading.pressure_hpa);
+        } else {
+            ESP_LOGW(TAG, "BME280 read failed");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(ENV_POLL_INTERVAL_MS));
+    }
+}
+
+/**
  * @brief Health monitoring task: logs system status periodically
  */
 static void health_task(void *param)
@@ -490,6 +525,19 @@ void app_main(void)
     // Start Matter commissioning
     ESP_LOGI(TAG, "Starting Matter commissioning...");
     ESP_ERROR_CHECK(matter_start_commissioning());
+
+    // Initialize optional BME280 environment sensor (temperature + humidity).
+    // If absent, the aux temperature endpoint falls back to the Tuya indoor temp.
+    if (bme280_init() == ESP_OK) {
+        xTaskCreate(env_task,
+                    "env_sensor",
+                    3072,
+                    NULL,
+                    2,
+                    NULL);
+    } else {
+        ESP_LOGW(TAG, "BME280 not detected; humidity endpoint inactive, aux temp mirrors Tuya");
+    }
     
     // ========== Phase 3: Create Integration Tasks ==========
     

@@ -1,6 +1,6 @@
-idf_component_register(SRCS "main.c" "tuya_client.c" "matter_device.cpp"
+idf_component_register(SRCS "main.c" "tuya_client.c" "bme280.c" "matter_device.cpp"
                        INCLUDE_DIRS "." "../include"
-                       REQUIRES esp_http_client mbedtls espressif__esp_matter)
+                       REQUIRES esp_http_client mbedtls esp_driver_i2c espressif__esp_matter)
 
 # Suppress format/type mismatch warning from esp_log_color.h on xtensa gcc 14.x
 # where uint32_t resolves to 'long unsigned int' instead of 'unsigned int'

@@ -86,6 +86,26 @@ void matter_update_light(bool on_off);
 void matter_update_beep(bool on_off);
 
 /**
+ * @brief Update the standalone Temperature Sensor endpoint value
+ *
+ * Exposed to SmartThings as a Temperature Measurement capability, usable as a
+ * routine trigger/condition independent of the thermostat's LocalTemperature.
+ *
+ * @param temp_c Temperature in Celsius (×100, e.g., 2200 = 22°C)
+ */
+void matter_update_aux_temperature(int16_t temp_c);
+
+/**
+ * @brief Update the standalone Humidity Sensor endpoint value
+ *
+ * Exposed to SmartThings as a Relative Humidity Measurement capability, usable
+ * as a routine trigger/condition.
+ *
+ * @param humidity_centi_pct Relative humidity in percent ×100 (e.g., 5000 = 50%)
+ */
+void matter_update_aux_humidity(uint16_t humidity_centi_pct);
+
+/**
  * @brief Check if SmartThings sent an OnOff command
  * @return true if command is pending, false otherwise
  */

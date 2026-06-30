@@ -137,7 +137,9 @@ idf.py -p COM6 flash monitor
 - **Close any open serial monitor before `flash` or `erase-flash`** — an open monitor
   holds COM6 and causes port-contention errors.
 - To start clean: `idf.py -p COM6 erase-flash` then `idf.py -p COM6 flash`.
-- On boot, a healthy image logs the Matter endpoint init: `thermostat=1, light=2, beep=3`.
+- On boot, a healthy image logs the Matter endpoint init:
+  `thermostat_ep=1 light_ep=2 beep_ep=3 temp_sensor_ep=4 humidity_sensor_ep=5`.
+  (If a BME280 is fitted, also `Environment sensor task started` and periodic `BME280:` lines.)
 
 ## Clean rebuild
 

@@ -62,6 +62,7 @@ MiniSplit/
 ├── PHASE1_COMPLETE.md         # Tuya API details (Phase 1)
 ├── PHASE2_MATTER.md           # Matter integration (Phase 2)
 ├── MATTER_SDK_SETUP.md        # SDK installation guide
+├── SENSORS.md                 # ✅ Temp/humidity endpoints + BME280 wiring
 ├── ROADMAP.md                 # Development roadmap
 ├── TUYAOPEN_REFERENCE.md      # TuyaOpen analysis
 ├── IMPLEMENTATION_NOTES.md    # Technical details
@@ -70,12 +71,14 @@ MiniSplit/
 ├── src/
 │   ├── main.c                 # Entry point (orchestration)
 │   ├── tuya_client.c          # ✅ Tuya API (Phase 1)
-│   ├── matter_device.c        # ✅ Matter device (Phase 2)
+│   ├── matter_device.cpp      # ✅ Matter device + sensor endpoints (Phase 2)
+│   ├── bme280.c               # ✅ BME280 temp/humidity/pressure driver
 │   ├── tuya_api_test.c        # Test harness
 │   └── CMakeLists.txt
 ├── include/
 │   ├── tuya_client.h          # ✅ Tuya API interface
 │   ├── matter_device.h        # ✅ Matter interface
+│   ├── bme280.h               # ✅ BME280 driver interface
 └── config/
     ├── CONFIG.md              # Configuration template
     ├── SECURE_STORAGE.md      # Credential storage
@@ -132,6 +135,13 @@ See [ROADMAP.md](ROADMAP.md) for details.
 - ✅ Maps to Tuya device modes
 - ✅ Mode persistence
 
+### Environmental Sensing (BME280)
+- ✅ Standalone **Temperature** sensor endpoint (usable in SmartThings routines)
+- ✅ Standalone **Humidity** sensor endpoint (usable in SmartThings routines)
+- ✅ Optional BME280 over I2C (temp / humidity / pressure)
+- ✅ Falls back to mirroring the Tuya indoor temperature when no BME280 is fitted
+- ℹ️ See [SENSORS.md](SENSORS.md) for wiring, config, and endpoint details
+
 ## Technical Architecture
 
 ```
@@ -143,6 +153,8 @@ SmartThings App
 │ Matter Device Layer (Phase 2)│
 │ ├─ On/Off Cluster           │
 │ ├─ Thermostat Cluster       │
+│ ├─ Temperature Measurement  │
+│ ├─ Relative Humidity Meas.  │
 │ └─ Commissioning            │
 ├──────────────────────────────┤
 │ Tuya API Client (Phase 1)    │
@@ -181,17 +193,17 @@ Mini-Split AC Unit
 ## Build & Flash
 
 ```bash
-# Terminal 1: Build
+# Terminal 1: Build (see BUILD.md for the full, verified procedure)
 cd ~/github/HomeAutomation/MiniSplit
-idf.py set-target esp32s3
+idf.py set-target esp32c6
 idf.py build
 
-# Terminal 2: Flash
-idf.py flash -p /dev/ttyUSB0 monitor
+# Terminal 2: Flash (COM6 on Windows; /dev/ttyUSB0 on Linux)
+idf.py -p COM6 flash monitor
 
 # Output (check for):
 # I (xxx) TUYA_CLIENT: Tuya client initialized for device: eb11d9ff75ef37d109pihg
-# I (xxx) MATTER_DEVICE: Matter device initialized successfully
+# I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 light_ep=2 beep_ep=3 temp_sensor_ep=4 humidity_sensor_ep=5
 # I (xxx) MATTER_DEVICE: Matter commissioning started
 ```
 

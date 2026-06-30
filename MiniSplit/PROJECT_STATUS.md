@@ -78,11 +78,15 @@
 | File | Lines | Status | Notes |
 |------|-------|--------|-------|
 | `src/tuya_client.c` | ~500 | ✅ Complete | Full Tuya API implementation |
-| `src/matter_device.c` | ~400 | ✅ Complete | Matter endpoint & callbacks |
-| `src/main.c` | ~150 | ✅ Complete | Orchestration & task setup |
+| `src/matter_device.cpp` | ~470 | ✅ Complete | Matter endpoints (incl. temp/humidity sensors) & callbacks |
+| `src/bme280.c` | ~250 | ✅ Complete | BME280 temp/humidity/pressure I2C driver |
+| `src/main.c` | ~150 | ✅ Complete | Orchestration & task setup (sync, command, env, health) |
 | `include/tuya_client.h` | ~70 | ✅ Complete | Tuya API interface |
 | `include/matter_device.h` | ~90 | ✅ Complete | Matter interface |
-| **Total** | **~1,200** | ✅ | Core implementation |
+| `include/bme280.h` | ~70 | ✅ Complete | BME280 driver interface |
+| **Total** | **~1,600** | ✅ | Core implementation |
+
+> Sensor endpoints & BME280 wiring documented in **[SENSORS.md](SENSORS.md)**.
 
 ## Build Status
 

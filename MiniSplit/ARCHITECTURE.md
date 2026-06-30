@@ -67,6 +67,15 @@ Create a Matter-compliant device on ESP32 that bridges Tuya mini-split AC contro
 3. **Identify** (0x0003)
    - For device identification/commissioning
 
+4. **Temperature Measurement** (0x0402) — standalone Temperature Sensor endpoint
+   - MeasuredValue (°C × 100); driven by BME280, or falls back to Tuya `temp_current`
+   - Exposed to SmartThings as a routine-usable temperature
+
+5. **Relative Humidity Measurement** (0x0405) — standalone Humidity Sensor endpoint
+   - MeasuredValue (%RH × 100); driven by BME280
+   - Exposed to SmartThings as a routine-usable humidity
+   - See [SENSORS.md](SENSORS.md) for wiring and details
+
 ### Optional Clusters
 - **Fan Control** (0x0202) - if fan speed control needed
 - **Basic Information** (0x0028) - device info

@@ -26,6 +26,8 @@ typedef struct {
     bool light;
     bool beep;
     int16_t current_temp;
+    int16_t aux_temp;
+    uint16_t aux_humidity;
     int16_t heating_setpoint;
     int16_t cooling_setpoint;
     uint8_t system_mode;
@@ -46,6 +48,8 @@ static matter_device_state_t g_matter_state = {
     .light = false,
     .beep = false,
     .current_temp = 2200,
+    .aux_temp = 2200,
+    .aux_humidity = 5000,
     .heating_setpoint = 2000,
     .cooling_setpoint = 2400,
     .system_mode = 3,
@@ -65,9 +69,13 @@ static node_t *g_node = nullptr;
 static endpoint_t *g_endpoint = nullptr;
 static endpoint_t *g_light_endpoint = nullptr;
 static endpoint_t *g_beep_endpoint = nullptr;
+static endpoint_t *g_temp_sensor_endpoint = nullptr;
+static endpoint_t *g_humidity_sensor_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
 static uint16_t g_light_endpoint_id = 0;
 static uint16_t g_beep_endpoint_id = 0;
+static uint16_t g_temp_sensor_endpoint_id = 0;
+static uint16_t g_humidity_sensor_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
 
@@ -212,6 +220,36 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Standalone temperature sensor endpoint. SmartThings exposes this as a
+    // Temperature Measurement capability that can be used as a routine trigger.
+    endpoint::temperature_sensor::config_t temp_sensor_cfg;
+    temp_sensor_cfg.temperature_measurement.measured_value = nullable<int16_t>(g_matter_state.aux_temp);
+    g_temp_sensor_endpoint = endpoint::temperature_sensor::create(g_node, &temp_sensor_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_temp_sensor_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Temperature Sensor endpoint");
+        return ESP_FAIL;
+    }
+    g_temp_sensor_endpoint_id = endpoint::get_id(g_temp_sensor_endpoint);
+    if (!g_temp_sensor_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Temperature Sensor endpoint id");
+        return ESP_FAIL;
+    }
+
+    // Standalone humidity sensor endpoint. SmartThings exposes this as a
+    // Relative Humidity Measurement capability usable as a routine trigger.
+    endpoint::humidity_sensor::config_t humidity_sensor_cfg;
+    humidity_sensor_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>(g_matter_state.aux_humidity);
+    g_humidity_sensor_endpoint = endpoint::humidity_sensor::create(g_node, &humidity_sensor_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_humidity_sensor_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Humidity Sensor endpoint");
+        return ESP_FAIL;
+    }
+    g_humidity_sensor_endpoint_id = endpoint::get_id(g_humidity_sensor_endpoint);
+    if (!g_humidity_sensor_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Humidity Sensor endpoint id");
+        return ESP_FAIL;
+    }
+
     update_attr(OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(g_matter_state.onoff));
     update_attr(Thermostat::Id, Thermostat::Attributes::LocalTemperature::Id,
                 esp_matter_nullable_int16(nullable<int16_t>(g_matter_state.current_temp)));
@@ -227,9 +265,17 @@ extern "C" esp_err_t matter_device_init(void)
     update_attr_on_endpoint(g_beep_endpoint, g_beep_endpoint_id,
                             OnOff::Id, OnOff::Attributes::OnOff::Id,
                             esp_matter_bool(g_matter_state.beep));
+    update_attr_on_endpoint(g_temp_sensor_endpoint, g_temp_sensor_endpoint_id,
+                            TemperatureMeasurement::Id,
+                            TemperatureMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_int16(nullable<int16_t>(g_matter_state.aux_temp)));
+    update_attr_on_endpoint(g_humidity_sensor_endpoint, g_humidity_sensor_endpoint_id,
+                            RelativeHumidityMeasurement::Id,
+                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_uint16(nullable<uint16_t>(g_matter_state.aux_humidity)));
 
-    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u light_ep=%u beep_ep=%u",
-             g_endpoint_id, g_light_endpoint_id, g_beep_endpoint_id);
+    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u light_ep=%u beep_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u",
+             g_endpoint_id, g_light_endpoint_id, g_beep_endpoint_id, g_temp_sensor_endpoint_id, g_humidity_sensor_endpoint_id);
     return ESP_OK;
 }
 
@@ -322,6 +368,24 @@ extern "C" void matter_update_beep(bool on_off)
     update_attr_on_endpoint(g_beep_endpoint, g_beep_endpoint_id,
                             OnOff::Id, OnOff::Attributes::OnOff::Id,
                             esp_matter_bool(on_off));
+}
+
+extern "C" void matter_update_aux_temperature(int16_t temp_c)
+{
+    g_matter_state.aux_temp = temp_c;
+    update_attr_on_endpoint(g_temp_sensor_endpoint, g_temp_sensor_endpoint_id,
+                            TemperatureMeasurement::Id,
+                            TemperatureMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_int16(nullable<int16_t>(temp_c)));
+}
+
+extern "C" void matter_update_aux_humidity(uint16_t humidity_centi_pct)
+{
+    g_matter_state.aux_humidity = humidity_centi_pct;
+    update_attr_on_endpoint(g_humidity_sensor_endpoint, g_humidity_sensor_endpoint_id,
+                            RelativeHumidityMeasurement::Id,
+                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_uint16(nullable<uint16_t>(humidity_centi_pct)));
 }
 
 extern "C" bool matter_get_onoff_command(void)
@@ -417,9 +481,13 @@ extern "C" void matter_device_deinit(void)
     g_endpoint = nullptr;
     g_light_endpoint = nullptr;
     g_beep_endpoint = nullptr;
+    g_temp_sensor_endpoint = nullptr;
+    g_humidity_sensor_endpoint = nullptr;
     g_endpoint_id = 0;
     g_light_endpoint_id = 0;
     g_beep_endpoint_id = 0;
+    g_temp_sensor_endpoint_id = 0;
+    g_humidity_sensor_endpoint_id = 0;
     g_started = false;
     ESP_LOGI(TAG, "Matter device deinitialized");
 }
