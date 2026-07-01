@@ -14,4 +14,10 @@ dependencies:
   #   # `public` flag doesn't have an effect dependencies of the `main` component.
   #   # All dependencies of `main` are public by default.
   #   public: true
+  # Closure Control/Dimension clusters are excluded from the build in
+  # sdkconfig (CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER / _DIMENSION_CLUSTER)
+  # to work around a bundled connectedhomeip bug -- see
+  # WINDOWS_TOOLCHAIN_SETUP.md Troubleshooting and
+  # espressif/esp-matter#1604. Present in esp_matter 1.4.2 and 1.5.0 alike,
+  # so don't try to dodge it with a version pin.
   espressif/esp_matter: ^1.5

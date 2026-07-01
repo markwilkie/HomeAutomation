@@ -1,5 +1,13 @@
 # Matter SDK Setup & Build Guide
 
+> **Windows users:** see [WINDOWS_TOOLCHAIN_SETUP.md](WINDOWS_TOOLCHAIN_SETUP.md)
+> instead — it covers the actual approach this project uses
+> (`espressif/esp_matter` as a managed component, declared in
+> `main/idf_component.yml`), which installs natively on Windows via the
+> Espressif Installation Manager. The "Option A/B: clone esp-matter"
+> instructions below are for the alternative full-repo-clone approach,
+> which this project doesn't currently use.
+
 This guide covers installing and configuring the ESP-Matter SDK for the MiniSplit project.
 
 ## Quick Summary
