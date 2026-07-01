@@ -1,0 +1,29 @@
+menu "Dormer Window State Configuration"
+
+    config WINDOW_SENSOR_GPIO
+        int "Window contact sensor GPIO pin"
+        default 4
+        range 0 30
+        help
+            Digital input GPIO connected to the reed switch / magnetic contact
+            sensor mounted on the window and frame.
+
+    config WINDOW_SENSOR_ACTIVE_LOW
+        bool "Sensor reads LOW when window is closed"
+        default y
+        help
+            Most reed switches short the pin to GND when the magnet is present
+            (window closed), so with an internal pull-up the pin reads LOW when
+            closed and HIGH when open. Disable this if your wiring is inverted
+            (e.g. switch wired to 3.3V with a pull-down instead).
+
+    config WINDOW_SENSOR_DEBOUNCE_MS
+        int "Debounce time (milliseconds)"
+        default 50
+        range 5 1000
+        help
+            Time the pin level must remain stable after an edge before the
+            new state is trusted and pushed to the Matter Boolean State
+            attribute. Increase if the reed switch is mechanically noisy.
+
+endmenu

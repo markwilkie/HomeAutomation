@@ -1,0 +1,28 @@
+# Build artifacts
+build/
+managed_components/
+dependencies.lock
+
+# ESP-IDF
+sdkconfig
+sdkconfig.old
+.idf_monitor_log
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local development
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Matter/commissioning artifacts
+*.qr
+commissioning_code.txt
+nvs_key.bin

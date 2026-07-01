@@ -1,0 +1,45 @@
+# Target
+CONFIG_IDF_TARGET="esp32c6"
+
+# Partition table
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+
+# Flash
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+# BLE (used for Matter commissioning)
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+
+# mbedTLS (required by the Matter stack)
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_PSK_MODES=y
+# Matter's crypto layer (CHIPCryptoPALmbedTLS.cpp) calls mbedtls_hkdf
+# directly; mbedTLS ships it disabled by default.
+CONFIG_MBEDTLS_HKDF_C=y
+
+# NVS encryption (commissioning/fabric credentials live here)
+CONFIG_NVS_ENCRYPTION=y
+# Default HMAC eFuse key ID (6) is out of nvs_sec_provider.c's accepted
+# range (0-5) in IDF v5.4.1 -- Kconfig says "range 0 6" / "default 6" but
+# the C code only allows 0-5. Pin to a valid block.
+CONFIG_NVS_SEC_HMAC_EFUSE_KEY_ID=0
+
+# Matter console (handy for diagnostics over serial)
+CONFIG_ENABLE_CHIP_SHELL=y
+
+# FreeRTOS / app
+CONFIG_FREERTOS_HZ=100
+
+# Matter clusters: exclude Closure Control/Dimension (Matter 1.5, unused by
+# this contact sensor). Their bundled connectedhomeip code fails to build
+# with missing operator== on GenericOverallCurrentState/TargetState in both
+# esp_matter 1.4.2 and 1.5.0 -- see espressif/esp-matter#1604. Excluding the
+# source dirs via cluster_dir.cmake avoids the bug entirely, regardless of
+# esp_matter version.
+CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n
+CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n

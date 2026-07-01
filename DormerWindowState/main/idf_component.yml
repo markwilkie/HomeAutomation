@@ -1,0 +1,12 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: '>=5.1.0'
+  # Not pinned below ^1.5: the Closure Control cluster build failure some
+  # esp_matter releases hit (espressif/esp-matter#1604) is worked around via
+  # sdkconfig.defaults (CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n /
+  # CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n), not a version pin -- the
+  # bug is present in 1.4.2 too, so pinning back doesn't help. See
+  # WINDOWS_TOOLCHAIN_SETUP.md Troubleshooting.
+  espressif/esp_matter: "^1.5"
