@@ -10,16 +10,19 @@ local json = require('dkjson')
 local commonglobals = require "_commonglobals"
 local myserver = require "_myserver"
 local myclient = require "_myclient"
+local timeutil = require "_timeutil"
 local globals = require "globals"
 
 -- Custom Capabiities
 local datetime = capabilities["radioamber53161.datetime"]
 local rainrate = capabilities["radioamber53161.rainrate"]
 local raintotal = capabilities["radioamber53161.raintotal"]
+local lastupdated = capabilities["radioamber53161.lastUpdated"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
 
+local STALE_THRESHOLD = 650
 
 -----------------------------------------------------------------
 -- local functions
@@ -61,10 +64,18 @@ end
 local function refresh(driver, device)
   log.debug("Calling Refresh")
 
+  --report how long it's been since we've heard from the ESP
+  local secondsSinceHeard = os.time() - commonglobals.lastHeardFromESP
+  device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceHeard))
+  device:emit_event(lastupdated.LastHeard(timeutil.secondsToFriendly(secondsSinceHeard)))
+
   --check if we've heard from devices lately
-  if os.time() > (commonglobals.lastHeardFromESP + 650) then
+  if secondsSinceHeard > STALE_THRESHOLD then
     commonglobals.handshakeRequired = true
+    device:offline()
     log.warn("Haven't heard from rain so going into handshake mode.")
+  else
+    device:online()
   end
 
   --hand shake if needed

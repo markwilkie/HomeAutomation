@@ -23,6 +23,13 @@ A WiFi and LoRa gateway for soil moisture monitoring and irrigation control, des
 - NOTE: use 'WiFi LoRa 32(v2)', NOT 'Heltec Wifi Lora 32(v2)'
 - NOTE: Do NOT install the heltec extended libraries as they'll conflict. 
 
+### USB Drivers
+The board's USB-to-serial chip is a Silicon Labs CP2102 (shows up as an unrecognized "Other device" in Windows until a driver is installed).
+
+- Try Device Manager > right-click the device > "Update driver" > "Search automatically for drivers" first (Windows Update sometimes already has it).
+- If that doesn't find it, download and install the CP210x USB to UART Bridge VCP Driver from Silicon Labs: https://www.silabs.com/software-and-tools/usb-to-uart-bridge-vcp-drivers?tab=downloads
+- After installing and replugging the board, it should appear under "Ports (COM & LPT)" as a Silicon Labs CP210x device — select that COM port in the Arduino IDE to flash/monitor the board.
+
 ### Pin Configuration
 ```
 OLED Display (SSD1306):

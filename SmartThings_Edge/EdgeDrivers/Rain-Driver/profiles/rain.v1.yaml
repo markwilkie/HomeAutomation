@@ -11,7 +11,9 @@ components:
   - id: waterSensor
     version: 1  
   - id: radioamber53161.datetime
-    version: 1      
+    version: 1
+  - id: radioamber53161.lastUpdated
+    version: 1
 - id: lastHour
   label: "Last Hour"
   capabilities:

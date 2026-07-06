@@ -10,6 +10,7 @@ local discovery = require "discovery"
 local commonglobals = require "_commonglobals"
 local myserver = require "_myserver"
 local myclient = require "_myclient"
+local timeutil = require "_timeutil"
 local weatherdatastore = require "weatherdatastore"
 local globals = require "globals"
 
@@ -18,7 +19,7 @@ local atmospressure = capabilities["radioamber53161.atmospressure"]
 local airquality = capabilities["radioamber53161.airQuality"]
 local lastupdated = capabilities["radioamber53161.lastUpdated"]
 
-
+local STALE_THRESHOLD = 650
 
 -----------------------------------------------------------------
 -- local functions
@@ -96,10 +97,18 @@ end
 local function refresh(driver, device)
   log.info("Calling Refresh")
 
+  --report how long it's been since we've heard from the ESP
+  local secondsSinceHeard = os.time() - commonglobals.lastHeardFromESP
+  device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceHeard))
+  device:emit_event(lastupdated.LastHeard(timeutil.secondsToFriendly(secondsSinceHeard)))
+
   --check if we've heard from devices lately
-  if os.time() > (commonglobals.lastHeardFromESP + 650) then
+  if secondsSinceHeard > STALE_THRESHOLD then
     commonglobals.handshakeRequired = true
+    device:offline()
     log.warn("Haven't heard from Weather so going into handshake mode")
+  else
+    device:online()
   end
 
   --hand shake if needed
@@ -117,7 +126,7 @@ local function refresh(driver, device)
     end
   end
 
-  return tre
+  return true
 end
 
 -- this is called once a device is added by the cloud and synchronized down to the hub

@@ -13,7 +13,9 @@ components:
   - id: radioamber53161.winddirectiontext
     version: 1 
   - id: radioamber53161.datetime
-    version: 1    
+    version: 1
+  - id: radioamber53161.lastUpdated
+    version: 1
 - id: last12
   label: "Last 12 Hours"
   capabilities:

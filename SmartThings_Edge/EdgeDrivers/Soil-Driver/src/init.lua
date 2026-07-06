@@ -7,6 +7,7 @@ local json = require('dkjson')
 local commonglobals = require "_commonglobals"
 local myserver = require "_myserver"
 local myclient = require "_myclient"
+local timeutil = require "_timeutil"
 local globals = require "globals"
 
 -- Custom Capabiities
@@ -18,6 +19,8 @@ local soil = capabilities["radioamber53161.soil"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
+
+local STALE_THRESHOLD = 1000
 
 -----------------------------------------------------------------
 -- local functions
@@ -38,6 +41,7 @@ function RefreshSoil(device,content)
   device:emit_event(lastupdated.Time(os.date("%a %X", jsondata.current_time)))
   device:emit_event(lastupdated.LastUpdate(jsondata.current_time))
   device:emit_event(lastupdated.SecondsSinceUpdate(0))
+  device:emit_event(lastupdated.LastHeard(timeutil.secondsToFriendly(0)))
 end
 
 function RefreshSoilGW(device,content)
@@ -97,18 +101,33 @@ local function refresh(driver, device)
   end
 
   -- meaning we're a device, not the gateway
-  if id>0 then  
+  if id>0 then
     local lastUpdate = device:get_latest_state('main', lastupdated.ID, 'LastUpdate')
     if lastUpdate ~= nil then
       local currentTime=os.time()-(7*60*60)
-      device:emit_event(lastupdated.SecondsSinceUpdate(currentTime-lastUpdate))
+      local secondsSinceHeard = currentTime-lastUpdate
+      device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceHeard))
+      device:emit_event(lastupdated.LastHeard(timeutil.secondsToFriendly(secondsSinceHeard)))
+      if secondsSinceHeard > STALE_THRESHOLD then
+        device:offline()
+      else
+        device:online()
+      end
     end
     return true
   end
 
-  if os.time() > (commonglobals.lastHeardFromESP + 1000) then
+  --report how long it's been since we've heard from the ESP
+  local secondsSinceHeard = os.time() - commonglobals.lastHeardFromESP
+  device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceHeard))
+  device:emit_event(lastupdated.LastHeard(timeutil.secondsToFriendly(secondsSinceHeard)))
+
+  if secondsSinceHeard > STALE_THRESHOLD then
     commonglobals.handshakeRequired = true
+    device:offline()
     log.warn("Haven't heard from soil GW for a while so going into handshake mode.")
+  else
+    device:online()
   end
 
   --hand shake if needed

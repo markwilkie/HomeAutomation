@@ -10,6 +10,7 @@ local json = require('dkjson')
 local commonglobals = require "_commonglobals"
 local myserver = require "_myserver"
 local myclient = require "_myclient"
+local timeutil = require "_timeutil"
 local winddatastore = require "winddatastore"
 local globals = require "globals"
 
@@ -19,10 +20,12 @@ local windspeed = capabilities["radioamber53161.windspeed"]
 local windgust = capabilities["radioamber53161.windgust"]
 local winddirection = capabilities["radioamber53161.winddirection"]
 local winddirectiontext = capabilities["radioamber53161.winddirectiontext"]
+local lastupdated = capabilities["radioamber53161.lastUpdated"]
 
 -- require custom handlers from driver package
 local discovery = require "discovery"
 
+local STALE_THRESHOLD = 650
 
 -----------------------------------------------------------------
 -- local functions
@@ -77,10 +80,18 @@ end
 local function refresh(driver, device)
   log.info("Calling refresh...")
 
+  --report how long it's been since we've heard from the ESP
+  local secondsSinceHeard = os.time() - commonglobals.lastHeardFromESP
+  device:emit_event(lastupdated.SecondsSinceUpdate(secondsSinceHeard))
+  device:emit_event(lastupdated.LastHeard(timeutil.secondsToFriendly(secondsSinceHeard)))
+
   --check if we've heard from devices lately
-  if os.time() > (commonglobals.lastHeardFromESP + 650) then
+  if secondsSinceHeard > STALE_THRESHOLD then
     commonglobals.handshakeRequired = true
+    device:offline()
     log.warn("Haven't heard from Wind so going into handshake mode.")
+  else
+    device:online()
   end
 
   --hand shake if needed

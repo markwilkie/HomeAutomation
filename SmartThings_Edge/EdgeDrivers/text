@@ -1,0 +1,3379 @@
+- deviceId: a7d9790a-7456-477f-a7b3-7c37ad45d756
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: admin.v1
+  label: Admin Device
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: 7d9797cf-63ed-31d5-a149-2205babf015c
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: a39e5d0a-57dd-4a6a-af00-ab0cf1f88718
+  components:
+    - id: main
+      label: Weather Administration
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.voltages
+          version: 1
+          optional: false
+        - id: radioamber53161.wifiOnly
+          version: 1
+          optional: false
+        - id: radioamber53161.modeState
+          version: 1
+          optional: false
+        - id: radioamber53161.cpuReset
+          version: 1
+          optional: false
+        - id: radioamber53161.heapFragmentation
+          version: 1
+          optional: false
+        - id: radioamber53161.firmware
+          version: 1
+          optional: false
+        - id: signalStrength
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-10-21T18:49:04.630Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 9081fc54-bb30-3d91-a46c-7a6376be33fd
+  lan:
+    networkId: wilkie.admin.v1
+    driverId: dd49370d-f89e-420b-8ef0-be7fd4eb0866
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: 7d9797cf-63ed-31d5-a149-2205babf015c
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 44f4e2af-312e-4c8e-87bc-520106e36775
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: c2c-arlo-camera-default
+  label: Arlo
+  deviceManufacturerCode: Arlo
+  manufacturerName: 9da696d1-d2f7-48b5-9787-5b65d90c73d6-504d5d85-a722-4f50-92a5-b4496d6f2bbe
+  deviceModel: VMC2030A
+  presentationId: fa1740b3-8893-3e8b-94b7-cfab85e87695
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: healthCheck
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: webrtc
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: switch
+          version: 1
+          optional: false
+        - id: motionSensor
+          version: 1
+          optional: false
+        - id: videoCapture
+          version: 1
+          optional: false
+        - id: alarm
+          version: 1
+          optional: false
+        - id: cameraEvent
+          version: 1
+          optional: false
+        - id: imageCapture
+          version: 1
+          optional: false
+      categories:
+        - name: Camera
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-07-10T23:01:53.391Z'
+  childDevices: []
+  profile:
+    id: 504d5d85-a722-4f50-92a5-b4496d6f2bbe
+  viper:
+    manufacturerName: Arlo
+    modelName: VMC2030A
+    endpointAppId: viper_555d6f40-b65a-11ea-8fe0-77cb99571462
+  type: VIPER
+  vid: fa1740b3-8893-3e8b-94b7-cfab85e87695
+  mnmn: 9da696d1-d2f7-48b5-9787-5b65d90c73d6-504d5d85-a722-4f50-92a5-b4496d6f2bbe
+  ocfDeviceType: oic.d.camera
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: eeccc36b-e4fc-4dc9-acd3-21092dc18dd3
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Switch Child Device
+  label: Awning Down
+  manufacturerName: SmartThingsCommunity
+  presentationId: 83769564-9d17-3e92-a005-73a54027b458
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: Awning Down
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: switchLevel
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-04-08T19:59:36.556Z'
+  parentDeviceId: 9837c666-146b-4118-8c47-e629cabfc35c
+  childDevices: []
+  profile:
+    id: 132bd595-c3bf-38dc-9a05-d12b91339314
+  edgeChild:
+    driverId: 2cbf55e3-dbc2-48a2-8be5-4c3ce756b692
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: be0b512f-261a-4b0e-b2f3-58194a8eb890
+    executingLocally: true
+    parentAssignedChildKey: '01'
+  type: EDGE_CHILD
+  vid: 83769564-9d17-3e92-a005-73a54027b458
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 517b9e23-64d9-472b-862f-00541605f46c
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Awning State
+  label: Awning State (on=down)
+  manufacturerName: SmartThingsCommunity
+  presentationId: 74cf66e1-ae7f-3a14-a6a8-1affef9ec321
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d7fb8d4c-08bb-42e4-8adb-25dbf1a173f1
+  components:
+    - id: main
+      label: Awning State (on=down)
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+        - name: GarageDoor
+          categoryType: user
+      optional: false
+      icon: oneui/oic.d.garagedoor
+  createTime: '2022-08-03T13:00:34.708Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 71ed0734-123f-330f-886c-174466bbfe76
+  virtual:
+    name: Awning State (on=down)
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    driverId: 572a2641-2af8-47e4-bfe5-ad83748fd7a1
+    executingLocally: true
+  type: VIRTUAL
+  vid: 74cf66e1-ae7f-3a14-a6a8-1affef9ec321
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 16cf4464-e127-4932-ac92-1cb4d46eb2ee
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Switch Child Device
+  label: Awning Up
+  manufacturerName: SmartThingsCommunity
+  presentationId: 83769564-9d17-3e92-a005-73a54027b458
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: Awning Up
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: switchLevel
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-04-08T19:59:36.943Z'
+  parentDeviceId: 9837c666-146b-4118-8c47-e629cabfc35c
+  childDevices: []
+  profile:
+    id: 132bd595-c3bf-38dc-9a05-d12b91339314
+  edgeChild:
+    driverId: 2cbf55e3-dbc2-48a2-8be5-4c3ce756b692
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 1bcf8f01-a1af-4d43-915a-068def774ff0
+    executingLocally: true
+    parentAssignedChildKey: '02'
+  type: EDGE_CHILD
+  vid: 83769564-9d17-3e92-a005-73a54027b458
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 55d4e8a7-2263-4b95-b7fe-ba30d3e23f39
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Mysa Thermostat
+  label: Baseboards
+  manufacturerName: 0ADg
+  presentationId: MysaV1
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: thermostatHeatingSetpoint
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: relativeHumidityMeasurement
+          version: 1
+          optional: false
+      categories:
+        - name: Thermostat
+          categoryType: manufacturer
+      optional: false
+  createTime: '2020-10-27T22:20:26Z'
+  childDevices: []
+  profile:
+    id: 551e523c-85b8-4a45-8182-5dd53d3eb34b
+  app:
+    installedAppId: 50992043-d363-4b3f-9186-dc2d2a7788de
+    externalId: a4cf12195ce8
+    profile:
+      id: 551e523c-85b8-4a45-8182-5dd53d3eb34b
+  type: ENDPOINT_APP
+  externalId: a4cf12195ce8
+  vid: MysaV1
+  mnmn: 0ADg
+  ocfDeviceType: oic.d.thermostat
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: 11d844a0-5c03-4a3b-a092-c9ed0c6cbb10
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: plug-binary
+  label: Bug light
+  manufacturerName: SmartThingsCommunity
+  presentationId: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: SmartPlug
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-06-13T13:17:58.745Z'
+  parentDeviceId: 27e5d568-ac7d-49d7-9a95-51d0e4b87f72
+  childDevices: []
+  profile:
+    id: ea9f1046-6c8b-3b75-8dd5-bf08be586a78
+  edgeChild:
+    driverId: 7103039b-68d6-442c-afe5-e1bc955924a9
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: e6322982-1b93-4331-902f-1c26aa490857
+    executingLocally: true
+    parentAssignedChildKey: '2'
+  type: EDGE_CHILD
+  vid: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.smartplug
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 39a00be4-5723-40d4-83ee-54dc28690d66
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: soil.v1
+  label: Candy Tuffs (#15)
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: Soil
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.soil
+          version: 1
+          optional: false
+        - id: radioamber53161.voltage
+          version: 1
+          optional: false
+        - id: signalStrength
+          version: 1
+          optional: false
+        - id: radioamber53161.heapFragmentation
+          version: 1
+          optional: false
+        - id: radioamber53161.firmware
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-07-15T23:45:43.434Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 0ef1be2e-a6a6-3de1-9010-06b375768cca
+  lan:
+    networkId: '15'
+    driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 27e5d568-ac7d-49d7-9a95-51d0e4b87f72
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: plug-binary
+  label: Deck Lights
+  deviceManufacturerCode: TP-Link
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Outdoor Plug
+  presentationId: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: SmartPlug
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-06-13T13:17:55.262Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices:
+    - id: 11d844a0-5c03-4a3b-a092-c9ed0c6cbb10
+  profile:
+    id: ea9f1046-6c8b-3b75-8dd5-bf08be586a78
+  matter:
+    driverId: 7103039b-68d6-442c-afe5-e1bc955924a9
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-D4B43803DE7ECE29
+    executingLocally: true
+    uniqueId: A6BCC23890AA60B6
+    vendorId: 4488
+    productId: 259
+    serialNumber: EC750C297E00
+    listeningType: ALWAYS
+    supportedNetworkInterfaces:
+      - WIFI
+    version:
+      hardware: 1
+      hardwareLabel: '1.0'
+      software: 65536
+      softwareLabel: 1.0.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 266
+      - endpointId: 2
+        deviceTypes:
+          - deviceTypeId: 266
+    syncDrivers: true
+    fingerprintType: MATTER_GENERIC
+    fingerprintId: matter/on-off/plug
+  type: MATTER
+  vid: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.smartplug
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 1346e6fe-b968-44f6-b840-5f931d808719
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: soil.v1
+  label: Deckpots (#20)
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: Soil
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.soil
+          version: 1
+          optional: false
+        - id: radioamber53161.voltage
+          version: 1
+          optional: false
+        - id: signalStrength
+          version: 1
+          optional: false
+        - id: radioamber53161.heapFragmentation
+          version: 1
+          optional: false
+        - id: radioamber53161.firmware
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-07-15T23:13:34.656Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 0ef1be2e-a6a6-3de1-9010-06b375768cca
+  lan:
+    networkId: '20'
+    driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 328fe53b-87fe-4bcc-aae4-096ab9d0d573
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: window-covering
+  label: Dormer Shade
+  deviceManufacturerCode: JLM
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Window Shade Tubular Motor
+  presentationId: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 4f6a43a9-d65d-4f69-8d5c-63fb8ede229b
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadePreset
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2026-06-14T17:06:36.520Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: af30513d-fe8d-3b92-bfd3-b7cbb0d3c267
+  matter:
+    driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-1A7FB005A802A695
+    executingLocally: true
+    vendorId: 5234
+    productId: 1
+    serialNumber: MWCJKBECKWBVXWC
+    listeningType: SLEEPY
+    supportedNetworkInterfaces:
+      - THREAD
+    version:
+      hardware: 1
+      hardwareLabel: 1.0.0
+      software: 2
+      softwareLabel: 1.0.1
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 514
+    syncDrivers: true
+    fingerprintType: MATTER_GENERIC
+    fingerprintId: windowcovering
+  type: MATTER
+  vid: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 7038549f-9939-44d1-b247-49f569ded320
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: c2c-lock-4
+  label: Downstairs door
+  deviceManufacturerCode: yale
+  manufacturerName: SmartThings
+  deviceModel: Lock
+  presentationId: SmartThings-smartthings-c2c-lock-4
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: e1cd818e-5116-4cbc-bafd-4aca1aea683b
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: lock
+          version: 1
+          optional: false
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: healthCheck
+          version: 1
+          optional: false
+      categories:
+        - name: SmartLock
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-11-14T02:37:16.306Z'
+  childDevices: []
+  profile:
+    id: 23eeb7b9-e639-4a21-b3ff-7ca4c4a7344f
+  viper:
+    uniqueIdentifier: FF4EE88D926F4B20B1A9F42ADDDE0A7C
+    manufacturerName: yale
+    modelName: Lock
+    endpointAppId: viper_606fc1e0-0a5b-11ea-8e7d-915b5bbdef4f
+  type: VIPER
+  vid: SmartThings-smartthings-c2c-lock-4
+  mnmn: SmartThings
+  ocfDeviceType: oic.d.smartlock
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: a63c9a2a-78ed-47b0-b8d1-a27af9e1e035
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: window-covering
+  label: End Left Shade (2)
+  deviceManufacturerCode: JLM
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Window Shade Tubular Motor
+  presentationId: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadePreset
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-03-09T00:23:59.402Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: af30513d-fe8d-3b92-bfd3-b7cbb0d3c267
+  matter:
+    driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-4E348B84DFBA2732
+    executingLocally: true
+    vendorId: 5234
+    productId: 1
+    listeningType: SLEEPY
+    supportedNetworkInterfaces:
+      - THREAD
+    version:
+      hardware: 1
+      hardwareLabel: 1.0.0
+      software: 1
+      softwareLabel: 1.0.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 514
+    syncDrivers: true
+  type: MATTER
+  vid: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 1088dba9-1033-420c-9cd6-01a33611bf3a
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: window-covering
+  label: End Right Shade (1)
+  deviceManufacturerCode: JLM
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Window Shade Tubular Motor
+  presentationId: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadePreset
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-03-09T00:25:57.055Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: af30513d-fe8d-3b92-bfd3-b7cbb0d3c267
+  matter:
+    driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-C5C0AFCCD0CEC6D7
+    executingLocally: true
+    vendorId: 5234
+    productId: 1
+    listeningType: SLEEPY
+    supportedNetworkInterfaces:
+      - THREAD
+    version:
+      hardware: 1
+      hardwareLabel: 1.0.0
+      software: 1
+      softwareLabel: 1.0.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 514
+    syncDrivers: true
+  type: MATTER
+  vid: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 89f0f808-c454-4ef7-b396-9baa499c9412
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: soil.v1
+  label: Flwrs - by brick (#16)
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: Soil
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.soil
+          version: 1
+          optional: false
+        - id: radioamber53161.voltage
+          version: 1
+          optional: false
+        - id: signalStrength
+          version: 1
+          optional: false
+        - id: radioamber53161.heapFragmentation
+          version: 1
+          optional: false
+        - id: radioamber53161.firmware
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-10-03T21:22:55.042Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 0ef1be2e-a6a6-3de1-9010-06b375768cca
+  lan:
+    networkId: '16'
+    driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 5cc58dc8-e1e3-4298-a847-fb1ec345ac0f
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: soil.v1
+  label: Flwrs - Side (#17)
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: Soil
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.soil
+          version: 1
+          optional: false
+        - id: radioamber53161.voltage
+          version: 1
+          optional: false
+        - id: signalStrength
+          version: 1
+          optional: false
+        - id: radioamber53161.heapFragmentation
+          version: 1
+          optional: false
+        - id: radioamber53161.firmware
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-07-16T16:37:23.122Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 0ef1be2e-a6a6-3de1-9010-06b375768cca
+  lan:
+    networkId: '17'
+    driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 0aed425d-669f-4740-a5ed-ae403577ab08
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: c2c-lock-4
+  label: FRONT DOOR
+  deviceManufacturerCode: August
+  manufacturerName: SmartThings
+  deviceModel: Lock
+  presentationId: SmartThings-smartthings-c2c-lock-4
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: lock
+          version: 1
+          optional: false
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: healthCheck
+          version: 1
+          optional: false
+      categories:
+        - name: SmartLock
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-01-19T02:16:45.216Z'
+  childDevices: []
+  profile:
+    id: 23eeb7b9-e639-4a21-b3ff-7ca4c4a7344f
+  viper:
+    uniqueIdentifier: 7F08AC58AF9E445A8FE2E643DE6B7537
+    manufacturerName: August
+    modelName: Lock
+    endpointAppId: viper_606fc1e0-0a5b-11ea-8e7d-915b5bbdef4f
+  type: VIPER
+  vid: SmartThings-smartthings-c2c-lock-4
+  mnmn: SmartThings
+  ocfDeviceType: oic.d.smartlock
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: b4e8dbaa-a8be-4703-86d6-bf0fe2b8fb41
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: one-button-temp-battery
+  label: Garage Button
+  deviceManufacturerCode: Samjin
+  manufacturerName: SmartThingsCommunity
+  deviceModel: button
+  presentationId: 7a65421e-f66f-3182-99f9-2dcb8e5d9aa0
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: button
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+      categories:
+        - name: Button
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-01-13T19:27:21.271Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 623e25b1-dac1-3920-a1a4-3e2a8da4c606
+  zigbee:
+    eui: 286D970001151544
+    networkId: 5C45
+    driverId: 3fb97b6c-f481-441b-a14e-f270d738764e
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: ZIGBEE
+  vid: 7a65421e-f66f-3182-99f9-2dcb8e5d9aa0
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.button
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: b50daaa9-41e7-461a-875a-d5893826c6f6
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Garage Door
+  label: Garage Door
+  deviceManufacturerCode: 014F-4744-3531
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 4744-3531
+  presentationId: 0c7bb6fd-dba9-323e-9ac7-c1d9bd9d752e
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 095fdb8a-b1ff-4c1d-a644-04ac74043ef5
+  brandId: 3f31d214-b130-33c3-bc0b-6b23aa735acd
+  productId: 81c9929c-0e2c-333c-9c16-638db7917cf5
+  components:
+    - id: main
+      label: Garage Door
+      capabilities:
+        - id: doorControl
+          version: 1
+          optional: false
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: GarageDoor
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-04-02T02:07:21.875Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 091f9115-be30-3dab-8388-246460df66b4
+  zwave:
+    networkId: '10'
+    driverId: f2f2679a-24fb-40da-9322-4c85988e9b53
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_S2_ACCESS_CONTROL
+    provisioningState: PROVISIONED
+    manufacturerId: 335
+    productType: 18244
+    productId: 13617
+  type: ZWAVE
+  vid: 0c7bb6fd-dba9-323e-9ac7-c1d9bd9d752e
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.garagedoor
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 4514666e-11fd-4fa3-b497-7cf3d24c14b3
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Ecolink Open/Closed Sensor
+  label: 'Garage Door #2'
+  deviceManufacturerCode: 014A-0004-0003
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 0004-0003
+  presentationId: bad8260f-a2ba-3efb-a639-d6e289fd1b72
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 095fdb8a-b1ff-4c1d-a644-04ac74043ef5
+  components:
+    - id: main
+      label: 'Garage Door #2'
+      capabilities:
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: tamperAlert
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: ContactSensor
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-04-03T17:18:36.960Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: feae90e1-b889-3868-83ea-339ace12f648
+  zwave:
+    networkId: '14'
+    driverId: d58d8432-ea22-4d38-8300-2bd75fdf1358
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_LEGACY_NON_SECURE
+    provisioningState: PROVISIONED
+    manufacturerId: 330
+    productType: 4
+    productId: 3
+  type: ZWAVE
+  vid: bad8260f-a2ba-3efb-a639-d6e289fd1b72
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.sensor.contact
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 6404684a-3238-42b5-aa08-82fcbdc3585f
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: soil.v1
+  label: Garden (#19)
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: Soil
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.soil
+          version: 1
+          optional: false
+        - id: radioamber53161.voltage
+          version: 1
+          optional: false
+        - id: signalStrength
+          version: 1
+          optional: false
+        - id: radioamber53161.heapFragmentation
+          version: 1
+          optional: false
+        - id: radioamber53161.firmware
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-07-15T23:53:10.071Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 0ef1be2e-a6a6-3de1-9010-06b375768cca
+  lan:
+    networkId: '19'
+    driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: f5b21b3e-7da8-3af7-9b0f-6380b7156ea3
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 771a036f-e3f7-4d98-90d1-4d448037d018
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: one-button-battery
+  label: Hottub Button
+  deviceManufacturerCode: Third Reality, Inc
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 3RSB22BZ
+  presentationId: e5831f6e-73cd-34f3-ad93-5d33a366079a
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: e1cd818e-5116-4cbc-bafd-4aca1aea683b
+  brandId: e3bf4dfa-f082-3bb9-b2e9-4b7f78e35bc6
+  productId: cd70da25-6515-4a15-ab77-e99fda79b09e
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: button
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Button
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-11-14T02:13:07.288Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: e3406656-ab18-3817-b22f-0ad3c1aefe57
+  zigbee:
+    eui: FFFFB40E06034972
+    networkId: 385F
+    driverId: 3fb97b6c-f481-441b-a14e-f270d738764e
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    fingerprintType: ZIGBEE_MANUFACTURER
+    fingerprintId: Third Reality/3RSB22BZ
+  type: ZIGBEE
+  vid: e5831f6e-73cd-34f3-ad93-5d33a366079a
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.button
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: a870fb2e-b37c-4757-9f58-716bebb50415
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: First Alert Smoke Detector
+  label: Kitchen Smoke Detector
+  deviceManufacturerCode: 0138-0001-0003
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 0001-0003
+  presentationId: d9a3946a-382f-3a57-b42a-760ccb62eac0
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d2b5a209-4a94-4add-ba49-bd2c8a877ca4
+  components:
+    - id: main
+      label: Kitchen Smoke Detector
+      capabilities:
+        - id: smokeDetector
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: carbonMonoxideDetector
+          version: 1
+          optional: false
+      categories:
+        - name: SmokeDetector
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-03-03T02:12:51.519Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 7ed5540f-5b31-36ab-af01-c35d71011d39
+  zwave:
+    networkId: 0A
+    driverId: cf36ac1a-494a-47fc-b1e7-a42208c6484a
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_S2_AUTHENTICATED
+    provisioningState: PROVISIONED
+    manufacturerId: 312
+    productType: 1
+    productId: 3
+  type: ZWAVE
+  vid: d9a3946a-382f-3a57-b42a-760ccb62eac0
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.sensor.smoke
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: acf67350-dfaa-4f02-a599-5af5628f1900
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: plug-binary
+  label: Landscape
+  deviceManufacturerCode: TP-Link
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Mini Smart Wi-Fi Plug
+  presentationId: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: SmartPlug
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-03-26T00:21:20.491Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: ea9f1046-6c8b-3b75-8dd5-bf08be586a78
+  matter:
+    driverId: 7103039b-68d6-442c-afe5-e1bc955924a9
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-C17018622F4810CA
+    executingLocally: true
+    uniqueId: 25D604C605E61A14
+    vendorId: 4488
+    productId: 257
+    serialNumber: F0090DA933D4
+    listeningType: ALWAYS
+    supportedNetworkInterfaces:
+      - WIFI
+    version:
+      hardware: 1
+      hardwareLabel: '1.0'
+      software: 66304
+      softwareLabel: 1.3.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 266
+    syncDrivers: true
+  type: MATTER
+  vid: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.smartplug
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 00b6b0ae-c53f-422e-9037-efa011650947
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: window-covering
+  label: Left Side Shade (5)
+  deviceManufacturerCode: JLM
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Window Shade Tubular Motor
+  presentationId: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadePreset
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-03-06T00:05:38.116Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: af30513d-fe8d-3b92-bfd3-b7cbb0d3c267
+  matter:
+    driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-5FC1397C1EAC5CFC
+    executingLocally: true
+    vendorId: 5234
+    productId: 1
+    listeningType: SLEEPY
+    supportedNetworkInterfaces:
+      - THREAD
+    version:
+      hardware: 1
+      hardwareLabel: 1.0.0
+      software: 1
+      softwareLabel: 1.0.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 514
+    syncDrivers: true
+  type: MATTER
+  vid: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: fe95b334-acb3-43f5-985a-ec0124291b4e
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: plug-binary
+  label: living room light plug
+  deviceManufacturerCode: TP-Link
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Mini Smart Wi-Fi Plug
+  presentationId: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: SmartPlug
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-10-06T20:33:07.627Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: ea9f1046-6c8b-3b75-8dd5-bf08be586a78
+  matter:
+    driverId: 7103039b-68d6-442c-afe5-e1bc955924a9
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-ED40288CA5350251
+    executingLocally: true
+    uniqueId: 2008D955DF2BC256
+    vendorId: 4488
+    productId: 257
+    serialNumber: 3C6AD2359B7C
+    listeningType: ALWAYS
+    supportedNetworkInterfaces:
+      - WIFI
+    version:
+      hardware: 1
+      hardwareLabel: '1.0'
+      software: 1
+      softwareLabel: 1.0.0 Build 220930 Rel.143947
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 266
+    syncDrivers: true
+    fingerprintType: MATTER_GENERIC
+    fingerprintId: matter/on-off/plug
+  type: MATTER
+  vid: 8f080659-d6e1-3178-bf5c-4254497e8de8
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.smartplug
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: f3ca9d36-e4b5-423b-96a1-77f3ffd17355
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: one-button-battery
+  label: Living Room Lights Button
+  deviceManufacturerCode: Third Reality, Inc
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 3RSB22BZ
+  presentationId: e5831f6e-73cd-34f3-ad93-5d33a366079a
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  brandId: e3bf4dfa-f082-3bb9-b2e9-4b7f78e35bc6
+  productId: cd70da25-6515-4a15-ab77-e99fda79b09e
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: button
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Button
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-10-08T16:20:23.083Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: e3406656-ab18-3817-b22f-0ad3c1aefe57
+  zigbee:
+    eui: 282C02BFFFEE975F
+    networkId: 346C
+    driverId: 3fb97b6c-f481-441b-a14e-f270d738764e
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    fingerprintType: ZIGBEE_MANUFACTURER
+    fingerprintId: Third Reality/3RSB22BZ
+  type: ZIGBEE
+  vid: e5831f6e-73cd-34f3-ad93-5d33a366079a
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.button
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 9837c666-146b-4118-8c47-e629cabfc35c
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Z-Wave Device Multichannel
+  label: Master Awning (don't use)
+  deviceManufacturerCode: 011A-0111-0606
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 0111-0606
+  presentationId: 3d2f2364-2094-3f35-a6eb-e72b2df00d9f
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d7fb8d4c-08bb-42e4-8adb-25dbf1a173f1
+  components:
+    - id: main
+      label: Master Awning (don't use)
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: switchLevel
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: zwMultichannel
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-04-07T22:58:11.477Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices:
+    - id: 16cf4464-e127-4932-ac92-1cb4d46eb2ee
+    - id: eeccc36b-e4fc-4dc9-acd3-21092dc18dd3
+  profile:
+    id: 0b89fbd0-423a-3ccd-b1d2-2f27cdb29fba
+  zwave:
+    networkId: '18'
+    driverId: 2cbf55e3-dbc2-48a2-8be5-4c3ce756b692
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_LEGACY_NON_SECURE
+    provisioningState: PROVISIONED
+    manufacturerId: 282
+    productType: 273
+    productId: 1542
+  type: ZWAVE
+  vid: 3d2f2364-2094-3f35-a6eb-e72b2df00d9f
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 23dd5e0c-0ad4-4b70-82c2-1c5fe70537e3
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: window-covering
+  label: Middle Side Shade (3)
+  deviceManufacturerCode: JLM
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Window Shade Tubular Motor
+  presentationId: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadePreset
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-03-06T00:07:51.847Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: af30513d-fe8d-3b92-bfd3-b7cbb0d3c267
+  matter:
+    driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-7CF6653C6A83CFFF
+    executingLocally: true
+    vendorId: 5234
+    productId: 1
+    listeningType: SLEEPY
+    supportedNetworkInterfaces:
+      - THREAD
+    version:
+      hardware: 1
+      hardwareLabel: 1.0.0
+      software: 1
+      softwareLabel: 1.0.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 514
+    syncDrivers: true
+  type: MATTER
+  vid: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 38ee9cae-6ce4-4fd9-bc09-0fe86fa75952
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: thermostat-nostate-nobattery
+  label: MiniSplit
+  deviceManufacturerCode: TEST_VENDOR
+  manufacturerName: SmartThingsCommunity
+  deviceModel: TEST_PRODUCT
+  presentationId: da65f87a-9e44-3704-b567-a2993b0387cb
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 4f6a43a9-d65d-4f69-8d5c-63fb8ede229b
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: thermostatMode
+          version: 1
+          optional: false
+        - id: thermostatHeatingSetpoint
+          version: 1
+          optional: true
+        - id: thermostatCoolingSetpoint
+          version: 1
+          optional: true
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Thermostat
+          categoryType: manufacturer
+      optional: false
+  createTime: '2026-06-23T23:42:09.777542182Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 8d34bbf3-99a3-3110-83f3-5967e9f37a7a
+  matter:
+    driverId: 5f3c42eb-5704-4c95-9705-c51c1a6764bf
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-3DD354CA0A063F07
+    executingLocally: true
+    uniqueId: 5A3AF590EEA2A9BA
+    vendorId: 65521
+    productId: 32768
+    listeningType: ALWAYS
+    supportedNetworkInterfaces:
+      - WIFI
+    version:
+      hardware: 0
+      hardwareLabel: TEST_VERSION
+      software: 0
+      softwareLabel: 297619a-dirty
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 769
+      - endpointId: 2
+        deviceTypes:
+          - deviceTypeId: 256
+      - endpointId: 3
+        deviceTypes:
+          - deviceTypeId: 256
+    syncDrivers: true
+    fingerprintType: MATTER_GENERIC
+    fingerprintId: matter/hvac/thermostat
+  type: MATTER
+  vid: da65f87a-9e44-3704-b567-a2993b0387cb
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.thermostat
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: abb17fab-4148-479b-98b9-40ffa2e3606f
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: mqttcreator.v9
+  label: MQTT Device Creator V1.9
+  deviceManufacturerCode: SmartThings Community
+  manufacturerName: SmartThingsCommunity
+  deviceModel: MQTTCreatorV1
+  presentationId: 4e59d0d9-b065-3c59-a749-f2ae76b1b2fe
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d7fb8d4c-08bb-42e4-8adb-25dbf1a173f1
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: partyvoice23922.createmqttdev9
+          version: 1
+          optional: false
+        - id: partyvoice23922.status
+          version: 1
+          optional: false
+        - id: partyvoice23922.topiclist
+          version: 1
+          optional: false
+        - id: partyvoice23922.refresh
+          version: 1
+          optional: false
+        - id: partyvoice23922.mqttpublish
+          version: 1
+          optional: false
+      categories:
+        - name: Others
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-09-26T20:49:06.533Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 1d482584-2993-3324-9c77-88a1abbcbc9b
+  lan:
+    networkId: MQTTDev_Masterv1
+    driverId: e9469ad4-f363-42aa-b35e-16790312169a
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: 4e59d0d9-b065-3c59-a749-f2ae76b1b2fe
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.wk.d
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: ba7bd7cc-6d3d-47d4-9fb7-c8975c10f1e2
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: mqttshade.v1b
+  label: MQTT End Shades
+  deviceManufacturerCode: SmartThings Community
+  manufacturerName: SmartThingsCommunity
+  deviceModel: mqtttdev_Shade
+  presentationId: 80c47d62-4b0d-31ef-ba0b-daa6134c007c
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: partyvoice23922.status
+          version: 1
+          optional: false
+        - id: partyvoice23922.refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-09-26T20:51:59.584Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 35d1fca9-4192-3a33-8af4-fff09120b4cc
+  lan:
+    networkId: MQTT_Shade_1758919918.038
+    driverId: e9469ad4-f363-42aa-b35e-16790312169a
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: 80c47d62-4b0d-31ef-ba0b-daa6134c007c
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 802c164c-b18e-47b8-9326-13d5005d2636
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: mqttshade.v1b
+  label: MQTT Side Shades
+  deviceManufacturerCode: SmartThings Community
+  manufacturerName: SmartThingsCommunity
+  deviceModel: mqtttdev_Shade
+  presentationId: 80c47d62-4b0d-31ef-ba0b-daa6134c007c
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: partyvoice23922.status
+          version: 1
+          optional: false
+        - id: partyvoice23922.refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-09-29T22:44:05.208Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 35d1fca9-4192-3a33-8af4-fff09120b4cc
+  lan:
+    networkId: MQTT_Shade_1759185843.713
+    driverId: e9469ad4-f363-42aa-b35e-16790312169a
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: 80c47d62-4b0d-31ef-ba0b-daa6134c007c
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 017a2935-2a5a-4ab7-830a-9b8326388aef
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: rain.v1
+  label: Rain Info
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: c2a184db-8e2d-38d0-8863-fd4bf46495a1
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: a39e5d0a-57dd-4a6a-af00-ab0cf1f88718
+  components:
+    - id: main
+      label: Current Rain Info
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.rainrate
+          version: 1
+          optional: false
+        - id: waterSensor
+          version: 1
+          optional: false
+        - id: radioamber53161.datetime
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: lastHour
+      label: Last Hour
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.raintotal
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: last12Hour
+      label: Last 12 Hours
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.raintotal
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-08-18T22:55:56.862Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 706034c3-d43c-393f-9ac9-8d70029d4ca2
+  lan:
+    networkId: wilkie.rain.v1
+    driverId: 3982a783-7f7a-483e-8b30-33b8340c0883
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: c2a184db-8e2d-38d0-8863-fd4bf46495a1
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 52b86856-f62a-7526-6006-3368030a9bc4
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: '[refrigerator] Samsung'
+  label: Refrigerator
+  deviceManufacturerCode: Samsung Electronics
+  manufacturerName: Samsung Electronics
+  presentationId: DA-REF-NORMAL-000001
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d2b5a209-4a94-4add-ba49-bd2c8a877ca4
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: execute
+          version: 1
+          optional: false
+        - id: ocf
+          version: 1
+          optional: false
+        - id: powerConsumptionReport
+          version: 1
+          optional: false
+        - id: demandResponseLoadControl
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: refrigeration
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: thermostatCoolingSetpoint
+          version: 1
+          optional: false
+        - id: custom.deodorFilter
+          version: 1
+          optional: false
+        - id: custom.deviceReportStateConfiguration
+          version: 1
+          optional: false
+        - id: custom.energyType
+          version: 1
+          optional: false
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+        - id: custom.disabledComponents
+          version: 1
+          optional: false
+        - id: custom.waterFilter
+          version: 1
+          optional: false
+        - id: samsungce.softwareUpdate
+          version: 1
+          optional: false
+        - id: samsungce.deviceIdentification
+          version: 1
+          optional: false
+        - id: samsungce.dongleSoftwareInstallation
+          version: 1
+          optional: false
+        - id: samsungce.driverVersion
+          version: 1
+          optional: false
+        - id: samsungce.driverState
+          version: 1
+          optional: false
+        - id: samsungce.fridgeVacationMode
+          version: 1
+          optional: false
+        - id: samsungce.powerCool
+          version: 1
+          optional: false
+        - id: samsungce.powerFreeze
+          version: 1
+          optional: false
+        - id: samsungce.sabbathMode
+          version: 1
+          optional: false
+        - id: samsungce.quickControl
+          version: 1
+          optional: false
+        - id: samsungce.softwareVersion
+          version: 1
+          optional: false
+        - id: sec.diagnosticsInformation
+          version: 1
+          optional: false
+      categories:
+        - name: Refrigerator
+          categoryType: manufacturer
+      optional: false
+    - id: freezer
+      label: freezer
+      capabilities:
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: thermostatCoolingSetpoint
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: custom.thermostatSetpointControl
+          version: 1
+          optional: false
+        - id: samsungce.freezerConvertMode
+          version: 1
+          optional: false
+        - id: samsungce.unavailableCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: cooler
+      label: cooler
+      capabilities:
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: thermostatCoolingSetpoint
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: custom.thermostatSetpointControl
+          version: 1
+          optional: false
+        - id: samsungce.unavailableCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: cvroom
+      label: cvroom
+      capabilities:
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: thermostatCoolingSetpoint
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: samsungce.fridgeZoneInfo
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: onedoor
+      label: onedoor
+      capabilities:
+        - id: contactSensor
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: thermostatCoolingSetpoint
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: custom.thermostatSetpointControl
+          version: 1
+          optional: false
+        - id: samsungce.freezerConvertMode
+          version: 1
+          optional: false
+        - id: samsungce.fridgeZoneInfo
+          version: 1
+          optional: false
+        - id: samsungce.unavailableCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: icemaker
+      label: icemaker
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: samsungce.fridgeIcemakerInfo
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: icemaker-02
+      label: icemaker-02
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: samsungce.fridgeIcemakerInfo
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: pantry-01
+      label: pantry-01
+      capabilities:
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: samsungce.fridgePantryInfo
+          version: 1
+          optional: false
+        - id: samsungce.fridgePantryMode
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: pantry-02
+      label: pantry-02
+      capabilities:
+        - id: custom.fridgeMode
+          version: 1
+          optional: false
+        - id: samsungce.fridgePantryInfo
+          version: 1
+          optional: false
+        - id: samsungce.fridgePantryMode
+          version: 1
+          optional: false
+        - id: custom.disabledCapabilities
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-02-22T15:44:30.372Z'
+  childDevices: []
+  profile:
+    id: 24dd97b2-973a-3d63-8578-5a8705d6c769
+  ocf:
+    ocfDeviceType: oic.d.refrigerator
+    name: '[refrigerator] Samsung'
+    specVersion: core.1.1.0
+    verticalDomainSpecVersion: res.1.1.0,sh.1.1.0
+    manufacturerName: Samsung Electronics
+    modelNumber: ARTIK051_REF_17K|00113141|0002034E051311200103000000000000
+    platformVersion: DAWIT 2.0
+    platformOS: TizenRT 1.0 + IPv6
+    hwVersion: ARTIK051
+    firmwareVersion: DA-REF-ART-COMMON-1_20201124
+    vendorId: DA-REF-NORMAL-000001
+    vendorResourceClientServerVersion: ARTIK051 Release 2.200916.1
+    lastSignupTime: '2021-02-22T15:44:24.540753Z'
+    transferCandidate: false
+    additionalAuthCodeRequired: false
+  type: OCF
+  vid: DA-REF-NORMAL-000001
+  mnmn: Samsung Electronics
+  ocfDeviceType: oic.d.refrigerator
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: 69f9317b-a485-47e4-b92b-bd44b0b8782e
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Repeater
+  label: Repeater
+  deviceManufacturerCode: 0000-0000-0000
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 0000-0000
+  presentationId: 83769564-9d17-3e92-a005-73a54027b458
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d7fb8d4c-08bb-42e4-8adb-25dbf1a173f1
+  components:
+    - id: main
+      label: Repeater
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: switchLevel
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-04-03T00:53:35.937Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 132bd595-c3bf-38dc-9a05-d12b91339314
+  zwave:
+    networkId: '12'
+    driverId: 2cbf55e3-dbc2-48a2-8be5-4c3ce756b692
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_S2_FAILED
+    provisioningState: PROVISIONED
+    manufacturerId: 0
+    productType: 0
+    productId: 0
+  type: ZWAVE
+  vid: 83769564-9d17-3e92-a005-73a54027b458
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 46530321-e13a-497e-8d03-5afa7e69fa0d
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: switch-battery-level
+  label: Sengled Dimmer Switch
+  deviceManufacturerCode: sengled
+  manufacturerName: SmartThingsCommunity
+  deviceModel: E1E-G7F
+  presentationId: 1310444d-559e-319c-a37c-7d6e1b5a2e9a
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  brandId: c5d1510b-eadf-3d96-a628-0b831109b072
+  productId: d1a335ad-d630-3421-a713-7b49d54e7845
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: switchLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-11-15T01:27:34.635Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 6ce1fce3-7202-34cf-ac5a-eb61941cf8f4
+  zigbee:
+    eui: B0CE1814035DF31C
+    networkId: 3BA0
+    driverId: 1e45a851-8f07-48d1-bcbf-932fb377e95e
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    fingerprintType: ZIGBEE_MANUFACTURER
+    fingerprintId: sengled/E1E-G7F
+  type: ZIGBEE
+  vid: 1310444d-559e-319c-a37c-7d6e1b5a2e9a
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: c899fdb2-8f04-42bc-b648-3b4d41512380
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: shadechecker.v1
+  label: Shade Checker
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: d6da1757-b236-32f2-b681-dcab6c990f6c
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: d7fb8d4c-08bb-42e4-8adb-25dbf1a173f1
+  components:
+    - id: main
+      label: End Shade State
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: switch
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: sideShadeState
+      label: Side Shade State
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: switch
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2025-10-13T21:03:51.513Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: b972270d-a86f-3979-8c4c-096e36d7e023
+  lan:
+    networkId: wilkie.shadechecker.v1
+    driverId: fee98052-d169-4821-8b6d-532321015979
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: d6da1757-b236-32f2-b681-dcab6c990f6c
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 94889fa3-6cb4-4ebd-8d3a-319c577550fd
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: window-covering
+  label: Side Right Shade (4)
+  deviceManufacturerCode: JLM
+  manufacturerName: SmartThingsCommunity
+  deviceModel: Smart Window Shade Tubular Motor
+  presentationId: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b38015e3-f2d9-4f3b-a5a0-7499a082ad7f
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: windowShade
+          version: 1
+          optional: false
+        - id: windowShadePreset
+          version: 1
+          optional: false
+        - id: windowShadeLevel
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: firmwareUpdate
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Blind
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-03-01T20:00:15.384Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: af30513d-fe8d-3b92-bfd3-b7cbb0d3c267
+  matter:
+    driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+    networkId: 9F53F744C43607CE-AB0A0FF8B8074113
+    executingLocally: true
+    vendorId: 5234
+    productId: 1
+    listeningType: SLEEPY
+    supportedNetworkInterfaces:
+      - THREAD
+    version:
+      hardware: 1
+      hardwareLabel: 1.0.0
+      software: 1
+      softwareLabel: 1.0.0
+    endpoints:
+      - endpointId: 0
+        deviceTypes:
+          - deviceTypeId: 22
+      - endpointId: 1
+        deviceTypes:
+          - deviceTypeId: 514
+    syncDrivers: true
+  type: MATTER
+  vid: 5bc4ab69-437f-3ae5-b9d2-68c292c12259
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: SmartThings v3 Hub
+  label: SmartThings v3 Hub
+  deviceManufacturerCode: SAMJIN
+  manufacturerName: SmartThingsCommunity
+  deviceModel: V3_HUB
+  presentationId: 63f1469e-dc4a-3689-8cc5-69e293c1eb21
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: bridge
+          version: 1
+          optional: false
+      categories:
+        - name: Hub
+          categoryType: manufacturer
+      optional: false
+  createTime: '2020-10-27T22:07:35Z'
+  childDevices:
+    - id: 00b6b0ae-c53f-422e-9037-efa011650947
+    - id: 017a2935-2a5a-4ab7-830a-9b8326388aef
+    - id: 06a82fb4-c037-46a9-b11c-59eacb258394
+    - id: 1088dba9-1033-420c-9cd6-01a33611bf3a
+    - id: 1346e6fe-b968-44f6-b840-5f931d808719
+    - id: 23dd5e0c-0ad4-4b70-82c2-1c5fe70537e3
+    - id: 27e5d568-ac7d-49d7-9a95-51d0e4b87f72
+    - id: 2cc64cd9-3499-497d-8340-6b2170ed0ec5
+    - id: 328fe53b-87fe-4bcc-aae4-096ab9d0d573
+    - id: 38ee9cae-6ce4-4fd9-bc09-0fe86fa75952
+    - id: 39a00be4-5723-40d4-83ee-54dc28690d66
+    - id: 4514666e-11fd-4fa3-b497-7cf3d24c14b3
+    - id: 46530321-e13a-497e-8d03-5afa7e69fa0d
+    - id: 517b9e23-64d9-472b-862f-00541605f46c
+    - id: 53baf8c8-4469-489f-a4fd-e719b7e9a88f
+    - id: 5cc58dc8-e1e3-4298-a847-fb1ec345ac0f
+    - id: 5dad530a-4c42-4d76-80e4-e95be1e28119
+    - id: 6404684a-3238-42b5-aa08-82fcbdc3585f
+    - id: 646b0650-1100-41cf-8f91-5af32bb0c8da
+    - id: 69f9317b-a485-47e4-b92b-bd44b0b8782e
+    - id: 70f5a5b1-44b8-4fd8-baa9-74d4cc01dda1
+    - id: 737e1098-a6c2-48e0-b86b-dc71b833cd25
+    - id: 771a036f-e3f7-4d98-90d1-4d448037d018
+    - id: 7c9f8453-c8aa-48d1-a2ef-292bff272c27
+    - id: 802c164c-b18e-47b8-9326-13d5005d2636
+    - id: 835f0c86-1b00-4c18-abd0-4f78d5ed1910
+    - id: 89f0f808-c454-4ef7-b396-9baa499c9412
+    - id: 94889fa3-6cb4-4ebd-8d3a-319c577550fd
+    - id: 9837c666-146b-4118-8c47-e629cabfc35c
+    - id: a63c9a2a-78ed-47b0-b8d1-a27af9e1e035
+    - id: a7d9790a-7456-477f-a7b3-7c37ad45d756
+    - id: a870fb2e-b37c-4757-9f58-716bebb50415
+    - id: abb17fab-4148-479b-98b9-40ffa2e3606f
+    - id: acf67350-dfaa-4f02-a599-5af5628f1900
+    - id: b4e8dbaa-a8be-4703-86d6-bf0fe2b8fb41
+    - id: b50daaa9-41e7-461a-875a-d5893826c6f6
+    - id: ba7bd7cc-6d3d-47d4-9fb7-c8975c10f1e2
+    - id: bcb7481d-6933-47e7-887a-ff038974e316
+    - id: c566faa1-cf80-47d8-bdb5-105eb2e0332b
+    - id: c899fdb2-8f04-42bc-b648-3b4d41512380
+    - id: d1b4f6e8-23cb-44c0-9b9c-01f5c57c06c4
+    - id: f3ca9d36-e4b5-423b-96a1-77f3ffd17355
+    - id: fe95b334-acb3-43f5-985a-ec0124291b4e
+  profile:
+    id: d77ba2f6-c377-36f5-bb68-15db9d1aa0e1
+  hub:
+    hubEui: D052A8BA3B090001
+    firmwareVersion: 000.061.00006
+    hubDrivers:
+      - driverVersion: '2025-07-28T20:45:03.83690244'
+        driverId: 01976eca-e7ff-4d1b-91db-9c980ce668d7
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2021-11-03T03:21:32.005343'
+        driverId: 054357b0-5bb0-4ad4-bb7b-3293e7b52936
+        channelId: e6e29aeb-2793-4ebf-b8f6-e37b69e32c61
+      - driverVersion: '2026-06-29T15:14:34.24794054'
+        driverId: 1e45a851-8f07-48d1-bcbf-932fb377e95e
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:33.896083069'
+        driverId: 22f3a1d7-ce00-496f-91e9-71c51b5be169
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:30.652238462'
+        driverId: 2cbf55e3-dbc2-48a2-8be5-4c3ce756b692
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2025-08-08T00:53:56.526018797'
+        driverId: 35b25a7f-893c-4c0a-a295-d9405868c82d
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2025-08-08T00:53:14.972482614'
+        driverId: 3982a783-7f7a-483e-8b30-33b8340c0883
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2026-02-23T19:23:15.380515276'
+        driverId: 3c406551-6b3e-456c-9971-194880f4d883
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:31.702999072'
+        driverId: 3fb97b6c-f481-441b-a14e-f270d738764e
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2023-04-12T23:19:34.495818612'
+        driverId: 46f8ffa6-4abb-485c-9400-6f0f87b2e69f
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2024-10-10T18:17:35.032104982'
+        driverId: 4eb5b19a-7bbc-452f-859b-c6d7d857b2da
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2024-12-17T18:00:47.743217473'
+        driverId: 572a2641-2af8-47e4-bfe5-ad83748fd7a1
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:28.06950074'
+        driverId: 5f3c42eb-5704-4c95-9705-c51c1a6764bf
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:22.243560138'
+        driverId: 7103039b-68d6-442c-afe5-e1bc955924a9
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2025-02-03T22:38:47.582952919'
+        driverId: 7beb8bc2-8dfa-45c2-8fdb-7373d4597b12
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-07-02T02:39:22.78029459'
+        driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2024-10-21T19:06:49.949052991'
+        driverId: 9050ac53-358c-47a1-a927-9a70f5f28cee
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2022-09-14T22:42:21.567556821'
+        driverId: 94a20600-4b03-4f0f-847e-7a58d93a53e1
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2025-09-17T18:05:10.863281195'
+        driverId: b1081c08-6d25-4872-abae-c38411f316bc
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2026-06-25T11:14:39.488849703'
+        driverId: b18cdef6-1d11-4a7c-a0f4-7efa554ef45b
+        channelId: 609e2190-c8fa-4b9a-9986-62367890277e
+      - driverVersion: '2023-07-11T18:43:46.643647053'
+        driverId: b1e5d514-236b-4c8a-ba65-b50aad5f007b
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:37.836302817'
+        driverId: c21a6c77-872c-474e-be5b-5f6f11a240ef
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2024-01-30T21:36:15.547412569'
+        driverId: c856a3fd-69ee-4478-a224-d7279b6d978f
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:35.651664268'
+        driverId: cd898d81-6c27-4d27-a529-dfadc8caae5a
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:06.725218142'
+        driverId: cf36ac1a-494a-47fc-b1e7-a42208c6484a
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:13.349476876'
+        driverId: d58d8432-ea22-4d38-8300-2bd75fdf1358
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2025-03-10T21:36:12.512604403'
+        driverId: d9c3f8b8-c3c3-4b77-9ddd-01d08102c84b
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2026-06-29T15:14:33.070860086'
+        driverId: dbe192cb-f6a1-4369-a843-d1c42e5c91ba
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2025-08-08T00:52:58.967397982'
+        driverId: dd49370d-f89e-420b-8ef0-be7fd4eb0866
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2024-03-26T16:51:35.383687486'
+        driverId: e9469ad4-f363-42aa-b35e-16790312169a
+        channelId: 42512f35-e905-416d-8696-479587f23fe2
+      - driverVersion: '2025-08-29T22:06:00.298546063'
+        driverId: ec90be8d-1716-4fbb-8ad0-85f00006d7b7
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+      - driverVersion: '2026-06-29T15:14:25.032151499'
+        driverId: f2f2679a-24fb-40da-9322-4c85988e9b53
+        channelId: 15ea8adc-8be7-4ea6-8b51-4155f56dc6cf
+      - driverVersion: '2025-08-29T22:28:08.378026141'
+        driverId: fee98052-d169-4821-8b6d-532321015979
+        channelId: 45f7c322-dca4-4764-af7a-855e2af4e728
+    hubData:
+      serialNumber: '3011356111'
+      zwaveStaticDsk: 31461-65318-27391-18696-46805-07983-63626-38859
+      zwaveS2: true
+      hardwareType: V3_HUB
+      hardwareId: '0020'
+      zigbeeFirmware: 6.2.10
+      zigbee3: true
+      zigbeeOta: ENABLED_WITH_LIGHTS
+      otaEnable: 'true'
+      zigbeeUnsecureRejoin: true
+      zigbeeRequiresExternalHardware: false
+      threadRequiresExternalHardware: false
+      failoverAvailability: Available
+      primarySupportAvailability: Available
+      secondarySupportAvailability: Available
+      zigbeeAvailability: Available
+      zwaveAvailability: Available
+      threadAvailability: Available
+      lanAvailability: Available
+      matterAvailability: Available
+      localVirtualDeviceAvailability: Available
+      childDeviceAvailability: Unsupported
+      edgeDriversAvailability: Available
+      hubReplaceAvailability: Available
+      hubLocalApiAvailability: Available
+      edgeDriverSupportedEndpointApps:
+        apps:
+          - appName: viper_12edd070-1b34-11f0-b145-1b5424e72149
+            version: '1'
+      zigbeeManualFirmwareUpdateSupported: true
+      matterRendezvousHedgeSupported: true
+      matterSoftwareComponentVersion: 1.5-0
+      matterDeviceDiagnosticsAvailability: Available
+      zigbeeDeviceDiagnosticsAvailability: Available
+      hedgeTlsCertificate: |
+        -----BEGIN CERTIFICATE-----
+        MIIGWTCCBEGgAwIBAgIBADANBgkqhkiG9w0BAQsFADCBqTELMAkGA1UEBhMCVVMx
+        CzAJBgNVBAgMAk1OMRQwEgYDVQQHDAtNaW5uZWFwb2xpczEUMBIGA1UECgwLU21h
+        cnRUaGluZ3MxODA2BgNVBAMML2hsYS10Y3AuMGJjNjM2MmEtNDYxZS00YzQ2LWFm
+        ODYtY2JjMGI1Yzk3YjU4LnN0MScwJQYJKoZIhvcNAQkBFhhzZWN1cml0eUBzbWFy
+        dHRoaW5ncy5jb20wIBcNMjYwNzAxMjI1MDE3WhgPMjA1MzExMTYyMjUwMTdaMIGp
+        MQswCQYDVQQGEwJVUzELMAkGA1UECAwCTU4xFDASBgNVBAcMC01pbm5lYXBvbGlz
+        MRQwEgYDVQQKDAtTbWFydFRoaW5nczE4MDYGA1UEAwwvaGxhLXRjcC4wYmM2MzYy
+        YS00NjFlLTRjNDYtYWY4Ni1jYmMwYjVjOTdiNTguc3QxJzAlBgkqhkiG9w0BCQEW
+        GHNlY3VyaXR5QHNtYXJ0dGhpbmdzLmNvbTCCAiIwDQYJKoZIhvcNAQEBBQADggIP
+        ADCCAgoCggIBAOBUzc7Mrbc7SSmhQFMf2M0CCRIBrbGI/cKPX2e3Cb42BCP6zhwq
+        wBb197fyYtYh66/nC8HNPQSpITtiOjtR94KdS/CmAuZdKxWKBJUwMk2GDV2Nu6tB
+        Ag12klxg78bJt8+H1rA0ES2JEVPgcecVRU1SRQVkiVotnukh8vUr0BPUKiBnoH3z
+        5gf9DyCRSbRqYPC4os2dhyVOxxHs3P7DnFPlucG+1vuGNRhzA/ScO9E6cLnSXeCF
+        +FjaLeDeIXNw5khqiFFKT3oq7iYiVT2litFFMFMnF3pdqTq0d2vLNN29FzfK/qD+
+        82nEM8EatUD0kYbX5uqSaXed2qWI9zAiM0SRMiPRvFNfA4KRpNW9f9xknrYOoCgQ
+        TCrTaWvRqqFZZOvM5wX7EcRAaCS7MTDeGtAA/c5UGw3JX1xx2SKxo7wJSwLu8TPD
+        b/+vWqNejmfaIodSvR3xOiRlPOfcAnHPn1bi1FGOQX0UmiEok3iriTW2x7Ge/t3s
+        OnPmvLz3pmCcBYF4nhGUhdFCPP7icXK8kqFlrUEematsa3Ys8+jQ0bSprOFb4xTk
+        xLCam3BWr7dOfzWDXtdq6lEQzJPF75GFDnpWSFqsCWh98SpNIfNkvrpC+8xwWahQ
+        hZ6b115Ae+GD0rEs+rutjH2xx/y4qalGoo95DY/YTHeQm1KTAYHddYHJAgMBAAGj
+        gYcwgYQwHQYDVR0OBBYEFBxLIZR2hdHZOusObpGG5FgBPH55MAkGA1UdEwQCMAAw
+        CwYDVR0PBAQDAgWgMEsGA1UdEQREMEKCQHN2Yy1obGEtdGNwLmh1Yi0wYmM2MzYy
+        YS00NjFlLTRjNDYtYWY4Ni1jYmMwYjVjOTdiNTguc21hcnR0aGluZ3MwDQYJKoZI
+        hvcNAQELBQADggIBADW3RgYXhUR11wckyKPSgmd6m7cSQ2ZbKmbycyWTJ3P5VQ5O
+        LPClJEahyj/aVRDTlbbuEpF9Nr2TMQFdawr3QN2dnzwHzJY5exFVuqODsxNPb5Ae
+        1hjtEDy7ocq0H1CCYEb273PT/PEVDQ91KfTAp5hvvDnl46P1XiDF2ypLloebB5I+
+        0eMfcTbBvltjL7vKwPcKnPRmWzfKHTuUQNaR7a18mVZSGlrCOxgxV6SLWLehbaC2
+        hpDaW69SDABSfYBZBejsUVNS8p/RVP953+RpMKwPB56Mo/Kg9VoXdiJp9Ct3WqEb
+        yH5tBF7vu+u+DUcFnrbhUwbxpmekSXEhc5PhhuHTHpSbjhcWvfDNxgvIzaLsLhoh
+        cK8P+UDW3LyblGAImO0U79tusir0GHx4SgdcuWpGb4pJIv5ai0MKmgdYSwt2Mf3G
+        pOcctmcTsUOME3io3oRJSFl2qpYP8SFWnijwF1PhsYHfiQ0EDAEIXSn1wOk2YxKF
+        E3gJaNcKOW2hunzFEBalCCP4L7iYDG8YWounu6iao+9nUkHKbR/p5NN5RYnXAVtX
+        n07FDxGY8Llitk8B3tw9CpcEKz0DjOYQDj1Y1RE+hvJ6nLL2ha1xI7Sxg9U/S0Wi
+        kbteEEyelROl92/mggFp2yWQhqSquJKqp5Xa5zn5Vt54OOxdaIGeJaf89oJH
+        -----END CERTIFICATE-----
+      zigbeeChannel: '15'
+      zigbeePanId: E104
+      zigbeeEui: 286D970002065D4E
+      zigbeeNodeID: '0000'
+      zwaveNodeID: '01'
+      zwaveHomeID: D5E68F98
+      zwaveSucID: '01'
+      zwaveVersion: '6.10'
+      zwaveRegion: US
+      macAddress: 28:6D:97:C4:B9:B1
+      localIP: 192.168.15.63
+      wifiSsid: WILKIE-LFP
+      zigbeeRadioFunctional: true
+      zwaveRadioFunctional: true
+      zigbeeRadioEnabled: true
+      zwaveRadioEnabled: true
+      zigbeeRadioDetected: true
+      zwaveRadioDetected: true
+      enrollmentChannel: PUBLIC
+  type: HUB
+  vid: 63f1469e-dc4a-3689-8cc5-69e293c1eb21
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.hub
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: 5dad530a-4c42-4d76-80e4-e95be1e28119
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: soilgw.v1
+  label: Soil Gateway
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: 1c375d80-9037-301b-be67-d9ff70e62326
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: Soil GW
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2024-07-15T22:54:06.242Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 6937fedf-9888-356a-a6ba-d956d55d787b
+  lan:
+    networkId: wilkie.soilgw.v1
+    driverId: 89cee478-92ed-478c-b03e-8718996af8a1
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: TYPED
+  type: LAN
+  vid: 1c375d80-9037-301b-be67-d9ff70e62326
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 737e1098-a6c2-48e0-b86b-dc71b833cd25
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Spa
+  label: Spa
+  manufacturerName: SmartThingsCommunity
+  presentationId: bc813f60-efa1-3d89-896d-93ef64cf89c8
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: Spa
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-02-23T00:14:26.916Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: e2427d59-d949-312b-bf83-97b324876c79
+  lan:
+    networkId: 84CCA85DDF90
+    driverId: b1e5d514-236b-4c8a-ba65-b50aad5f007b
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: bc813f60-efa1-3d89-896d-93ef64cf89c8
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: d1b4f6e8-23cb-44c0-9b9c-01f5c57c06c4
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: spaview.v1
+  label: Spa View Device
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: db114aa7-8bff-3445-acd0-612096687c5a
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: Current Spa Water Quality
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: pHMeasurement
+          version: 1
+          optional: false
+        - id: radioamber53161.orpmeasurement
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: radioamber53161.pumpstate
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: last24
+      label: Change Last 12 Hours
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.pumptime
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2023-04-12T23:19:45.418Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 6b97e3c4-9d10-3d58-978e-72d10f9058ae
+  lan:
+    networkId: wilkie.spaview.v1
+    driverId: 46f8ffa6-4abb-485c-9400-6f0f87b2e69f
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: db114aa7-8bff-3445-acd0-612096687c5a
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 51fc1ce0-cb69-410c-9e8c-be7ffe45349c
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: c2c-dimmer
+  label: String lights
+  deviceManufacturerCode: TP-LINK
+  manufacturerName: SmartThings
+  deviceModel: KP405(US)
+  presentationId: SmartThings-smartthings-c2c-dimmer
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 6589f54f-54ea-4bed-b692-5197d3b43449
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: switchLevel
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: healthCheck
+          version: 1
+          optional: false
+        - id: synthetic.lightingEffectFade
+          version: 1
+          optional: false
+      categories:
+        - name: Light
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-10-22T18:50:37.202Z'
+  childDevices: []
+  profile:
+    id: 8c78413a-09d0-39f7-b92c-988fad1548a2
+  viper:
+    uniqueIdentifier: 80066A2F42CFF1EAA2DDB52741F2BEB62037434A
+    manufacturerName: TP-LINK
+    modelName: KP405(US)
+    swVersion: 1.0.4 Build 210705 Rel.190840
+    hwVersion: '1.0'
+    endpointAppId: viper_48564b90-500e-11e9-870f-f106e22b685b
+  type: VIPER
+  vid: SmartThings-smartthings-c2c-dimmer
+  mnmn: SmartThings
+  ocfDeviceType: oic.d.light
+  restrictionTier: 0
+  allowed: []
+  executionContext: CLOUD
+  relationships: []
+- deviceId: 70f5a5b1-44b8-4fd8-baa9-74d4cc01dda1
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: Zooz Power Switch
+  label: Truck Heater
+  deviceManufacturerCode: 027A-0101-000D
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 0101-000D
+  presentationId: 2103082f-8913-3c97-ba00-4a78f8dbefab
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: 095fdb8a-b1ff-4c1d-a644-04ac74043ef5
+  components:
+    - id: main
+      label: Landscape
+      capabilities:
+        - id: switch
+          version: 1
+          optional: false
+        - id: powerMeter
+          version: 1
+          optional: false
+        - id: energyMeter
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Switch
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-02-09T18:32:37.021Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: b5ab879d-01fa-31fb-aaf5-bc3279a7b896
+  zwave:
+    networkId: '09'
+    driverId: 2cbf55e3-dbc2-48a2-8be5-4c3ce756b692
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_LEGACY_NON_SECURE
+    provisioningState: PROVISIONED
+    manufacturerId: 634
+    productType: 257
+    productId: 13
+  type: ZWAVE
+  vid: 2103082f-8913-3c97-ba00-4a78f8dbefab
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.switch
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: bcb7481d-6933-47e7-887a-ff038974e316
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: First Alert Smoke Detector
+  label: TV Smoke Detector
+  deviceManufacturerCode: 0138-0001-0003
+  manufacturerName: SmartThingsCommunity
+  deviceModel: 0001-0003
+  presentationId: d9a3946a-382f-3a57-b42a-760ccb62eac0
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: b2eb4f68-87f7-451b-af3d-a00f36a0269a
+  components:
+    - id: main
+      label: TV Smoke Detector
+      capabilities:
+        - id: smokeDetector
+          version: 1
+          optional: false
+        - id: battery
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+        - id: carbonMonoxideDetector
+          version: 1
+          optional: false
+      categories:
+        - name: SmokeDetector
+          categoryType: manufacturer
+      optional: false
+  createTime: '2021-03-03T02:16:20.686Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 7ed5540f-5b31-36ab-af01-c35d71011d39
+  zwave:
+    networkId: 0B
+    driverId: cf36ac1a-494a-47fc-b1e7-a42208c6484a
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    networkSecurityLevel: ZWAVE_S2_AUTHENTICATED
+    provisioningState: PROVISIONED
+    manufacturerId: 312
+    productType: 1
+    productId: 3
+  type: ZWAVE
+  vid: d9a3946a-382f-3a57-b42a-760ccb62eac0
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: x.com.st.d.sensor.smoke
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 835f0c86-1b00-4c18-abd0-4f78d5ed1910
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: weather.v1
+  label: Weather Device
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: d1c9fcce-7708-3803-afd1-2e5933176daf
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: a39e5d0a-57dd-4a6a-af00-ab0cf1f88718
+  components:
+    - id: main
+      label: Current Weather Info
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: relativeHumidityMeasurement
+          version: 1
+          optional: false
+        - id: dewPoint
+          version: 1
+          optional: false
+        - id: radioamber53161.atmospressure
+          version: 1
+          optional: false
+        - id: ultravioletIndex
+          version: 1
+          optional: false
+        - id: illuminanceMeasurement
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: airQuality
+      label: Air Quality
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.airQuality
+          version: 1
+          optional: false
+        - id: radioamber53161.lastUpdated
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: heatIndex
+      label: Heat Index
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: uvmorning
+      label: UV Morning
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: ultravioletIndex
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: uvmidday
+      label: UV Midday
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: ultravioletIndex
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: uvevening
+      label: UV Evening
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: ultravioletIndex
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: lastHour
+      label: Change Last Hour
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: temperatureMeasurement
+          version: 1
+          optional: false
+        - id: radioamber53161.atmospressure
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-09-15T14:44:49.627Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 4fb80939-1d24-3319-8ddf-d7522e713555
+  lan:
+    networkId: wilkie.weather.v1
+    driverId: b1081c08-6d25-4872-abae-c38411f316bc
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: d1c9fcce-7708-3803-afd1-2e5933176daf
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: c566faa1-cf80-47d8-bdb5-105eb2e0332b
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: webrequest.v1
+  label: Web Requestor v1.2
+  deviceManufacturerCode: SmartThings Community
+  manufacturerName: SmartThingsCommunity
+  deviceModel: webrequestorv1
+  presentationId: b1612a35-f3ac-3fe5-92c0-f759aad1e2e7
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: e1cd818e-5116-4cbc-bafd-4aca1aea683b
+  components:
+    - id: main
+      label: main
+      capabilities:
+        - id: partyvoice23922.webrequestselect
+          version: 1
+          optional: false
+        - id: partyvoice23922.webrequest
+          version: 1
+          optional: false
+        - id: partyvoice23922.httpresponse
+          version: 1
+          optional: false
+        - id: refresh
+          version: 1
+          optional: false
+      categories:
+        - name: Others
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-02-23T02:05:26.261Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 05a9780a-3f8d-35e4-b858-4f090d0c7f52
+  lan:
+    networkId: webrequestorv1.2
+    driverId: 054357b0-5bb0-4ad4-bb7b-3293e7b52936
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: b1612a35-f3ac-3fe5-92c0-f759aad1e2e7
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.wk.d
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
+- deviceId: 53baf8c8-4469-489f-a4fd-e719b7e9a88f
+  ownerId: b876867c-fff3-aab1-292f-813bbec56771
+  name: wind.v1
+  label: Wind Info
+  deviceManufacturerCode: Wilkie
+  manufacturerName: SmartThingsCommunity
+  deviceModel: v1
+  presentationId: 3214076d-a10c-3cdd-a9e3-97feb14e9d89
+  locationId: f85c40a1-f54c-47d3-b33f-b6474c442c39
+  roomId: a39e5d0a-57dd-4a6a-af00-ab0cf1f88718
+  components:
+    - id: main
+      label: Current Wind Info
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.windgust
+          version: 1
+          optional: false
+        - id: radioamber53161.windspeed
+          version: 1
+          optional: false
+        - id: radioamber53161.winddirectiontext
+          version: 1
+          optional: false
+        - id: radioamber53161.datetime
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+    - id: last12
+      label: Last 12 Hours
+      capabilities:
+        - id: refresh
+          version: 1
+          optional: false
+        - id: radioamber53161.windgust
+          version: 1
+          optional: false
+        - id: radioamber53161.winddirectiontext
+          version: 1
+          optional: false
+        - id: radioamber53161.datetime
+          version: 1
+          optional: false
+      categories:
+        - name: Other
+          categoryType: manufacturer
+      optional: false
+  createTime: '2022-08-29T14:54:54.508Z'
+  parentDeviceId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+  childDevices: []
+  profile:
+    id: 1e8058af-b7e7-340e-9a61-7c994bd53a3c
+  lan:
+    networkId: wilkie.wind.v1
+    driverId: 35b25a7f-893c-4c0a-a295-d9405868c82d
+    executingLocally: true
+    hubId: 0bc6362a-461e-4c46-af86-cbc0b5c97b58
+    provisioningState: PROVISIONED
+  type: LAN
+  vid: 3214076d-a10c-3cdd-a9e3-97feb14e9d89
+  mnmn: SmartThingsCommunity
+  restrictionTier: 0
+  allowed: []
+  executionContext: LOCAL
+  relationships: []
