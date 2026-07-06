@@ -1,0 +1,31 @@
+{
+    "id": "duration",
+    "version": 1,
+    "status": "proposed",
+    "name": "Duration",
+    "ephemeral": false,
+    "attributes": {
+        "minutes": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "min"
+                        ],
+                        "default": "min"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }
+    },
+    "commands": {}
+}

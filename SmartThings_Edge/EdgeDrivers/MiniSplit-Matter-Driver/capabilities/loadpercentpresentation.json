@@ -1,0 +1,35 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "{{percent.value}}{{percent.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Load",
+            "displayType": "state",
+            "state": {
+                "label": "{{percent.value}}{{percent.unit}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Load",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "percent.value",
+                    "unit": "percent.unit"
+                }
+            }
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.loadPercent",
+    "version": 1
+}

@@ -1,0 +1,31 @@
+{
+    "id": "cycleCount",
+    "version": 1,
+    "status": "proposed",
+    "name": "Cycle Count",
+    "ephemeral": false,
+    "attributes": {
+        "count": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [
+                            "cycles"
+                        ],
+                        "default": "cycles"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }
+    },
+    "commands": {}
+}

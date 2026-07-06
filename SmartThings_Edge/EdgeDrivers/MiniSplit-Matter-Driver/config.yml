@@ -1,0 +1,5 @@
+name: 'MiniSplit Matter Bridge'
+packageKey: 'wilkie.minisplit-matter'
+permissions:
+  matter: {}
+description: "Custom driver for the MiniSplit ESP32 Matter bridge (Tuya mini-split AC). Exposes indoor/outdoor temperature, humidity, and compressor load as separate components, which SmartThings' built-in generic Matter fingerprinting drops."

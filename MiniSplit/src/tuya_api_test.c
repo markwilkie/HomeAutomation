@@ -37,10 +37,8 @@ void tuya_api_demo(void)
         ESP_LOGI(TAG, "  Power: %s", status.switch_state ? "ON" : "OFF");
         ESP_LOGI(TAG, "  Current Temp: %.1f°C", status.temp_current / 100.0f);
         ESP_LOGI(TAG, "  Set Temp: %.1f°C", status.temp_set / 100.0f);
-        ESP_LOGI(TAG, "  Mode Auto: %s", status.mode_auto ? "YES" : "NO");
-        ESP_LOGI(TAG, "  Mode Eco: %s", status.mode_eco ? "YES" : "NO");
-        ESP_LOGI(TAG, "  Mode Dry: %s", status.mode_dry ? "YES" : "NO");
-        ESP_LOGI(TAG, "  Heat: %s", status.heat ? "YES" : "NO");
+        ESP_LOGI(TAG, "  AC Mode: %u", status.ac_mode);
+        ESP_LOGI(TAG, "  Aux Heat: %s", status.heat ? "YES" : "NO");
     } else {
         ESP_LOGE(TAG, "✗ Failed to get device status");
         goto cleanup;

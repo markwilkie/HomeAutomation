@@ -2,6 +2,12 @@
 
 A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to SmartThings.
 
+> ⚠️ **SmartThings needs a custom Edge Driver for this device — see
+> [Custom SmartThings Driver](#custom-smartthings-driver) before commissioning.** This device's
+> vendor/product ID isn't Matter-certified, so SmartThings' automatic pairing only picks up 2 of
+> the 10 endpoints (silently, no error). Deploy the driver in
+> `../SmartThings_Edge/EdgeDrivers/MiniSplit-Matter-Driver/` first.
+
 ## Quick Start
 
 > **Building?** See **[BUILD.md](BUILD.md)** for the authoritative, verified build
@@ -51,6 +57,8 @@ A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to Smart
 | 3 | Bidirectional Sync | ✅ Complete | [PHASE3_INTEGRATION.md](PHASE3_INTEGRATION.md) |
 | 4 | Advanced Features | ⏳ Next | [ROADMAP.md](ROADMAP.md) |
 
+Full Tuya data point schema for this device: [TUYA_DP_REFERENCE.md](TUYA_DP_REFERENCE.md)
+
 ## Project Structure
 
 ```
@@ -65,6 +73,7 @@ MiniSplit/
 ├── SENSORS.md                 # ✅ Temp/humidity endpoints + BME280 wiring
 ├── ROADMAP.md                 # Development roadmap
 ├── TUYAOPEN_REFERENCE.md      # TuyaOpen analysis
+├── TUYA_DP_REFERENCE.md       # Full Tuya DP (data point) schema for this device
 ├── IMPLEMENTATION_NOTES.md    # Technical details
 ├── CMakeLists.txt
 ├── build.sh
@@ -135,6 +144,19 @@ See [ROADMAP.md](ROADMAP.md) for details.
 - ✅ Maps to Tuya device modes
 - ✅ Mode persistence
 
+### Compressor Load Monitoring
+- ✅ Current compressor load, 0–100% (derived from Tuya `compressor_frequency`)
+- ✅ Rolling 8h and 24h load averages, computed on-device
+- ✅ Outdoor ambient temperature (Tuya `ure` DP)
+- ℹ️ Requires the [custom SmartThings driver](#custom-smartthings-driver) to be visible in the app
+
+### Compressor Cycling
+- ✅ Cycles/hour in a true sliding 60-minute window (a cycle = leading edge only, `off→on`;
+  turning back off doesn't count as a second cycle)
+- ✅ Max cycles/hour observed over the last 24 hours
+- ✅ Time in current on/off state (minutes), computed on-device
+- ℹ️ Requires the [custom SmartThings driver](#custom-smartthings-driver) to be visible in the app
+
 ### Environmental Sensing (BME280)
 - ✅ Standalone **Temperature** sensor endpoint (usable in SmartThings routines)
 - ✅ Standalone **Humidity** sensor endpoint (usable in SmartThings routines)
@@ -181,6 +203,8 @@ Mini-Split AC Unit
 
 ## Commissioning Steps
 
+0. **First**, deploy the [custom SmartThings driver](#custom-smartthings-driver) to your hub —
+   skipping this means most endpoints silently won't show up.
 1. Device boots and starts BLE advertisement
 2. Serial output shows setup code (8-digit or QR)
 3. Open SmartThings app on phone
@@ -203,9 +227,30 @@ idf.py -p COM6 flash monitor
 
 # Output (check for):
 # I (xxx) TUYA_CLIENT: Tuya client initialized for device: eb11d9ff75ef37d109pihg
-# I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 light_ep=2 beep_ep=3 temp_sensor_ep=4 humidity_sensor_ep=5
+# I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 temp_sensor_ep=2 humidity_sensor_ep=3 outdoor_temp_sensor_ep=4 compressor_ep=5 compressor_avg8h_ep=6 compressor_avg24h_ep=7 compressor_cycles_ep=8 compressor_cycles_max24h_ep=9 compressor_state_duration_ep=10
 # I (xxx) MATTER_DEVICE: Matter commissioning started
 ```
+
+## Custom SmartThings Driver
+
+This device uses a manufacturer/product ID in the CSA test range (not Matter-DCL-certified), so
+SmartThings can't fetch a real certified profile for it. Its built-in `MATTER_GENERIC`
+fingerprinting falls back to the closest known generic shape ("thermostat + humidity") and
+**silently drops every endpoint that doesn't fit** — no error, the missing data just never
+appears. Of this device's 10 endpoints, only 2 survive that fallback.
+
+The fix is a custom Edge Driver that fingerprints on this device's exact vendor/product ID and
+defines the real 10-component composition explicitly:
+`../SmartThings_Edge/EdgeDrivers/MiniSplit-Matter-Driver/` (sibling repo — see its own README for
+deployment steps: packaging, channel assignment, and installing to your hub via the SmartThings
+CLI).
+
+**Deploy that driver before commissioning this device.** If you already commissioned it under
+the generic fallback, you'll need to remove and re-pair it after installing the driver so
+SmartThings' fingerprint matcher picks up the custom one instead.
+
+See [TUYA_DP_REFERENCE.md](TUYA_DP_REFERENCE.md#️-smartthings-requires-the-custom-edge-driver)
+for the full endpoint-to-component mapping.
 
 ## Troubleshooting
 

@@ -57,7 +57,20 @@
                 "required": []
             },
             "enumCommands": []
-        }            
+        },
+        "LastHeard": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": []
+            },
+            "enumCommands": []
+        }
     },
     "commands": {}
 }

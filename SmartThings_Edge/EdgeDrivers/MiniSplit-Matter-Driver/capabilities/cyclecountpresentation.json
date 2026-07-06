@@ -1,0 +1,35 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "{{count.value}}{{count.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Cycles",
+            "displayType": "state",
+            "state": {
+                "label": "{{count.value}}{{count.unit}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Cycles",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "count.value",
+                    "unit": "count.unit"
+                }
+            }
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.cycleCount",
+    "version": 1
+}

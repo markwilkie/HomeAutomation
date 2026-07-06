@@ -2,13 +2,20 @@
     "dashboard": {
         "states": [
             {
-                "label": "Time: {{Time.value}}"
+                "label": "Heard: {{LastHeard.value}}"
             }
         ],
         "actions": [],
         "basicPlus": []
     },
     "detailView": [
+        {
+            "label": "Last Heard",
+            "displayType": "state",
+            "state": {
+                "label": "{{LastHeard.value}}"
+            }
+        },
         {
             "label": "Time",
             "displayType": "state",
@@ -29,7 +36,7 @@
             "state": {
                 "label": "{{SecondsSinceUpdate.value}}"
             }
-        }                
+        }
     ],
     "automation": {
         "conditions": [

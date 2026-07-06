@@ -16,10 +16,20 @@ static const char *TAG = "TUYA_CLIENT";
 
 #define TUYA_API_HOST "https://openapi.tuyaus.com"
 #define TUYA_TOKEN_ENDPOINT "/v1.0/token?grant_type=1"
-#define TUYA_STATUS_ENDPOINT "/v1.0/iot-03/devices/status"
+// /v1.0/iot-03/devices/status only returns a curated/standardized subset of DPs
+// (and synthesizes legacy codes like mode_auto/mode_eco/mode_dry that don't
+// actually exist on this device). The shadow/properties endpoint returns every
+// DP the device has ever reported, including compressor_frequency, ure
+// (outdoor temp), and the real "mode" enum.
+#define TUYA_SHADOW_PROPERTIES_ENDPOINT_FMT "/v2.0/cloud/thing/%s/shadow/properties"
 #define TUYA_COMMAND_ENDPOINT_FMT "/v1.0/iot-03/devices/%s/commands"
 
-#define HTTP_BUFFER_SIZE 4096
+// The shadow/properties endpoint returns every DP the device has ever reported
+// (~75 properties for this device, each with code/custom_name/dp_id/time/type/
+// value), which is significantly larger than the old curated /status response
+// that fit comfortably in 4096 bytes. Sized with headroom for future DP growth;
+// transient allocation, freed immediately after each request/response cycle.
+#define HTTP_BUFFER_SIZE 16384
 
 typedef struct {
     char device_id[64];
@@ -444,10 +454,10 @@ esp_err_t tuya_get_device_status(tuya_device_status_t *status)
 
     bool token_retry_attempted = false;
 
-    // Build endpoint with device_ids parameter
+    // Build endpoint for the device's shadow/properties (full DP snapshot)
     char endpoint[256];
     snprintf(endpoint, sizeof(endpoint),
-             "%s?device_ids=%s", TUYA_STATUS_ENDPOINT, g_tuya_ctx.device_id);
+             TUYA_SHADOW_PROPERTIES_ENDPOINT_FMT, g_tuya_ctx.device_id);
 
 retry_status_request:
 
@@ -491,20 +501,12 @@ retry_status_request:
         return ESP_FAIL;
     }
 
-    // Extract result array
-    cJSON *result_arr = cJSON_GetObjectItem(root, "result");
-    if (!result_arr || !cJSON_IsArray(result_arr) || cJSON_GetArraySize(result_arr) == 0) {
-        ESP_LOGE(TAG, "Invalid result in response");
-        cJSON_Delete(root);
-        return ESP_FAIL;
-    }
-
-    // Get first device result
-    cJSON *device = cJSON_GetArrayItem(result_arr, 0);
-    cJSON *status_arr = cJSON_GetObjectItem(device, "status");
+    // Extract properties array: {"result": {"properties": [{code, value, ...}, ...]}}
+    cJSON *result_obj = cJSON_GetObjectItem(root, "result");
+    cJSON *status_arr = result_obj ? cJSON_GetObjectItem(result_obj, "properties") : NULL;
 
     if (!status_arr || !cJSON_IsArray(status_arr)) {
-        ESP_LOGE(TAG, "No status array in response");
+        ESP_LOGE(TAG, "No properties array in response");
         cJSON_Delete(root);
         return ESP_FAIL;
     }
@@ -528,24 +530,24 @@ retry_status_request:
             status->temp_current = value_obj->valueint;
         } else if (strcmp(code, "temp_set_f") == 0) {
             status->temp_set_f = value_obj->valueint;
-        } else if (strcmp(code, "mode_auto") == 0) {
-            status->mode_auto = value_obj->valueint;
-        } else if (strcmp(code, "mode_eco") == 0) {
-            status->mode_eco = value_obj->valueint;
-        } else if (strcmp(code, "mode_dry") == 0) {
-            status->mode_dry = value_obj->valueint;
+        } else if (strcmp(code, "mode") == 0) {
+            // Enum DPs come back as JSON strings (e.g. "value":"1") from the
+            // shadow/properties endpoint, not numbers.
+            if (cJSON_IsString(value_obj) && value_obj->valuestring) {
+                status->ac_mode = (uint8_t)atoi(value_obj->valuestring);
+            }
         } else if (strcmp(code, "heat") == 0) {
             status->heat = value_obj->valueint;
-        } else if (strcmp(code, "light") == 0) {
-            status->light = value_obj->valueint;
-        } else if (strcmp(code, "beep") == 0) {
-            status->beep = value_obj->valueint;
         } else if (strcmp(code, "health") == 0) {
             status->health = value_obj->valueint;
         } else if (strcmp(code, "cleaning") == 0) {
             status->cleaning = value_obj->valueint;
         } else if (strcmp(code, "fresh_air_valve") == 0) {
             status->fresh_air_valve = value_obj->valueint;
+        } else if (strcmp(code, "compressor_frequency") == 0) {
+            status->compressor_frequency = value_obj->valueint;
+        } else if (strcmp(code, "ure") == 0) {
+            status->outdoor_temp = value_obj->valueint;
         }
     }
 
@@ -631,18 +633,20 @@ esp_err_t tuya_set_temperature(int16_t temp_c)
 
 esp_err_t tuya_set_mode(uint8_t mode)
 {
-    // Build mode commands based on mode parameter
-    // 0=auto, 1=eco, 2=dry, 3=heat
-    cJSON *commands = cJSON_CreateArray();
-    
-    // Set all modes to false first
-    const char *all_modes[] = {"mode_auto", "mode_eco", "mode_dry", "heat"};
-    for (int i = 0; i < 4; i++) {
-        cJSON *cmd = cJSON_CreateObject();
-        cJSON_AddStringToObject(cmd, "code", all_modes[i]);
-        cJSON_AddBoolToObject(cmd, "value", i == mode);
-        cJSON_AddItemToArray(commands, cmd);
+    // Tuya "mode" DP: 0=auto, 1=cool, 2=dry, 3=fan, 4=heat. Sent as a string
+    // to match the enum type Tuya reports it back as (e.g. "value":"1").
+    if (mode > 4) {
+        return ESP_ERR_INVALID_ARG;
     }
+
+    char mode_str[2];
+    snprintf(mode_str, sizeof(mode_str), "%u", mode);
+
+    cJSON *commands = cJSON_CreateArray();
+    cJSON *cmd = cJSON_CreateObject();
+    cJSON_AddStringToObject(cmd, "code", "mode");
+    cJSON_AddStringToObject(cmd, "value", mode_str);
+    cJSON_AddItemToArray(commands, cmd);
 
     cJSON *body = cJSON_CreateObject();
     cJSON_AddItemToObject(body, "commands", commands);
@@ -658,50 +662,6 @@ esp_err_t tuya_set_mode(uint8_t mode)
     free(body_str);
     cJSON_Delete(body);
 
-    return result;
-}
-
-esp_err_t tuya_set_light(bool on)
-{
-    cJSON *commands = cJSON_CreateArray();
-    cJSON *cmd = cJSON_CreateObject();
-    cJSON_AddStringToObject(cmd, "code", "light");
-    cJSON_AddBoolToObject(cmd, "value", on);
-    cJSON_AddItemToArray(commands, cmd);
-
-    cJSON *body = cJSON_CreateObject();
-    cJSON_AddItemToObject(body, "commands", commands);
-
-    char *body_str = cJSON_PrintUnformatted(body);
-    ESP_LOGI(TAG, "Setting light to: %s", on ? "ON" : "OFF");
-    ESP_LOGD(TAG, "Command body: %s", body_str);
-
-    esp_err_t result = tuya_send_device_command(body_str);
-
-    free(body_str);
-    cJSON_Delete(body);
-    return result;
-}
-
-esp_err_t tuya_set_beep(bool on)
-{
-    cJSON *commands = cJSON_CreateArray();
-    cJSON *cmd = cJSON_CreateObject();
-    cJSON_AddStringToObject(cmd, "code", "beep");
-    cJSON_AddBoolToObject(cmd, "value", on);
-    cJSON_AddItemToArray(commands, cmd);
-
-    cJSON *body = cJSON_CreateObject();
-    cJSON_AddItemToObject(body, "commands", commands);
-
-    char *body_str = cJSON_PrintUnformatted(body);
-    ESP_LOGI(TAG, "Setting beep to: %s", on ? "ON" : "OFF");
-    ESP_LOGD(TAG, "Command body: %s", body_str);
-
-    esp_err_t result = tuya_send_device_command(body_str);
-
-    free(body_str);
-    cJSON_Delete(body);
     return result;
 }
 

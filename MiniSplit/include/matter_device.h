@@ -65,27 +65,6 @@ void matter_update_cooling_setpoint(int16_t temp_c);
 void matter_update_system_mode(uint8_t mode);
 
 /**
- * @brief Update additional Tuya mode flags for bridge diagnostics/state
- * @param mode_auto True when auto mode is active
- * @param mode_eco True when eco mode is active
- * @param mode_dry True when dry mode is active
- * @param heat True when heat mode is active
- */
-void matter_update_mode_flags(bool mode_auto, bool mode_eco, bool mode_dry, bool heat);
-
-/**
- * @brief Update auxiliary Light state from Tuya status
- * @param on_off Light state
- */
-void matter_update_light(bool on_off);
-
-/**
- * @brief Update auxiliary Beep state from Tuya status
- * @param on_off Beep state
- */
-void matter_update_beep(bool on_off);
-
-/**
  * @brief Update the standalone Temperature Sensor endpoint value
  *
  * Exposed to SmartThings as a Temperature Measurement capability, usable as a
@@ -104,6 +83,68 @@ void matter_update_aux_temperature(int16_t temp_c);
  * @param humidity_centi_pct Relative humidity in percent ×100 (e.g., 5000 = 50%)
  */
 void matter_update_aux_humidity(uint16_t humidity_centi_pct);
+
+/**
+ * @brief Update compressor load state from the Tuya compressor_frequency DP
+ *
+ * Writes to two places:
+ * - Thermostat PICoolingDemand/PIHeatingDemand sub-attributes (spec-correct,
+ *   but SmartThings does not render them in its Thermostat UI).
+ * - A dedicated dimmable_light-style endpoint: OnOff reflects whether the
+ *   compressor is actually running (percent > 0), Level reflects load
+ *   0-100% scaled to Matter's 0-254 range. This is the one that actually
+ *   shows up in the SmartThings app.
+ *
+ * @param percent 0-100
+ */
+void matter_update_compressor_demand(uint8_t percent);
+
+/**
+ * @brief Update rolling 8h/24h average compressor load
+ *
+ * Written to two more dedicated LevelControl endpoints (0-254, same scaling
+ * as matter_update_compressor_demand), one per window. The custom SmartThings
+ * driver maps these onto its "Load Last 8h"/"Load Last 24h" components.
+ *
+ * @param avg8h_percent 0-100, average load over the last 8 hours
+ * @param avg24h_percent 0-100, average load over the last 24 hours
+ */
+void matter_update_compressor_demand_history(uint8_t avg8h_percent, uint8_t avg24h_percent);
+
+/**
+ * @brief Update compressor cycling stats
+ *
+ * A "cycle" is a complete round trip (off->on->off or on->off->on) -- a
+ * single state change alone does not count. Written as raw counts (not
+ * percentages) to two more dedicated LevelControl endpoints.
+ *
+ * @param cycles_moving_window Cycles completed in the trailing 60 minutes (true sliding window)
+ * @param cycles_max_24h Highest cycles-in-a-single-hour seen over the last 24 hours
+ */
+void matter_update_compressor_cycles(uint8_t cycles_moving_window, uint8_t cycles_max_24h);
+
+/**
+ * @brief Update how long the compressor has been in its current on/off state
+ *
+ * Written as a raw (unscaled) integer number of minutes to a dedicated
+ * TemperatureMeasurement-repurposed endpoint -- deliberately NOT the usual
+ * x100 Celsius encoding, since this isn't a temperature. The custom
+ * SmartThings driver reads it as-is.
+ *
+ * @param minutes Minutes since the compressor's on/off state last changed
+ */
+void matter_update_compressor_state_duration(uint16_t minutes);
+
+/**
+ * @brief Update outdoor ambient temperature from the Tuya ure DP
+ *
+ * Writes to both the Thermostat's OutdoorTemperature sub-attribute (not
+ * rendered by SmartThings) and a dedicated standalone temperature_sensor
+ * endpoint (which is).
+ *
+ * @param temp_c Outdoor ambient temperature in Celsius (×100)
+ */
+void matter_update_outdoor_temperature(int16_t temp_c);
 
 /**
  * @brief Check if SmartThings sent an OnOff command
@@ -136,30 +177,6 @@ int16_t matter_get_cooling_setpoint_command(void);
 uint8_t matter_get_system_mode_command(void);
 
 /**
- * @brief Check if SmartThings sent a Light OnOff command
- * @return true if command is pending, false otherwise
- */
-bool matter_get_light_command(void);
-
-/**
- * @brief Get current desired Light state
- * @return true when ON is desired, false when OFF is desired
- */
-bool matter_get_light_state(void);
-
-/**
- * @brief Check if SmartThings sent a Beep OnOff command
- * @return true if command is pending, false otherwise
- */
-bool matter_get_beep_command(void);
-
-/**
- * @brief Get current desired Beep state
- * @return true when ON is desired, false when OFF is desired
- */
-bool matter_get_beep_state(void);
-
-/**
  * @brief Clear the pending OnOff command flag
  * Call after processing the command to avoid re-processing
  */
@@ -184,16 +201,6 @@ void matter_clear_cooling_setpoint_command(void);
  * @brief Clear the pending mode command flag
  */
 void matter_clear_mode_command(void);
-
-/**
- * @brief Clear pending Light command flag
- */
-void matter_clear_light_command(void);
-
-/**
- * @brief Clear pending Beep command flag
- */
-void matter_clear_beep_command(void);
 
 /**
  * @brief Cleanup/deinit Matter device

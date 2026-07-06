@@ -17,15 +17,13 @@ typedef struct {
     int16_t temp_set;           // Target temperature (×100)
     int16_t temp_current;       // Current temperature (×100)
     int16_t temp_set_f;         // Target temperature Fahrenheit
-    bool mode_auto;
-    bool mode_eco;
-    bool mode_dry;
-    bool heat;
-    bool light;
-    bool beep;
+    uint8_t ac_mode;             // Tuya "mode" DP: 0=auto, 1=cool, 2=dry, 3=fan, 4=heat
+    bool heat;                   // Auxiliary electric heat enable (not the same as ac_mode==heat)
     bool health;
     bool cleaning;
     bool fresh_air_valve;
+    int16_t compressor_frequency; // Compressor running frequency (Hz x10); 0 = idle/off
+    int16_t outdoor_temp;         // Outdoor ambient temperature (×100), from "ure" DP
 } tuya_device_status_t;
 
 /**
@@ -60,24 +58,10 @@ esp_err_t tuya_set_temperature(int16_t temp_c);
 
 /**
  * @brief Set operating mode
- * @param mode Mode: 0=auto, 1=eco, 2=dry, 3=heat
+ * @param mode Tuya "mode" DP: 0=auto, 1=cool, 2=dry, 3=fan, 4=heat
  * @return ESP_OK on success
  */
 esp_err_t tuya_set_mode(uint8_t mode);
-
-/**
- * @brief Set front panel light state
- * @param on True to turn on, false to turn off
- * @return ESP_OK on success
- */
-esp_err_t tuya_set_light(bool on);
-
-/**
- * @brief Set beep feedback state
- * @param on True to enable, false to disable
- * @return ESP_OK on success
- */
-esp_err_t tuya_set_beep(bool on);
 
 /**
  * @brief Refresh access token (if expired)

@@ -1,0 +1,23 @@
+# Flash / partition table
+# The Matter + Tuya HTTP client + BME280 + esp_matter's bundled diagnostics
+# components build to ~1.8MB, which doesn't fit ESP-IDF's default single-app
+# partition table (1MB). Use this project's own partitions.csv (3MB factory
+# partition) on a 4MB flash chip instead.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# mbedTLS (required by the Matter stack)
+# Matter's crypto layer (CHIPCryptoPALmbedTLS.cpp) calls mbedtls_hkdf
+# directly; mbedTLS ships it disabled by default.
+CONFIG_MBEDTLS_HKDF_C=y
+
+# Matter clusters: exclude Closure Control/Dimension (Matter 1.5, unused by
+# this mini-split bridge). Their bundled connectedhomeip code fails to build
+# with missing operator== on GenericOverallCurrentState/TargetState in both
+# esp_matter 1.4.2 and 1.5.0 -- see espressif/esp-matter#1604. Excluding them
+# avoids the bug entirely, regardless of esp_matter version.
+CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n
+CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n

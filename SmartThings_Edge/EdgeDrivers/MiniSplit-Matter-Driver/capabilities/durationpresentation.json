@@ -1,0 +1,35 @@
+{
+    "dashboard": {
+        "states": [
+            {
+                "label": "{{minutes.value}}{{minutes.unit}}"
+            }
+        ],
+        "actions": [],
+        "basicPlus": []
+    },
+    "detailView": [
+        {
+            "label": "Time In State",
+            "displayType": "state",
+            "state": {
+                "label": "{{minutes.value}}{{minutes.unit}}"
+            }
+        }
+    ],
+    "automation": {
+        "conditions": [
+            {
+                "label": "Time In State",
+                "displayType": "numberField",
+                "numberField": {
+                    "value": "minutes.value",
+                    "unit": "minutes.unit"
+                }
+            }
+        ],
+        "actions": []
+    },
+    "id": "radioamber53161.duration",
+    "version": 1
+}

@@ -1,0 +1,14 @@
+matterManufacturer:
+  # Matches the MiniSplit ESP32 firmware's example/test vendor+product IDs
+  # (see MiniSplit/sdkconfig / esp_matter node config). Since these are the
+  # CSA test-vendor range (not DCL-certified), SmartThings' built-in
+  # MATTER_GENERIC fingerprinting can't find a manufacturer profile for this
+  # device and falls back to its closest generic template, which drops any
+  # endpoint it doesn't recognize (a second temperature sensor, and the
+  # compressor's OnOff/LevelControl endpoint). This fingerprint takes
+  # precedence over that fallback once installed.
+  - id: "MiniSplit/ESP32-Bridge"
+    deviceLabel: "Mini-Split AC Bridge"
+    vendorId: 0xFFF1
+    productId: 0x8000
+    deviceProfileName: minisplit

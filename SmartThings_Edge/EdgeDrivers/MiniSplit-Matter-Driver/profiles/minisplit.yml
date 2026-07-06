@@ -1,0 +1,83 @@
+name: minisplit
+components:
+- id: main
+  capabilities:
+  - id: switch
+    version: 1
+  - id: thermostatMode
+    version: 1
+  - id: thermostatHeatingSetpoint
+    version: 1
+  - id: thermostatCoolingSetpoint
+    version: 1
+  - id: temperatureMeasurement
+    version: 1
+  - id: refresh
+    version: 1
+  categories:
+  - name: Thermostat
+- id: indoorTemp
+  label: "Room Temp"
+  capabilities:
+  - id: temperatureMeasurement
+    version: 1
+  categories:
+  - name: Thermostat
+- id: humidity
+  label: "Room Humidity"
+  capabilities:
+  - id: relativeHumidityMeasurement
+    version: 1
+  categories:
+  - name: HumiditySensor
+- id: outdoorTemp
+  label: "Outside Temp"
+  capabilities:
+  - id: temperatureMeasurement
+    version: 1
+  categories:
+  - name: Thermostat
+- id: compressor
+  label: "Compressor Load"
+  capabilities:
+  - id: switch
+    version: 1
+  - id: radioamber53161.loadPercent
+    version: 1
+  categories:
+  - name: Switch
+- id: compressor8h
+  label: "Load Last 8h"
+  capabilities:
+  - id: radioamber53161.loadPercent
+    version: 1
+  categories:
+  - name: Switch
+- id: compressor24h
+  label: "Load Last 24h"
+  capabilities:
+  - id: radioamber53161.loadPercent
+    version: 1
+  categories:
+  - name: Switch
+- id: compressorCycles
+  label: "Cycles/hr (last 60min)"
+  capabilities:
+  - id: radioamber53161.cycleCount
+    version: 1
+  categories:
+  - name: Switch
+- id: compressorCyclesMax24h
+  label: "Max Cycles/hr (24h)"
+  capabilities:
+  - id: radioamber53161.cycleCount
+    version: 1
+  categories:
+  - name: Switch
+- id: compressorStateTime
+  label: "Time In State"
+  capabilities:
+  - id: radioamber53161.duration
+    version: 1
+  categories:
+  - name: Thermostat

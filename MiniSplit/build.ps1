@@ -33,9 +33,25 @@ if (-not (Test-Path "CMakeLists.txt")) {
 }
 
 if (-not (Get-Command idf.py -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: idf.py not found on PATH. Open the 'ESP-IDF 5.4 CMD' shortcut" -ForegroundColor Red
-    Write-Host "(or run export.ps1 from your ESP-IDF install) and try again." -ForegroundColor Red
-    Write-Host "See WINDOWS_TOOLCHAIN_SETUP.md if ESP-IDF isn't installed yet." -ForegroundColor Red
+    # EIM (Espressif Installation Manager) installs are common on Windows and don't
+    # put idf.py on PATH by default. Its Python venv lives under C:\Espressif, not
+    # the %USERPROFILE%\.espressif path that ESP-IDF's own export.ps1 expects, so
+    # sourcing export.ps1 directly fails with "Python virtual environment not found".
+    # Auto-activate the EIM profile script instead if we can find one.
+    $eimActivation = Get-ChildItem "C:\Espressif\tools" -Filter "Microsoft.v*.PowerShell_profile.ps1" -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | Select-Object -First 1
+    if ($eimActivation) {
+        Write-Host "idf.py not on PATH; activating $($eimActivation.Name)..." -ForegroundColor Yellow
+        . $eimActivation.FullName
+    }
+}
+
+if (-not (Get-Command idf.py -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: idf.py not found on PATH." -ForegroundColor Red
+    Write-Host "If ESP-IDF is installed via EIM, activate it first:" -ForegroundColor Red
+    Write-Host "  . C:\Espressif\tools\Microsoft.v5.4.1.PowerShell_profile.ps1" -ForegroundColor Red
+    Write-Host "Otherwise open the 'ESP-IDF 5.4 CMD' shortcut, or install ESP-IDF v5.4.1 via EIM:" -ForegroundColor Red
+    Write-Host "  winget install Espressif.EIM-CLI; eim install -i v5.4.1" -ForegroundColor Red
     exit 1
 }
 
