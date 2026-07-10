@@ -66,7 +66,39 @@ fi
 # which does not exist on this hardware (interface is named enp1s0 here).
 # Both the -e env var AND the --backbone-ifname flag are set below since
 # some image builds only honor one or the other reliably.
+#
+# NOTE on NAT64=1: without this, OTBR's own startup script (/app/script/_nat64,
+# nat64_start()) silently no-ops instead of starting NAT44/iptables MASQUERADE
+# for Thread-originated traffic -- no error, no log line, it just returns 0.
+# Result: Thread devices can join the mesh fine (radio/MLE layer works) but
+# can never reach any IPv4 internet host (NTP, cloud APIs, etc.) since there's
+# no translation path out. Confirmed on real hardware: a Matter/Thread device
+# joined the mesh successfully, then crashed on its first NTP time-sync
+# attempt because this was never enabled since this script's original
+# deployment -- the MASQUERADE rule existed (from otbr-firewall) but matched
+# 0 packets, and no nat44 process was ever running.
+#
+# NOTE on INFRA_IF_NAME: this is a SEPARATE env var from BACKBONE_INTERFACE
+# and is easy to miss. otbr-agent's own border-routing (RA/OMR prefix
+# advertising) reads BACKBONE_INTERFACE (passed via --backbone-ifname below),
+# but the _nat64/_nat44 shell script that builds the NAT44 iptables rules
+# reads INFRA_IF_NAME instead (defaulting to "eth0" if unset -- baked into
+# the image). Without this set to the real interface, the FORWARD-chain
+# ACCEPT rules get bound to the literal, non-existent interface "eth0", so
+# NAT64-translated packets are silently dropped by the default FORWARD
+# policy -- MASQUERADE and the userspace NAT64 translator both work fine
+# (a mapping gets created), but no reply ever comes back. Confirmed on real
+# hardware: a Matter/Thread device's DNS query for pool.ntp.org (via the
+# NAT64-synthesized 8.8.8.8 address) went unanswered for 60+ seconds even
+# though NAT64=1 was set correctly and OTBR logged a translator mapping.
 echo "==> Starting OTBR container"
+# NOTE on the /var/lib/thread mount: this is where otbr-agent ACTUALLY
+# persists the Thread dataset/keys -- NOT under /data. The /data mount below
+# is otbr-agent's working directory but isn't where its dataset storage
+# lives. Confirmed the hard way on real hardware: recreating this container
+# without the /var/lib/thread mount silently lost the entire Thread network
+# (dataset, keys, everything) even though /data looked correctly persisted.
+mkdir -p "${APPDATA_ROOT}/thread"
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
@@ -74,13 +106,41 @@ docker run -d \
   --privileged \
   -v "${SERIAL_DEVICE}:/dev/ttyUSB0" \
   -v "${APPDATA_ROOT}:/data" \
+  -v "${APPDATA_ROOT}/thread:/var/lib/thread" \
   -e BACKBONE_INTERFACE="${BACKBONE_INTERFACE}" \
+  -e INFRA_IF_NAME="${BACKBONE_INTERFACE}" \
+  -e NAT64=1 \
   "${IMAGE}" \
   --radio-url spinel+hdlc+uart:///dev/ttyUSB0 \
   --backbone-ifname "${BACKBONE_INTERFACE}"
 
 echo "==> Waiting for OTBR to initialize..."
 sleep 6
+
+# ---- NAT64: handled by setup-nat64-jool.sh, not OTBR's own translator -----
+# otbr-agent's built-in userspace NAT64 translator (Nat64Translator) has an
+# unresolved bug in this deployment: translated packets are correctly parsed
+# and marked in netfilter's mangle PREROUTING chain (confirmed via matching
+# packet counters), then vanish with zero trace anywhere else in the IP
+# stack -- no forwarding-counter increase, no drop counter, no martian-source
+# log (even with log_martians enabled), no conntrack entry. Ruled out on real
+# hardware: rp_filter, accept_local, a "local" route for the translator's
+# internal 192.168.255.0/24 pool, and policy routing via a dummy interface --
+# none of it got translated packets to actually leave the host, even though
+# `ot-ctl nat64 counters` reported them as successfully translated with zero
+# errors. A synthetic packet sent via a normal socket (bypassing otbr-agent's
+# tun-device injection path) with the exact same source address worked
+# perfectly, proving the bug is specific to otbr-agent's translator/tun
+# interaction, not the surrounding routing/NAT config.
+#
+# setup-nat64-jool.sh replaces it with Jool, a standard kernel-level NAT64
+# module that translates via netfilter hooks instead of a tun device --
+# confirmed working end-to-end on real hardware (DNS + NTP + HTTPS to
+# Tuya's cloud API all succeeded). It disables OTBR's own translator via
+# `ot-ctl nat64 disable` and manually re-advertises the identical prefix, so
+# already-commissioned devices relying on it via DNS64 don't need to change.
+echo "==> Configuring Jool as the NAT64 gateway (replaces OTBR's own translator)"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-nat64-jool.sh"
 
 echo ""
 echo "==> Container status:"
