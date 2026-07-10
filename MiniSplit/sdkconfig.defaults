@@ -68,3 +68,26 @@ CONFIG_CHIPOBLE_ENABLE_ADVERTISING_AUTOSTART=1
 # hardware (sdkconfig showed "# CONFIG_OPENTHREAD_DNS64_CLIENT is not set")
 # while chasing a repeated SNTP-timeout crash after Thread join succeeded.
 CONFIG_OPENTHREAD_DNS64_CLIENT=y
+
+# Operational service discovery: use OpenThread's SRP client (registers with
+# OTBR, which bridges to real LAN mDNS) instead of CHIP's own "minimal mDNS"
+# advertiser, which defaults to on (CONFIG_USE_MINIMAL_MDNS=y) and sends raw
+# mDNS multicast directly over the Thread mesh interface -- traffic that
+# never crosses the border router, so a commissioner on the LAN can never
+# see it. CHIP_DEVICE_CONFIG_ENABLE_THREAD_SRP_CLIENT (which actually gates
+# the SRP-based advertiser in connectedhomeip's ESP32 Dnssd backend) maps
+# 1:1 to this Kconfig symbol and is NOT implied by CONFIG_OPENTHREAD_ENABLED
+# -- it's a separate, easy-to-miss toggle. Confirmed on real hardware: with
+# only CONFIG_USE_MINIMAL_MDNS=y (the default) and no SRP client, the device
+# joined Thread and worked completely normally (DNS/NTP/HTTPS to Tuya's
+# cloud API all fine) since none of that depends on being *discoverable* --
+# but OTBR's SRP server never received a single registration, and a Matter
+# commissioner's final "operational discovery" step timed out on every
+# attempt (3 retries, ~2.5 minutes) even though the device was fully up the
+# entire time -- the commissioning UI reported failure while the device
+# quietly kept working. If USE_MINIMAL_MDNS is disabled without also
+# enabling SRP client, every DNS-SD call in this build compiles to a no-op
+# (neither branch of ESP32/DnssdImpl.cpp's #if is taken for a Thread-only,
+# non-WiFi build) -- both settings below must change together.
+CONFIG_OPENTHREAD_SRP_CLIENT=y
+# CONFIG_USE_MINIMAL_MDNS is not set
