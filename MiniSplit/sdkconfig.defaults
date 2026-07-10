@@ -32,6 +32,17 @@ CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n
 CONFIG_OPENTHREAD_ENABLED=y
 CONFIG_ENABLE_MATTER_OVER_THREAD=y
 # CONFIG_ENABLE_WIFI_STATION is not set
+
+# BLE advertising must be told to autostart on power-up -- it defaults to 0
+# (off) in connectedhomeip's Kconfig ("BLE Options" -> "Enable CHIPoBLE
+# advertising start automatically after device power-up"). Without this,
+# esp_matter::start() opens the commissioning window (QR code/setup code get
+# printed, mDNS advertises over Thread) but never actually starts the BLE
+# radio advertising, so the device is invisible to a BLE scan even though
+# everything else looks like it's running fine. Found by direct hardware
+# testing -- the device printed onboarding codes but never showed up in a
+# BLE scan from the commissioning host.
+CONFIG_CHIPOBLE_ENABLE_ADVERTISING_AUTOSTART=1
 #
 # NOTE: still need to confirm the OpenThread device role in
 # `idf.py menuconfig` -> Component config -> OpenThread. This is a
