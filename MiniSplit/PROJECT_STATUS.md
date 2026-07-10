@@ -250,12 +250,13 @@ idf.py flash -p /dev/ttyUSB0 monitor
 ### Phase 2 Success Criteria ✅
 - ✅ Matter device initializes
 - ✅ Code compiles without errors
-- ⏳ Firmware flashes successfully
-- ⏳ BLE advertisement starts
-- ⏳ SmartThings scans QR code
-- ⏳ Device commissioned
-- ⏳ Device appears in SmartThings
-- ⏳ Power control responds
+- ✅ Firmware flashes successfully
+- ✅ BLE advertisement starts
+- ✅ Home Assistant (Matter Server) scans QR code — commissioning now goes through Home
+  Assistant/OTBR over Thread, not SmartThings; see [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md)
+- ✅ Device commissioned — confirmed on real hardware
+- ✅ Device appears in Home Assistant
+- ✅ Power control responds
 
 ## Recommended Reading Order
 
@@ -286,14 +287,12 @@ For questions or issues:
 - ⏳ Phase 4: Ready to start (advanced features)
 
 **Action Items:**
-1. Install ESP-Matter SDK (if not done)
-2. Configure & build firmware (now Thread-enabled — see `sdkconfig.defaults`)
-3. Flash to ESP32
-4. Commission via Home Assistant (Matter Server + OTBR) — see
-   [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md)
-5. Test bidirectional control
-6. Proceed to Phase 4 (optional advanced features)
+1. ✅ Commissioned via Home Assistant (Matter Server + OTBR over Thread) — confirmed working on
+   real hardware, see [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md)
+2. Test bidirectional control over an extended period
+3. Proceed to Phase 4 (optional advanced features)
 
-**Estimated Completion:** 0.5-1 more session (2-4 hours for testing + Phase 4)
+**Estimated Completion:** Phases 0-3 complete and verified on real hardware; Phase 4 (advanced
+features) not started.
 
 See [ROADMAP.md](ROADMAP.md) for detailed next steps.

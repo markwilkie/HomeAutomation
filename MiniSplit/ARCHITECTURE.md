@@ -36,6 +36,79 @@ Assistant, over Thread. (Originally built against a SmartThings/WiFi target — 
 └─────────────────┘
 ```
 
+## NAT64: Jool, Not OTBR's Built-In Translator
+
+The device is Thread-only (no WiFi fallback), so every outbound call it makes — DNS resolution,
+NTP time sync, HTTPS to Tuya's cloud API — depends on NAT64 translation at the border router to
+reach the IPv4 internet. `openthread/otbr`'s image ships its own built-in userspace NAT64
+translator, but it has an unresolved bug in this deployment: translated packets are correctly
+parsed and marked in netfilter's mangle PREROUTING chain, then vanish with zero trace anywhere
+else in the IP stack — no forwarding-counter increase, no drop counter, no martian-source log, no
+conntrack entry — while its own `ot-ctl nat64 counters` still reports them as successfully
+translated with zero errors. `rp_filter`, `accept_local`, dedicated local/policy routes for the
+translator's internal pool — none of it got translated packets to actually leave the host. A
+synthetic packet sent via a normal socket with the exact same source address worked perfectly,
+proving the bug is specific to otbr-agent's translator/tun-device interaction rather than the
+surrounding routing/NAT config.
+
+**NAT64 is instead provided by [Jool](https://www.jool.mx/en/), a standard kernel-level NAT64
+module that translates via netfilter hooks instead of a tun device.** `Wyse5070DebSetup/setup-nat64-jool.sh`:
+1. Installs and loads the Jool kernel module
+2. Disables OTBR's own translator (`ot-ctl nat64 disable` — this is an all-or-nothing toggle
+   covering both the prefix manager and the translator, no way to keep just the former)
+3. Manually re-advertises the *identical* NAT64 prefix into Thread Network Data, so devices
+   relying on it via DNS64 don't need to change
+4. Configures a Jool NAT64 instance (pool6 = the same prefix, pool4 = the host's own real IP, so
+   Jool's own NAPT produces a directly routable source address with no separate MASQUERADE rule
+   needed)
+5. Installs a systemd service (`nat64-jool.service`) so all of this reapplies after every reboot
+
+Check `ot-ctl nat64 state` on the OTBR container any time — it should read `Disabled` for both
+`PrefixManager` and `Translator`. If it ever shows `Active`, something (a container recreate, an
+image update) re-enabled OTBR's own broken translator; re-run `setup-nat64-jool.sh`.
+
+## SRP Client, Not Minimal mDNS
+
+Similarly, the firmware itself needs the right service-discovery mechanism to be *reachable* by a
+commissioner once it's on Thread. connectedhomeip defaults to `CONFIG_USE_MINIMAL_MDNS=y`, which
+advertises the device's operational `_matter._tcp` service via raw mDNS multicast sent directly
+over the Thread mesh interface — that traffic never crosses the border router to reach a LAN-side
+commissioner. The fix (`sdkconfig.defaults`) is `CONFIG_OPENTHREAD_SRP_CLIENT=y` with
+`CONFIG_USE_MINIMAL_MDNS` disabled, which routes service registration through OpenThread's SRP
+client to OTBR, which then bridges it to real LAN mDNS. See
+[COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md#device-joins-thread-and-works-fine-but-commissioning-never-completes-operational-discovery-timeout)
+for the full symptom/fix writeup — this is the kind of setting that's easy to leave at its
+default since the device works completely normally (DNS/NTP/Tuya) without it; only commissioner
+discoverability breaks.
+
+## Home Assistant Presentation
+
+The device's identity strings and secondary telemetry endpoints were shaped by SmartThings'
+now-retired custom Edge driver, which could relabel/reinterpret generic Matter capabilities in its
+own UI. Home Assistant's Matter integration has no equivalent customization layer — it renders
+standard Matter device types literally, which surfaced two classes of presentation problems:
+
+- **Node/vendor/product identity** (`src/matter_device.cpp`): esp_matter's root node was created
+  with an empty `NodeLabel` (Home Assistant fell back to a generic "Node \<id\>" device name), and
+  `VendorName`/`ProductName` were never set, so the Basic Information cluster served
+  connectedhomeip's compiled-in example-app defaults — literally `"TEST_VENDOR"`/`"TEST_PRODUCT"`.
+  Fixed by setting `node_cfg.root_node.basic_information.node_label` at node creation and pushing
+  real `VendorName`/`ProductName` values via `attribute::update()` once Matter starts. (`VendorId`/
+  `ProductId` are left at `0xFFF1`/`0x8000` — the CSA's reserved test range, correct for an
+  uncertified DIY device — this fix is only about the human-readable strings.)
+- **Compressor load/cycle/duration endpoints**: these repurpose `dimmable_light` (OnOff+Level) and
+  `temperature_sensor` endpoints to carry non-light, non-temperature data (see
+  `matter_update_compressor_demand`/`_compressor_demand_history`/`_compressor_cycles`/
+  `_compressor_state_duration` in `src/matter_device.cpp`) — a trick that worked because
+  SmartThings' custom driver knew to reinterpret them. In Home Assistant they show up as literal
+  (non-functional) `light.*` toggles and a `sensor.*` "Temperature" reading a fraction of a degree
+  for what's actually minutes. The spec-correct fix — a `FixedLabel` cluster naming each endpoint —
+  requires hand-encoding esp_matter's raw Ember list-attribute byte format
+  (`attribute::create_label_list()`/`esp_matter_array()`), which isn't something to write blind
+  without a build+flash+HA test loop; not yet done. Until addressed, either rename these entities
+  manually in Home Assistant (Settings → Devices & Services → Entities — persists locally,
+  zero firmware risk) or treat them as not yet HA-presentable.
+
 ## Device Capabilities (from Tuya API)
 
 ### Status Properties
