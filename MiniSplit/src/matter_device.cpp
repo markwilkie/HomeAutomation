@@ -30,24 +30,43 @@ static EventBits_t g_network_connected_bit = 0;
 
 static void app_chip_event_handler(const chip::DeviceLayer::ChipDeviceEvent *event, intptr_t /*arg*/)
 {
-    if (event->Type != chip::DeviceLayer::DeviceEventType::kInternetConnectivityChange) {
-        return;
-    }
     if (!g_network_event_group) {
         return;
     }
 
-    bool established = (event->InternetConnectivityChange.IPv4 == chip::DeviceLayer::kConnectivity_Established) ||
-                        (event->InternetConnectivityChange.IPv6 == chip::DeviceLayer::kConnectivity_Established);
-    bool lost = (event->InternetConnectivityChange.IPv4 == chip::DeviceLayer::kConnectivity_Lost) ||
-                (event->InternetConnectivityChange.IPv6 == chip::DeviceLayer::kConnectivity_Lost);
+    // kInternetConnectivityChange (actual WAN reachability) is the semantically
+    // "correct" signal, but on real hardware it either fires much later than
+    // Thread mesh attachment or may not fire reliably at all -- the SDK's own
+    // header admits this event "does not actually validate that the actual
+    // internet is reachable" either, so it isn't even a stronger guarantee.
+    // kThreadConnectivityChange (Thread interface up) fires immediately once
+    // the device attaches to the mesh, which is what's actually needed to
+    // start talking to Tuya's cloud via OTBR's border routing. Treat either as
+    // sufficient.
+    if (event->Type == chip::DeviceLayer::DeviceEventType::kThreadConnectivityChange) {
+        if (event->ThreadConnectivityChange.Result == chip::DeviceLayer::kConnectivity_Established) {
+            ESP_LOGI(TAG, "Thread connectivity established");
+            xEventGroupSetBits(g_network_event_group, g_network_connected_bit);
+        } else if (event->ThreadConnectivityChange.Result == chip::DeviceLayer::kConnectivity_Lost) {
+            ESP_LOGW(TAG, "Thread connectivity lost");
+            xEventGroupClearBits(g_network_event_group, g_network_connected_bit);
+        }
+        return;
+    }
 
-    if (established) {
-        ESP_LOGI(TAG, "Network connectivity established");
-        xEventGroupSetBits(g_network_event_group, g_network_connected_bit);
-    } else if (lost) {
-        ESP_LOGW(TAG, "Network connectivity lost");
-        xEventGroupClearBits(g_network_event_group, g_network_connected_bit);
+    if (event->Type == chip::DeviceLayer::DeviceEventType::kInternetConnectivityChange) {
+        bool established = (event->InternetConnectivityChange.IPv4 == chip::DeviceLayer::kConnectivity_Established) ||
+                            (event->InternetConnectivityChange.IPv6 == chip::DeviceLayer::kConnectivity_Established);
+        bool lost = (event->InternetConnectivityChange.IPv4 == chip::DeviceLayer::kConnectivity_Lost) ||
+                    (event->InternetConnectivityChange.IPv6 == chip::DeviceLayer::kConnectivity_Lost);
+
+        if (established) {
+            ESP_LOGI(TAG, "Internet connectivity established");
+            xEventGroupSetBits(g_network_event_group, g_network_connected_bit);
+        } else if (lost) {
+            ESP_LOGW(TAG, "Internet connectivity lost");
+            xEventGroupClearBits(g_network_event_group, g_network_connected_bit);
+        }
     }
 }
 
