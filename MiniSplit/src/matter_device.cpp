@@ -16,6 +16,11 @@
 #include <inttypes.h>
 #include <limits.h>
 
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+#include "esp_openthread_types.h"
+#include <platform/ESP32/OpenthreadLauncher.h>
+#endif
+
 using namespace esp_matter;
 using namespace chip::app::Clusters;
 
@@ -461,6 +466,20 @@ extern "C" esp_err_t matter_start_commissioning(void)
     ESP_LOGI(TAG, "Starting Matter commissioning...");
 
     chip::DeviceLayer::PlatformMgr().AddEventHandler(app_chip_event_handler, 0);
+
+#if CHIP_DEVICE_CONFIG_ENABLE_THREAD
+    // esp_matter::start() initializes the Thread stack internally (ThreadStackMgr().InitThreadStack()),
+    // but that call asserts on a platform config that must be supplied by the app beforehand -
+    // esp_matter has no default of its own. ESP32-C6 has a native 802.15.4 radio, so no RCP/UART
+    // link is needed; this device also has no separate CLI host, hence HOST_CONNECTION_MODE_NONE.
+    esp_openthread_platform_config_t ot_config = {};
+    ot_config.radio_config.radio_mode = RADIO_MODE_NATIVE;
+    ot_config.host_config.host_connection_mode = HOST_CONNECTION_MODE_NONE;
+    ot_config.port_config.storage_partition_name = "nvs";
+    ot_config.port_config.netif_queue_size = 10;
+    ot_config.port_config.task_queue_size = 10;
+    set_openthread_platform_config(&ot_config);
+#endif
 
     esp_err_t err = esp_matter::start(nullptr);
     if (err != ESP_OK) {
