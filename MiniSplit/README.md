@@ -4,10 +4,8 @@ A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to Home 
 
 > This device previously commissioned to a SmartThings hub, which required a custom Edge Driver
 > to avoid losing 8 of its 10 endpoints (see [Legacy: SmartThings](#legacy-smartthings) below).
-> Home Assistant's Matter Server doesn't do CSA-certified fingerprint matching the way
-> SmartThings does, so it should expose all 10 endpoints natively with no custom driver needed —
-> **flag this as worth double-checking on first commission**, since it hasn't been verified here
-> yet.
+> **Confirmed on real hardware:** Home Assistant's Matter Server doesn't need the SmartThings-style
+> custom driver workaround — the device commissions and exposes its endpoints natively.
 
 ## Quick Start
 
@@ -19,11 +17,17 @@ A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to Home 
 - **ESP-IDF v5.4.1** — do **NOT** use 6.x (it removed the bundled `json` component)
 - Tuya mini-split AC unit with IoT module
 - Home Assistant (Container install) with the `python-matter-server` container running —
-  see `../Wyse5070DebSetup/setup-matter-server.sh`
+  see `../Wyse5070DebSetup/setup-matter-server.sh`, and BlueZ running on that host for BLE
+  commissioning — see `../Wyse5070DebSetup/setup-bluetooth.sh`
 - An OpenThread Border Router (OTBR) on the same network — see
   `../Wyse5070DebSetup/setup-mg24.sh`. This device joins the Matter fabric over Thread, not WiFi;
-  OTBR is what bridges the Thread mesh to your LAN/internet.
+  OTBR is what bridges the Thread mesh to your LAN/internet. NAT64 (needed for the device to reach
+  the IPv4 internet — DNS, NTP, Tuya's API) is provided by Jool, not OTBR's own built-in
+  translator — see [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator)
 - A short component-cache path on Windows (`$env:IDF_COMPONENT_CACHE_PATH = "C:\icc"`)
+
+> **Full commissioning walkthrough, prerequisites checklist, and troubleshooting:**
+> [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md)
 
 > ESP-Matter (esp_matter 1.5.0) is pulled automatically by the IDF Component Manager —
 > no manual `git clone` required.
@@ -279,13 +283,20 @@ for the full endpoint-to-component mapping.
 - Verify menuconfig options enabled
 
 ### Commissioning Issues
-- Check serial output for setup code
-- Verify the `python-matter-server` container is running and reachable from HA
-  (`ws://localhost:5580/ws`) — see `../Wyse5070DebSetup/setup-matter-server.sh`
-- Verify OTBR is up and has a Thread network formed (its web UI shows network diagnostics)
-- Ensure BLE is enabled on the device and on whatever host is running `python-matter-server`
-  (BLE is required to hand over the Thread dataset during commissioning)
-- Restart the Matter integration in HA if scan fails
+See [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md#troubleshooting) for the full, verified
+troubleshooting flow — in particular, three non-obvious real-hardware issues worth knowing about
+before you start digging:
+- The commissioning UI can report "failed" even when the device actually finished successfully,
+  if anything upstream was slow enough to blow past Matter's `ArmFailSafe` timeout — see
+  [that section](COMMISSIONING_GUIDE.md#home-assistant--matter-server-reports-commissioning-failed-but-the-device-is-actually-working).
+- A device can join Thread and work completely normally (DNS/NTP/Tuya) while still being
+  undiscoverable to the commissioner's final "operational discovery" step, if
+  `CONFIG_OPENTHREAD_SRP_CLIENT` isn't enabled — see
+  [that section](COMMISSIONING_GUIDE.md#device-joins-thread-and-works-fine-but-commissioning-never-completes-operational-discovery-timeout).
+- `python-matter-server` needs its Thread credentials re-pushed after every restart/reboot before
+  it can commission *new* Thread devices — automated via
+  `../Wyse5070DebSetup/setup-thread-credentials-sync.sh`, see
+  [that section](COMMISSIONING_GUIDE.md#cant-commission-a-new-device-even-though-an-existing-one-still-works).
 
 ### Device Not Responding
 - Verify Thread network attachment (check serial logs; confirm the device shows up in OTBR's
@@ -293,8 +304,10 @@ for the full endpoint-to-component mapping.
 - Check Tuya credentials are correct
 - Ensure device is online in Tuya app
 - Review API response in logs (enable debug)
-- If Tuya calls fail specifically (but the device is on the Thread mesh), suspect OTBR's border
-  routing to the internet rather than the mesh itself
+- If Tuya calls fail specifically (but the device is on the Thread mesh), suspect NAT64 (Jool) —
+  see [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator) — rather than
+  the mesh itself; `docker exec otbr sh -c "ot-ctl nat64 state"` should show `Disabled` for both
+  (Jool handles translation externally, not OTBR's own built-in translator)
 
 ## References
 

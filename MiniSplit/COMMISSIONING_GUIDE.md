@@ -11,16 +11,33 @@ This guide walks through commissioning the MiniSplit Matter Bridge to Home Assis
 
 Before attempting commissioning:
 
-- [ ] ESP32-C6 with firmware flashed (Thread-enabled build — see `sdkconfig.defaults`)
+- [ ] ESP32-C6 with firmware flashed (Thread-enabled build — see `sdkconfig.defaults`). Verify
+      `CONFIG_OPENTHREAD_SRP_CLIENT=y` and `# CONFIG_USE_MINIMAL_MDNS is not set` actually made it
+      into the built `sdkconfig` (not just `sdkconfig.defaults`) — see
+      [Device Joins Thread But Commissioning Never Completes](#device-joins-thread-but-commissioning-never-completes-operational-discovery-timeout)
+      below if you skip this and hit that symptom.
 - [ ] Device powered on and running
 - [ ] OpenThread Border Router (OTBR) running and has a Thread network formed —
       see `../Wyse5070DebSetup/setup-mg24.sh`; check its web UI for network diagnostics
+- [ ] Jool configured as the NAT64 gateway — `../Wyse5070DebSetup/setup-mg24.sh` calls
+      `setup-nat64-jool.sh` automatically, but if you're troubleshooting, confirm with
+      `docker exec otbr sh -c "ot-ctl nat64 state"` (should show `Disabled` for both — OTBR's own
+      translator is deliberately turned off in favor of Jool, see
+      [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
+- [ ] BlueZ running on whatever host runs `python-matter-server` — see
+      `../Wyse5070DebSetup/setup-bluetooth.sh`. Needed to hand the Thread dataset to the device
+      during BLE commissioning; `python-matter-server`'s own websocket server-info message should
+      show `"bluetooth_enabled": true`
+- [ ] `python-matter-server` has the Thread network's credentials loaded — check its websocket
+      server-info message for `"thread_credentials_set": true`. **This resets to `false` on every
+      `python-matter-server` restart** (including a host reboot) and silently blocks Thread
+      commissioning until re-pushed — see `../Wyse5070DebSetup/setup-thread-credentials-sync.sh`,
+      which does this automatically via a systemd service, but verify it's actually `enabled`
+      (`systemctl is-enabled thread-credentials-sync.service`) if you're setting this up fresh.
 - [ ] Home Assistant running (Container install) with the `python-matter-server` container up —
       see `../Wyse5070DebSetup/setup-matter-server.sh`
 - [ ] Matter integration added in Home Assistant (Settings → Devices & Services → Add
       Integration → Matter), pointed at `ws://localhost:5580/ws`
-- [ ] BLE available on whatever host runs `python-matter-server` (needed to hand the Thread
-      dataset to the device during commissioning)
 
 ## Serial Output Verification
 
@@ -125,15 +142,129 @@ I (xxx) sync_task: Tuya command: Power ON
 
 ## Troubleshooting
 
-### Device Not Appearing / Commissioning Hangs
+The three issues below were all hit and root-caused on real hardware during this project's
+WiFi→Thread migration, roughly in the order you're likely to hit them. Check them in order before
+digging elsewhere — each has a specific, verifiable signature.
 
-**Symptom:** HA's Matter add-device flow doesn't find the device, or times out
+### Home Assistant / matter-server Reports "Commissioning Failed" But the Device Is Actually Working
+
+**Symptom:** The commissioning UI (HA or matter-server's own web UI) shows a failure, but the
+device's serial log shows it completed `AddNOC`, joined Thread, and is happily polling Tuya's API
+— it just took a while to get there.
+
+**Cause:** Matter's `ArmFailSafe` timer caps how long the commissioner will wait for the device to
+prove it's operational before giving up (the device requests progressively longer windows on
+retry — 60s, then 94s, then 120s in practice). If anything upstream of the device is slow — most
+notably a broken/slow NAT64 gateway making DNS/NTP take minutes instead of milliseconds (see the
+next section) — the whole commissioning flow can blow past that window. The device doesn't "undo"
+a successful `AddNOC` just because the commissioner stopped waiting, so it finishes on its own
+after the UI has already reported failure.
+
+**Solutions:**
+1. Check matter-server's logs (`docker logs matter-server`) for the actual commissioning
+   transcript rather than trusting the UI's summary verdict alone.
+2. If the device's own serial log shows `Time synchronized` within a few seconds of Thread
+   attach (not tens of seconds), NAT64 is healthy and this isn't the cause — look at the next
+   section instead.
+3. If the device did complete commissioning despite the UI saying otherwise, a clean recommission
+   (remove the device, retry) is worth doing once NAT64 is confirmed fast, mainly to avoid
+   orphaned fabric entries — but the device is already functional either way.
+
+### Device Joins Thread and Works Fine, But Commissioning Never Completes ("Operational Discovery" Timeout)
+
+**Symptom:** The device joins Thread, resolves DNS, syncs NTP, and talks to Tuya's API
+successfully — it's fully functional — but the commissioner's UI hangs or times out on the final
+step, and matter-server's logs show repeated `Timeout waiting for mDNS resolution` /
+`operational discovery failed... Timeout` over several minutes before giving up. Checking
+`docker exec otbr sh -c "ot-ctl srp server host"` on the OTBR host shows **nothing registered**,
+even while the device is actively attached to the mesh.
+
+**Cause:** The firmware's `sdkconfig` had `CONFIG_USE_MINIMAL_MDNS=y` (the connectedhomeip
+default) — this makes the device advertise its Matter service via raw mDNS multicast sent
+directly over the Thread mesh interface, which never crosses the border router to reach a LAN-side
+commissioner. `CONFIG_OPENTHREAD_SRP_CLIENT` (which registers the service with OTBR, which *does*
+bridge to real LAN mDNS) was never enabled — it is **not** implied by `CONFIG_OPENTHREAD_ENABLED`,
+it's a separate, easy-to-miss toggle. With neither path correctly wired for a Thread-only build,
+every DNS-SD call in the firmware silently compiled to a no-op. This is fixed in
+`sdkconfig.defaults` (`CONFIG_OPENTHREAD_SRP_CLIENT=y` / `# CONFIG_USE_MINIMAL_MDNS is not set`),
+but **requires `idf.py fullclean`** to actually take effect — see the note below.
+
+**Solutions:**
+1. Confirm the built `sdkconfig` (not just `sdkconfig.defaults`) actually has
+   `CONFIG_OPENTHREAD_SRP_CLIENT=y` and `# CONFIG_USE_MINIMAL_MDNS is not set`. Since
+   `USE_MINIMAL_MDNS` defaults to `y` at the Kconfig level, your local `sdkconfig` almost
+   certainly already has it explicitly written as `y` from a prior build — and per ESP-IDF's
+   merge rules, `sdkconfig.defaults` only fills in values that *aren't already set*, so an
+   incremental build won't pick up this change. Run `idf.py fullclean` before rebuilding.
+2. After a fresh boot with the fix in place, watch serial output for `SrpClient` state
+   transitions right after Thread attach, and confirm
+   `docker exec otbr sh -c "ot-ctl srp server host"` shows the device's host registration within
+   a few seconds — not just `Done` with nothing listed.
+3. If it's still empty, check `docker exec otbr sh -c "ot-ctl srp server state"` is `running`, and
+   that the device is actually attached (`docker exec otbr sh -c "ot-ctl child table"` — devices
+   attach as children before optionally becoming routers).
+
+### Can't Commission a *New* Device, Even Though an Existing One Still Works
+
+**Symptom:** An already-commissioned device keeps working fine, but commissioning a different (or
+newly-flashed) Thread device fails immediately, often without the device even progressing past
+BLE.
+
+**Cause:** `python-matter-server`'s own knowledge of the Thread network's credentials
+(`thread_credentials_set` in its websocket server-info message) lives only in memory and resets
+to `false` on every container restart — including after a host reboot. This doesn't affect
+already-commissioned devices (Thread network operation is entirely between the device and OTBR,
+independent of matter-server), but it silently blocks commissioning *new* Thread devices until
+the credentials are re-pushed.
+
+**Solutions:**
+1. Check matter-server's websocket server-info message (or `docker logs matter-server`) for
+   `thread_credentials_set`. If `false`, run `../Wyse5070DebSetup/setup-thread-credentials-sync.sh`
+   to push OTBR's active dataset into matter-server.
+2. Confirm the `thread-credentials-sync.service` systemd unit is enabled
+   (`systemctl is-enabled thread-credentials-sync.service`) so this reapplies automatically after
+   every reboot — if it's not, re-run the script above once to install it.
+
+### Phone Shows an Unfamiliar Thread Network During Commissioning ("Checking connectivity to Thread network ST-...")
+
+**Symptom:** Scanning the QR code with a phone (rather than commissioning directly through
+matter-server's own web UI) shows a Thread network selection/connectivity-check screen naming a
+network that was never set up here — e.g. an `ST-xxxxxxxxxx`-style name — even though Home
+Assistant's own Thread storage (`.storage/thread.datasets`) has no such entry and OTBR was never
+configured with it.
+
+**Cause (best understanding, not fully proven):** Android/Google Play Services maintains its
+**own system-level Thread credential store**, shared across every app signed into the same Google
+account on that phone — separate from whatever app is doing the commissioning. If any other app
+on the device (a SmartThings app, a Google Home app, etc.) has ever shared Thread credentials for
+a different network into that system store, the phone's own commissioning UI can surface that
+network as an option or connectivity target, entirely independent of what Home Assistant/OTBR
+knows about. This was never conclusively traced to a specific source app, and became moot once
+commissioning proceeded directly through matter-server's own web UI instead of a phone — which
+bypasses the phone's system Thread store entirely.
+
+**Solutions:**
+1. **Easiest:** skip the phone. Commission directly through matter-server's own web UI (or
+   whatever the HA Matter integration exposes) using the manual setup code instead of a QR scan —
+   this sidesteps the phone's system Thread store completely and is what actually worked here.
+2. If you need to use a phone, try clearing Google Play Services' cache/data, or removing/
+   forgetting the unfamiliar network from the phone's own Thread network settings (varies by
+   Android version — look for a system-level "Thread networks" or "Nearby devices" settings
+   page, not anything inside the commissioning app itself).
+3. Don't spend time searching Home Assistant or OTBR configuration for the unfamiliar network
+   name — if it's not in `.storage/thread.datasets` or `ot-ctl dataset active`, it isn't coming
+   from this stack.
+
+### Device Not Appearing / Commissioning Hangs (Generic)
+
+**Symptom:** HA's Matter add-device flow doesn't find the device at all, or times out immediately
+(distinct from the operational-discovery timeout above, which happens *after* BLE/fabric steps
+succeed)
 
 **Solutions:**
 1. Verify serial output shows commissioning started and BLE advertising
 2. Confirm `python-matter-server` is running and HA's Matter integration shows it connected
-3. Confirm BLE is available on the host running `python-matter-server` — this is required for
-   Thread dataset handoff, unlike a pure on-network commissioning flow
+3. Confirm BLE is available on the host running `python-matter-server` (see Prerequisites above)
 4. Restart the HA Matter integration and retry
 
 ### Commissioning Starts but Thread Join Fails
@@ -153,9 +284,13 @@ I (xxx) sync_task: Tuya command: Power ON
 ### Device Commissioned but No Controls Work
 
 **Causes:**
-- Thread joined but Tuya API calls are failing (check whether OTBR's border routing has
-  internet reachability — this app hasn't been run over Thread before, so this is the first
-  thing to suspect if it's new)
+- Thread joined but Tuya API calls are failing — check DNS/NTP first: if `Starting SNTP time
+  sync...` in the serial log is followed by repeated `Still waiting for SNTP time sync` warnings
+  rather than `Time synchronized` within a few seconds, NAT64 (Jool) isn't working; check
+  `docker exec otbr sh -c "ot-ctl nat64 state"` (should be `Disabled` for both — Jool handles it
+  externally now, see [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
+  and `jool -i nat64 session display --udp` (via the chroot pattern in `setup-nat64-jool.sh`) for
+  active sessions
 - Tuya API credentials incorrect
 - Device offline in Tuya app
 

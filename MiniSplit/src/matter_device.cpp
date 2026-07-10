@@ -13,6 +13,7 @@
 #include <app-common/zap-generated/cluster-objects.h>
 #include <setup_payload/OnboardingCodesUtil.h>
 #include <platform/CHIPDeviceLayer.h>
+#include <cstring>
 #include <inttypes.h>
 #include <limits.h>
 
@@ -224,7 +225,11 @@ extern "C" esp_err_t matter_device_init(void)
 {
     ESP_LOGI(TAG, "Initializing Matter device...");
 
+    // Without this, Basic Information's NodeLabel stays empty and Home
+    // Assistant falls back to a generic "Node <id>" device name.
     node::config_t node_cfg;
+    strncpy(node_cfg.root_node.basic_information.node_label, "Mini-Split AC Bridge",
+            sizeof(node_cfg.root_node.basic_information.node_label) - 1);
     g_node = node::create(&node_cfg, matter_attribute_callback, nullptr);
     if (!g_node) {
         ESP_LOGE(TAG, "Failed to create Matter node");
@@ -488,6 +493,30 @@ extern "C" esp_err_t matter_start_commissioning(void)
     }
 
     g_started = true;
+
+    // VendorName/ProductName are created with a NULL initial value by
+    // esp_matter's root_node::create() (there's no config_t field for them,
+    // unlike node_label), so the Basic Information cluster falls back to
+    // connectedhomeip's compiled-in example-app defaults --
+    // CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME/_PRODUCT_NAME, literally
+    // "TEST_VENDOR"/"TEST_PRODUCT" -- unless explicitly set here. (VendorId/
+    // ProductId are left at 0xFFF1/0x8000, the CSA's reserved test range --
+    // correct for an uncertified DIY device, not part of this fix.)
+    {
+        endpoint_t *root_endpoint = endpoint::get(g_node, 0);
+        cluster_t *basic_info_cluster = root_endpoint ? cluster::get(root_endpoint, BasicInformation::Id) : nullptr;
+        if (basic_info_cluster) {
+            static char vendor_name[] = "Wilkie Home";
+            static char product_name[] = "Mini-Split AC Bridge";
+            esp_matter_attr_val_t vendor_val = esp_matter_char_str(vendor_name, strlen(vendor_name));
+            esp_matter_attr_val_t product_val = esp_matter_char_str(product_name, strlen(product_name));
+            attribute::update(0, BasicInformation::Id, BasicInformation::Attributes::VendorName::Id, &vendor_val);
+            attribute::update(0, BasicInformation::Id, BasicInformation::Attributes::ProductName::Id, &product_val);
+        } else {
+            ESP_LOGW(TAG, "BasicInformation cluster not found; vendor/product name unavailable");
+        }
+    }
+
     chip::RendezvousInformationFlags rendezvous_flags(chip::RendezvousInformationFlag::kBLE);
     PrintOnboardingCodes(rendezvous_flags);
     ESP_LOGI(TAG, "Matter commissioning started");
