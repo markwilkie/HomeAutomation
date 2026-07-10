@@ -33,6 +33,19 @@ CONFIG_OPENTHREAD_ENABLED=y
 CONFIG_ENABLE_MATTER_OVER_THREAD=y
 # CONFIG_ENABLE_WIFI_STATION is not set
 
+# Bluetooth (NimBLE only -- required for Matter/BLE commissioning, see
+# BUILD.md "Bluetooth: NimBLE only" section). This was previously only ever
+# set via manual menuconfig clicks in the original WiFi/BLE build and never
+# captured here -- an `idf.py fullclean` regenerates sdkconfig from defaults
+# only, and BT_ENABLED defaults to off on this target, so a fullclean
+# silently produced a build with no Bluetooth at all. Confirmed on real
+# hardware: `grep BT_ENABLED sdkconfig` came back "# CONFIG_BT_ENABLED is
+# not set" after a fullclean rebuild, and the device never advertised BLE.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+# CONFIG_BT_BLUEDROID_ENABLED is not set
+
 # BLE advertising must be told to autostart on power-up -- it defaults to 0
 # (off) in connectedhomeip's Kconfig ("BLE Options" -> "Enable CHIPoBLE
 # advertising start automatically after device power-up"). Without this,
