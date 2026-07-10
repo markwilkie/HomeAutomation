@@ -1,26 +1,28 @@
 # MiniSplit Matter Bridge - Architecture & Design
 
 ## Project Overview
-Create a Matter-compliant device on ESP32 that bridges Tuya mini-split AC control to SmartThings.
+Create a Matter-compliant device on ESP32 that bridges Tuya mini-split AC control to Home
+Assistant, over Thread. (Originally built against a SmartThings/WiFi target — see
+[Legacy: SmartThings (WiFi build)](COMMISSIONING_GUIDE.md#legacy-smartthings-wifi-build).)
 
 ## System Architecture
 
 ### Components
 ```
 ┌─────────────────┐
-│   SmartThings   │
+│  Home Assistant │
 │   (Consumer)    │
 └────────┬────────┘
-         │ Matter Protocol
+         │ Matter Protocol (via python-matter-server)
          ↓
 ┌─────────────────────────────────────┐
-│  Matter Device (ESP32)              │
+│  Matter Device (ESP32-C6)           │
 │  ├─ Matter Stack                    │
 │  ├─ Tuya API Client                 │
 │  ├─ Climate Control Cluster         │
 │  └─ Device Attributes               │
 └────────┬────────────────────────────┘
-         │ HTTPS/REST
+         │ Thread (802.15.4) -> OTBR border routing
          ↓
 ┌─────────────────────────────────────┐
 │   Tuya Cloud API                    │
@@ -69,11 +71,11 @@ Create a Matter-compliant device on ESP32 that bridges Tuya mini-split AC contro
 
 4. **Temperature Measurement** (0x0402) — standalone Temperature Sensor endpoint
    - MeasuredValue (°C × 100); driven by BME280, or falls back to Tuya `temp_current`
-   - Exposed to SmartThings as a routine-usable temperature
+   - Exposed as a routine/automation-usable temperature entity
 
 5. **Relative Humidity Measurement** (0x0405) — standalone Humidity Sensor endpoint
    - MeasuredValue (%RH × 100); driven by BME280
-   - Exposed to SmartThings as a routine-usable humidity
+   - Exposed as a routine/automation-usable humidity entity
    - See [SENSORS.md](SENSORS.md) for wiring and details
 
 ### Optional Clusters
@@ -117,7 +119,7 @@ Create a Matter-compliant device on ESP32 that bridges Tuya mini-split AC contro
 ## Data Flow - Command Execution
 
 ```
-SmartThings User
+Home Assistant User
     ↓
 Matter Set Command
     ↓
@@ -133,12 +135,12 @@ Tuya Status Polling
     ↓
 Matter State Update
     ↓
-SmartThings Reflect Change
+Home Assistant Reflects Change
 ```
 
 ## Security Considerations
 - HMAC-SHA256 signing for Tuya API calls
-- Matter fabric security (Thread/WiFi)
+- Matter fabric security (Thread)
 - Secure credential storage (NVS flash partition)
 - HTTPS/TLS for Tuya API communication
 - Rate limiting on API calls
@@ -163,12 +165,13 @@ SmartThings Reflect Change
 ## Known Limitations & Challenges
 1. Tuya API rate limiting (requests/min)
 2. Device polling latency (~30s typical)
-3. WiFi dependency (no Thread mesh initially)
+3. Thread dependency: no WiFi fallback, so Tuya connectivity relies entirely on OTBR's border
+   routing having a working internet path
 4. Matter SDK complexity & toolchain setup
 5. Tuya authentication token refresh handling
 
 ## Success Criteria
-- ✅ Device commissioning into SmartThings
+- ✅ Device commissioning into Home Assistant
 - ✅ Power control works bidirectionally
 - ✅ Temperature reading displays correctly
 - ✅ Temperature setpoint control works

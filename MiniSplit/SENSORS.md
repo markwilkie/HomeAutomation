@@ -1,20 +1,23 @@
 # Environmental Sensors & Extra Matter Endpoints
 
 This document covers the standalone temperature and humidity sensor endpoints
-exposed to SmartThings, and the optional **BME280** sensor that drives them.
+exposed to the Matter controller (Home Assistant), and the optional **BME280**
+sensor that drives them.
 
-These endpoints exist specifically so the readings are usable as **SmartThings
-routine triggers / conditions** — independent of the thermostat's
-`LocalTemperature` (which SmartThings does not reliably expose as a standalone
-temperature for automations).
+These endpoints exist specifically so the readings are usable as **automation
+triggers / conditions** — independent of the thermostat's `LocalTemperature`
+(which not every controller reliably exposes as a standalone temperature for
+automations; this was true of SmartThings on the [legacy
+path](COMMISSIONING_GUIDE.md#legacy-smartthings-wifi-build) and is the reason
+these dedicated endpoints exist at all).
 
 ## Matter endpoints
 
 The device publishes these endpoints (IDs are assigned at init and printed in the
 boot log):
 
-| Endpoint | Matter device type | Cluster / attribute | SmartThings capability |
-|----------|--------------------|---------------------|------------------------|
+| Endpoint | Matter device type | Cluster / attribute | Exposed as |
+|----------|--------------------|---------------------|------------|
 | Thermostat | Thermostat (0x0301) | On/Off, Thermostat | Thermostat / AC controls |
 | Light | On/Off Light | OnOff | Switch (aux light) |
 | Beep | On/Off Light | OnOff | Switch (aux beep) |
@@ -109,20 +112,24 @@ MAIN: Environment sensor task started (BME280, interval: 30000ms)
 MAIN: BME280: 22.41°C  47.8%RH  1012.6 hPa
 ```
 
-## Using the readings in SmartThings routines
+## Using the readings in Home Assistant automations
 
-1. After flashing, the two new sensors appear as components on the Matter device.
-2. In the SmartThings app, create a routine with an **If** condition using the
-   temperature or humidity value (e.g. "If humidity rises above 60%, turn on the
+1. After flashing, the two new sensors appear as entities on the Matter device.
+2. In Home Assistant, create an automation with a **Trigger**/**Condition** using the
+   temperature or humidity entity (e.g. "If humidity rises above 60%, turn on the
    mini-split in Dry mode").
 
 > **Re-commissioning note:** adding these endpoints changes the device's Matter
-> composition. If the temperature/humidity components do not appear on an
-> already-paired device, remove the device from SmartThings and re-add it after
+> composition. If the temperature/humidity entities do not appear on an
+> already-paired device, remove the device from Home Assistant and re-add it after
 > flashing the new firmware.
+
+Using the [legacy SmartThings path](COMMISSIONING_GUIDE.md#legacy-smartthings-wifi-build)
+instead? Same idea, via a SmartThings routine's **If** condition — same re-commissioning caveat
+applies (remove/re-add in the SmartThings app).
 
 ## Pressure
 
 The BME280 also measures barometric pressure (`pressure_hpa`), logged by `env_task`.
-Matter has no standard pressure sensor device type, so it is not exposed to
-SmartThings; it is available in the firmware via `bme280_read()` if needed.
+Matter has no standard pressure sensor device type, so it is not exposed to the
+controller; it is available in the firmware via `bme280_read()` if needed.

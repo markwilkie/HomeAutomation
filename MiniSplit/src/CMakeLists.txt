@@ -1,3 +1,9 @@
+# NOTE: switched from WiFi to Thread as the Matter transport (see
+# sdkconfig.defaults). CONFIG_OPENTHREAD_ENABLED=y should pull in ESP-IDF's
+# "openthread" component transitively via espressif__esp_matter, but this
+# hasn't been build-verified (no ESP-IDF toolchain in the environment this
+# was written in -- see BUILD.md). If the build can't find OpenThread
+# headers, add "openthread" to REQUIRES below.
 idf_component_register(SRCS "main.c" "tuya_client.c" "bme280.c" "matter_device.cpp"
                        INCLUDE_DIRS "." "../include"
                        REQUIRES esp_http_client mbedtls esp_driver_i2c espressif__esp_matter)

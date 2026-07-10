@@ -6,7 +6,6 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_event.h"
-#include "esp_wifi.h"
 #include "esp_sntp.h"
 #include <time.h>
 #include <math.h>
@@ -18,7 +17,13 @@
 
 static const char *TAG = "MAIN";
 
-#define WIFI_CONNECTED_BIT BIT0
+// Set once Matter's network layer (Thread) reports connectivity -- see
+// matter_set_network_event_group() / app_chip_event_handler() in
+// matter_device.cpp. Network bring-up is owned by Matter's commissioning
+// flow now, not app-level pre-connect code, so this can take anywhere from
+// a few seconds (already-commissioned reboot) to indefinitely (first-time
+// commissioning, waiting on the user).
+#define NETWORK_CONNECTED_BIT BIT0
 
 static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
@@ -36,7 +41,7 @@ typedef struct {
     uint32_t last_status_update;        // Timestamp of last successful status update
     uint32_t last_command_check;        // Timestamp of last command check
     uint8_t status_poll_failures;       // Consecutive failures
-    uint8_t wifi_disconnects;           // Count of disconnections
+    uint8_t network_disconnects;        // Count of connectivity drops
 } sync_state_t;
 
 static sync_state_t g_sync_state = {0};
@@ -264,7 +269,7 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     matter_update_onoff(device_status->switch_state);
     matter_update_local_temperature(device_status->temp_current);
     // When no BME280 is attached, surface the indoor temperature on the
-    // standalone temperature-sensor endpoint so SmartThings routines still have
+    // standalone temperature-sensor endpoint so automations still have
     // a value. With a BME280 present, env_task drives that endpoint instead.
     if (!bme280_is_present()) {
         matter_update_aux_temperature(device_status->temp_current);
@@ -325,70 +330,6 @@ static esp_err_t wait_for_time_sync(void)
 
     ESP_LOGE(TAG, "SNTP time sync timed out");
     return ESP_ERR_TIMEOUT;
-}
-
-/**
- * @brief WiFi event handler
- */
-static void wifi_event_handler(void* arg, esp_event_base_t event_base,
-                                int32_t event_id, void* event_data)
-{
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        ESP_LOGI(TAG, "WiFi STA started, connecting...");
-        esp_wifi_connect();
-    } 
-    else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (g_app_event_group) {
-            xEventGroupClearBits(g_app_event_group, WIFI_CONNECTED_BIT);
-        }
-        g_sync_state.wifi_disconnects++;
-        ESP_LOGW(TAG, "WiFi disconnected (count: %u), attempting reconnect...", 
-                 g_sync_state.wifi_disconnects);
-        esp_wifi_connect();
-    } 
-    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        ESP_LOGI(TAG, "WiFi connected, IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        if (g_app_event_group) {
-            xEventGroupSetBits(g_app_event_group, WIFI_CONNECTED_BIT);
-        }
-        g_sync_state.wifi_disconnects = 0;  // Reset disconnect counter
-    }
-}
-
-/**
- * @brief Initialize WiFi in STA mode
- */
-static esp_err_t wifi_init(void)
-{
-    esp_netif_create_default_wifi_sta();
-    
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, 
-                                                &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, 
-                                                &wifi_event_handler, NULL));
-    
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASSWORD,
-            .scan_method = WIFI_FAST_SCAN,
-            .bssid_set = false,
-            .channel = 0,
-            .listen_interval = 0,
-            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
-        },
-    };
-    
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
-    
-    ESP_LOGI(TAG, "WiFi initialization complete");
-    return ESP_OK;
 }
 
 // ============================================================================
@@ -475,7 +416,7 @@ static void sync_task(void *param)
  * @brief Command routing task: checks for Matter commands and sends to Tuya
  * 
  * Flow:
- * 1. Check if SmartThings sent any commands
+ * 1. Check if the controller sent any commands
  * 2. Route to appropriate Tuya API call
  * 3. Clear command flag after processing
  * 4. Handle errors gracefully
@@ -497,7 +438,7 @@ static void command_task(void *param)
         bool onoff_pending = matter_get_onoff_command();
         if (onoff_pending) {
             bool desired_onoff = matter_get_onoff_state();
-            ESP_LOGI(TAG, "Processing OnOff command from SmartThings: %s",
+            ESP_LOGI(TAG, "Processing OnOff command from controller: %s",
                      desired_onoff ? "ON" : "OFF");
 
             esp_err_t result = tuya_set_power(desired_onoff);
@@ -573,7 +514,7 @@ static void command_task(void *param)
         // ===== Check for System Mode command =====
         uint8_t mode_cmd = matter_get_system_mode_command();
         if (mode_cmd != 0xFF) {  // 0xFF = no command
-            ESP_LOGI(TAG, "Processing mode command from SmartThings: %u", mode_cmd);
+            ESP_LOGI(TAG, "Processing mode command from controller: %u", mode_cmd);
 
             esp_err_t result;
             if (mode_cmd == 0) {
@@ -642,7 +583,7 @@ static void health_task(void *param)
         vTaskDelay(pdMS_TO_TICKS(60000));  // Every 60 seconds
         
         ESP_LOGI(TAG, "=== System Health Check ===");
-        ESP_LOGI(TAG, "WiFi Disconnects: %u", g_sync_state.wifi_disconnects);
+        ESP_LOGI(TAG, "Network Disconnects: %u", g_sync_state.network_disconnects);
         ESP_LOGI(TAG, "Status Poll Failures: %u", g_sync_state.status_poll_failures);
         ESP_LOGI(TAG, "Last Status Update: %ums ago",
                  (xTaskGetTickCount() - g_sync_state.last_status_update));
@@ -672,26 +613,46 @@ void app_main(void)
     g_app_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(g_app_event_group ? ESP_OK : ESP_FAIL);
 
-    // Initialize TCP/IP stack before creating Wi-Fi netifs.
+    // Initialize TCP/IP stack before Matter brings up its own (Thread) netif.
     ESP_ERROR_CHECK(esp_netif_init());
-    
+
     // Initialize event loop
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    
-    // Initialize WiFi
-    ESP_ERROR_CHECK(wifi_init());
 
-    // Wait for WiFi before network-dependent services.
-    EventBits_t bits = xEventGroupWaitBits(g_app_event_group,
-                                           WIFI_CONNECTED_BIT,
-                                           pdFALSE,
-                                           pdFALSE,
-                                           pdMS_TO_TICKS(30000));
-    ESP_ERROR_CHECK((bits & WIFI_CONNECTED_BIT) ? ESP_OK : ESP_ERR_TIMEOUT);
+    // Initialize Matter device and start commissioning. Matter now owns
+    // network bring-up (Thread) as part of its normal commissioning flow,
+    // rather than the app pre-connecting with baked-in credentials first --
+    // see matter_set_network_event_group()/app_chip_event_handler() in
+    // matter_device.cpp for how connectivity is signaled back here.
+    ESP_LOGI(TAG, "Initializing Matter device...");
+    ESP_ERROR_CHECK(matter_device_init());
+
+    matter_set_network_event_group(g_app_event_group, NETWORK_CONNECTED_BIT);
+
+    ESP_LOGI(TAG, "Starting Matter commissioning...");
+    ESP_ERROR_CHECK(matter_start_commissioning());
+
+    // Wait for network connectivity before starting network-dependent
+    // services. An already-commissioned device reattaches to its stored
+    // Thread network within seconds; an uncommissioned device waits here
+    // indefinitely for the user to commission it (e.g. via Home Assistant).
+    ESP_LOGI(TAG, "Waiting for network connectivity (commission via Home Assistant if not already paired)...");
+    EventBits_t bits = 0;
+    while (!(bits & NETWORK_CONNECTED_BIT)) {
+        bits = xEventGroupWaitBits(g_app_event_group,
+                                   NETWORK_CONNECTED_BIT,
+                                   pdFALSE,
+                                   pdFALSE,
+                                   pdMS_TO_TICKS(30000));
+        if (!(bits & NETWORK_CONNECTED_BIT)) {
+            ESP_LOGI(TAG, "Still waiting for network connectivity...");
+        }
+    }
+    ESP_LOGI(TAG, "Network connectivity established");
 
     // Tuya authentication requires valid system time.
     ESP_ERROR_CHECK(wait_for_time_sync());
-    
+
     // Initialize Tuya client
     ESP_LOGI(TAG, "Initializing Tuya client...");
     ESP_ERROR_CHECK(tuya_client_init(
@@ -699,14 +660,6 @@ void app_main(void)
         TUYA_CLIENT_ID,
         TUYA_CLIENT_SECRET
     ));
-    
-    // Initialize Matter device
-    ESP_LOGI(TAG, "Initializing Matter device...");
-    ESP_ERROR_CHECK(matter_device_init());
-    
-    // Start Matter commissioning
-    ESP_LOGI(TAG, "Starting Matter commissioning...");
-    ESP_ERROR_CHECK(matter_start_commissioning());
 
     // Initialize optional BME280 environment sensor (temperature + humidity).
     // If absent, the aux temperature endpoint falls back to the Tuya indoor temp.

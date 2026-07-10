@@ -227,7 +227,15 @@ a second cycle; only the off→on transition starts one. Two different windows a
 **Time in state** (endpoint 10): minutes since `compressor_pct > 0` last flipped, regardless of
 cycle completion — this is a plain duration, unrelated to the cycle counters above.
 
-### ⚠️ SmartThings requires the custom Edge Driver
+### Legacy: SmartThings requires the custom Edge Driver
+
+**This device now targets Home Assistant, not SmartThings** — see
+[README.md](README.md#minisplit-matter-bridge) and
+[COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md). HA's Matter Server (`python-matter-server`)
+doesn't do CSA-certified fingerprint matching the way SmartThings does, so it should expose all 10
+endpoints natively with no custom driver needed — **unverified, worth double-checking on first
+commission**. The rest of this section is kept for the legacy SmartThings path (e.g. if the hub
+is still around for other devices).
 
 **Do not rely on SmartThings' automatic Matter pairing for this device.** Its vendor/product ID
 (0xFFF1/0x8000) is in the CSA test range, so SmartThings can't fetch a certified profile and

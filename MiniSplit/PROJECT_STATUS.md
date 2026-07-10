@@ -43,7 +43,8 @@
 - ✅ Status synchronization (Tuya → Matter every 30s)
 - ✅ Command routing (Matter → Tuya every 5s)
 - ✅ Error handling with retries (3 attempts per operation)
-- ✅ Connection resilience (WiFi auto-reconnect)
+- ✅ Connection resilience (Thread auto-reattach — was WiFi auto-reconnect; see
+  [README.md](README.md#technical-architecture) for the transport change)
 - ✅ Health monitoring task (60s intervals)
 - **Time Spent:** 2 hours
 - **Status:** COMPLETE & READY FOR TESTING
@@ -286,9 +287,10 @@ For questions or issues:
 
 **Action Items:**
 1. Install ESP-Matter SDK (if not done)
-2. Configure & build firmware
+2. Configure & build firmware (now Thread-enabled — see `sdkconfig.defaults`)
 3. Flash to ESP32
-4. Commission to SmartThings
+4. Commission via Home Assistant (Matter Server + OTBR) — see
+   [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md)
 5. Test bidirectional control
 6. Proceed to Phase 4 (optional advanced features)
 

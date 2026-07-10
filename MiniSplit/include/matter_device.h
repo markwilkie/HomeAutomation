@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,25 +13,41 @@ extern "C" {
 
 /**
  * @brief Initialize Matter device endpoint
- * 
+ *
  * Sets up:
  * - Matter node with Thermostat device type
  * - On/Off cluster for power control
  * - Thermostat cluster for temperature/mode
- * - Attribute callbacks for SmartThings commands
- * 
+ * - Attribute callbacks for controller commands
+ *
  * @return ESP_OK on success
  */
 esp_err_t matter_device_init(void);
 
 /**
+ * @brief Register a FreeRTOS event group bit to track network connectivity
+ *
+ * The network layer (Thread) is now brought up by Matter's own
+ * commissioning-driven provisioning rather than app-level pre-connect code,
+ * so the app needs a way to learn when it's actually reachable. Call this
+ * before matter_start_commissioning(); the given bit is set on
+ * kInternetConnectivityChange-established and cleared on lost, mirroring
+ * what a WiFi IP_EVENT handler would have done.
+ *
+ * @param event_group Event group to signal (caller retains ownership)
+ * @param connected_bit Bit to set/clear as connectivity changes
+ */
+void matter_set_network_event_group(EventGroupHandle_t event_group, EventBits_t connected_bit);
+
+/**
  * @brief Start Matter commissioning (BLE advertisement)
- * 
+ *
  * Enables:
  * - Bluetooth LE advertisement
- * - QR code generation for SmartThings scanning
- * - Fabric commissioning from SmartThings app
- * 
+ * - QR code generation for the controller to scan
+ * - Fabric commissioning, including Thread network provisioning (the
+ *   commissioner hands over the Thread Operational Dataset as part of this)
+ *
  * @return ESP_OK on success
  */
 esp_err_t matter_start_commissioning(void);
@@ -147,7 +165,7 @@ void matter_update_compressor_state_duration(uint16_t minutes);
 void matter_update_outdoor_temperature(int16_t temp_c);
 
 /**
- * @brief Check if SmartThings sent an OnOff command
+ * @brief Check if the controller sent an OnOff command
  * @return true if command is pending, false otherwise
  */
 bool matter_get_onoff_command(void);
@@ -159,19 +177,19 @@ bool matter_get_onoff_command(void);
 bool matter_get_onoff_state(void);
 
 /**
- * @brief Get pending heating setpoint command from SmartThings
+ * @brief Get pending heating setpoint command from the controller
  * @return Setpoint in Celsius (×100), or -1 if no pending command
  */
 int16_t matter_get_heating_setpoint_command(void);
 
 /**
- * @brief Get pending cooling setpoint command from SmartThings
+ * @brief Get pending cooling setpoint command from the controller
  * @return Setpoint in Celsius (×100), or -1 if no pending command
  */
 int16_t matter_get_cooling_setpoint_command(void);
 
 /**
- * @brief Get pending system mode command from SmartThings
+ * @brief Get pending system mode command from the controller
  * @return Mode (0=off, 1=heat, 2=cool, 3=auto), or 0xFF if no pending command
  */
 uint8_t matter_get_system_mode_command(void);

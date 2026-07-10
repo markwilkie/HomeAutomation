@@ -53,7 +53,8 @@ idf.py -p COM6 flash monitor
    "Windows path-length limit" below.
 4. **USB drivers** for the ESP32-C6 dev board (CP210x / native USB-Serial-JTAG).
 5. **Secrets** — copy `include/secrets.example.h` to `include/secrets.h` and fill in
-   WiFi + Tuya credentials. (`secrets.h` is git-ignored.)
+   your Tuya credentials. (`secrets.h` is git-ignored.) No WiFi credentials needed —
+   this device joins over Thread, provisioned during Matter commissioning.
 
 ## Why 5.x, not 6.x
 

@@ -10,11 +10,12 @@
 
 **API Endpoint:** https://openapi.tuyaus.com/v1.0/
 
-## WiFi Configuration
+## Network Configuration
 
-**SSID:** [CONFIGURE]
-
-**Password:** [CONFIGURE]
+No pre-configuration needed. This device joins over Thread — the Thread Operational Dataset is
+provisioned by the commissioner (Home Assistant, via OTBR) during Matter/BLE commissioning, not
+baked into firmware. (Legacy WiFi-build note: earlier firmware pre-connected to WiFi using
+`WIFI_SSID`/`WIFI_PASSWORD` in `include/secrets.h` — no longer used.)
 
 ## Matter Configuration
 
@@ -57,7 +58,7 @@ The following commands are available via Tuya API:
 
 See ARCHITECTURE.md for full cluster documentation.
 
-### Primary Controls in SmartThings
+### Primary Controls in Home Assistant
 - Power (OnOff)
 - Temperature Reading (LocalTemperature)
 - Temperature Setpoint
@@ -65,13 +66,12 @@ See ARCHITECTURE.md for full cluster documentation.
 
 ## Deployment
 
-1. Configure Tuya credentials in NVS secure storage
-2. Set WiFi SSID/password
-3. Flash to ESP32
-4. Run "Matter Start Commissioning" via serial console
-5. Open SmartThings app → Add Device
-6. Scan commissioning QR code or enter setup code
-7. Select Matter device from list
+1. Configure Tuya credentials in NVS secure storage (`include/secrets.h`)
+2. Flash to ESP32 — device starts BLE/Matter commissioning immediately, no network pre-connect
+3. In Home Assistant: Settings → Devices & Services → Add Integration → Matter → Add device
+4. Scan commissioning QR code or enter setup code
+5. Home Assistant/OTBR provisions the Thread dataset as part of commissioning
+6. Select Matter device from list
 
 ## Security Notes
 

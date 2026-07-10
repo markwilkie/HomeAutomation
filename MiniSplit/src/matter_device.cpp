@@ -12,6 +12,7 @@
 
 #include <app-common/zap-generated/cluster-objects.h>
 #include <setup_payload/OnboardingCodesUtil.h>
+#include <platform/CHIPDeviceLayer.h>
 #include <inttypes.h>
 #include <limits.h>
 
@@ -19,6 +20,42 @@ using namespace esp_matter;
 using namespace chip::app::Clusters;
 
 static const char *TAG = "MATTER_DEVICE";
+
+// Set via matter_set_network_event_group(); signaled by app_chip_event_handler()
+// below as Matter's own network layer (Thread) attaches/detaches. Network
+// provisioning is now owned by Matter's commissioning flow rather than
+// app-level pre-connect code, so this is how main.c learns connectivity state.
+static EventGroupHandle_t g_network_event_group = nullptr;
+static EventBits_t g_network_connected_bit = 0;
+
+static void app_chip_event_handler(const chip::DeviceLayer::ChipDeviceEvent *event, intptr_t /*arg*/)
+{
+    if (event->Type != chip::DeviceLayer::DeviceEventType::kInternetConnectivityChange) {
+        return;
+    }
+    if (!g_network_event_group) {
+        return;
+    }
+
+    bool established = (event->InternetConnectivityChange.IPv4 == chip::DeviceLayer::kConnectivity_Established) ||
+                        (event->InternetConnectivityChange.IPv6 == chip::DeviceLayer::kConnectivity_Established);
+    bool lost = (event->InternetConnectivityChange.IPv4 == chip::DeviceLayer::kConnectivity_Lost) ||
+                (event->InternetConnectivityChange.IPv6 == chip::DeviceLayer::kConnectivity_Lost);
+
+    if (established) {
+        ESP_LOGI(TAG, "Network connectivity established");
+        xEventGroupSetBits(g_network_event_group, g_network_connected_bit);
+    } else if (lost) {
+        ESP_LOGW(TAG, "Network connectivity lost");
+        xEventGroupClearBits(g_network_event_group, g_network_connected_bit);
+    }
+}
+
+extern "C" void matter_set_network_event_group(EventGroupHandle_t event_group, EventBits_t connected_bit)
+{
+    g_network_event_group = event_group;
+    g_network_connected_bit = connected_bit;
+}
 
 // Global state for Matter attributes
 typedef struct {
@@ -403,6 +440,8 @@ extern "C" esp_err_t matter_start_commissioning(void)
     }
 
     ESP_LOGI(TAG, "Starting Matter commissioning...");
+
+    chip::DeviceLayer::PlatformMgr().AddEventHandler(app_chip_event_handler, 0);
 
     esp_err_t err = esp_matter::start(nullptr);
     if (err != ESP_OK) {

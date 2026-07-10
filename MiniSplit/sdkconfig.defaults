@@ -21,3 +21,21 @@ CONFIG_MBEDTLS_HKDF_C=y
 # avoids the bug entirely, regardless of esp_matter version.
 CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n
 CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n
+
+# Network transport: Thread, not WiFi. This device now joins the Matter
+# fabric over Thread (via the OTBR running on the home server) instead of
+# pre-connecting to WiFi with baked-in credentials -- the Thread Operational
+# Dataset is handed to the device by the commissioner (Home Assistant, via
+# OTBR) during BLE commissioning, the standard way Matter's Network
+# Commissioning cluster works for Thread devices. See src/main.c for the
+# corresponding boot-sequence change.
+CONFIG_OPENTHREAD_ENABLED=y
+CONFIG_ENABLE_MATTER_OVER_THREAD=y
+# CONFIG_ENABLE_WIFI_STATION is not set
+#
+# NOTE: still need to confirm the OpenThread device role in
+# `idf.py menuconfig` -> Component config -> OpenThread. This is a
+# mains-powered device, so it should run as an FTD (Full Thread Device,
+# contributes to mesh routing) rather than MTD (child-only, for battery
+# devices) -- the exact Kconfig symbol for that wasn't verified here (no
+# ESP-IDF toolchain available in this environment to build and confirm).

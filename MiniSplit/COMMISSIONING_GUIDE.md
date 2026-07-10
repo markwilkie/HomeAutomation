@@ -1,263 +1,169 @@
-# Matter Commissioning Guide for SmartThings
+# Matter Commissioning Guide for Home Assistant
 
-This guide walks through commissioning the MiniSplit Matter Bridge to SmartThings.
+This guide walks through commissioning the MiniSplit Matter Bridge to Home Assistant over Thread.
+
+> Looking for the old SmartThings/WiFi procedure? See
+> [Legacy: SmartThings (WiFi build)](#legacy-smartthings-wifi-build) at the bottom of this file.
+> That path was written and verified against an earlier firmware build that joined over WiFi;
+> the firmware now joins over Thread, so it's kept for reference/rollback only.
 
 ## Prerequisites Checklist
 
 Before attempting commissioning:
 
-- [ ] ESP32-C6 with firmware flashed
+- [ ] ESP32-C6 with firmware flashed (Thread-enabled build — see `sdkconfig.defaults`)
 - [ ] Device powered on and running
-- [ ] WiFi connected (check serial logs)
-- [ ] SmartThings Hub with Matter support (U8000 or Hub 3+)
-- [ ] Hub connected to same WiFi network
-- [ ] SmartThings app installed on smartphone
-- [ ] BLE enabled on hub and smartphone
-- [ ] Matter enabled in hub settings
+- [ ] OpenThread Border Router (OTBR) running and has a Thread network formed —
+      see `../Wyse5070DebSetup/setup-mg24.sh`; check its web UI for network diagnostics
+- [ ] Home Assistant running (Container install) with the `python-matter-server` container up —
+      see `../Wyse5070DebSetup/setup-matter-server.sh`
+- [ ] Matter integration added in Home Assistant (Settings → Devices & Services → Add
+      Integration → Matter), pointed at `ws://localhost:5580/ws`
+- [ ] BLE available on whatever host runs `python-matter-server` (needed to hand the Thread
+      dataset to the device during commissioning)
 
 ## Serial Output Verification
 
-Before commissioning, verify device is ready:
+Before commissioning, verify device is ready. Note there's **no WiFi connection line** in this
+build — the device starts BLE/Matter commissioning immediately, before any network is up, and
+only joins Thread once commissioning hands it a dataset:
 
 ```
 I (xxx) MAIN: === MiniSplit Matter Bridge Initializing ===
-I (xxx) MAIN: WiFi initialization complete
-I (xxx) TUYA_CLIENT: Tuya client initialized for device: eb11d9ff75ef37d109pihg
-I (xxx) MATTER_DEVICE: Matter device initialized successfully on endpoint 1
+I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 ...
+I (xxx) MATTER_DEVICE: Starting Matter commissioning...
 I (xxx) MATTER_DEVICE: Matter commissioning started
-I (xxx) MATTER_DEVICE: Scan the QR code displayed in the Matter app to commission device
+I (xxx) MAIN: Waiting for network connectivity (commission via Home Assistant if not already paired)...
 ```
 
-If you see this output, device is ready for commissioning.
+If you see this output, the device is ready for commissioning. It will sit at "Waiting for
+network connectivity..." indefinitely until commissioned — that's expected on first boot.
 
 ## Step-by-Step Commissioning
 
-### Step 1: Open SmartThings App
+### Step 1: Open Home Assistant
 
-1. Open SmartThings app on your smartphone
-2. Tap the "+" icon (typically top-right or bottom)
-3. Select "Add Device" or "Scan Device"
+1. Open Home Assistant in a browser
+2. Go to **Settings → Devices & Services**
+3. Click **Add Integration** (or, if Matter is already added, use its **Add device** action)
 
-### Step 2: Initiate Scanning
+### Step 2: Add a Matter Device
 
 ```
-SmartThings App
-└─ "+" Menu
-   └─ "Add Device" / "Scan Device Code"
-      └─ "Use Camera"
-         └─ Point camera at QR code or setup code display
+Settings → Devices & Services
+└─ "+ Add Integration" (or Matter integration's "Add device")
+   └─ Search "Matter" if adding fresh
+      └─ "Scan QR code" or "Enter setup code manually"
 ```
-
-Expected behavior:
-- Camera screen opens
-- Device requests permission to access camera
-- Scanning indicator appears
 
 ### Step 3: Get Setup Code
 
 #### Option A: QR Code (Easiest)
-- Check ESP32 serial output for QR code display
-- Some Matter devices print QR code to serial terminal
-- Point smartphone camera at QR code
+- Check ESP32 serial output for the QR code / onboarding payload printed by
+  `PrintOnboardingCodes()` in `matter_device.cpp`
+- Point your phone/browser camera at it if scanning via a mobile HA session, or use the manual
+  code if driving HA from a desktop browser
 
 #### Option B: Manual Setup Code
-- Setup code format: 8-digit number (e.g., 12345678)
-- Serial output may show: `Setup Code: 12345678`
-- Or as PIN: `123-45-678`
-- Enter manually in SmartThings app
+- Setup code format: 8-digit number (e.g., 12345678), sometimes shown as `123-45-678`
+- Enter it directly in the HA Matter add-device flow
 
-#### Option C: Cannot see QR?
-If QR code not visible in serial output:
-1. Check logs are properly configured
-2. Ensure Matter commissioning started
-3. Setup code should be available (check documentation)
-4. Ask device for setup code via serial console
+### Step 4: Commissioning + Thread Provisioning
 
-### Step 4: Scan or Enter Code
+Unlike the old WiFi build, this step now does two things at once:
+1. Matter fabric commissioning (as before)
+2. **Thread network provisioning** — HA's Matter Server, working with OTBR, hands the device a
+   Thread Operational Dataset over BLE. The device joins the Thread mesh as part of this exchange,
+   not before it.
 
-**If scanning QR code:**
-1. Point smartphone camera at screen/terminal
-2. Let app scan automatically
-3. It should recognize Matter device code
+**Expected time:** 30–90 seconds — a bit longer than the old WiFi flow since Thread attachment
+happens as part of commissioning rather than beforehand.
 
-**If entering manually:**
-1. Tap "Enter Setup Code" in SmartThings app
-2. Type 8-digit code from device
-3. Tap continue/next
+### Step 5: Verify in Home Assistant
 
-### Step 5: Confirm Device Location
-
-SmartThings app will prompt:
+After commissioning completes, the device should appear under **Settings → Devices & Services →
+Matter**, exposing (per the endpoint layout in
+[TUYA_DP_REFERENCE.md](TUYA_DP_REFERENCE.md#matter-endpoint-layout)):
 
 ```
-"Where is this device?"
-├─ Living Room
-├─ Bedroom
-├─ Kitchen
-├─ Bathroom
-└─ [Custom]
-```
-
-Choose appropriate location (e.g., "Living Room")
-
-### Step 6: Confirm Device Name
-
-```
-"What would you like to call this device?"
-
-[Mini-Split AC]  ← Default name
-or customize...
-```
-
-You can rename to:
-- "AC Unit"
-- "Bedroom AC"
-- "Living Room Mini-Split"
-- Anything descriptive
-
-### Step 7: Wait for Commissioning
-
-Device will:
-1. Receive commissioning request via BLE
-2. Join Matter fabric
-3. Establish connection to hub
-4. Register in SmartThings network
-
-**Expected time:** 30-60 seconds
-
-### Step 8: Verify in App
-
-After commissioning completes:
-
-```
-SmartThings App
+Home Assistant
 └─ Devices
-   └─ [Location]
-      └─ Mini-Split AC  ← Device appears here
-         ├─ Power (On/Off)
-         ├─ Temperature (°C display)
-         ├─ Set Temperature
-         ├─ Mode (Off/Heat/Cool/Auto)
-         └─ Current Temp
+   └─ Mini-Split AC
+      ├─ Climate entity (power, mode, setpoints, current temp)
+      ├─ Room Temp / Room Humidity sensors
+      ├─ Outside Temp sensor
+      └─ Compressor load / cycling entities
 ```
 
-## Expected Controls in SmartThings
-
-Once commissioned, the device appears with:
-
-### Power Control
-```
-On / Off
-├─ Currently: ON
-└─ Tap to toggle
-```
-
-### Temperature Display
-```
-Current Temperature
-├─ Reading: 22.5°C
-└─ Updates every ~30 seconds
-```
-
-### Temperature Setpoint
-```
-Set Temperature
-├─ Current: 22°C
-├─ Slider: 15°C - 30°C
-└─ Increments: 0.5°C
-```
-
-### Mode Selection
-```
-Thermostat Mode
-├─ Off
-├─ Heat (heating only)
-├─ Cool (cooling only)
-├─ Auto (automatic switching)
-└─ Current: Auto
-```
+If entities are missing, this is the thing worth double-checking first — see the note at the top
+of [README.md](README.md) about HA's Matter Server not needing the SmartThings-style custom
+driver workaround (unverified, flag it if endpoints are still missing here).
 
 ## Testing Controls
 
-After commissioning:
-
 ### Test Power Control
-1. Tap "On" - device should turn on
-2. Check Tuya app - mini-split should respond
-3. Tap "Off" - device should turn off
+1. Toggle the climate entity's power in HA — device should turn on/off
+2. Check the Tuya app — mini-split should respond within the ~5s command-poll interval
 
 ### Test Temperature Setpoint
-1. Slide temperature control to 24°C
-2. Watch serial output: "HeatingSetpoint command: 2400"
-3. Check Tuya app - temperature should update
+1. Change the setpoint in HA
+2. Watch serial output: `Processing heating setpoint command: ...`
+3. Check Tuya app — temperature should update
 
 ### Test Mode Selection
-1. Tap Mode dropdown
-2. Select "Heat" mode
-3. Watch serial output: "SystemMode command: 1"
-4. Check Tuya app - mode should change
+1. Change mode in HA (Off/Heat/Cool/Auto)
+2. Watch serial output: `Processing mode command from controller: ...`
+3. Check Tuya app — mode should change
 
 ### Expected Serial Output During Control
 
 ```
-I (xxx) MATTER_DEVICE: OnOff command from SmartThings: ON
+I (xxx) MATTER_DEVICE: OnOff command from controller: ON
 I (xxx) MATTER_DEVICE: Matter OnOff updated: ON
 I (xxx) sync_task: Tuya command: Power ON
 ```
 
 ## Troubleshooting
 
-### Device Not Appearing to Scan
+### Device Not Appearing / Commissioning Hangs
 
-**Symptom:** Camera doesn't recognize code/device not showing in SmartThings discovery
+**Symptom:** HA's Matter add-device flow doesn't find the device, or times out
 
 **Solutions:**
-1. Verify serial output shows commissioning started
-2. Check WiFi connection (logs should show connected)
-3. Ensure BLE is enabled on hub and phone
-4. Restart SmartThings app and try again
-5. Check setup code/QR is correct
+1. Verify serial output shows commissioning started and BLE advertising
+2. Confirm `python-matter-server` is running and HA's Matter integration shows it connected
+3. Confirm BLE is available on the host running `python-matter-server` — this is required for
+   Thread dataset handoff, unlike a pure on-network commissioning flow
+4. Restart the HA Matter integration and retry
 
-### Commissioning Fails / "Device Did Not Respond"
+### Commissioning Starts but Thread Join Fails
 
 **Causes:**
-- Hub and device on different WiFi networks
-- BLE connection interrupted
-- Device crashed during commissioning
+- OTBR isn't running or has no Thread network formed
+- Device out of Thread radio range of OTBR/existing mesh routers
+- BLE connection interrupted mid-handoff
 
 **Solutions:**
-1. Check both hub and device on same WiFi
-2. Move hub closer to device
-3. Restart device: power cycle ESP32
-4. Check for Matter-specific errors in serial output
-5. Verify hub has Matter enabled in settings
+1. Check OTBR's web UI for an active Thread network and visible topology
+2. Move the device physically closer to the OTBR dongle (or any FTD already in the mesh) during
+   first commissioning
+3. Power-cycle the ESP32 and retry
+4. Check serial output for Matter/OpenThread-specific errors
 
 ### Device Commissioned but No Controls Work
 
 **Causes:**
-- Matter fabric joined but device endpoints missing
+- Thread joined but Tuya API calls are failing (check whether OTBR's border routing has
+  internet reachability — this app hasn't been run over Thread before, so this is the first
+  thing to suspect if it's new)
 - Tuya API credentials incorrect
 - Device offline in Tuya app
 
 **Solutions:**
 1. Verify Tuya device is online: check in Tuya app
-2. Check Tuya credentials in code
-3. Review serial logs for Tuya API errors
-4. Remove device from SmartThings and recommission
-5. Restart both hub and device
-
-### Can't See Device in SmartThings After Commissioning
-
-**Causes:**
-- Hub not properly joined
-- Device removed from network
-- Incorrect location selected
-
-**Solutions:**
-1. Go to SmartThings Settings → Hubs & Bridges
-2. Verify Matter bridge is active
-3. Check hub is online and connected
-4. Retry commissioning from beginning
+2. Check Tuya credentials in `include/secrets.h`
+3. Review serial logs for `TUYA_CLIENT` errors specifically (vs. Matter/Thread errors)
+4. Remove device from HA and recommission if the fabric itself seems stuck
 
 ## Advanced Troubleshooting
 
@@ -271,22 +177,23 @@ esp_log_level_set("esp_matter", ESP_LOG_DEBUG);
 
 Then rebuild, flash, and retry commissioning.
 
-### Check Matter Logs
+### Check Matter/Thread Logs
 
 ```bash
 # In serial monitor, look for:
 I (xxx) esp_matter: [Matter log messages]
 D (xxx) MATTER_DEVICE: [Debug output]
+I (xxx) OPENTHREAD: [OpenThread stack messages]
 ```
 
 ### Verify Device Endpoint
 
 Serial output should show:
 ```
-I (xxx) MATTER_DEVICE: Matter device initialized successfully on endpoint 1
+I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 ...
 ```
 
-If you don't see this, device initialization failed.
+If you don't see this, device initialization failed before commissioning even started.
 
 ### Manual Device Reset
 
@@ -294,13 +201,13 @@ If stuck, power-cycle ESP32:
 1. Unplug USB or power connector
 2. Wait 5 seconds
 3. Reconnect power
-4. Device will restart and restart commissioning
+4. Device will restart; already-commissioned devices should reattach to Thread within seconds
 
 ## After Commissioning
 
 ### Verify Device Works
 
-1. **Power Control:** Toggle on/off in SmartThings
+1. **Power Control:** Toggle on/off in Home Assistant
 2. **Temperature:** Adjust setpoint and watch update
 3. **Mode:** Switch between Off/Heat/Cool/Auto
 4. **Status:** Check current temperature reads
@@ -318,7 +225,7 @@ I (xxx) MATTER_DEVICE: Matter LocalTemperature updated: 2200 (22.0°C)
 
 ### Set Up Automations (Optional)
 
-Once commissioned, you can create SmartThings automations:
+Once commissioned, you can create Home Assistant automations:
 
 1. **Temperature-based:** Turn off if temp > 28°C
 2. **Schedule:** Turn on at 7 AM
@@ -341,19 +248,409 @@ If manual setup code is needed, format is:
 
 After commissioning:
 - Device joins Matter fabric
+- Home Assistant becomes controller
+- Commands routed through HA's Matter Server
+- Thread mesh formed via OTBR (required — this build has no WiFi fallback)
+
+## Next Steps After Commissioning
+
+1. ✅ Device commissioned to Home Assistant over Thread
+2. ✅ Controls verified working
+3. Power-cycle the device once to confirm it reattaches to Thread automatically (no
+   re-commissioning) — validates the "already commissioned" boot path
+4. Confirm Tuya API calls succeed reliably over several sync cycles (exercises OTBR's border
+   routing to the internet, which this app hasn't relied on before)
+
+See [PHASE2_MATTER.md](PHASE2_MATTER.md) for the underlying Matter cluster/endpoint details (note:
+written against the original WiFi build, but the cluster/endpoint content itself is unaffected by
+the transport change).
+
+## Reference Links
+
+- [Home Assistant Matter integration](https://www.home-assistant.io/integrations/matter/)
+- [python-matter-server](https://github.com/matter-js/python-matter-server)
+- [Matter Specification](https://csa-iot.org/matter_spec)
+- [ESP-Matter Commissioning](https://docs.espressif.com/projects/esp-matter/en/latest/getting_started.html)
+- [OpenThread](https://openthread.io/)
+
+## Support
+
+If you encounter issues during commissioning:
+
+1. Check logs in [PHASE2_MATTER.md](PHASE2_MATTER.md#troubleshooting)
+2. Review [MATTER_SDK_SETUP.md](MATTER_SDK_SETUP.md#troubleshooting)
+3. Enable debug logging (see "Advanced Troubleshooting" above)
+4. Check OTBR's web UI and `python-matter-server` container logs for Thread-side issues
+5. Verify all prerequisites are met
+
+Good luck with commissioning! 🎉
+
+---
+
+## Legacy: SmartThings (WiFi build)
+
+> **This section describes the original commissioning procedure, written and verified against an
+> earlier firmware build that pre-connected to WiFi with baked-in credentials, then used BLE only
+> for Matter fabric join.** The firmware has since switched to Thread as its network transport
+> (see [README.md](README.md#technical-architecture)) — Thread has no WiFi-credential equivalent,
+> so most of the WiFi-specific detail below no longer applies to the current build. Kept for
+> reference in case you're running an older build, still use the SmartThings hub for other
+> devices, or need a rollback path.
+
+This guide walks through commissioning the MiniSplit Matter Bridge to SmartThings.
+
+### Prerequisites Checklist
+
+Before attempting commissioning:
+
+- [ ] ESP32-C6 with firmware flashed
+- [ ] Device powered on and running
+- [ ] WiFi connected (check serial logs)
+- [ ] SmartThings Hub with Matter support (U8000 or Hub 3+)
+- [ ] Hub connected to same WiFi network
+- [ ] SmartThings app installed on smartphone
+- [ ] BLE enabled on hub and smartphone
+- [ ] Matter enabled in hub settings
+
+### Serial Output Verification
+
+Before commissioning, verify device is ready:
+
+```
+I (xxx) MAIN: === MiniSplit Matter Bridge Initializing ===
+I (xxx) MAIN: WiFi initialization complete
+I (xxx) TUYA_CLIENT: Tuya client initialized for device: eb11d9ff75ef37d109pihg
+I (xxx) MATTER_DEVICE: Matter device initialized successfully on endpoint 1
+I (xxx) MATTER_DEVICE: Matter commissioning started
+I (xxx) MATTER_DEVICE: Scan the QR code displayed in the Matter app to commission device
+```
+
+If you see this output, device is ready for commissioning.
+
+### Step-by-Step Commissioning
+
+#### Step 1: Open SmartThings App
+
+1. Open SmartThings app on your smartphone
+2. Tap the "+" icon (typically top-right or bottom)
+3. Select "Add Device" or "Scan Device"
+
+#### Step 2: Initiate Scanning
+
+```
+SmartThings App
+└─ "+" Menu
+   └─ "Add Device" / "Scan Device Code"
+      └─ "Use Camera"
+         └─ Point camera at QR code or setup code display
+```
+
+Expected behavior:
+- Camera screen opens
+- Device requests permission to access camera
+- Scanning indicator appears
+
+#### Step 3: Get Setup Code
+
+##### Option A: QR Code (Easiest)
+- Check ESP32 serial output for QR code display
+- Some Matter devices print QR code to serial terminal
+- Point smartphone camera at QR code
+
+##### Option B: Manual Setup Code
+- Setup code format: 8-digit number (e.g., 12345678)
+- Serial output may show: `Setup Code: 12345678`
+- Or as PIN: `123-45-678`
+- Enter manually in SmartThings app
+
+##### Option C: Cannot see QR?
+If QR code not visible in serial output:
+1. Check logs are properly configured
+2. Ensure Matter commissioning started
+3. Setup code should be available (check documentation)
+4. Ask device for setup code via serial console
+
+#### Step 4: Scan or Enter Code
+
+**If scanning QR code:**
+1. Point smartphone camera at screen/terminal
+2. Let app scan automatically
+3. It should recognize Matter device code
+
+**If entering manually:**
+1. Tap "Enter Setup Code" in SmartThings app
+2. Type 8-digit code from device
+3. Tap continue/next
+
+#### Step 5: Confirm Device Location
+
+SmartThings app will prompt:
+
+```
+"Where is this device?"
+├─ Living Room
+├─ Bedroom
+├─ Kitchen
+├─ Bathroom
+└─ [Custom]
+```
+
+Choose appropriate location (e.g., "Living Room")
+
+#### Step 6: Confirm Device Name
+
+```
+"What would you like to call this device?"
+
+[Mini-Split AC]  ← Default name
+or customize...
+```
+
+You can rename to:
+- "AC Unit"
+- "Bedroom AC"
+- "Living Room Mini-Split"
+- Anything descriptive
+
+#### Step 7: Wait for Commissioning
+
+Device will:
+1. Receive commissioning request via BLE
+2. Join Matter fabric
+3. Establish connection to hub
+4. Register in SmartThings network
+
+**Expected time:** 30-60 seconds
+
+#### Step 8: Verify in App
+
+After commissioning completes:
+
+```
+SmartThings App
+└─ Devices
+   └─ [Location]
+      └─ Mini-Split AC  ← Device appears here
+         ├─ Power (On/Off)
+         ├─ Temperature (°C display)
+         ├─ Set Temperature
+         ├─ Mode (Off/Heat/Cool/Auto)
+         └─ Current Temp
+```
+
+### Expected Controls in SmartThings
+
+Once commissioned, the device appears with:
+
+#### Power Control
+```
+On / Off
+├─ Currently: ON
+└─ Tap to toggle
+```
+
+#### Temperature Display
+```
+Current Temperature
+├─ Reading: 22.5°C
+└─ Updates every ~30 seconds
+```
+
+#### Temperature Setpoint
+```
+Set Temperature
+├─ Current: 22°C
+├─ Slider: 15°C - 30°C
+└─ Increments: 0.5°C
+```
+
+#### Mode Selection
+```
+Thermostat Mode
+├─ Off
+├─ Heat (heating only)
+├─ Cool (cooling only)
+├─ Auto (automatic switching)
+└─ Current: Auto
+```
+
+### Testing Controls
+
+After commissioning:
+
+#### Test Power Control
+1. Tap "On" - device should turn on
+2. Check Tuya app - mini-split should respond
+3. Tap "Off" - device should turn off
+
+#### Test Temperature Setpoint
+1. Slide temperature control to 24°C
+2. Watch serial output: "HeatingSetpoint command: 2400"
+3. Check Tuya app - temperature should update
+
+#### Test Mode Selection
+1. Tap Mode dropdown
+2. Select "Heat" mode
+3. Watch serial output: "SystemMode command: 1"
+4. Check Tuya app - mode should change
+
+#### Expected Serial Output During Control
+
+```
+I (xxx) MATTER_DEVICE: OnOff command from SmartThings: ON
+I (xxx) MATTER_DEVICE: Matter OnOff updated: ON
+I (xxx) sync_task: Tuya command: Power ON
+```
+
+### Troubleshooting
+
+#### Device Not Appearing to Scan
+
+**Symptom:** Camera doesn't recognize code/device not showing in SmartThings discovery
+
+**Solutions:**
+1. Verify serial output shows commissioning started
+2. Check WiFi connection (logs should show connected)
+3. Ensure BLE is enabled on hub and phone
+4. Restart SmartThings app and try again
+5. Check setup code/QR is correct
+
+#### Commissioning Fails / "Device Did Not Respond"
+
+**Causes:**
+- Hub and device on different WiFi networks
+- BLE connection interrupted
+- Device crashed during commissioning
+
+**Solutions:**
+1. Check both hub and device on same WiFi
+2. Move hub closer to device
+3. Restart device: power cycle ESP32
+4. Check for Matter-specific errors in serial output
+5. Verify hub has Matter enabled in settings
+
+#### Device Commissioned but No Controls Work
+
+**Causes:**
+- Matter fabric joined but device endpoints missing
+- Tuya API credentials incorrect
+- Device offline in Tuya app
+
+**Solutions:**
+1. Verify Tuya device is online: check in Tuya app
+2. Check Tuya credentials in code
+3. Review serial logs for Tuya API errors
+4. Remove device from SmartThings and recommission
+5. Restart both hub and device
+
+#### Can't See Device in SmartThings After Commissioning
+
+**Causes:**
+- Hub not properly joined
+- Device removed from network
+- Incorrect location selected
+
+**Solutions:**
+1. Go to SmartThings Settings → Hubs & Bridges
+2. Verify Matter bridge is active
+3. Check hub is online and connected
+4. Retry commissioning from beginning
+
+### Advanced Troubleshooting
+
+#### Enable Debug Logging
+
+In `src/main.c`:
+```c
+esp_log_level_set("MATTER_DEVICE", ESP_LOG_DEBUG);
+esp_log_level_set("esp_matter", ESP_LOG_DEBUG);
+```
+
+Then rebuild, flash, and retry commissioning.
+
+#### Check Matter Logs
+
+```bash
+# In serial monitor, look for:
+I (xxx) esp_matter: [Matter log messages]
+D (xxx) MATTER_DEVICE: [Debug output]
+```
+
+#### Verify Device Endpoint
+
+Serial output should show:
+```
+I (xxx) MATTER_DEVICE: Matter device initialized successfully on endpoint 1
+```
+
+If you don't see this, device initialization failed.
+
+#### Manual Device Reset
+
+If stuck, power-cycle ESP32:
+1. Unplug USB or power connector
+2. Wait 5 seconds
+3. Reconnect power
+4. Device will restart and restart commissioning
+
+### After Commissioning
+
+#### Verify Device Works
+
+1. **Power Control:** Toggle on/off in SmartThings
+2. **Temperature:** Adjust setpoint and watch update
+3. **Mode:** Switch between Off/Heat/Cool/Auto
+4. **Status:** Check current temperature reads
+5. **Tuya App:** Verify changes visible there too
+
+#### Monitor Integration
+
+In serial terminal, watch for:
+```
+I (xxx) sync_task: Getting device status for: eb11d9ff75ef37d109pihg
+I (xxx) TUYA_CLIENT: Device status retrieved: switch=1, temp_current=2200, temp_set=2200
+I (xxx) MATTER_DEVICE: Matter OnOff updated: ON
+I (xxx) MATTER_DEVICE: Matter LocalTemperature updated: 2200 (22.0°C)
+```
+
+#### Set Up Automations (Optional)
+
+Once commissioned, you can create SmartThings automations:
+
+1. **Temperature-based:** Turn off if temp > 28°C
+2. **Schedule:** Turn on at 7 AM
+3. **Presence:** Turn on when home
+4. **Notifications:** Alert if temp drops below 16°C
+
+### Reference: QR Code Format
+
+Matter QR code encodes:
+- Vendor ID
+- Product ID
+- Setup PIN
+- Device info
+
+If manual setup code is needed, format is:
+- 8 digits total
+- May be displayed as: XXX-XX-XXX
+
+### Reference: Matter Fabric
+
+After commissioning:
+- Device joins Matter fabric
 - Hub becomes controller
 - Commands routed through hub
 - Thread mesh formed (if available)
 - WiFi fallback (always available)
 
-## Common Setup Codes
+### Common Setup Codes
 
 If you need to manually enter a code:
 - Format: 8 digits or 3-digit-2-digit-3-digit
 - Example: 12345678 or 123-45-678
 - Check device serial output or Matter spec
 
-## Next Steps After Commissioning
+### Next Steps After Commissioning
 
 1. ✅ Device commissioned to SmartThings
 2. ✅ Controls verified working
@@ -363,14 +660,14 @@ If you need to manually enter a code:
 
 See [PHASE2_MATTER.md](PHASE2_MATTER.md) for Matter details.
 
-## Reference Links
+### Reference Links
 
 - [SmartThings Matter Support](https://support.smartthings.com)
 - [Matter Specification](https://csa-iot.org/matter_spec)
 - [ESP-Matter Commissioning](https://docs.espressif.com/projects/esp-matter/en/latest/getting_started.html)
 - [SmartThings Developer](https://developer.smartthings.com)
 
-## Support
+### Support
 
 If you encounter issues during commissioning:
 
@@ -379,5 +676,3 @@ If you encounter issues during commissioning:
 3. Enable debug logging (see "Advanced Troubleshooting" above)
 4. Check Matter SDK logs for specific errors
 5. Verify all prerequisites are met
-
-Good luck with commissioning! 🎉
