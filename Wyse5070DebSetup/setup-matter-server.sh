@@ -65,6 +65,21 @@ services:
     network_mode: host
     security_opt:
       - apparmor:unconfined
+    # --bluetooth-adapter 0 is required for BLE commissioning -- mounting
+    # /run/dbus alone is not enough. Without this flag the server starts
+    # fine but self-reports "bluetooth_enabled": false over its websocket
+    # API and silently refuses to do any BLE-based commissioning (Thread or
+    # WiFi). Confirmed on real hardware: this was missing here even though
+    # D-Bus/BlueZ were otherwise working correctly on the host.
+    #
+    # IMPORTANT: this "command:" REPLACES the image's default command
+    # entirely rather than appending to it -- so --storage-path and
+    # --paa-root-cert-dir must be repeated explicitly here too, or the
+    # server silently stops using the /data volume mount below (falls back
+    # to an ephemeral path inside the container and resets all state on
+    # every recreate). Confirmed on real hardware: a first attempt with
+    # just "--bluetooth-adapter 0" alone caused exactly that.
+    command: --storage-path /data --paa-root-cert-dir /data/credentials --bluetooth-adapter 0
     volumes:
       - ${APPDATA_ROOT}/data:/data
       - /run/dbus:/run/dbus:ro
