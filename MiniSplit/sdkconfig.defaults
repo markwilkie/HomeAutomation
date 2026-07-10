@@ -57,9 +57,14 @@ CONFIG_BT_NIMBLE_ENABLED=y
 # BLE scan from the commissioning host.
 CONFIG_CHIPOBLE_ENABLE_ADVERTISING_AUTOSTART=1
 #
-# NOTE: still need to confirm the OpenThread device role in
-# `idf.py menuconfig` -> Component config -> OpenThread. This is a
-# mains-powered device, so it should run as an FTD (Full Thread Device,
-# contributes to mesh routing) rather than MTD (child-only, for battery
-# devices) -- the exact Kconfig symbol for that wasn't verified here (no
-# ESP-IDF toolchain available in this environment to build and confirm).
+# Confirmed via real hardware: menuconfig resolved this to CONFIG_OPENTHREAD_FTD=y
+# on its own (Full Thread Device -- correct for this mains-powered device).
+
+# DNS64 client: without this, the device has no way to resolve an IPv4
+# hostname (e.g. "pool.ntp.org" for SNTP, or Tuya's API hostname later) into
+# a NAT64-synthesized address it can actually route to over Thread -- it can
+# have perfectly working NAT44/masquerade border routing on the OTBR side
+# and still fail every hostname-based connection. Confirmed missing on real
+# hardware (sdkconfig showed "# CONFIG_OPENTHREAD_DNS64_CLIENT is not set")
+# while chasing a repeated SNTP-timeout crash after Thread join succeeded.
+CONFIG_OPENTHREAD_DNS64_CLIENT=y

@@ -306,30 +306,38 @@ static void revert_from_last_status_if_available(void)
 
 /**
  * @brief Wait until system time is synchronized via SNTP
+ *
+ * Retries indefinitely rather than giving up after a fixed number of
+ * attempts. This used to ESP_ERROR_CHECK-abort (full reboot) after 20
+ * one-second retries, which -- on Thread, where NTP depends on border
+ * routing/DNS64 being fully up -- destroyed freshly-completed Matter/Thread
+ * commissioning state on every transient hiccup. A slow or temporarily
+ * unreachable NTP server should not cost the device its fabric.
  */
 static esp_err_t wait_for_time_sync(void)
 {
     time_t now = 0;
     struct tm timeinfo = {0};
-    const int max_retries = 20;
+    int retry = 0;
 
     ESP_LOGI(TAG, "Starting SNTP time sync...");
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_init();
 
-    for (int retry = 0; retry < max_retries; retry++) {
+    while (1) {
         time(&now);
         localtime_r(&now, &timeinfo);
         if (timeinfo.tm_year >= (2024 - 1900)) {
             ESP_LOGI(TAG, "Time synchronized: %s", asctime(&timeinfo));
             return ESP_OK;
         }
+        if (retry > 0 && retry % 20 == 0) {
+            ESP_LOGW(TAG, "Still waiting for SNTP time sync (%d s)...", retry);
+        }
+        retry++;
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
-
-    ESP_LOGE(TAG, "SNTP time sync timed out");
-    return ESP_ERR_TIMEOUT;
 }
 
 // ============================================================================
@@ -650,8 +658,9 @@ void app_main(void)
     }
     ESP_LOGI(TAG, "Network connectivity established");
 
-    // Tuya authentication requires valid system time.
-    ESP_ERROR_CHECK(wait_for_time_sync());
+    // Tuya authentication requires valid system time. Retries indefinitely
+    // rather than aborting -- see wait_for_time_sync() for why.
+    wait_for_time_sync();
 
     // Initialize Tuya client
     ESP_LOGI(TAG, "Initializing Tuya client...");
