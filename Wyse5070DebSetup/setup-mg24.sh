@@ -66,7 +66,25 @@ fi
 # which does not exist on this hardware (interface is named enp1s0 here).
 # Both the -e env var AND the --backbone-ifname flag are set below since
 # some image builds only honor one or the other reliably.
+#
+# NOTE on NAT64=1: without this, OTBR's own startup script (/app/script/_nat64,
+# nat64_start()) silently no-ops instead of starting NAT44/iptables MASQUERADE
+# for Thread-originated traffic -- no error, no log line, it just returns 0.
+# Result: Thread devices can join the mesh fine (radio/MLE layer works) but
+# can never reach any IPv4 internet host (NTP, cloud APIs, etc.) since there's
+# no translation path out. Confirmed on real hardware: a Matter/Thread device
+# joined the mesh successfully, then crashed on its first NTP time-sync
+# attempt because this was never enabled since this script's original
+# deployment -- the MASQUERADE rule existed (from otbr-firewall) but matched
+# 0 packets, and no nat44 process was ever running.
 echo "==> Starting OTBR container"
+# NOTE on the /var/lib/thread mount: this is where otbr-agent ACTUALLY
+# persists the Thread dataset/keys -- NOT under /data. The /data mount below
+# is otbr-agent's working directory but isn't where its dataset storage
+# lives. Confirmed the hard way on real hardware: recreating this container
+# without the /var/lib/thread mount silently lost the entire Thread network
+# (dataset, keys, everything) even though /data looked correctly persisted.
+mkdir -p "${APPDATA_ROOT}/thread"
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
@@ -74,7 +92,9 @@ docker run -d \
   --privileged \
   -v "${SERIAL_DEVICE}:/dev/ttyUSB0" \
   -v "${APPDATA_ROOT}:/data" \
+  -v "${APPDATA_ROOT}/thread:/var/lib/thread" \
   -e BACKBONE_INTERFACE="${BACKBONE_INTERFACE}" \
+  -e NAT64=1 \
   "${IMAGE}" \
   --radio-url spinel+hdlc+uart:///dev/ttyUSB0 \
   --backbone-ifname "${BACKBONE_INTERFACE}"
