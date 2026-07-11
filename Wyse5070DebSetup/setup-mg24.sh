@@ -142,6 +142,20 @@ sleep 6
 echo "==> Configuring Jool as the NAT64 gateway (replaces OTBR's own translator)"
 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-nat64-jool.sh"
 
+# ---- Watchdog: otbr-agent can crash without the container exiting ---------
+# Confirmed on real hardware: an RCP/radio communication timeout killed
+# otbr-agent internally while the container's own entrypoint script (PID 1)
+# kept running, so `--restart unless-stopped` never triggered (Docker only
+# restarts on PID 1 exit) -- the container showed "Up" for hours with no
+# actual Thread daemon inside it. Separately, any otbr-agent restart -- this
+# crash, a plain `docker restart`, or a host reboot -- re-enables OTBR's own
+# broken NAT64 translator by default, undoing setup-nat64-jool.sh above,
+# since that's in-process runtime state. setup-otbr-watchdog.sh installs a
+# persistent service that checks otbr-agent is actually responsive (not just
+# "container is Up") and reapplies the Jool override after every restart.
+echo "==> Installing the otbr-agent watchdog (crash detection + Jool reapplication)"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup-otbr-watchdog.sh"
+
 echo ""
 echo "==> Container status:"
 docker ps --filter "name=${CONTAINER_NAME}"
