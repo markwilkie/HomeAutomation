@@ -83,10 +83,12 @@ void matter_update_cooling_setpoint(int16_t temp_c);
 void matter_update_system_mode(uint8_t mode);
 
 /**
- * @brief Update the standalone Temperature Sensor endpoint value
+ * @brief Update the standalone (BME280) indoor Temperature Sensor endpoint value
  *
- * Exposed to SmartThings as a Temperature Measurement capability, usable as a
- * routine trigger/condition independent of the thermostat's LocalTemperature.
+ * This is the BME280's own indoor reading -- deliberately separate from the
+ * mini-split's indoor reading on the Thermostat's LocalTemperature
+ * (matter_update_local_temperature). Only called from env_task, and only when
+ * a BME280 is present; there is no Tuya fallback onto this endpoint.
  *
  * @param temp_c Temperature in Celsius (×100, e.g., 2200 = 22°C)
  */
@@ -108,50 +110,34 @@ void matter_update_aux_humidity(uint16_t humidity_centi_pct);
  * Writes to two places:
  * - Thermostat PICoolingDemand/PIHeatingDemand sub-attributes (spec-correct,
  *   but SmartThings does not render them in its Thermostat UI).
- * - A dedicated dimmable_light-style endpoint: OnOff reflects whether the
- *   compressor is actually running (percent > 0), Level reflects load
- *   0-100% scaled to Matter's 0-254 range. This is the one that actually
- *   shows up in the SmartThings app.
+ * - A dedicated Humidity Sensor endpoint, repurposed for its %RH x100 scale
+ *   (an exact, unscaled match for 0-100%) -- see matter_update_compressor_running()
+ *   for the actual running state, which lives on its own endpoint.
  *
  * @param percent 0-100
  */
 void matter_update_compressor_demand(uint8_t percent);
 
 /**
- * @brief Update rolling 8h/24h average compressor load
+ * @brief Update whether the compressor is currently running
  *
- * Written to two more dedicated LevelControl endpoints (0-254, same scaling
- * as matter_update_compressor_demand), one per window. The custom SmartThings
- * driver maps these onto its "Load Last 8h"/"Load Last 24h" components.
+ * Written to a dedicated Occupancy Sensor endpoint rather than bundled onto
+ * the load-percent endpoint's OnOff attribute -- that would render in Home
+ * Assistant as an actionable (but non-functional) light toggle. An Occupancy
+ * Sensor endpoint instead renders as a read-only binary_sensor (Detected/Clear)
+ * with full state history, which is what this actually is.
  *
- * @param avg8h_percent 0-100, average load over the last 8 hours
- * @param avg24h_percent 0-100, average load over the last 24 hours
+ * A Contact Sensor (BooleanState cluster) endpoint was tried first and is the
+ * more semantically fitting device type, but confirmed on real hardware that
+ * this esp-matter/connectedhomeip version has migrated BooleanState's
+ * StateValue attribute to a newer C++ cluster class whose live value bypasses
+ * esp_matter's generic attribute store -- attribute::update() against it
+ * fails with ESP_ERR_NOT_SUPPORTED. OccupancySensing's Occupancy attribute is
+ * still on the classic attribute-store path in this SDK version, so it works.
+ *
+ * @param running true if compressor_frequency > 0
  */
-void matter_update_compressor_demand_history(uint8_t avg8h_percent, uint8_t avg24h_percent);
-
-/**
- * @brief Update compressor cycling stats
- *
- * A "cycle" is a complete round trip (off->on->off or on->off->on) -- a
- * single state change alone does not count. Written as raw counts (not
- * percentages) to two more dedicated LevelControl endpoints.
- *
- * @param cycles_moving_window Cycles completed in the trailing 60 minutes (true sliding window)
- * @param cycles_max_24h Highest cycles-in-a-single-hour seen over the last 24 hours
- */
-void matter_update_compressor_cycles(uint8_t cycles_moving_window, uint8_t cycles_max_24h);
-
-/**
- * @brief Update how long the compressor has been in its current on/off state
- *
- * Written as a raw (unscaled) integer number of minutes to a dedicated
- * TemperatureMeasurement-repurposed endpoint -- deliberately NOT the usual
- * x100 Celsius encoding, since this isn't a temperature. The custom
- * SmartThings driver reads it as-is.
- *
- * @param minutes Minutes since the compressor's on/off state last changed
- */
-void matter_update_compressor_state_duration(uint16_t minutes);
+void matter_update_compressor_running(bool running);
 
 /**
  * @brief Update outdoor ambient temperature from the Tuya ure DP

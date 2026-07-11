@@ -91,3 +91,14 @@ CONFIG_OPENTHREAD_DNS64_CLIENT=y
 # non-WiFi build) -- both settings below must change together.
 CONFIG_OPENTHREAD_SRP_CLIENT=y
 # CONFIG_USE_MINIMAL_MDNS is not set
+
+# Device identity: VendorName/ProductName on the Basic Information cluster
+# are NOT backed by esp_matter's attribute store -- connectedhomeip's
+# BasicInformationCluster.cpp reads them directly from the
+# CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME/_PRODUCT_NAME macros via
+# DeviceInstanceInfoProvider, so an attribute::update() call at runtime is a
+# silent no-op. Confirmed on real hardware: Home Assistant showed the device
+# as "TEST_PRODUCT" despite matter_device.cpp explicitly updating those
+# attributes. The only way to actually change them is this project config
+# header, which connectedhomeip includes via CHIP_PROJECT_CONFIG_INCLUDE.
+CONFIG_CHIP_PROJECT_CONFIG="include/chip_project_config.h"

@@ -64,8 +64,24 @@ rather than reading `valueint` directly.
 > **Scale correction:** the product spec's `typeSpec` claims `compressor_frequency` is ×10-scaled
 > (max 1500 = 150.0Hz). Live data contradicts this: on 2026-07-05, `compressor_frequency` and
 > `outdoor_comptar_freqrun` both read **14** simultaneously — the same raw, unscaled Hz value.
-> Treat `compressor_frequency` as raw Hz (max ~150) to match observed behavior, not the spec's
-> stated scale. The firmware (`src/main.c`, `COMPRESSOR_FREQUENCY_MAX`) uses 150.
+> Treat `compressor_frequency` as raw Hz, not the spec's stated scale.
+>
+> **Load% ceiling:** the typeSpec's 150Hz max is the shared product-family ceiling, not
+> necessarily this specific unit's real achievable max (the DP schema is shared across a whole
+> hardware family — see the top of this doc). Calibrated instead against this unit's observed
+> operating bands:
+>
+> | Band | `compressor_frequency` | Resulting load% (÷130 ceiling) |
+> |---|---|---|
+> | Idle/low | ~15–25Hz | ~12–19% |
+> | Steady-state (rated cooling) | ~50–70Hz | ~38–54% |
+> | Boost/turbo | ~90–130Hz | ~69–100% |
+> | Rare turbo spike | up to ~150Hz briefly | clips at 100% |
+>
+> The firmware (`src/main.c`, `COMPRESSOR_FREQUENCY_MAX`) uses **130Hz** — the typical top of the
+> boost/turbo band — as the ceiling, so the 0-100% gauge reads intuitively across all three
+> regimes; occasional brief spikes above 130Hz simply clip at 100% rather than skewing the whole
+> scale. Adjust if logged values suggest a different typical ceiling.
 
 ## Fan & Airflow
 
@@ -188,51 +204,66 @@ Precooling, Sleep) are logged and ignored rather than sent.
 
 ### Matter endpoint layout
 
-`src/matter_device.cpp` exposes 10 endpoints (fixed, hardcoded — this bridge only ever manages
-this one physical device, so there's no dynamic endpoint discovery):
+`src/matter_device.cpp` exposes 6 endpoints (fixed, hardcoded — this bridge only ever manages
+this one physical device, so there's no dynamic endpoint discovery). Full mapping, verified
+against a live serial capture (attribute writes logged by `esp_matter_attribute`):
 
-| Endpoint | Clusters | Source | Notes |
-|---|---|---|---|
-| 1 (root) | OnOff, Thermostat | `switch_state`, `temp_current`, `temp_set`, `ac_mode` | Main AC control |
-| 2 | TemperatureMeasurement | `temp_current` (or BME280 if fitted) | "Room Temp" |
-| 3 | RelativeHumidityMeasurement | BME280 only (frozen at 50% placeholder if not fitted) | "Room Humidity" |
-| 4 | TemperatureMeasurement | `ure` | "Outside Temp" |
-| 5 | OnOff, LevelControl | `compressor_frequency` → 0–100% | Current compressor load |
-| 6 | OnOff, LevelControl | 8h rolling average of endpoint 5's load | `load_history_average(8)` |
-| 7 | OnOff, LevelControl | 24h rolling average of endpoint 5's load | `load_history_average(24)` |
-| 8 | OnOff, LevelControl | Cycles in trailing 60 min (RAW count, not %) | `compressor_cycles_moving_window()` |
-| 9 | OnOff, LevelControl | Max cycles/hr over last 24h (RAW count, not %) | `compressor_cycles_max_24h()` |
-| 10 | TemperatureMeasurement | Minutes in current on/off state (RAW, not x100°C) | `compressor_time_in_state_minutes()` |
+| EP | Matter device type | Cluster (hex ID) | Attribute (hex ID) | Real data source | HA entity (rename suggestion) |
+|---|---|---|---|---|---|
+| 1 (root) | Thermostat | OnOff (0x0006) | OnOff (0x0000) | Tuya `switch` | Climate on/off |
+| 1 | Thermostat | Thermostat (0x0201) | LocalTemperature (0x0000) | Tuya `temp_current` — **mini-split's own indoor reading** | Climate current temp |
+| 1 | | | OccupiedCoolingSetpoint (0x0011) | Tuya `temp_set` | Climate cool setpoint |
+| 1 | | | OccupiedHeatingSetpoint (0x0012) | Tuya `temp_set` | Climate heat setpoint |
+| 1 | | | SystemMode (0x001C) | Tuya `mode` (mapped) | Climate mode |
+| 1 | | | PICoolingDemand (0x0007) | `compressor_frequency` → 0–100% | Not rendered by SmartThings; may or may not surface in HA |
+| 1 | | | PIHeatingDemand (0x0008) | Always 0 | (unused — no heating-side compressor demand tracked) |
+| 1 | | | OutdoorTemperature (0x0001) | Tuya `ure` | Sub-attribute; the *real* rendered copy is endpoint 4 |
+| 2 | Temperature Sensor | TemperatureMeasurement (0x0402) | MeasuredValue (0x0000) | **BME280** indoor reading (no Tuya fallback) | `sensor.*` "Room Temp" |
+| 3 | Humidity Sensor | RelativeHumidityMeasurement (0x0405) | MeasuredValue (0x0000) | **BME280** humidity | `sensor.*` "Room Humidity" |
+| 4 | Temperature Sensor | TemperatureMeasurement (0x0402) | MeasuredValue (0x0000) | Tuya `ure` — **mini-split's own outdoor reading** | `sensor.*` "Outside Temp" |
+| 5 | Humidity Sensor *(repurposed)* | RelativeHumidityMeasurement (0x0405) | MeasuredValue (0x0000) | `compressor_frequency` → 0–100%, encoded as %RH×100 | Shows as "Humidity" — **rename to "Compressor Load"** |
+| 6 | Occupancy Sensor *(repurposed)* | OccupancySensing (0x0406) | Occupancy (0x0000, bit 0) | `compressor_frequency` > 0 | Shows as "Occupancy" — **rename to "Compressor Running"** |
 
-Endpoints 5–7 also write the load percentage to the Thermostat cluster's `PICoolingDemand`
+Three distinct temperatures, to avoid conflating them: **indoor (mini-split)** = EP1
+`LocalTemperature`, **indoor (BME280)** = EP2, **outdoor (mini-split)** = EP4.
+
+Endpoint 5's percentage is also written to the Thermostat cluster's `PICoolingDemand`
 sub-attribute (endpoint 1 only, current load) per spec, but that's dead weight for SmartThings
-specifically — see the custom-driver note below. Endpoints 8/9/10 repurpose their clusters for
-raw (unscaled) values rather than their spec-defined meaning — the custom driver's Lua handlers
-know to branch on endpoint ID to avoid misinterpreting them as a percentage or a real temperature.
+specifically — see the custom-driver note below.
 
-The 8h/24h load averages (`main.c`, `load_history_record_sample()` / `load_history_average()`)
-are a 24-slot ring buffer of hourly averages, updated once per hour from the running accumulator
-of 30s samples — not a true continuous sliding window, but close enough for "how hard has it
-been working" and far cheaper than storing 2880 raw samples for a 24h window.
+Endpoints 5 and 6 both deliberately avoid Matter's "dimmable light" / "on-off light" device
+types, even though LevelControl and OnOff would be the spec-literal fit for a percentage and a
+boolean, respectively. Both are read-only telemetry with no command handler behind them, and a
+light/switch device type renders in Home Assistant as something actionable — misleading, since
+toggling or dimming it does nothing. Instead:
+- Endpoint 5 repurposes RelativeHumidityMeasurement: its native %RH x100 scale is an exact,
+  unscaled match for 0-100%, and it's a plain read-only `sensor.*` in HA with full numeric
+  history.
+- Endpoint 6 repurposes OccupancySensing (Occupancy Sensor device type): a plain read-only
+  `binary_sensor.*` in HA with full on/off history, no actionable toggle.
 
-**Compressor cycling** (`compressor_cycle_track()` and friends): a "cycle" is counted on the
-**leading edge only** — the compressor turning **on** (`off→on`). Turning back off is not itself
-a second cycle; only the off→on transition starts one. Two different windows are tracked:
-- **Moving window** (endpoint 8): a true sliding 60-minute window over a 64-slot ring buffer of
-  off→on timestamps, recomputed live on every poll — not hour-bucketed like the load average.
-- **Max cycles/24h** (endpoint 9): each wall-clock hour's off→on count is pushed into its own
-  24-slot hourly ring buffer (independent of the load-history buckets, on its own hour boundary);
-  this endpoint reports the max across those 24 buckets.
+  A Contact Sensor (BooleanState cluster) endpoint was tried first — a better semantic fit — but
+  confirmed on real hardware to fail: this esp-matter/connectedhomeip version has migrated
+  BooleanState's StateValue attribute to a newer C++ cluster class (`BooleanStateCluster`) whose
+  live value bypasses esp_matter's generic attribute store entirely, so `attribute::update()`
+  against it returns `ESP_ERR_NOT_SUPPORTED` (`ATTRIBUTE_FLAG_MANAGED_INTERNALLY`,
+  `esp_matter_data_model.cpp`'s `set_val_internal()`). It's technically possible to reach the live
+  `BooleanStateCluster` instance via `esp_matter::data_model::provider::get_instance().registry().Get()`
+  and `static_cast` it, calling `SetStateValue()` directly, but that couples to an SDK
+  implementation detail esp_matter doesn't document as a supported extension point — every other
+  endpoint in this file goes through `attribute::update()`, so OccupancySensing (which is still on
+  that classic path in this SDK version) was used instead for consistency.
 
-**Time in state** (endpoint 10): minutes since `compressor_pct > 0` last flipped, regardless of
-cycle completion — this is a plain duration, unrelated to the cycle counters above.
+Both need a manual rename in Home Assistant (they'll show up labeled "Humidity" and
+"Occupancy"/Detected-Clear respectively) -- same workaround already used elsewhere in this project
+for repurposed clusters (see `ARCHITECTURE.md`).
 
 ### Legacy: SmartThings requires the custom Edge Driver
 
 **This device now targets Home Assistant, not SmartThings** — see
 [README.md](README.md#minisplit-matter-bridge) and
 [COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md). HA's Matter Server (`python-matter-server`)
-doesn't do CSA-certified fingerprint matching the way SmartThings does, so it should expose all 10
+doesn't do CSA-certified fingerprint matching the way SmartThings does, so it should expose all 6
 endpoints natively with no custom driver needed — **unverified, worth double-checking on first
 commission**. The rest of this section is kept for the legacy SmartThings path (e.g. if the hub
 is still around for other devices).

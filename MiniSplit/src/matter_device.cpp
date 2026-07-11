@@ -121,21 +121,13 @@ static endpoint_t *g_temp_sensor_endpoint = nullptr;
 static endpoint_t *g_humidity_sensor_endpoint = nullptr;
 static endpoint_t *g_outdoor_temp_sensor_endpoint = nullptr;
 static endpoint_t *g_compressor_endpoint = nullptr;
-static endpoint_t *g_compressor_avg8h_endpoint = nullptr;
-static endpoint_t *g_compressor_avg24h_endpoint = nullptr;
-static endpoint_t *g_compressor_cycles_endpoint = nullptr;
-static endpoint_t *g_compressor_cycles_max24h_endpoint = nullptr;
-static endpoint_t *g_compressor_state_duration_endpoint = nullptr;
+static endpoint_t *g_compressor_running_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
 static uint16_t g_temp_sensor_endpoint_id = 0;
 static uint16_t g_humidity_sensor_endpoint_id = 0;
 static uint16_t g_outdoor_temp_sensor_endpoint_id = 0;
 static uint16_t g_compressor_endpoint_id = 0;
-static uint16_t g_compressor_avg8h_endpoint_id = 0;
-static uint16_t g_compressor_avg24h_endpoint_id = 0;
-static uint16_t g_compressor_cycles_endpoint_id = 0;
-static uint16_t g_compressor_cycles_max24h_endpoint_id = 0;
-static uint16_t g_compressor_state_duration_endpoint_id = 0;
+static uint16_t g_compressor_running_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
 
@@ -236,10 +228,23 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Seed the cluster with real initial values at creation time rather than
+    // relying on the update_attr() calls below -- those go through
+    // update_attr_on_endpoint(), which no-ops until g_started is true, and
+    // g_started isn't set until matter_start_commissioning() runs later.
+    // Without this, a commissioner's very first read sees esp_matter's
+    // built-in defaults: system_mode=Auto (1) despite this endpoint never
+    // advertising the AutoMode feature (only Heat+Cool), which is a spec
+    // violation a Matter controller can reasonably refuse to act on --
+    // plausible root cause for setpoints showing as read-only in HA.
     endpoint::thermostat::config_t endpoint_cfg;
     endpoint_cfg.thermostat.feature_flags =
         cluster::thermostat::feature::heating::get_id() |
         cluster::thermostat::feature::cooling::get_id();
+    endpoint_cfg.thermostat.system_mode = g_matter_state.system_mode;
+    endpoint_cfg.thermostat.local_temperature = nullable<int16_t>(g_matter_state.current_temp);
+    endpoint_cfg.thermostat.features.heating.occupied_heating_setpoint = g_matter_state.heating_setpoint;
+    endpoint_cfg.thermostat.features.cooling.occupied_cooling_setpoint = g_matter_state.cooling_setpoint;
     g_endpoint = endpoint::thermostat::create(g_node, &endpoint_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_endpoint) {
         ESP_LOGE(TAG, "Failed to create Thermostat endpoint");
@@ -311,95 +316,52 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
-    // Compressor status/load endpoint. Matter has no dedicated cluster for
-    // "compressor load percentage", so this repurposes a dimmable_light
-    // endpoint (OnOff + LevelControl, both well-supported SmartThings
-    // capabilities) with real semantics: OnOff = compressor actually running
-    // (compressor_frequency > 0), Level = load 0-100% scaled to 0-254.
-    endpoint::dimmable_light::config_t compressor_cfg;
-    compressor_cfg.level_control.current_level = nullable<uint8_t>((uint8_t)0);
-    g_compressor_endpoint = endpoint::dimmable_light::create(g_node, &compressor_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    // Compressor load endpoint. Matter has no dedicated cluster for
+    // "percent load," so this repurposes a Humidity Sensor endpoint:
+    // RelativeHumidityMeasurement's native %RH x100 scale is an exact,
+    // unscaled match for a 0-100% reading, and -- unlike LevelControl -- it's
+    // a plain read-only measurement, not something Home Assistant renders as
+    // an actionable slider.
+    endpoint::humidity_sensor::config_t compressor_demand_cfg;
+    compressor_demand_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>((uint16_t)0);
+    g_compressor_endpoint = endpoint::humidity_sensor::create(g_node, &compressor_demand_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_compressor_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Compressor endpoint");
+        ESP_LOGE(TAG, "Failed to create Compressor Demand endpoint");
         return ESP_FAIL;
     }
     g_compressor_endpoint_id = endpoint::get_id(g_compressor_endpoint);
     if (!g_compressor_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Compressor endpoint id");
+        ESP_LOGE(TAG, "Failed to resolve Compressor Demand endpoint id");
         return ESP_FAIL;
     }
 
-    // Rolling 8h/24h average compressor load. Same dimmable_light-repurposing
-    // pattern as the current-load endpoint above; only Level is meaningful
-    // here (OnOff is left unused).
-    endpoint::dimmable_light::config_t compressor_avg8h_cfg;
-    compressor_avg8h_cfg.level_control.current_level = nullable<uint8_t>((uint8_t)0);
-    g_compressor_avg8h_endpoint = endpoint::dimmable_light::create(g_node, &compressor_avg8h_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_compressor_avg8h_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Compressor 8h Average endpoint");
+    // Compressor running state. Originally a Contact Sensor (BooleanState
+    // cluster) endpoint, but confirmed on real hardware that BooleanState's
+    // StateValue attribute in this esp-matter/connectedhomeip version has
+    // been migrated to a newer C++ "codegen v2" cluster class
+    // (BooleanStateCluster::SetStateValue()) whose live value bypasses
+    // esp_matter's generic attribute store entirely -- attribute::update()
+    // against it fails with ESP_ERR_NOT_SUPPORTED
+    // (ATTRIBUTE_FLAG_MANAGED_INTERNALLY, see esp_matter_data_model.cpp's
+    // set_val_internal()), and esp_matter exposes no public accessor to the
+    // registered cluster instance to call SetStateValue() directly. Occupancy
+    // Sensor's OccupancySensing.Occupancy attribute is still on the classic
+    // attribute-store path (ATTRIBUTE_FLAG_NONE) in this SDK version, so it
+    // actually works with attribute::update() -- used instead. Still renders
+    // in Home Assistant as a read-only binary_sensor (Detected/Clear) with
+    // full history, not something the user can (fruitlessly) toggle.
+    endpoint::occupancy_sensor::config_t compressor_running_cfg;
+    compressor_running_cfg.occupancy_sensing.occupancy = 0;
+    compressor_running_cfg.occupancy_sensing.occupancy_sensor_type = 0;
+    compressor_running_cfg.occupancy_sensing.feature_flags = cluster::occupancy_sensing::feature::other::get_id();
+    g_compressor_running_endpoint = endpoint::occupancy_sensor::create(g_node, &compressor_running_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_compressor_running_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Compressor Running endpoint");
         return ESP_FAIL;
     }
-    g_compressor_avg8h_endpoint_id = endpoint::get_id(g_compressor_avg8h_endpoint);
-    if (!g_compressor_avg8h_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Compressor 8h Average endpoint id");
-        return ESP_FAIL;
-    }
-
-    endpoint::dimmable_light::config_t compressor_avg24h_cfg;
-    compressor_avg24h_cfg.level_control.current_level = nullable<uint8_t>((uint8_t)0);
-    g_compressor_avg24h_endpoint = endpoint::dimmable_light::create(g_node, &compressor_avg24h_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_compressor_avg24h_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Compressor 24h Average endpoint");
-        return ESP_FAIL;
-    }
-    g_compressor_avg24h_endpoint_id = endpoint::get_id(g_compressor_avg24h_endpoint);
-    if (!g_compressor_avg24h_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Compressor 24h Average endpoint id");
-        return ESP_FAIL;
-    }
-
-    // Compressor cycling stats. Cycle counts are raw counts (not percentages),
-    // still carried via LevelControl for consistency with the endpoints above.
-    endpoint::dimmable_light::config_t compressor_cycles_cfg;
-    compressor_cycles_cfg.level_control.current_level = nullable<uint8_t>((uint8_t)0);
-    g_compressor_cycles_endpoint = endpoint::dimmable_light::create(g_node, &compressor_cycles_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_compressor_cycles_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Compressor Cycles endpoint");
-        return ESP_FAIL;
-    }
-    g_compressor_cycles_endpoint_id = endpoint::get_id(g_compressor_cycles_endpoint);
-    if (!g_compressor_cycles_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Compressor Cycles endpoint id");
-        return ESP_FAIL;
-    }
-
-    endpoint::dimmable_light::config_t compressor_cycles_max24h_cfg;
-    compressor_cycles_max24h_cfg.level_control.current_level = nullable<uint8_t>((uint8_t)0);
-    g_compressor_cycles_max24h_endpoint = endpoint::dimmable_light::create(g_node, &compressor_cycles_max24h_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_compressor_cycles_max24h_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Compressor Cycles Max24h endpoint");
-        return ESP_FAIL;
-    }
-    g_compressor_cycles_max24h_endpoint_id = endpoint::get_id(g_compressor_cycles_max24h_endpoint);
-    if (!g_compressor_cycles_max24h_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Compressor Cycles Max24h endpoint id");
-        return ESP_FAIL;
-    }
-
-    // Time-in-state (minutes). Repurposes a temperature_sensor endpoint for its
-    // wide-range int16 attribute -- LevelControl's 0-254 range can't hold hours
-    // of minutes. The value is written raw (not x100 Celsius-scaled); the
-    // custom SmartThings driver knows to read this specific endpoint as-is.
-    endpoint::temperature_sensor::config_t compressor_state_duration_cfg;
-    compressor_state_duration_cfg.temperature_measurement.measured_value = nullable<int16_t>((int16_t)0);
-    g_compressor_state_duration_endpoint = endpoint::temperature_sensor::create(g_node, &compressor_state_duration_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_compressor_state_duration_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Compressor State Duration endpoint");
-        return ESP_FAIL;
-    }
-    g_compressor_state_duration_endpoint_id = endpoint::get_id(g_compressor_state_duration_endpoint);
-    if (!g_compressor_state_duration_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Compressor State Duration endpoint id");
+    g_compressor_running_endpoint_id = endpoint::get_id(g_compressor_running_endpoint);
+    if (!g_compressor_running_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Compressor Running endpoint id");
         return ESP_FAIL;
     }
 
@@ -425,34 +387,17 @@ extern "C" esp_err_t matter_device_init(void)
                             TemperatureMeasurement::Attributes::MeasuredValue::Id,
                             esp_matter_nullable_int16(nullable<int16_t>()));
     update_attr_on_endpoint(g_compressor_endpoint, g_compressor_endpoint_id,
-                            OnOff::Id, OnOff::Attributes::OnOff::Id,
-                            esp_matter_bool(false));
-    update_attr_on_endpoint(g_compressor_endpoint, g_compressor_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>((uint8_t)0)));
-    update_attr_on_endpoint(g_compressor_avg8h_endpoint, g_compressor_avg8h_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>((uint8_t)0)));
-    update_attr_on_endpoint(g_compressor_avg24h_endpoint, g_compressor_avg24h_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>((uint8_t)0)));
-    update_attr_on_endpoint(g_compressor_cycles_endpoint, g_compressor_cycles_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>((uint8_t)0)));
-    update_attr_on_endpoint(g_compressor_cycles_max24h_endpoint, g_compressor_cycles_max24h_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>((uint8_t)0)));
-    update_attr_on_endpoint(g_compressor_state_duration_endpoint, g_compressor_state_duration_endpoint_id,
-                            TemperatureMeasurement::Id,
-                            TemperatureMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_int16(nullable<int16_t>((int16_t)0)));
+                            RelativeHumidityMeasurement::Id,
+                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_uint16(nullable<uint16_t>((uint16_t)0)));
+    update_attr_on_endpoint(g_compressor_running_endpoint, g_compressor_running_endpoint_id,
+                            OccupancySensing::Id, OccupancySensing::Attributes::Occupancy::Id,
+                            esp_matter_bitmap8(0));
 
-    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_avg8h_ep=%u compressor_avg24h_ep=%u compressor_cycles_ep=%u compressor_cycles_max24h_ep=%u compressor_state_duration_ep=%u",
+    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u",
              g_endpoint_id, g_temp_sensor_endpoint_id,
              g_humidity_sensor_endpoint_id, g_outdoor_temp_sensor_endpoint_id, g_compressor_endpoint_id,
-             g_compressor_avg8h_endpoint_id, g_compressor_avg24h_endpoint_id,
-             g_compressor_cycles_endpoint_id, g_compressor_cycles_max24h_endpoint_id,
-             g_compressor_state_duration_endpoint_id);
+             g_compressor_running_endpoint_id);
     return ESP_OK;
 }
 
@@ -494,28 +439,14 @@ extern "C" esp_err_t matter_start_commissioning(void)
 
     g_started = true;
 
-    // VendorName/ProductName are created with a NULL initial value by
-    // esp_matter's root_node::create() (there's no config_t field for them,
-    // unlike node_label), so the Basic Information cluster falls back to
-    // connectedhomeip's compiled-in example-app defaults --
-    // CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME/_PRODUCT_NAME, literally
-    // "TEST_VENDOR"/"TEST_PRODUCT" -- unless explicitly set here. (VendorId/
-    // ProductId are left at 0xFFF1/0x8000, the CSA's reserved test range --
-    // correct for an uncertified DIY device, not part of this fix.)
-    {
-        endpoint_t *root_endpoint = endpoint::get(g_node, 0);
-        cluster_t *basic_info_cluster = root_endpoint ? cluster::get(root_endpoint, BasicInformation::Id) : nullptr;
-        if (basic_info_cluster) {
-            static char vendor_name[] = "Wilkie Home";
-            static char product_name[] = "Mini-Split AC Bridge";
-            esp_matter_attr_val_t vendor_val = esp_matter_char_str(vendor_name, strlen(vendor_name));
-            esp_matter_attr_val_t product_val = esp_matter_char_str(product_name, strlen(product_name));
-            attribute::update(0, BasicInformation::Id, BasicInformation::Attributes::VendorName::Id, &vendor_val);
-            attribute::update(0, BasicInformation::Id, BasicInformation::Attributes::ProductName::Id, &product_val);
-        } else {
-            ESP_LOGW(TAG, "BasicInformation cluster not found; vendor/product name unavailable");
-        }
-    }
+    // VendorName/ProductName: NOT set here. connectedhomeip's
+    // BasicInformationCluster.cpp reads them directly from
+    // CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME/_PRODUCT_NAME via
+    // DeviceInstanceInfoProvider, bypassing esp_matter's attribute store
+    // entirely -- an attribute::update() call here is a silent no-op
+    // (confirmed on real hardware: HA still showed "TEST_PRODUCT" despite
+    // this code running). See include/chip_project_config.h, wired in via
+    // CONFIG_CHIP_PROJECT_CONFIG in sdkconfig.defaults, for the actual fix.
 
     chip::RendezvousInformationFlags rendezvous_flags(chip::RendezvousInformationFlag::kBLE);
     PrintOnboardingCodes(rendezvous_flags);
@@ -568,54 +499,21 @@ extern "C" void matter_update_compressor_demand(uint8_t percent)
     update_attr(Thermostat::Id, Thermostat::Attributes::PICoolingDemand::Id, esp_matter_uint8(percent));
     update_attr(Thermostat::Id, Thermostat::Attributes::PIHeatingDemand::Id, esp_matter_uint8(0));
 
-    // Dedicated endpoint: the pattern SmartThings actually displays.
-    // OnOff = compressor actually running; Level = load, scaled to Matter's 0-254 range.
-    uint8_t level = (uint8_t)(((uint16_t)percent * 254) / 100);
+    // Dedicated endpoint: a Humidity Sensor repurposed for its %RH x100 scale
+    // (an exact match for 0-100%, no rescaling needed). Running state is a
+    // separate endpoint -- see matter_update_compressor_running().
     update_attr_on_endpoint(g_compressor_endpoint, g_compressor_endpoint_id,
-                            OnOff::Id, OnOff::Attributes::OnOff::Id,
-                            esp_matter_bool(percent > 0));
-    update_attr_on_endpoint(g_compressor_endpoint, g_compressor_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>(level)));
+                            RelativeHumidityMeasurement::Id,
+                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_uint16(nullable<uint16_t>((uint16_t)(percent * 100))));
 }
 
-extern "C" void matter_update_compressor_demand_history(uint8_t avg8h_percent, uint8_t avg24h_percent)
+extern "C" void matter_update_compressor_running(bool running)
 {
-    if (avg8h_percent > 100) {
-        avg8h_percent = 100;
-    }
-    if (avg24h_percent > 100) {
-        avg24h_percent = 100;
-    }
-    uint8_t level_8h = (uint8_t)(((uint16_t)avg8h_percent * 254) / 100);
-    uint8_t level_24h = (uint8_t)(((uint16_t)avg24h_percent * 254) / 100);
-    update_attr_on_endpoint(g_compressor_avg8h_endpoint, g_compressor_avg8h_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>(level_8h)));
-    update_attr_on_endpoint(g_compressor_avg24h_endpoint, g_compressor_avg24h_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>(level_24h)));
-}
-
-extern "C" void matter_update_compressor_cycles(uint8_t cycles_moving_window, uint8_t cycles_max_24h)
-{
-    // Raw counts, not percentages -- no 0-100 scaling to Matter's 0-254 range.
-    // Realistic values (even for a badly short-cycling unit) are well under 254.
-    update_attr_on_endpoint(g_compressor_cycles_endpoint, g_compressor_cycles_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>(cycles_moving_window)));
-    update_attr_on_endpoint(g_compressor_cycles_max24h_endpoint, g_compressor_cycles_max24h_endpoint_id,
-                            LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id,
-                            esp_matter_nullable_uint8(nullable<uint8_t>(cycles_max_24h)));
-}
-
-extern "C" void matter_update_compressor_state_duration(uint16_t minutes)
-{
-    int16_t value = (minutes > 32767) ? 32767 : (int16_t)minutes;
-    update_attr_on_endpoint(g_compressor_state_duration_endpoint, g_compressor_state_duration_endpoint_id,
-                            TemperatureMeasurement::Id,
-                            TemperatureMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_int16(nullable<int16_t>(value)));
+    // OccupancySensing's Occupancy is a bitmap8; bit 0 = Occupied.
+    update_attr_on_endpoint(g_compressor_running_endpoint, g_compressor_running_endpoint_id,
+                            OccupancySensing::Id, OccupancySensing::Attributes::Occupancy::Id,
+                            esp_matter_bitmap8(running ? 1 : 0));
 }
 
 extern "C" void matter_update_outdoor_temperature(int16_t temp_c)
@@ -714,21 +612,13 @@ extern "C" void matter_device_deinit(void)
     g_humidity_sensor_endpoint = nullptr;
     g_outdoor_temp_sensor_endpoint = nullptr;
     g_compressor_endpoint = nullptr;
-    g_compressor_avg8h_endpoint = nullptr;
-    g_compressor_avg24h_endpoint = nullptr;
-    g_compressor_cycles_endpoint = nullptr;
-    g_compressor_cycles_max24h_endpoint = nullptr;
-    g_compressor_state_duration_endpoint = nullptr;
+    g_compressor_running_endpoint = nullptr;
     g_endpoint_id = 0;
     g_temp_sensor_endpoint_id = 0;
     g_humidity_sensor_endpoint_id = 0;
     g_outdoor_temp_sensor_endpoint_id = 0;
     g_compressor_endpoint_id = 0;
-    g_compressor_avg8h_endpoint_id = 0;
-    g_compressor_avg24h_endpoint_id = 0;
-    g_compressor_cycles_endpoint_id = 0;
-    g_compressor_cycles_max24h_endpoint_id = 0;
-    g_compressor_state_duration_endpoint_id = 0;
+    g_compressor_running_endpoint_id = 0;
     g_started = false;
     ESP_LOGI(TAG, "Matter device deinitialized");
 }
