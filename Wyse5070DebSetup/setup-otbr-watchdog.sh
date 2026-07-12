@@ -113,7 +113,25 @@ sudo tee "${SERVICE_FILE}" > /dev/null <<EOF
 [Unit]
 Description=Watch otbr-agent for RCP/radio crashes and reapply the Jool NAT64 override after any restart
 After=docker.service
-Requires=docker.service
+# Deliberately NOT "Requires=docker.service" -- confirmed on real hardware
+# that Requires= causes a plain "systemctl stop docker.service" (e.g. for
+# host maintenance, like setup-containerd-storage.sh) to cascade-stop this
+# watchdog too, and unlike a crash, nothing then restarts it once docker
+# comes back -- NAT64 silently drifted to Active/Active for the entire time
+# the watchdog was down and unnoticed. After= alone keeps this service
+# running through a docker stop/start; its own polling loop already
+# tolerates docker being transiently unavailable (a failed docker exec is
+# treated the same as otbr being unresponsive, retried next cycle) and
+# self-heals once docker is back for real.
+#
+# NOTE ON THIS HEREDOC: it's intentionally unquoted (<<EOF, not <<'EOF') so
+# ${SCRIPT_PATH} below expands -- which also means backticks ANYWHERE in
+# this block trigger real command substitution. Confirmed the hard way: an
+# earlier draft of the comment above quoted a systemctl command in
+# backticks, and bash actually ran that command while writing this file (it
+# failed harmlessly only because it lacked a real sudo TTY). Do not put
+# backticks anywhere in this heredoc, including in comments -- use plain
+# quotes instead.
 
 [Service]
 Type=simple

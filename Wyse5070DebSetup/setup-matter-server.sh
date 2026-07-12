@@ -88,7 +88,7 @@ services:
     # BLUETOOTH_ADAPTER is what actually enables BLE support in matterjs-server
     # itself (matches python-matter-server's old --bluetooth-adapter flag
     # 1:1) -- without it, BLE stays off entirely regardless of NOBLE_BINDINGS.
-    # NOBLE_BINDINGS=dbus separately tells the underlying `noble` BLE library
+    # NOBLE_BINDINGS=dbus separately tells the underlying "noble" BLE library
     # to talk to the adapter via BlueZ/D-Bus instead of a raw HCI socket
     # (which would otherwise require running this container as root).
     # Confirmed on real hardware: NOBLE_BINDINGS alone left the server
