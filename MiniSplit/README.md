@@ -16,7 +16,7 @@ A Matter-compliant ESP32 device that bridges Tuya mini-split AC control to Home 
 - ESP32-C6 development board (RISC-V) — has the on-die 802.15.4 radio this needs for Thread
 - **ESP-IDF v5.4.1** — do **NOT** use 6.x (it removed the bundled `json` component)
 - Tuya mini-split AC unit with IoT module
-- Home Assistant (Container install) with the `python-matter-server` container running —
+- Home Assistant (Container install) with the `matterjs-server` container running —
   see `../Wyse5070DebSetup/setup-matter-server.sh`, and BlueZ running on that host for BLE
   commissioning — see `../Wyse5070DebSetup/setup-bluetooth.sh`
 - An OpenThread Border Router (OTBR) on the same network — see
@@ -293,7 +293,7 @@ before you start digging:
   undiscoverable to the commissioner's final "operational discovery" step, if
   `CONFIG_OPENTHREAD_SRP_CLIENT` isn't enabled — see
   [that section](COMMISSIONING_GUIDE.md#device-joins-thread-and-works-fine-but-commissioning-never-completes-operational-discovery-timeout).
-- `python-matter-server` needs its Thread credentials re-pushed after every restart/reboot before
+- `matterjs-server` needs its Thread credentials re-pushed after every restart/reboot before
   it can commission *new* Thread devices — automated via
   `../Wyse5070DebSetup/setup-thread-credentials-sync.sh`, see
   [that section](COMMISSIONING_GUIDE.md#cant-commission-a-new-device-even-though-an-existing-one-still-works).
@@ -315,7 +315,7 @@ before you start digging:
 - **Matter Spec**: https://csa-iot.org/matter_spec
 - **ESP-Matter SDK**: https://github.com/espressif/esp-matter
 - **Home Assistant Matter integration**: https://www.home-assistant.io/integrations/matter/
-- **python-matter-server**: https://github.com/matter-js/python-matter-server
+- **matterjs-server**: https://github.com/matter-js/matterjs-server
 - **SmartThings** (legacy path): https://developer.smartthings.com
 - **ESP-IDF**: https://docs.espressif.com
 

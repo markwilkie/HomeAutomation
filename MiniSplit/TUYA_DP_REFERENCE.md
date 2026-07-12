@@ -231,7 +231,7 @@ cycle completion — this is a plain duration, unrelated to the cycle counters a
 
 **This device now targets Home Assistant, not SmartThings** — see
 [README.md](README.md#minisplit-matter-bridge) and
-[COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md). HA's Matter Server (`python-matter-server`)
+[COMMISSIONING_GUIDE.md](COMMISSIONING_GUIDE.md). HA's Matter Server (`matterjs-server`)
 doesn't do CSA-certified fingerprint matching the way SmartThings does, so it should expose all 10
 endpoints natively with no custom driver needed — **unverified, worth double-checking on first
 commission**. The rest of this section is kept for the legacy SmartThings path (e.g. if the hub

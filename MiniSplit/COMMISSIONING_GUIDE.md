@@ -24,17 +24,17 @@ Before attempting commissioning:
       `docker exec otbr sh -c "ot-ctl nat64 state"` (should show `Disabled` for both — OTBR's own
       translator is deliberately turned off in favor of Jool, see
       [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
-- [ ] BlueZ running on whatever host runs `python-matter-server` — see
+- [ ] BlueZ running on whatever host runs `matterjs-server` — see
       `../Wyse5070DebSetup/setup-bluetooth.sh`. Needed to hand the Thread dataset to the device
-      during BLE commissioning; `python-matter-server`'s own websocket server-info message should
+      during BLE commissioning; `matterjs-server`'s own websocket server-info message should
       show `"bluetooth_enabled": true`
-- [ ] `python-matter-server` has the Thread network's credentials loaded — check its websocket
+- [ ] `matterjs-server` has the Thread network's credentials loaded — check its websocket
       server-info message for `"thread_credentials_set": true`. **This resets to `false` on every
-      `python-matter-server` restart** (including a host reboot) and silently blocks Thread
+      `matterjs-server` restart** (including a host reboot) and silently blocks Thread
       commissioning until re-pushed — see `../Wyse5070DebSetup/setup-thread-credentials-sync.sh`,
       which does this automatically via a systemd service, but verify it's actually `enabled`
       (`systemctl is-enabled thread-credentials-sync.service`) if you're setting this up fresh.
-- [ ] Home Assistant running (Container install) with the `python-matter-server` container up —
+- [ ] Home Assistant running (Container install) with the `matterjs-server` container up —
       see `../Wyse5070DebSetup/setup-matter-server.sh`
 - [ ] Matter integration added in Home Assistant (Settings → Devices & Services → Add
       Integration → Matter), pointed at `ws://localhost:5580/ws`
@@ -210,7 +210,7 @@ but **requires `idf.py fullclean`** to actually take effect — see the note bel
 newly-flashed) Thread device fails immediately, often without the device even progressing past
 BLE.
 
-**Cause:** `python-matter-server`'s own knowledge of the Thread network's credentials
+**Cause:** `matterjs-server`'s own knowledge of the Thread network's credentials
 (`thread_credentials_set` in its websocket server-info message) lives only in memory and resets
 to `false` on every container restart — including after a host reboot. This doesn't affect
 already-commissioned devices (Thread network operation is entirely between the device and OTBR,
@@ -263,8 +263,8 @@ succeed)
 
 **Solutions:**
 1. Verify serial output shows commissioning started and BLE advertising
-2. Confirm `python-matter-server` is running and HA's Matter integration shows it connected
-3. Confirm BLE is available on the host running `python-matter-server` (see Prerequisites above)
+2. Confirm `matterjs-server` is running and HA's Matter integration shows it connected
+3. Confirm BLE is available on the host running `matterjs-server` (see Prerequisites above)
 4. Restart the HA Matter integration and retry
 
 ### Commissioning Starts but Thread Join Fails
@@ -403,7 +403,7 @@ the transport change).
 ## Reference Links
 
 - [Home Assistant Matter integration](https://www.home-assistant.io/integrations/matter/)
-- [python-matter-server](https://github.com/matter-js/python-matter-server)
+- [matterjs-server](https://github.com/matter-js/matterjs-server)
 - [Matter Specification](https://csa-iot.org/matter_spec)
 - [ESP-Matter Commissioning](https://docs.espressif.com/projects/esp-matter/en/latest/getting_started.html)
 - [OpenThread](https://openthread.io/)
@@ -415,7 +415,7 @@ If you encounter issues during commissioning:
 1. Check logs in [PHASE2_MATTER.md](PHASE2_MATTER.md#troubleshooting)
 2. Review [MATTER_SDK_SETUP.md](MATTER_SDK_SETUP.md#troubleshooting)
 3. Enable debug logging (see "Advanced Troubleshooting" above)
-4. Check OTBR's web UI and `python-matter-server` container logs for Thread-side issues
+4. Check OTBR's web UI and `matterjs-server` container logs for Thread-side issues
 5. Verify all prerequisites are met
 
 Good luck with commissioning! 🎉

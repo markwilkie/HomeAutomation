@@ -18,12 +18,17 @@
 #
 # This script fetches the current active dataset from OTBR (`ot-ctl dataset
 # active -x`) and pushes it to matter-server's own websocket API
-# (`set_thread_dataset`), executed via `docker exec matter-server python3`
+# (`set_thread_dataset`), executed via `docker exec homeassistant python3`
 # since that container already ships aiohttp -- no extra image/install
-# needed.
+# needed. (Previously this ran inside the matter-server container itself,
+# back when it was python-matter-server -- matterjs-server, its 2026-07-12
+# replacement, is a Node.js image with no python3 inside, so the script now
+# borrows HA's own Python environment instead. Both containers use host
+# networking, so ws://127.0.0.1:5580/ws is reachable from either one.)
 #
-# PREREQUISITE: both the otbr and matter-server containers must already be
-# running (setup-mg24.sh and setup-matter-server.sh).
+# PREREQUISITE: the otbr, matter-server, and homeassistant containers must
+# all already be running (setup-mg24.sh, setup-matter-server.sh,
+# setup-homeassistant.sh).
 #
 # Usage:
 #   ./setup-thread-credentials-sync.sh          # apply now (also installs a
@@ -34,6 +39,7 @@ set -euo pipefail
 
 OTBR_CONTAINER="otbr"
 MATTER_SERVER_CONTAINER="matter-server"
+PYTHON_EXEC_CONTAINER="homeassistant"
 
 echo "==> Waiting for otbr to have an active Thread dataset..."
 DATASET_HEX=""
@@ -54,7 +60,7 @@ echo "==> Got active dataset (${#DATASET_HEX} hex chars)"
 
 echo "==> Waiting for matter-server's websocket API to be reachable..."
 for i in $(seq 1 30); do
-  if docker exec "${MATTER_SERVER_CONTAINER}" python3 -c "
+  if docker exec "${PYTHON_EXEC_CONTAINER}" python3 -c "
 import socket
 s = socket.create_connection(('127.0.0.1', 5580), timeout=2)
 s.close()
@@ -65,7 +71,7 @@ s.close()
 done
 
 echo "==> Pushing dataset to matter-server"
-docker exec "${MATTER_SERVER_CONTAINER}" python3 -c "
+docker exec "${PYTHON_EXEC_CONTAINER}" python3 -c "
 import asyncio, json, aiohttp, sys
 
 DATASET_HEX = '${DATASET_HEX}'
@@ -84,7 +90,7 @@ asyncio.run(main())
 "
 
 echo "==> Verifying thread_credentials_set is now true"
-docker exec "${MATTER_SERVER_CONTAINER}" python3 -c "
+docker exec "${PYTHON_EXEC_CONTAINER}" python3 -c "
 import asyncio, json, aiohttp
 
 async def main():

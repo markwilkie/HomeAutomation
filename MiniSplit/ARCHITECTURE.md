@@ -109,6 +109,69 @@ standard Matter device types literally, which surfaced two classes of presentati
   manually in Home Assistant (Settings → Devices & Services → Entities — persists locally,
   zero firmware risk) or treat them as not yet HA-presentable.
 
+## otbr-agent Reliability: Watchdog + USB Power Fix
+
+otbr-agent crashed 7 times in ~30 hours on real hardware (`radio tx timeout` → `Failed to
+communicate with RCP` → `HandleRcpTimeout()`/`RadioSpinelNoResponse`, including a burst of 4
+crashes within about 2 hours), while the container itself stayed "Up" the whole time — its
+entrypoint script (PID 1) doesn't exit or restart otbr-agent internally when the RCP link dies, so
+Docker's own `--restart unless-stopped` policy never triggers (it only fires on PID 1 exiting).
+`Wyse5070DebSetup/setup-otbr-watchdog.sh` installs `otbr-watchdog.service`, which polls
+`ot-ctl state` every 30s (actual responsiveness, not just "container is Up"), restarts the
+container if the daemon's dead, and reapplies the Jool NAT64 override afterward — since *any*
+otbr-agent restart (this crash, a plain `docker restart`, a host reboot) re-enables OTBR's own
+broken translator by default, undoing the fix above. Verified on real hardware: a real crash caused
+NAT64 to drift to `Active`/`Active`, and the watchdog reverted it to `Disabled`/`Disabled`
+unattended within one poll cycle.
+
+Root cause investigation (`docker logs otbr --timestamps`, `lsusb -t`, sysfs `power/control`) traced
+this to USB autosuspend: the RCP (`/dev/ttyUSB0`, a CP210x) sits behind an internal hub, and both
+the hub and the host's root USB2 controller had `power/control=auto` (autosuspend-eligible) even
+though the leaf device itself already had it disabled. An idle-suspended hub's wake-up latency for a
+time-sensitive spinel radio transaction plausibly exceeds OpenThread's RCP response deadline —
+matching the crash signature and its bursty-then-quiet pattern. `setup-otbr-usb-power.sh` installs a
+udev rule forcing `power/control=on` for the whole chain. This is the same class of bug reported
+widely upstream — [ot-br-posix#1193](https://github.com/openthread/ot-br-posix/issues/1193),
+[#2635](https://github.com/openthread/ot-br-posix/issues/2635) — across multiple RCP chip vendors
+with no confirmed upstream fix, so treat the watchdog (fast, automatic recovery) as the real
+mitigation and the USB fix as "may reduce frequency," not a guaranteed cure.
+
+## Matter Server: matterjs-server, Not python-matter-server
+
+`python-matter-server` (what `setup-matter-server.sh` originally deployed) was archived by Home
+Assistant on 2026-06-23; the version this project ran, 8.1.2, is confirmed as its final release —
+it will never be updated again. HA replaced it with **matterjs-server** (a TypeScript/matter.js
+rewrite, shipped alongside HA Core 2026.7) as a same-WebSocket-API drop-in, specifically for
+"greater stability... fewer bugs, and faster start-up and recovery." That directly targeted a real
+symptom this project hit: after an otbr blip, the primary Thermostat subscription recovered within
+seconds, but secondary endpoints (aux temp, humidity, outdoor temp, heating demand) stayed
+`unavailable` in Home Assistant for hours — confirmed via Home Assistant's own recorder database,
+with gaps of up to 15 hours lining up almost exactly with otbr's crash timeline.
+
+Migrated 2026-07-12: same `/data` volume, same fabric ID (`compressed_fabric_id` unchanged),
+existing devices reconnected with no recommissioning. One real fix needed along the way:
+matterjs-server requires `BLUETOOTH_ADAPTER=0` to actually *enable* BLE (matches
+python-matter-server's old `--bluetooth-adapter` flag 1:1) — `NOBLE_BINDINGS=dbus` alone only
+selects the D-Bus backend but leaves BLE off entirely, logged as "BLE is disabled" even with D-Bus
+and a powered-on adapter working fine on the host. Because the new server is Node.js-based (no
+`python3` inside), `setup-thread-credentials-sync.sh` now runs its websocket push via the
+`homeassistant` container instead of `matter-server` itself.
+
+## Host Infrastructure Notes (wilkie-home-server)
+
+Two host-level issues surfaced while investigating the above, unrelated to MiniSplit specifically
+but load-bearing for the whole stack's reliability — see the scripts for full writeups:
+- **Root disk (13GB eMMC) was 100% full.** Docker's own `data-root` was already correctly
+  configured to the 234GB SATA drive at `/mnt/data/docker`, but containerd (the runtime underneath
+  Docker, which actually stores image/container filesystem layers) had a separate, never-migrated
+  config still defaulting to `/var/lib/containerd` on the eMMC. Fixed via
+  `Wyse5070DebSetup/setup-containerd-storage.sh` (moves containerd's `root` to
+  `/mnt/data/containerd`); root disk went from 100% to 46% used.
+- **Swap was nearly exhausted** (789Mi/789Mi used) on a host with only 3.7GB RAM, on a small
+  (~800MB) partition on the same eMMC. `Wyse5070DebSetup/setup-swap.sh` replaces it with a 4GB
+  swapfile on the SATA drive — more headroom, and moves that write-heavy I/O off the eMMC, which has
+  meaningfully lower write endurance than the SATA drive.
+
 ## Device Capabilities (from Tuya API)
 
 ### Status Properties

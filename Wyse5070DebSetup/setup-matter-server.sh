@@ -2,12 +2,22 @@
 #
 # setup-matter-server.sh
 #
-# Deploys python-matter-server via Docker Compose on the Wyse 5070 home
+# Deploys matterjs-server via Docker Compose on the Wyse 5070 home
 # automation server. This is the Matter *controller/commissioning* stack --
 # it is separate from OTBR (setup-otbr.sh), which only provides Thread
 # network connectivity. HA's Container install does not bundle Matter
 # support, so this runs as its own container that HA's Matter integration
 # connects to over a websocket.
+#
+# python-matter-server (what this used to deploy) was archived by Home
+# Assistant on 2026-06-23; version 8.1.2 (what we were running) is its final
+# release and will never be updated again. HA replaced it with matterjs-server
+# (a TypeScript/matter.js rewrite, shipped alongside HA Core 2026.7) as a
+# same-WebSocket-API drop-in, specifically for "greater stability... fewer
+# bugs, and faster start-up and recovery" -- directly targeting the same
+# multi-hour secondary-endpoint staleness this project hit after otbr blips
+# (see ARCHITECTURE.md / MiniSplit's HA-presentation notes). Migrated here on
+# 2026-07-12; existing /data is reused and auto-migrated on first start.
 #
 # PREREQUISITE: Home Assistant must already be running (see
 # setup-homeassistant.sh). After this script finishes, add the integration
@@ -23,6 +33,13 @@
 # won't be possible from this server (existing devices already on Matter
 # fabrics are unaffected).
 #
+# PERMISSIONS: unlike python-matter-server (which ran as root by default),
+# matterjs-server runs as an unprivileged UID 1000 inside the container. Its
+# /data files must be readable/writable by UID 1000 on the host, or the
+# server will fail to read the migrated fabric/credentials data. This script
+# chowns APPDATA_ROOT/data to 1000:1000 before starting -- needs sudo the
+# first time it touches files still owned by the old root-run container.
+#
 # Usage:
 #   ./setup-matter-server.sh
 #
@@ -36,7 +53,7 @@ set -euo pipefail
 APPDATA_ROOT="/mnt/data/appdata/matter-server"
 COMPOSE_DIR="${APPDATA_ROOT}"
 CONTAINER_NAME="matter-server"
-IMAGE="ghcr.io/matter-js/python-matter-server:stable"
+IMAGE="ghcr.io/matter-js/matterjs-server:stable"
 WEBSOCKET_PORT="5580"
 # -----------------------------------------------------------------------------
 
@@ -55,6 +72,9 @@ fi
 echo "==> Creating appdata directory: ${APPDATA_ROOT}/data"
 mkdir -p "${APPDATA_ROOT}/data"
 
+echo "==> Ensuring ${APPDATA_ROOT}/data is owned by UID 1000 (matterjs-server runs unprivileged)"
+sudo chown -R 1000:1000 "${APPDATA_ROOT}/data"
+
 echo "==> Writing docker-compose.yml to ${COMPOSE_DIR}..."
 cat > "${COMPOSE_DIR}/docker-compose.yml" <<EOF
 services:
@@ -65,21 +85,21 @@ services:
     network_mode: host
     security_opt:
       - apparmor:unconfined
-    # --bluetooth-adapter 0 is required for BLE commissioning -- mounting
-    # /run/dbus alone is not enough. Without this flag the server starts
-    # fine but self-reports "bluetooth_enabled": false over its websocket
-    # API and silently refuses to do any BLE-based commissioning (Thread or
-    # WiFi). Confirmed on real hardware: this was missing here even though
-    # D-Bus/BlueZ were otherwise working correctly on the host.
+    # BLUETOOTH_ADAPTER is what actually enables BLE support in matterjs-server
+    # itself (matches python-matter-server's old --bluetooth-adapter flag
+    # 1:1) -- without it, BLE stays off entirely regardless of NOBLE_BINDINGS.
+    # NOBLE_BINDINGS=dbus separately tells the underlying `noble` BLE library
+    # to talk to the adapter via BlueZ/D-Bus instead of a raw HCI socket
+    # (which would otherwise require running this container as root).
+    # Confirmed on real hardware: NOBLE_BINDINGS alone left the server
+    # logging "BLE is disabled" / "BLE is not enabled on this platform" even
+    # with D-Bus and a powered-on adapter working fine on the host.
     #
-    # IMPORTANT: this "command:" REPLACES the image's default command
-    # entirely rather than appending to it -- so --storage-path and
-    # --paa-root-cert-dir must be repeated explicitly here too, or the
-    # server silently stops using the /data volume mount below (falls back
-    # to an ephemeral path inside the container and resets all state on
-    # every recreate). Confirmed on real hardware: a first attempt with
-    # just "--bluetooth-adapter 0" alone caused exactly that.
-    command: --storage-path /data --paa-root-cert-dir /data/credentials --bluetooth-adapter 0
+    # Unlike python-matter-server's old command override, STORAGE_PATH
+    # already defaults to /data -- no need to repeat it here.
+    environment:
+      - NOBLE_BINDINGS=dbus
+      - BLUETOOTH_ADAPTER=0
     volumes:
       - ${APPDATA_ROOT}/data:/data
       - /run/dbus:/run/dbus:ro
