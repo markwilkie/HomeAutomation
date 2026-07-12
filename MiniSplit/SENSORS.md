@@ -11,6 +11,22 @@ automations; this was true of SmartThings on the [legacy
 path](COMMISSIONING_GUIDE.md#legacy-smartthings-wifi-build) and is the reason
 these dedicated endpoints exist at all).
 
+## Three distinct temperatures
+
+It's easy to conflate these, so to be explicit — the device exposes three
+separate temperature readings, from two different physical sensors:
+
+| Reading | Source | Where it lives |
+|---|---|---|
+| Indoor (mini-split) | The Tuya mini-split's own internal sensor (`temp_current`) | Endpoint 1 (root), Thermostat cluster's `LocalTemperature` |
+| Indoor (BME280) | The optional BME280 wired to the ESP32 | Endpoint 2, standalone Temperature Sensor (`matter_update_aux_temperature`) |
+| Outdoor (mini-split) | The Tuya mini-split's outdoor unit sensor (`ure` DP) | Endpoint 4, standalone Temperature Sensor (`matter_update_outdoor_temperature`) |
+
+The indoor BME280 endpoint is **not** a fallback/mirror of the mini-split's indoor
+reading — it is always the BME280's own value, and only updates while a BME280 is
+detected. If no BME280 is fitted, that endpoint simply stays at its default and the
+mini-split's own indoor reading remains available via the Thermostat (endpoint 1).
+
 ## Matter endpoints
 
 The device publishes these endpoints (IDs are assigned at init and printed in the
@@ -18,16 +34,17 @@ boot log):
 
 | Endpoint | Matter device type | Cluster / attribute | Exposed as |
 |----------|--------------------|---------------------|------------|
-| Thermostat | Thermostat (0x0301) | On/Off, Thermostat | Thermostat / AC controls |
-| Light | On/Off Light | OnOff | Switch (aux light) |
-| Beep | On/Off Light | OnOff | Switch (aux beep) |
-| **Temperature Sensor** | Temperature Sensor (0x0302) | `TemperatureMeasurement.MeasuredValue` | **Temperature Measurement** |
-| **Humidity Sensor** | Humidity Sensor (0x0307) | `RelativeHumidityMeasurement.MeasuredValue` | **Relative Humidity Measurement** |
+| 1 (root) | Thermostat (0x0301) | On/Off, Thermostat | Thermostat / AC controls; indoor temp from the mini-split |
+| **2** | Temperature Sensor (0x0302) | `TemperatureMeasurement.MeasuredValue` | **Temperature Measurement** — indoor temp from the BME280 |
+| **3** | Humidity Sensor (0x0307) | `RelativeHumidityMeasurement.MeasuredValue` | **Relative Humidity Measurement** — from the BME280 |
+| 4 | Temperature Sensor (0x0302) | `TemperatureMeasurement.MeasuredValue` | Outdoor temp from the mini-split |
+| 5 | Humidity Sensor (repurposed) | `RelativeHumidityMeasurement.MeasuredValue` (%RH x100, exact match for 0-100%) | Compressor load %, see [TUYA_DP_REFERENCE.md](TUYA_DP_REFERENCE.md) |
+| 6 | Occupancy Sensor (repurposed) | `OccupancySensing.Occupancy` (bit 0) | Compressor running (binary_sensor in HA, rename from "Occupancy"/Detected-Clear as desired) |
 
 Boot log line (endpoint IDs will vary):
 
 ```
-MATTER_DEVICE: Matter device initialized: thermostat_ep=1 light_ep=2 beep_ep=3 temp_sensor_ep=4 humidity_sensor_ep=5
+MATTER_DEVICE: Matter device initialized: thermostat_ep=1 temp_sensor_ep=2 humidity_sensor_ep=3 outdoor_temp_sensor_ep=4 compressor_ep=5 compressor_running_ep=6
 ```
 
 ### Units
@@ -99,10 +116,11 @@ bool      bme280_is_present(void);            // true after a successful init
   `env_task` FreeRTOS task is started.
 - `env_task` reads the BME280 every `ENV_POLL_INTERVAL_MS` (30 s) and calls
   `matter_update_aux_temperature()` and `matter_update_aux_humidity()`.
-- **Fallback:** if no BME280 is detected (`bme280_is_present()` is false), the
-  temperature-sensor endpoint instead mirrors the Tuya indoor temperature
-  (`temp_current`) from the normal status sync. The humidity endpoint stays at its
-  default in that case.
+- This Temperature Sensor endpoint is dedicated to the BME280's own indoor reading —
+  it is deliberately kept separate from the mini-split's own indoor reading (which
+  lives on the Thermostat's `LocalTemperature`, endpoint 1) so the two never get
+  conflated. If no BME280 is fitted, this endpoint simply stays unset/default; there
+  is no fallback to the Tuya reading.
 
 Example boot log when the sensor is present:
 

@@ -60,7 +60,14 @@ static int16_t normalize_tuya_setpoint(int16_t temp_c)
 // but live readings show it reporting the same raw, unscaled Hz value as
 // outdoor_comptar_freqrun (max 150) -- e.g. both read 14 simultaneously. Treat it
 // as raw Hz to match observed behavior rather than the spec's stated scale.
-#define COMPRESSOR_FREQUENCY_MAX 150
+//
+// 150Hz is the shared product-family typeSpec ceiling, not this unit's real
+// operating range. Calibrated instead against this unit's observed bands
+// (idle/low ~15-25Hz, steady-state rated cooling ~50-70Hz, boost/turbo
+// ~90-130Hz, occasionally spiking toward 150Hz briefly) so the resulting
+// percentage reads intuitively: idle/low ~12-19%, steady-state ~38-54%,
+// boost/turbo ~69-100%. Rare spikes above 130Hz simply clip at 100%.
+#define COMPRESSOR_FREQUENCY_MAX 130
 
 static uint8_t compressor_demand_percent(const tuya_device_status_t *device_status)
 {
@@ -72,158 +79,6 @@ static uint8_t compressor_demand_percent(const tuya_device_status_t *device_stat
         freq = COMPRESSOR_FREQUENCY_MAX;
     }
     return (uint8_t)((freq * 100) / COMPRESSOR_FREQUENCY_MAX);
-}
-
-// ---- Compressor load history (rolling 8h/24h averages) ----
-// A ring buffer of hourly averages, not a continuous sliding window -- accurate
-// enough for "how hard has it been working," far cheaper than storing every
-// 30s sample (2880 of them for 24h) on an embedded device.
-#define LOAD_HISTORY_HOURS 24
-#define LOAD_HISTORY_BUCKET_MS (60UL * 60UL * 1000UL)
-
-static uint8_t g_load_history[LOAD_HISTORY_HOURS];
-static uint8_t g_load_history_count = 0;  // valid buckets so far, caps at 24
-static uint8_t g_load_history_index = 0;  // next bucket slot to write
-static uint32_t g_load_accum_sum = 0;
-static uint32_t g_load_accum_samples = 0;
-static uint32_t g_load_bucket_start_ms = 0;
-
-static void load_history_record_sample(uint8_t percent)
-{
-    uint32_t now_ms = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
-    if (g_load_accum_samples == 0) {
-        g_load_bucket_start_ms = now_ms;
-    }
-    g_load_accum_sum += percent;
-    g_load_accum_samples++;
-
-    // Unsigned subtraction is wraparound-safe even if now_ms has overflowed
-    // since g_load_bucket_start_ms was recorded.
-    if (now_ms - g_load_bucket_start_ms >= LOAD_HISTORY_BUCKET_MS) {
-        g_load_history[g_load_history_index] = (uint8_t)(g_load_accum_sum / g_load_accum_samples);
-        g_load_history_index = (uint8_t)((g_load_history_index + 1) % LOAD_HISTORY_HOURS);
-        if (g_load_history_count < LOAD_HISTORY_HOURS) {
-            g_load_history_count++;
-        }
-        g_load_accum_sum = 0;
-        g_load_accum_samples = 0;
-        g_load_bucket_start_ms = now_ms;
-    }
-}
-
-// hours: how many of the most recent hourly buckets to average (8 or 24).
-// Returns 0 if fewer than one full hour of history has been recorded yet.
-static uint8_t load_history_average(uint8_t hours)
-{
-    uint8_t n = (hours < g_load_history_count) ? hours : g_load_history_count;
-    if (n == 0) {
-        return 0;
-    }
-    uint32_t sum = 0;
-    for (uint8_t i = 0; i < n; i++) {
-        uint8_t idx = (uint8_t)((g_load_history_index + LOAD_HISTORY_HOURS - 1 - i) % LOAD_HISTORY_HOURS);
-        sum += g_load_history[idx];
-    }
-    return (uint8_t)(sum / n);
-}
-
-// ---- Compressor cycle tracking ----
-// A "cycle" is counted on the leading edge only: the compressor turning ON
-// (off->on). Turning back off does not itself count as a second cycle --
-// only the off->on transition is a cycle start.
-#define CYCLE_WINDOW_MS (60UL * 60UL * 1000UL)  // 1 hour, both for the moving window and hourly buckets
-#define CYCLE_TRANSITION_BUFFER_SIZE 64          // ample headroom; >64 cycles/hour would be a failing unit
-#define CYCLE_HOURLY_HISTORY_HOURS 24
-
-static uint32_t g_transition_times[CYCLE_TRANSITION_BUFFER_SIZE];  // off->on timestamps only
-static uint8_t g_transition_write_index = 0;
-static uint8_t g_transition_stored_count = 0;
-
-static uint8_t g_cycle_hourly_history[CYCLE_HOURLY_HISTORY_HOURS];  // cycle starts per hour
-static uint8_t g_cycle_hourly_history_count = 0;
-static uint8_t g_cycle_hourly_history_index = 0;
-static uint32_t g_cycle_hourly_transitions = 0;
-static uint32_t g_cycle_hourly_bucket_start_ms = 0;
-
-static bool g_compressor_running = false;
-static bool g_compressor_state_known = false;
-static uint32_t g_compressor_state_change_ms = 0;
-
-static void compressor_cycle_track(bool running)
-{
-    uint32_t now_ms = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
-
-    if (!g_compressor_state_known) {
-        g_compressor_running = running;
-        g_compressor_state_known = true;
-        g_compressor_state_change_ms = now_ms;
-        g_cycle_hourly_bucket_start_ms = now_ms;
-        return;
-    }
-
-    if (running != g_compressor_running) {
-        if (running) {
-            // Leading edge (off->on) only -- this is what counts as a cycle.
-            g_transition_times[g_transition_write_index] = now_ms;
-            g_transition_write_index = (uint8_t)((g_transition_write_index + 1) % CYCLE_TRANSITION_BUFFER_SIZE);
-            if (g_transition_stored_count < CYCLE_TRANSITION_BUFFER_SIZE) {
-                g_transition_stored_count++;
-            }
-            g_cycle_hourly_transitions++;
-        }
-
-        g_compressor_running = running;
-        g_compressor_state_change_ms = now_ms;
-    }
-
-    // This bucket rolls over on its own hour boundary, independent of the
-    // compressor-load history bucket above.
-    if (now_ms - g_cycle_hourly_bucket_start_ms >= CYCLE_WINDOW_MS) {
-        g_cycle_hourly_history[g_cycle_hourly_history_index] = (uint8_t)g_cycle_hourly_transitions;
-        g_cycle_hourly_history_index = (uint8_t)((g_cycle_hourly_history_index + 1) % CYCLE_HOURLY_HISTORY_HOURS);
-        if (g_cycle_hourly_history_count < CYCLE_HOURLY_HISTORY_HOURS) {
-            g_cycle_hourly_history_count++;
-        }
-        g_cycle_hourly_transitions = 0;
-        g_cycle_hourly_bucket_start_ms = now_ms;
-    }
-}
-
-// True sliding window: off->on cycle starts in the trailing 60 minutes, as of now.
-static uint8_t compressor_cycles_moving_window(void)
-{
-    uint32_t now_ms = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
-    uint32_t in_window = 0;
-    for (uint8_t i = 0; i < g_transition_stored_count; i++) {
-        // Unsigned subtraction is wraparound-safe for elapsed durations under ~49 days.
-        if (now_ms - g_transition_times[i] <= CYCLE_WINDOW_MS) {
-            in_window++;
-        }
-    }
-    return (uint8_t)in_window;
-}
-
-// Highest cycles-in-a-single-hour seen across the last 24 completed hours.
-static uint8_t compressor_cycles_max_24h(void)
-{
-    uint8_t max_val = 0;
-    for (uint8_t i = 0; i < g_cycle_hourly_history_count; i++) {
-        if (g_cycle_hourly_history[i] > max_val) {
-            max_val = g_cycle_hourly_history[i];
-        }
-    }
-    return max_val;
-}
-
-// Minutes the compressor has been continuously in its current on/off state.
-static uint16_t compressor_time_in_state_minutes(void)
-{
-    if (!g_compressor_state_known) {
-        return 0;
-    }
-    uint32_t now_ms = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
-    uint32_t elapsed_minutes = (now_ms - g_compressor_state_change_ms) / 60000UL;
-    return (elapsed_minutes > 0xFFFF) ? 0xFFFF : (uint16_t)elapsed_minutes;
 }
 
 static const char *ac_mode_name(uint8_t ac_mode)
@@ -267,26 +122,20 @@ static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
 static void apply_status_to_matter(const tuya_device_status_t *device_status)
 {
     matter_update_onoff(device_status->switch_state);
+    // Mini-split's own indoor reading -- the Thermostat's LocalTemperature.
+    // The BME280's independent indoor reading (if fitted) lives on its own
+    // Temperature Sensor endpoint instead; see env_task/matter_update_aux_temperature.
     matter_update_local_temperature(device_status->temp_current);
-    // When no BME280 is attached, surface the indoor temperature on the
-    // standalone temperature-sensor endpoint so automations still have
-    // a value. With a BME280 present, env_task drives that endpoint instead.
-    if (!bme280_is_present()) {
-        matter_update_aux_temperature(device_status->temp_current);
-    }
     matter_update_heating_setpoint(device_status->temp_set);
     matter_update_cooling_setpoint(device_status->temp_set);
     matter_update_system_mode(map_tuya_mode_to_matter(device_status));
 
     uint8_t compressor_pct = compressor_demand_percent(device_status);
-    load_history_record_sample(compressor_pct);
     matter_update_compressor_demand(compressor_pct);
-    matter_update_compressor_demand_history(load_history_average(8), load_history_average(24));
+    matter_update_compressor_running(compressor_pct > 0);
 
-    compressor_cycle_track(compressor_pct > 0);
-    matter_update_compressor_cycles(compressor_cycles_moving_window(), compressor_cycles_max_24h());
-    matter_update_compressor_state_duration(compressor_time_in_state_minutes());
-
+    // Mini-split's own outdoor ambient reading -- separate endpoint from both
+    // indoor temperatures above.
     matter_update_outdoor_temperature(device_status->outdoor_temp);
 }
 
@@ -403,18 +252,13 @@ static void sync_task(void *param)
         ESP_LOGI(TAG, "  Set Temp: %.1f°C", device_status.temp_set / 100.0f);
         ESP_LOGI(TAG, "  Mode: %s%s", ac_mode_name(device_status.ac_mode),
                  device_status.heat ? " (Aux Heat ON)" : "");
-        ESP_LOGI(TAG, "  Compressor: %d%% (%.1fHz)  Outdoor Temp: %.1f°C",
+        ESP_LOGI(TAG, "  Compressor: %d%% (%dHz)  Outdoor Temp: %.1f°C",
                  compressor_demand_percent(&device_status),
-                 device_status.compressor_frequency / 10.0f,
+                 device_status.compressor_frequency,
                  device_status.outdoor_temp / 100.0f);
 
         // Update cached status and Matter attributes with source-of-truth Tuya status.
         cache_and_apply_status(&device_status);
-        ESP_LOGI(TAG, "  Compressor load avg: 8h=%d%%  24h=%d%%",
-                 load_history_average(8), load_history_average(24));
-        ESP_LOGI(TAG, "  Compressor cycles: %d/hr (moving)  max24h=%d/hr  time-in-state=%dmin",
-                 compressor_cycles_moving_window(), compressor_cycles_max_24h(),
-                 compressor_time_in_state_minutes());
 
         g_sync_state.last_status_update = xTaskGetTickCount();
     }

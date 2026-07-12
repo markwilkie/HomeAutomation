@@ -11,6 +11,14 @@ sdkconfig.old
 .idf_monitor_log
 *.log
 
+# Component manager-managed dependencies (auto-downloaded by idf.py).
+# Committing these caused two recurring problems on Windows: `idf.py
+# fullclean` refused to run because core.autocrlf rewrites line endings in
+# these files, which breaks the component manager's hash verification
+# ("Hash of the file ... does not match expected hash"), and every checkout
+# showed hundreds of spurious diffs in vendored third-party code.
+managed_components/
+
 # IDEs
 .vscode/
 .idea/

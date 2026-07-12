@@ -13,7 +13,7 @@ Assistant, over Thread. (Originally built against a SmartThings/WiFi target — 
 │  Home Assistant │
 │   (Consumer)    │
 └────────┬────────┘
-         │ Matter Protocol (via python-matter-server)
+         │ Matter Protocol (via matterjs-server)
          ↓
 ┌─────────────────────────────────────┐
 │  Matter Device (ESP32-C6)           │
@@ -92,22 +92,44 @@ standard Matter device types literally, which surfaced two classes of presentati
   with an empty `NodeLabel` (Home Assistant fell back to a generic "Node \<id\>" device name), and
   `VendorName`/`ProductName` were never set, so the Basic Information cluster served
   connectedhomeip's compiled-in example-app defaults — literally `"TEST_VENDOR"`/`"TEST_PRODUCT"`.
-  Fixed by setting `node_cfg.root_node.basic_information.node_label` at node creation and pushing
-  real `VendorName`/`ProductName` values via `attribute::update()` once Matter starts. (`VendorId`/
-  `ProductId` are left at `0xFFF1`/`0x8000` — the CSA's reserved test range, correct for an
-  uncertified DIY device — this fix is only about the human-readable strings.)
-- **Compressor load/cycle/duration endpoints**: these repurpose `dimmable_light` (OnOff+Level) and
-  `temperature_sensor` endpoints to carry non-light, non-temperature data (see
-  `matter_update_compressor_demand`/`_compressor_demand_history`/`_compressor_cycles`/
-  `_compressor_state_duration` in `src/matter_device.cpp`) — a trick that worked because
-  SmartThings' custom driver knew to reinterpret them. In Home Assistant they show up as literal
-  (non-functional) `light.*` toggles and a `sensor.*` "Temperature" reading a fraction of a degree
-  for what's actually minutes. The spec-correct fix — a `FixedLabel` cluster naming each endpoint —
-  requires hand-encoding esp_matter's raw Ember list-attribute byte format
-  (`attribute::create_label_list()`/`esp_matter_array()`), which isn't something to write blind
-  without a build+flash+HA test loop; not yet done. Until addressed, either rename these entities
-  manually in Home Assistant (Settings → Devices & Services → Entities — persists locally,
-  zero firmware risk) or treat them as not yet HA-presentable.
+  `NodeLabel` is fixed by setting `node_cfg.root_node.basic_information.node_label` at node
+  creation (a normal, persisted attribute). `VendorName`/`ProductName` are **not** — despite an
+  earlier fix here calling `attribute::update()` for them, that was confirmed on real hardware to
+  be a no-op (HA still showed `"TEST_PRODUCT"`): connectedhomeip's `BasicInformationCluster.cpp`
+  reads these two specific attributes directly from the `CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME`/
+  `_PRODUCT_NAME` compile-time macros via `DeviceInstanceInfoProvider`, bypassing esp_matter's
+  attribute store entirely. The actual fix is `include/chip_project_config.h`, wired in via
+  `CONFIG_CHIP_PROJECT_CONFIG` in `sdkconfig.defaults` — connectedhomeip's own project-config
+  override mechanism. (`VendorId`/`ProductId` are left at `0xFFF1`/`0x8000` — the CSA's reserved
+  test range, correct for an uncertified DIY device — this fix is only about the human-readable
+  strings.)
+- **Compressor load/running endpoints** (`src/matter_device.cpp`): these repurpose a Humidity
+  Sensor endpoint (`matter_update_compressor_demand`, %RH x100 scale reused for 0-100% load) and an
+  Occupancy Sensor endpoint (`matter_update_compressor_running`, OccupancySensing's `Occupancy`
+  bitmap reused for running/idle) rather than an actionable `dimmable_light`/`on_off_light` device
+  type — deliberately chosen so Home Assistant renders them as read-only `sensor.*`/`binary_sensor.*`
+  entities instead of a fake toggleable light/switch. The cost is a mismatched default label/icon
+  (shows "Humidity" and "Occupancy"/Detected-Clear instead of "Compressor Load"/"Compressor
+  Running"). A Contact Sensor (BooleanState cluster) endpoint was tried first for the running state
+  — a better semantic fit — but confirmed on real hardware to fail: this esp-matter/connectedhomeip
+  version has migrated BooleanState's StateValue attribute to a newer C++ cluster class whose live
+  value bypasses esp_matter's generic attribute store, so `attribute::update()` against it returns
+  `ESP_ERR_NOT_SUPPORTED`. Reaching the live cluster instance directly via
+  `esp_matter::data_model::provider::get_instance().registry().Get()` + a `static_cast` is
+  technically possible but couples to an SDK internal-implementation detail esp_matter doesn't
+  document as supported; OccupancySensing (still on the classic attribute-store path in this SDK
+  version) keeps every endpoint in this file on the same `attribute::update()` pattern instead. The
+  spec-correct fix for the label mismatch — a `FixedLabel` cluster naming each endpoint — requires
+  hand-encoding
+  esp_matter's raw Ember list-attribute byte format (`attribute::create_label_list()`/
+  `esp_matter_array()`), which isn't something to write blind without a build+flash+HA test loop;
+  not yet done. Confirmed this isn't a shortcut worth taking: `esp_matter_data_model.cpp`'s
+  `get_val()`/`set_val()` both explicitly reject `ESP_MATTER_VAL_TYPE_ARRAY`
+  (`ESP_ERR_NOT_SUPPORTED`), and no working example of `create_label_list()` usage exists anywhere
+  in the vendored esp_matter/connectedhomeip tree to copy the byte layout from — getting it wrong
+  risks a corrupted or crashing attribute read, not just "doesn't help." Until addressed, rename
+  these entities manually in Home Assistant (Settings → Devices & Services → Entities — persists
+  locally, zero firmware risk).
 
 ## otbr-agent Reliability: Watchdog + USB Power Fix
 

@@ -157,25 +157,20 @@ See [ROADMAP.md](ROADMAP.md) for details.
 - ✅ Mode persistence
 
 ### Compressor Load Monitoring
-- ✅ Current compressor load, 0–100% (derived from Tuya `compressor_frequency`)
-- ✅ Rolling 8h and 24h load averages, computed on-device
+- ✅ Current compressor load, 0–100% (derived from Tuya `compressor_frequency`), as a read-only
+  numeric sensor (Humidity Sensor device type, repurposed for its exact %-scale match)
+- ✅ Compressor running state as a read-only binary_sensor (Occupancy Sensor device type), with
+  full on/off history in Home Assistant
 - ✅ Outdoor ambient temperature (Tuya `ure` DP)
 - ℹ️ On the [legacy SmartThings path](#legacy-smartthings), this requires the custom Edge Driver
   to be visible in the app; on Home Assistant it should appear as a native entity with no
   extra driver
 
-### Compressor Cycling
-- ✅ Cycles/hour in a true sliding 60-minute window (a cycle = leading edge only, `off→on`;
-  turning back off doesn't count as a second cycle)
-- ✅ Max cycles/hour observed over the last 24 hours
-- ✅ Time in current on/off state (minutes), computed on-device
-- ℹ️ Same [legacy SmartThings](#legacy-smartthings) custom-driver caveat as above
-
 ### Environmental Sensing (BME280)
-- ✅ Standalone **Temperature** sensor endpoint (usable in HA automations)
+- ✅ Standalone **Temperature** sensor endpoint — the BME280's own indoor reading, independent of
+  the mini-split's indoor reading on the Thermostat
 - ✅ Standalone **Humidity** sensor endpoint (usable in HA automations)
 - ✅ Optional BME280 over I2C (temp / humidity / pressure)
-- ✅ Falls back to mirroring the Tuya indoor temperature when no BME280 is fitted
 - ℹ️ See [SENSORS.md](SENSORS.md) for wiring, config, and endpoint details
 
 ## Technical Architecture
@@ -243,7 +238,7 @@ idf.py -p COM6 flash monitor
 
 # Output (check for):
 # I (xxx) TUYA_CLIENT: Tuya client initialized for device: eb11d9ff75ef37d109pihg
-# I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 temp_sensor_ep=2 humidity_sensor_ep=3 outdoor_temp_sensor_ep=4 compressor_ep=5 compressor_avg8h_ep=6 compressor_avg24h_ep=7 compressor_cycles_ep=8 compressor_cycles_max24h_ep=9 compressor_state_duration_ep=10
+# I (xxx) MATTER_DEVICE: Matter device initialized: thermostat_ep=1 temp_sensor_ep=2 humidity_sensor_ep=3 outdoor_temp_sensor_ep=4 compressor_ep=5 compressor_running_ep=6
 # I (xxx) MATTER_DEVICE: Matter commissioning started
 ```
 

@@ -22,7 +22,9 @@ typedef struct {
     bool health;
     bool cleaning;
     bool fresh_air_valve;
-    int16_t compressor_frequency; // Compressor running frequency (Hz x10); 0 = idle/off
+    int16_t compressor_frequency; // Compressor running frequency, raw Hz (NOT x10 despite the
+                                  // Tuya typeSpec's claim -- see TUYA_DP_REFERENCE.md's scale
+                                  // correction note); 0 = idle/off
     int16_t outdoor_temp;         // Outdoor ambient temperature (×100), from "ure" DP
 } tuya_device_status_t;
 
