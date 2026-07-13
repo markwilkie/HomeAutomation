@@ -39,6 +39,17 @@ CONTAINER_NAME="otbr"
 JOOL_INSTANCE="nat64"
 POOL4_PORT_RANGE="61001-65535"
 
+# The boot-time systemd service (installed below) runs this script as root
+# with no TTY. `sudo` there fails ("a terminal is required to read the
+# password") since root still has to authenticate to invoke it. Skip sudo
+# entirely when already root; only use it for interactive runs by a
+# non-root user.
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=""
+else
+  SUDO="sudo"
+fi
+
 # Jool's userspace CLI needs CAP_NET_ADMIN. We run it via a privileged
 # container chrooted into the real host filesystem, so it uses the actual
 # host binary/kernel module but with the container's elevated capabilities --
@@ -49,16 +60,18 @@ jool_host() {
 
 echo "==> Ensuring jool-dkms and jool-tools are installed"
 if ! dpkg -l jool-tools 2>/dev/null | grep -q '^ii'; then
-  sudo apt-get update -qq
-  sudo apt-get install -y "linux-headers-$(uname -r)" jool-dkms jool-tools
+  ${SUDO} apt-get update -qq
+  ${SUDO} apt-get install -y "linux-headers-$(uname -r)" jool-dkms jool-tools
 fi
 
 echo "==> Ensuring the jool kernel module is loaded"
-sudo modprobe jool
+if ! lsmod | grep -q '^jool '; then
+  ${SUDO} modprobe jool
+fi
 
 # Persist across reboots if not already listed
 if ! grep -qx "jool" /etc/modules 2>/dev/null; then
-  echo "jool" | sudo tee -a /etc/modules > /dev/null
+  echo "jool" | ${SUDO} tee -a /etc/modules > /dev/null
   echo "    Added jool to /etc/modules for persistence"
 fi
 
@@ -100,6 +113,10 @@ echo "==> Using ${HOST_IP} as Jool's pool4 address"
 
 echo "==> Configuring Jool NAT64 instance '${JOOL_INSTANCE}'"
 jool_host jool instance remove "${JOOL_INSTANCE}" > /dev/null 2>&1 || true
+# The kernel module needs a moment to tear down the removed instance's
+# netfilter hooks; re-adding immediately after can intermittently fail with
+# "This namespace lacks an instance named 'nat64'" (seen in practice).
+sleep 2
 jool_host jool instance add "${JOOL_INSTANCE}" --pool6 "${NAT64_PREFIX}" --netfilter
 # pool4 takes one protocol per call.
 jool_host jool -i "${JOOL_INSTANCE}" pool4 add "${HOST_IP}" "${POOL4_PORT_RANGE}" --tcp
@@ -120,7 +137,7 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SO
 SERVICE_FILE="/etc/systemd/system/nat64-jool.service"
 echo ""
 echo "==> Installing systemd service for boot-time persistence"
-sudo tee "${SERVICE_FILE}" > /dev/null <<EOF
+${SUDO} tee "${SERVICE_FILE}" > /dev/null <<EOF
 [Unit]
 Description=Configure Jool NAT64 for the OTBR Thread network
 After=docker.service
@@ -135,8 +152,8 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl enable nat64-jool.service > /dev/null 2>&1
+${SUDO} systemctl daemon-reload
+${SUDO} systemctl enable nat64-jool.service > /dev/null 2>&1
 
 echo ""
 echo "==> Done."
