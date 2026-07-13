@@ -35,6 +35,7 @@
 #                                        # (this is what the service actually runs)
 #   sudo systemctl status otbr-watchdog.service
 #   journalctl -u otbr-watchdog.service -f
+#   tail -f /mnt/data/appdata/otbr/watchdog.log   # same log, no sudo needed
 
 set -euo pipefail
 
@@ -44,9 +45,16 @@ RESTART_WAIT_TIMEOUT_SECONDS=60
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename "${BASH_SOURCE[0]}")"
 NAT64_JOOL_SCRIPT="${SCRIPT_DIR}/setup-nat64-jool.sh"
+# Plain-file mirror of the journal log. The service runs as root (no User=
+# in the unit) so journalctl -u otbr-watchdog.service requires root/
+# systemd-journal group membership to read -- this file is created with the
+# default 644 mode so crash history can be checked without sudo.
+LOG_FILE="/mnt/data/appdata/otbr/watchdog.log"
 
 log() {
-    echo "[otbr-watchdog] $(date '+%Y-%m-%d %H:%M:%S') $*"
+    local line="[otbr-watchdog] $(date '+%Y-%m-%d %H:%M:%S') $*"
+    echo "${line}"
+    echo "${line}" >> "${LOG_FILE}" 2>/dev/null || true
 }
 
 otbr_responsive() {
