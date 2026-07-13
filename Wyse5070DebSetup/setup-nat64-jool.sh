@@ -113,11 +113,25 @@ echo "==> Using ${HOST_IP} as Jool's pool4 address"
 
 echo "==> Configuring Jool NAT64 instance '${JOOL_INSTANCE}'"
 jool_host jool instance remove "${JOOL_INSTANCE}" > /dev/null 2>&1 || true
-# The kernel module needs a moment to tear down the removed instance's
-# netfilter hooks; re-adding immediately after can intermittently fail with
-# "This namespace lacks an instance named 'nat64'" (seen in practice).
-sleep 2
-jool_host jool instance add "${JOOL_INSTANCE}" --pool6 "${NAT64_PREFIX}" --netfilter
+
+# "jool instance add" can intermittently fail right after boot with
+# "This namespace lacks an instance named 'nat64'" -- seen both right after
+# removing a prior instance (netfilter hook teardown lag) and on a fresh
+# boot with no prior instance to remove at all (module/netfilter isn't
+# fully settled immediately after modprobe). Retry rather than guess a
+# fixed delay long enough to cover both cases.
+ADD_ATTEMPTS=5
+for attempt in $(seq 1 "${ADD_ATTEMPTS}"); do
+  if jool_host jool instance add "${JOOL_INSTANCE}" --pool6 "${NAT64_PREFIX}" --netfilter; then
+    break
+  fi
+  if [ "${attempt}" -eq "${ADD_ATTEMPTS}" ]; then
+    echo "!! Failed to create Jool instance after ${ADD_ATTEMPTS} attempts" >&2
+    exit 1
+  fi
+  echo "    Retrying instance creation (attempt ${attempt}/${ADD_ATTEMPTS})..."
+  sleep 2
+done
 # pool4 takes one protocol per call.
 jool_host jool -i "${JOOL_INSTANCE}" pool4 add "${HOST_IP}" "${POOL4_PORT_RANGE}" --tcp
 jool_host jool -i "${JOOL_INSTANCE}" pool4 add "${HOST_IP}" "${POOL4_PORT_RANGE}" --udp
