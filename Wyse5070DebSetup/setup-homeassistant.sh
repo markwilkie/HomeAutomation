@@ -47,6 +47,14 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     network_mode: host
+    # Explicit DNS: even in host network mode, Docker generates its own
+    # resolv.conf for the container rather than bind-mounting the host's.
+    # It doesn't reliably carry through Tailscale's 100.100.100.100
+    # nameserver (CGNAT range), so the container ends up with no working
+    # DNS after a reboot despite the host resolving fine.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
 EOF
 
 echo "==> Pulling image and starting Home Assistant..."
