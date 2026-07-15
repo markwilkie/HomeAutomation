@@ -66,6 +66,14 @@ esp_err_t tuya_set_temperature(int16_t temp_c);
 esp_err_t tuya_set_mode(uint8_t mode);
 
 /**
+ * @brief Set the fresh air intake valve on/off. Independent of "mode" --
+ *        see TUYA_DP_REFERENCE.md's Fresh Air Module section.
+ * @param on True to open the fresh air valve, false to close it
+ * @return ESP_OK on success
+ */
+esp_err_t tuya_set_fresh_air(bool on);
+
+/**
  * @brief Refresh access token (if expired)
  * @return ESP_OK on success
  */

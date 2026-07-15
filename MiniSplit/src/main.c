@@ -382,8 +382,17 @@ static void command_task(void *param)
 
             esp_err_t result;
             if (mode_cmd == 0) {
-                // kOff: Tuya's "mode" DP has no "off" value, use the power switch instead.
-                result = tuya_set_power(false);
+                // kOff from HA/Matter: rather than powering the unit fully
+                // down (tuya_set_power(false)), which would also stop the
+                // fresh-air intake fan, switch to Tuya's "fan" mode instead.
+                // This keeps the indoor blower running and the fresh-air
+                // valve usable, just without active cooling -- matches how
+                // the BME280 thermostat cycles "off" during normal setpoint
+                // control, where a full power-down each cycle isn't wanted.
+                result = tuya_set_mode(3);
+                if (result == ESP_OK) {
+                    tuya_set_fresh_air(true);
+                }
             } else {
                 int8_t tuya_mode = map_matter_mode_to_tuya(mode_cmd);
                 if (tuya_mode < 0) {
@@ -392,6 +401,9 @@ static void command_task(void *param)
                     continue;
                 }
                 result = tuya_set_mode((uint8_t)tuya_mode);
+                if (result == ESP_OK) {
+                    tuya_set_fresh_air(true);
+                }
             }
 
             if (result != ESP_OK) {

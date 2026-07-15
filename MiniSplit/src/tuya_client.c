@@ -665,6 +665,30 @@ esp_err_t tuya_set_mode(uint8_t mode)
     return result;
 }
 
+esp_err_t tuya_set_fresh_air(bool on)
+{
+    cJSON *commands = cJSON_CreateArray();
+    cJSON *cmd = cJSON_CreateObject();
+    cJSON_AddStringToObject(cmd, "code", "fresh_air_valve");
+    cJSON_AddBoolToObject(cmd, "value", on);
+    cJSON_AddItemToArray(commands, cmd);
+
+    cJSON *body = cJSON_CreateObject();
+    cJSON_AddItemToObject(body, "commands", commands);
+
+    char *body_str = cJSON_PrintUnformatted(body);
+
+    ESP_LOGI(TAG, "Setting fresh air valve to: %s", on ? "OPEN" : "CLOSED");
+    ESP_LOGD(TAG, "Command body: %s", body_str);
+
+    esp_err_t result = tuya_send_device_command(body_str);
+
+    free(body_str);
+    cJSON_Delete(body);
+
+    return result;
+}
+
 esp_err_t tuya_refresh_token(void)
 {
     char *response_buffer = calloc(1, HTTP_BUFFER_SIZE);
