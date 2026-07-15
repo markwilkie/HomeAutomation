@@ -320,17 +320,27 @@ static void command_task(void *param)
                 tuya_device_status_t verify_status = {0};
                 if (tuya_get_device_status(&verify_status) == ESP_OK) {
                     if (verify_status.temp_set != expected_setpoint) {
-                        ESP_LOGE(TAG, "Temperature command not applied by Tuya (expected=%d actual=%d)",
+                        // Tuya's cloud shadow reflects the physical unit's own
+                        // last report, which requires a real round-trip over
+                        // its radio link -- it very often hasn't caught up
+                        // with the write we just sent by the time this
+                        // immediate verify-poll runs. Applying this stale
+                        // read now would snap the setpoint visibly back to
+                        // its old value seconds after the user changed it.
+                        // Leave Matter's optimistic value in place and let
+                        // the next regular sync_task poll (30s later)
+                        // reconcile once Tuya's shadow actually updates.
+                        ESP_LOGW(TAG, "Temperature command not yet reflected by Tuya (expected=%d actual=%d), leaving optimistic value in place",
                                  expected_setpoint, verify_status.temp_set);
                     } else {
                         ESP_LOGI(TAG, "Temperature command verified (setpoint=%d)", verify_status.temp_set);
+                        cache_and_apply_status(&verify_status);
                     }
-                    cache_and_apply_status(&verify_status);
                 } else {
                     ESP_LOGW(TAG, "Temperature command sent but verification poll failed");
                 }
             }
-            
+
             matter_clear_heating_setpoint_command();
         }
 
@@ -349,12 +359,14 @@ static void command_task(void *param)
                 tuya_device_status_t verify_status = {0};
                 if (tuya_get_device_status(&verify_status) == ESP_OK) {
                     if (verify_status.temp_set != expected_setpoint) {
-                        ESP_LOGE(TAG, "Cooling command not applied by Tuya (expected=%d actual=%d)",
+                        // See the matching comment in the heating setpoint
+                        // handler above -- same stale-shadow-read issue.
+                        ESP_LOGW(TAG, "Cooling command not yet reflected by Tuya (expected=%d actual=%d), leaving optimistic value in place",
                                  expected_setpoint, verify_status.temp_set);
                     } else {
                         ESP_LOGI(TAG, "Cooling command verified (setpoint=%d)", verify_status.temp_set);
+                        cache_and_apply_status(&verify_status);
                     }
-                    cache_and_apply_status(&verify_status);
                 } else {
                     ESP_LOGW(TAG, "Cooling command sent but verification poll failed");
                 }
