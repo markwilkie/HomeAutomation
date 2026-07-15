@@ -122,12 +122,14 @@ static endpoint_t *g_humidity_sensor_endpoint = nullptr;
 static endpoint_t *g_outdoor_temp_sensor_endpoint = nullptr;
 static endpoint_t *g_compressor_endpoint = nullptr;
 static endpoint_t *g_compressor_running_endpoint = nullptr;
+static endpoint_t *g_power_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
 static uint16_t g_temp_sensor_endpoint_id = 0;
 static uint16_t g_humidity_sensor_endpoint_id = 0;
 static uint16_t g_outdoor_temp_sensor_endpoint_id = 0;
 static uint16_t g_compressor_endpoint_id = 0;
 static uint16_t g_compressor_running_endpoint_id = 0;
+static uint16_t g_power_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
 
@@ -177,7 +179,13 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
 {
     (void)priv_data;
 
-    if (!val || endpoint_id != g_endpoint_id || g_internal_attr_update) {
+    // g_endpoint (the Thermostat) still handles setpoint/mode commands as
+    // before. g_power_endpoint is the dedicated true-power On/Off Plug-in
+    // Unit added alongside it -- see matter_device_init() -- distinct from
+    // the Thermostat's own Cool/Off cycling, which (per main.c's
+    // command_task()) means "idle in fan mode", not a real power-down.
+    bool is_relevant_endpoint = (endpoint_id == g_endpoint_id || endpoint_id == g_power_endpoint_id);
+    if (!val || !is_relevant_endpoint || g_internal_attr_update) {
         return ESP_OK;
     }
 
@@ -186,11 +194,11 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
     }
 
     if (cluster_id == OnOff::Id && attribute_id == OnOff::Attributes::OnOff::Id) {
-        if (endpoint_id == g_endpoint_id) {
-            g_matter_state.onoff = val->val.b;
-            g_matter_state.onoff_command_pending = true;
-            ESP_LOGI(TAG, "OnOff command from Matter: %s", g_matter_state.onoff ? "ON" : "OFF");
-        }
+        g_matter_state.onoff = val->val.b;
+        g_matter_state.onoff_command_pending = true;
+        ESP_LOGI(TAG, "OnOff command from Matter (endpoint %u, %s): %s", endpoint_id,
+                 endpoint_id == g_power_endpoint_id ? "true power" : "thermostat",
+                 g_matter_state.onoff ? "ON" : "OFF");
         return ESP_OK;
     }
 
@@ -365,6 +373,28 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Dedicated true-power endpoint (On/Off Plug-in Unit), separate from the
+    // Thermostat's own Cool/Off cycling. The Thermostat's SystemMode "Off"
+    // (see main.c's command_task()) now means "idle in fan mode, fresh-air
+    // valve open" -- NOT a real power-down -- so this endpoint's OnOff
+    // cluster is the only Matter/HA-reachable control that maps to
+    // tuya_set_power() and genuinely powers the physical unit off/on.
+    // Renders in Home Assistant as its own switch entity; rename it
+    // something unambiguous (e.g. "MiniSplit Main Power") once commissioned,
+    // to keep it clearly distinct from the thermostat's Cool/Off control.
+    endpoint::on_off_plugin_unit::config_t power_cfg;
+    power_cfg.on_off.on_off = g_matter_state.onoff;
+    g_power_endpoint = endpoint::on_off_plugin_unit::create(g_node, &power_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_power_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Power endpoint");
+        return ESP_FAIL;
+    }
+    g_power_endpoint_id = endpoint::get_id(g_power_endpoint);
+    if (!g_power_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Power endpoint id");
+        return ESP_FAIL;
+    }
+
     update_attr(OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(g_matter_state.onoff));
     update_attr(Thermostat::Id, Thermostat::Attributes::LocalTemperature::Id,
                 esp_matter_nullable_int16(nullable<int16_t>(g_matter_state.current_temp)));
@@ -393,11 +423,14 @@ extern "C" esp_err_t matter_device_init(void)
     update_attr_on_endpoint(g_compressor_running_endpoint, g_compressor_running_endpoint_id,
                             OccupancySensing::Id, OccupancySensing::Attributes::Occupancy::Id,
                             esp_matter_bitmap8(0));
+    update_attr_on_endpoint(g_power_endpoint, g_power_endpoint_id,
+                            OnOff::Id, OnOff::Attributes::OnOff::Id,
+                            esp_matter_bool(g_matter_state.onoff));
 
-    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u",
+    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u power_ep=%u",
              g_endpoint_id, g_temp_sensor_endpoint_id,
              g_humidity_sensor_endpoint_id, g_outdoor_temp_sensor_endpoint_id, g_compressor_endpoint_id,
-             g_compressor_running_endpoint_id);
+             g_compressor_running_endpoint_id, g_power_endpoint_id);
     return ESP_OK;
 }
 
@@ -461,6 +494,8 @@ extern "C" void matter_update_onoff(bool on_off)
     }
     g_matter_state.onoff = on_off;
     update_attr(OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(on_off));
+    update_attr_on_endpoint(g_power_endpoint, g_power_endpoint_id,
+                            OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(on_off));
 }
 
 extern "C" void matter_update_local_temperature(int16_t temp_c)
@@ -613,12 +648,14 @@ extern "C" void matter_device_deinit(void)
     g_outdoor_temp_sensor_endpoint = nullptr;
     g_compressor_endpoint = nullptr;
     g_compressor_running_endpoint = nullptr;
+    g_power_endpoint = nullptr;
     g_endpoint_id = 0;
     g_temp_sensor_endpoint_id = 0;
     g_humidity_sensor_endpoint_id = 0;
     g_outdoor_temp_sensor_endpoint_id = 0;
     g_compressor_endpoint_id = 0;
     g_compressor_running_endpoint_id = 0;
+    g_power_endpoint_id = 0;
     g_started = false;
     ESP_LOGI(TAG, "Matter device deinitialized");
 }
