@@ -29,10 +29,26 @@ static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
 static bool g_last_device_status_valid = false;
 
-// Set (to xTaskGetTickCount()) right after any command_task command send
-// succeeds. sync_task's periodic poll checks this before blindly trusting
-// Tuya's shadow -- see COMMAND_GRACE_PERIOD_MS below for why.
-static uint32_t g_last_command_tick = 0;
+// Pending "expected value" tracking. Tuya's cloud shadow lags the real
+// device by a variable amount -- sometimes under a second, sometimes well
+// over 30s -- so a fixed-duration grace period after a local command
+// (the previous approach) either reverts too early or blocks too long.
+// Instead, each field we command locally is remembered here as "expected",
+// and sync_task's periodic poll leaves that specific field exactly as we
+// set it -- letting every other field keep updating normally -- until
+// Tuya's own shadow read actually reports the same value, at which point
+// the expectation clears. EXPECTATION_MAX_WAIT_MS is a safety net in case
+// Tuya never converges (e.g. the command was silently rejected).
+#define EXPECTATION_MAX_WAIT_MS 120000  // give up waiting after 2 minutes
+
+static int16_t g_expected_setpoint = -1;   // -1 = no pending expectation
+static uint32_t g_setpoint_expectation_tick = 0;
+
+static int8_t g_expected_mode = -1;        // -1 = no pending expectation (Tuya "mode" DP, 0-4)
+static uint32_t g_mode_expectation_tick = 0;
+
+static int8_t g_expected_power = -1;       // -1 = no pending expectation (0/1)
+static uint32_t g_power_expectation_tick = 0;
 
 // Timing configuration
 #define STATUS_POLL_INTERVAL_MS 30000   // Poll Tuya every 30 seconds
@@ -40,14 +56,6 @@ static uint32_t g_last_command_tick = 0;
 #define ENV_POLL_INTERVAL_MS 30000      // Read BME280 every 30 seconds
 #define RETRY_DELAY_MS 2000             // Wait before retry on error
 #define MAX_RETRIES 3                   // Retry up to 3 times before giving up
-// command_task's own post-write verify step already guards against acting
-// on a stale readback (see its match/mismatch checks below) -- but
-// sync_task's periodic poll is a fully independent loop with no such
-// guard, and can land within a second or two of a fresh write purely by
-// timing coincidence, reading Tuya's shadow before it's caught up and
-// silently reverting the write. Skip applying sync_task's poll result for
-// this long after any local command, giving the shadow time to settle.
-#define COMMAND_GRACE_PERIOD_MS 8000
 
 // State tracking for error recovery
 typedef struct {
@@ -270,15 +278,56 @@ static void sync_task(void *param)
                  device_status.compressor_frequency,
                  device_status.outdoor_temp / 100.0f);
 
-        // Update cached status and Matter attributes with source-of-truth Tuya
-        // status -- unless a local command was just sent; Tuya's shadow may
-        // not have caught up with it yet, and applying a stale read here
-        // would silently revert that command (see COMMAND_GRACE_PERIOD_MS).
-        if ((xTaskGetTickCount() - g_last_command_tick) < pdMS_TO_TICKS(COMMAND_GRACE_PERIOD_MS)) {
-            ESP_LOGI(TAG, "Skipping periodic status apply -- within grace period after a recent local command");
-        } else {
-            cache_and_apply_status(&device_status);
+        // Reconcile any pending local commands against this fresh read, field
+        // by field, before applying to Matter -- see g_expected_setpoint et
+        // al. above. A field with a pending expectation that Tuya hasn't
+        // confirmed yet is patched back to our optimistic value so it
+        // doesn't visibly revert; every other field still applies normally.
+        uint32_t now_tick = xTaskGetTickCount();
+
+        if (g_expected_setpoint >= 0) {
+            if (device_status.temp_set == g_expected_setpoint) {
+                g_expected_setpoint = -1;
+            } else if ((now_tick - g_setpoint_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
+                ESP_LOGW(TAG, "Setpoint expectation (%d) never confirmed by Tuya, giving up and trusting shadow (%d)",
+                         g_expected_setpoint, device_status.temp_set);
+                g_expected_setpoint = -1;
+            } else {
+                ESP_LOGI(TAG, "Setpoint still pending confirmation (expected=%d actual=%d) -- keeping optimistic value",
+                         g_expected_setpoint, device_status.temp_set);
+                device_status.temp_set = g_expected_setpoint;
+            }
         }
+
+        if (g_expected_mode >= 0) {
+            if (device_status.ac_mode == (uint8_t)g_expected_mode) {
+                g_expected_mode = -1;
+            } else if ((now_tick - g_mode_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
+                ESP_LOGW(TAG, "Mode expectation (%d) never confirmed by Tuya, giving up and trusting shadow (%d)",
+                         g_expected_mode, device_status.ac_mode);
+                g_expected_mode = -1;
+            } else {
+                ESP_LOGI(TAG, "Mode still pending confirmation (expected=%d actual=%d) -- keeping optimistic value",
+                         g_expected_mode, device_status.ac_mode);
+                device_status.ac_mode = (uint8_t)g_expected_mode;
+            }
+        }
+
+        if (g_expected_power >= 0) {
+            if (device_status.switch_state == (bool)g_expected_power) {
+                g_expected_power = -1;
+            } else if ((now_tick - g_power_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
+                ESP_LOGW(TAG, "Power expectation (%d) never confirmed by Tuya, giving up and trusting shadow (%d)",
+                         g_expected_power, device_status.switch_state);
+                g_expected_power = -1;
+            } else {
+                ESP_LOGI(TAG, "Power still pending confirmation (expected=%d actual=%d) -- keeping optimistic value",
+                         g_expected_power, device_status.switch_state);
+                device_status.switch_state = (bool)g_expected_power;
+            }
+        }
+
+        cache_and_apply_status(&device_status);
 
         g_sync_state.last_status_update = xTaskGetTickCount();
     }
@@ -318,7 +367,8 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send power command to Tuya");
                 revert_from_last_status_if_available();
             } else {
-                g_last_command_tick = xTaskGetTickCount();
+                g_expected_power = desired_onoff ? 1 : 0;
+                g_power_expectation_tick = xTaskGetTickCount();
                 ESP_LOGI(TAG, "Power command sent successfully");
             }
 
@@ -331,36 +381,20 @@ static void command_task(void *param)
             ESP_LOGI(TAG, "Processing heating setpoint command: %.1f°C", 
                      heat_setpoint_cmd / 100.0f);
             
-            // Send to Tuya
+            // Send to Tuya. Confirmation against Tuya's shadow happens in
+            // sync_task's next poll(s) via g_expected_setpoint -- see its
+            // definition above for why an immediate verify-poll here isn't
+            // used (it's redundant with that reconciliation, and each one
+            // is an extra blocking Tuya round-trip we don't need).
             int16_t expected_setpoint = normalize_tuya_setpoint(heat_setpoint_cmd);
             esp_err_t result = tuya_set_temperature(expected_setpoint);
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send temperature command to Tuya");
                 revert_from_last_status_if_available();
             } else {
-                g_last_command_tick = xTaskGetTickCount();
-                tuya_device_status_t verify_status = {0};
-                if (tuya_get_device_status(&verify_status) == ESP_OK) {
-                    if (verify_status.temp_set != expected_setpoint) {
-                        // Tuya's cloud shadow reflects the physical unit's own
-                        // last report, which requires a real round-trip over
-                        // its radio link -- it very often hasn't caught up
-                        // with the write we just sent by the time this
-                        // immediate verify-poll runs. Applying this stale
-                        // read now would snap the setpoint visibly back to
-                        // its old value seconds after the user changed it.
-                        // Leave Matter's optimistic value in place and let
-                        // the next regular sync_task poll (30s later)
-                        // reconcile once Tuya's shadow actually updates.
-                        ESP_LOGW(TAG, "Temperature command not yet reflected by Tuya (expected=%d actual=%d), leaving optimistic value in place",
-                                 expected_setpoint, verify_status.temp_set);
-                    } else {
-                        ESP_LOGI(TAG, "Temperature command verified (setpoint=%d)", verify_status.temp_set);
-                        cache_and_apply_status(&verify_status);
-                    }
-                } else {
-                    ESP_LOGW(TAG, "Temperature command sent but verification poll failed");
-                }
+                g_expected_setpoint = expected_setpoint;
+                g_setpoint_expectation_tick = xTaskGetTickCount();
+                ESP_LOGI(TAG, "Temperature command sent (expecting setpoint=%d)", expected_setpoint);
             }
 
             matter_clear_heating_setpoint_command();
@@ -369,7 +403,7 @@ static void command_task(void *param)
         // ===== Check for Cooling Setpoint command =====
         int16_t cool_setpoint_cmd = matter_get_cooling_setpoint_command();
         if (cool_setpoint_cmd >= 0) {
-            ESP_LOGI(TAG, "Processing cooling setpoint command: %.1f°C", 
+            ESP_LOGI(TAG, "Processing cooling setpoint command: %.1f°C",
                      cool_setpoint_cmd / 100.0f);
 
             int16_t expected_setpoint = normalize_tuya_setpoint(cool_setpoint_cmd);
@@ -378,21 +412,9 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send cooling temperature command to Tuya");
                 revert_from_last_status_if_available();
             } else {
-                g_last_command_tick = xTaskGetTickCount();
-                tuya_device_status_t verify_status = {0};
-                if (tuya_get_device_status(&verify_status) == ESP_OK) {
-                    if (verify_status.temp_set != expected_setpoint) {
-                        // See the matching comment in the heating setpoint
-                        // handler above -- same stale-shadow-read issue.
-                        ESP_LOGW(TAG, "Cooling command not yet reflected by Tuya (expected=%d actual=%d), leaving optimistic value in place",
-                                 expected_setpoint, verify_status.temp_set);
-                    } else {
-                        ESP_LOGI(TAG, "Cooling command verified (setpoint=%d)", verify_status.temp_set);
-                        cache_and_apply_status(&verify_status);
-                    }
-                } else {
-                    ESP_LOGW(TAG, "Cooling command sent but verification poll failed");
-                }
+                g_expected_setpoint = expected_setpoint;
+                g_setpoint_expectation_tick = xTaskGetTickCount();
+                ESP_LOGI(TAG, "Cooling command sent (expecting setpoint=%d)", expected_setpoint);
             }
 
             matter_clear_cooling_setpoint_command();
@@ -433,26 +455,12 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send mode command to Tuya");
                 revert_from_last_status_if_available();
             } else {
-                g_last_command_tick = xTaskGetTickCount();
-                tuya_device_status_t verify_status = {0};
-                if (tuya_get_device_status(&verify_status) == ESP_OK) {
-                    if (verify_status.ac_mode != expected_tuya_mode) {
-                        // Same stale-shadow-read issue as the setpoint
-                        // handlers: Tuya's cloud shadow hasn't caught up
-                        // with the write yet. Applying this readback now
-                        // would revert the mode (and, since
-                        // cache_and_apply_status() refreshes every
-                        // attribute at once, potentially the power state
-                        // too) within seconds of setting it. Leave the
-                        // optimistic value in place for the next regular
-                        // sync_task poll to reconcile.
-                        ESP_LOGW(TAG, "Mode command not yet reflected by Tuya (expected=%u actual=%u), leaving optimistic value in place",
-                                 expected_tuya_mode, verify_status.ac_mode);
-                    } else {
-                        ESP_LOGI(TAG, "Mode command verified (mode=%u)", verify_status.ac_mode);
-                        cache_and_apply_status(&verify_status);
-                    }
-                }
+                // Confirmation happens in sync_task's next poll(s) via
+                // g_expected_mode -- see the immediate-verify note in the
+                // setpoint handlers above for why no verify-poll is done here.
+                g_expected_mode = (int8_t)expected_tuya_mode;
+                g_mode_expectation_tick = xTaskGetTickCount();
+                ESP_LOGI(TAG, "Mode command sent (expecting mode=%u)", expected_tuya_mode);
             }
 
             matter_clear_mode_command();
