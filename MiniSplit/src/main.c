@@ -29,12 +29,25 @@ static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
 static bool g_last_device_status_valid = false;
 
+// Set (to xTaskGetTickCount()) right after any command_task command send
+// succeeds. sync_task's periodic poll checks this before blindly trusting
+// Tuya's shadow -- see COMMAND_GRACE_PERIOD_MS below for why.
+static uint32_t g_last_command_tick = 0;
+
 // Timing configuration
 #define STATUS_POLL_INTERVAL_MS 30000   // Poll Tuya every 30 seconds
 #define COMMAND_POLL_INTERVAL_MS 5000   // Check Matter commands every 5 seconds
 #define ENV_POLL_INTERVAL_MS 30000      // Read BME280 every 30 seconds
 #define RETRY_DELAY_MS 2000             // Wait before retry on error
 #define MAX_RETRIES 3                   // Retry up to 3 times before giving up
+// command_task's own post-write verify step already guards against acting
+// on a stale readback (see its match/mismatch checks below) -- but
+// sync_task's periodic poll is a fully independent loop with no such
+// guard, and can land within a second or two of a fresh write purely by
+// timing coincidence, reading Tuya's shadow before it's caught up and
+// silently reverting the write. Skip applying sync_task's poll result for
+// this long after any local command, giving the shadow time to settle.
+#define COMMAND_GRACE_PERIOD_MS 8000
 
 // State tracking for error recovery
 typedef struct {
@@ -257,8 +270,15 @@ static void sync_task(void *param)
                  device_status.compressor_frequency,
                  device_status.outdoor_temp / 100.0f);
 
-        // Update cached status and Matter attributes with source-of-truth Tuya status.
-        cache_and_apply_status(&device_status);
+        // Update cached status and Matter attributes with source-of-truth Tuya
+        // status -- unless a local command was just sent; Tuya's shadow may
+        // not have caught up with it yet, and applying a stale read here
+        // would silently revert that command (see COMMAND_GRACE_PERIOD_MS).
+        if ((xTaskGetTickCount() - g_last_command_tick) < pdMS_TO_TICKS(COMMAND_GRACE_PERIOD_MS)) {
+            ESP_LOGI(TAG, "Skipping periodic status apply -- within grace period after a recent local command");
+        } else {
+            cache_and_apply_status(&device_status);
+        }
 
         g_sync_state.last_status_update = xTaskGetTickCount();
     }
@@ -298,6 +318,7 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send power command to Tuya");
                 revert_from_last_status_if_available();
             } else {
+                g_last_command_tick = xTaskGetTickCount();
                 ESP_LOGI(TAG, "Power command sent successfully");
             }
 
@@ -317,6 +338,7 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send temperature command to Tuya");
                 revert_from_last_status_if_available();
             } else {
+                g_last_command_tick = xTaskGetTickCount();
                 tuya_device_status_t verify_status = {0};
                 if (tuya_get_device_status(&verify_status) == ESP_OK) {
                     if (verify_status.temp_set != expected_setpoint) {
@@ -356,6 +378,7 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send cooling temperature command to Tuya");
                 revert_from_last_status_if_available();
             } else {
+                g_last_command_tick = xTaskGetTickCount();
                 tuya_device_status_t verify_status = {0};
                 if (tuya_get_device_status(&verify_status) == ESP_OK) {
                     if (verify_status.temp_set != expected_setpoint) {
@@ -413,6 +436,7 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send mode command to Tuya");
                 revert_from_last_status_if_available();
             } else {
+                g_last_command_tick = xTaskGetTickCount();
                 tuya_device_status_t verify_status = {0};
                 if (tuya_get_device_status(&verify_status) == ESP_OK) {
                     if (verify_status.ac_mode != expected_tuya_mode) {
