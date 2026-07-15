@@ -427,9 +427,6 @@ static void command_task(void *param)
                 }
                 expected_tuya_mode = (uint8_t)tuya_mode;
                 result = tuya_set_mode(expected_tuya_mode);
-                if (result == ESP_OK) {
-                    tuya_set_fresh_air(true);
-                }
             }
 
             if (result != ESP_OK) {
