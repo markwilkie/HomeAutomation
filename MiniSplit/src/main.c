@@ -381,6 +381,7 @@ static void command_task(void *param)
             ESP_LOGI(TAG, "Processing mode command from controller: %u", mode_cmd);
 
             esp_err_t result;
+            uint8_t expected_tuya_mode;
             if (mode_cmd == 0) {
                 // kOff from HA/Matter: rather than powering the unit fully
                 // down (tuya_set_power(false)), which would also stop the
@@ -389,7 +390,8 @@ static void command_task(void *param)
                 // valve usable, just without active cooling -- matches how
                 // the BME280 thermostat cycles "off" during normal setpoint
                 // control, where a full power-down each cycle isn't wanted.
-                result = tuya_set_mode(3);
+                expected_tuya_mode = 3;
+                result = tuya_set_mode(expected_tuya_mode);
                 if (result == ESP_OK) {
                     tuya_set_fresh_air(true);
                 }
@@ -400,7 +402,8 @@ static void command_task(void *param)
                     matter_clear_mode_command();
                     continue;
                 }
-                result = tuya_set_mode((uint8_t)tuya_mode);
+                expected_tuya_mode = (uint8_t)tuya_mode;
+                result = tuya_set_mode(expected_tuya_mode);
                 if (result == ESP_OK) {
                     tuya_set_fresh_air(true);
                 }
@@ -410,10 +413,24 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send mode command to Tuya");
                 revert_from_last_status_if_available();
             } else {
-                ESP_LOGI(TAG, "Mode command sent successfully");
                 tuya_device_status_t verify_status = {0};
                 if (tuya_get_device_status(&verify_status) == ESP_OK) {
-                    cache_and_apply_status(&verify_status);
+                    if (verify_status.ac_mode != expected_tuya_mode) {
+                        // Same stale-shadow-read issue as the setpoint
+                        // handlers: Tuya's cloud shadow hasn't caught up
+                        // with the write yet. Applying this readback now
+                        // would revert the mode (and, since
+                        // cache_and_apply_status() refreshes every
+                        // attribute at once, potentially the power state
+                        // too) within seconds of setting it. Leave the
+                        // optimistic value in place for the next regular
+                        // sync_task poll to reconcile.
+                        ESP_LOGW(TAG, "Mode command not yet reflected by Tuya (expected=%u actual=%u), leaving optimistic value in place",
+                                 expected_tuya_mode, verify_status.ac_mode);
+                    } else {
+                        ESP_LOGI(TAG, "Mode command verified (mode=%u)", verify_status.ac_mode);
+                        cache_and_apply_status(&verify_status);
+                    }
                 }
             }
 
