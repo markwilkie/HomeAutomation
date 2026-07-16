@@ -69,12 +69,11 @@ static sync_state_t g_sync_state = {0};
 
 static int16_t normalize_tuya_setpoint(int16_t temp_c)
 {
-    if (temp_c < 1600) {
-        temp_c = 1600;
-    } else if (temp_c > 3000) {
-        temp_c = 3000;
-    }
-    return (int16_t)(((temp_c + 50) / 100) * 100);
+    // Delegates to the shared helper so this matches exactly what
+    // tuya_set_temperature() actually sends -- see its doc comment in
+    // tuya_client.h. g_expected_setpoint (set from this return value)
+    // is compared byte-for-byte against Tuya's echoed-back temp_set DP.
+    return tuya_normalize_setpoint_c(temp_c);
 }
 
 // The product spec claims compressor_frequency is x10-scaled (max 1500 = 150.0Hz),

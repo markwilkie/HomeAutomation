@@ -588,14 +588,10 @@ esp_err_t tuya_set_power(bool on)
 esp_err_t tuya_set_temperature(int16_t temp_c)
 {
     // Tuya HVAC DPs often reject arbitrary 0.01C values from Matter (e.g. 1822).
-    // Normalize to whole-degree C in x100 units and clamp to common mini-split range.
+    // Normalize (and clamp to common mini-split range) via the shared
+    // Fahrenheit-granularity helper -- see its doc comment in tuya_client.h.
     int16_t requested_temp_c = temp_c;
-    if (temp_c < 1600) {
-        temp_c = 1600;
-    } else if (temp_c > 3000) {
-        temp_c = 3000;
-    }
-    temp_c = (int16_t)(((temp_c + 50) / 100) * 100);
+    temp_c = tuya_normalize_setpoint_c(temp_c);
 
     // Build command JSON
     cJSON *commands = cJSON_CreateArray();

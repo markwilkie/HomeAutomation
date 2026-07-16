@@ -29,6 +29,33 @@ typedef struct {
 } tuya_device_status_t;
 
 /**
+ * @brief Clamp and round a Matter/Celsius setpoint (×100) to the nearest
+ *        whole Fahrenheit degree, then convert back to Celsius ×100.
+ *
+ * This device's real setpoint granularity is 1°F (the temp_set_f DP, what
+ * the physical remote and HA's Fahrenheit-displayed thermostat card step
+ * by), not 1°C. Rounding to the nearest whole Celsius degree first -- as
+ * this used to do -- can be off by up to 1.8°F, which silently swallowed
+ * 1°F nudges from HA (e.g. 70°F -> 69°F requested became 20.56°C, which
+ * rounds to a whole 21°C, i.e. 69.8°F -> reported right back as 70°F).
+ * Shared between main.c (to compute the expectation it reconciles Tuya's
+ * shadow against) and tuya_set_temperature() (to compute what's actually
+ * sent) so both agree on exactly the same value.
+ * @param temp_c_x100 Setpoint in Celsius (×100)
+ * @return Normalized setpoint in Celsius (×100)
+ */
+static inline int16_t tuya_normalize_setpoint_c(int16_t temp_c_x100)
+{
+    if (temp_c_x100 < 1600) {
+        temp_c_x100 = 1600;
+    } else if (temp_c_x100 > 3000) {
+        temp_c_x100 = 3000;
+    }
+    int16_t temp_f = (int16_t)(((int32_t)temp_c_x100 * 9 + 250) / 500 + 32);
+    return (int16_t)((((int32_t)temp_f - 32) * 500 + 4) / 9);
+}
+
+/**
  * @brief Initialize Tuya client with credentials
  * @param device_id Device ID from Tuya platform
  * @param client_id Client ID from Tuya platform
