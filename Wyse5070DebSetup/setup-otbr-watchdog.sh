@@ -29,13 +29,28 @@
 #      e.g. someone ran a plain `docker restart otbr` by hand) and reapplies
 #      setup-nat64-jool.sh's full config if so.
 #
+# Diagnostics before restarting: confirmed live (2026-07-16) that the
+# original RCP/radio-timeout crash this was built for stopped recurring
+# after the USB-autosuspend fix (setup-otbr-usb-power.sh) -- but
+# otbr-agent still occasionally goes unresponsive with NO crash line in
+# its own log and nothing in dmesg (checked via `docker exec otbr dmesg`,
+# which works because the container runs privileged). That means it's
+# hanging, not crashing -- and a bare `docker restart` destroys the one
+# copy of the evidence (process state, D-Bus status) the moment it fires.
+# So now, before restarting, this captures a snapshot -- `ot-ctl state`'s
+# actual output (not just its exit code), `ps aux` inside the container,
+# service statuses, and the container's own recent log -- to a per-incident
+# file, so the next occurrence leaves a trail instead of just "it's better
+# now".
+#
 # Usage:
 #   ./setup-otbr-watchdog.sh            # install + enable + start the service
 #   ./setup-otbr-watchdog.sh --watch    # run the monitoring loop directly
 #                                        # (this is what the service actually runs)
 #   sudo systemctl status otbr-watchdog.service
 #   journalctl -u otbr-watchdog.service -f
-#   tail -f /mnt/data/appdata/otbr/watchdog.log   # same log, no sudo needed
+#   tail -f /mnt/data/appdata/otbr/watchdog.log          # same log, no sudo needed
+#   ls /mnt/data/appdata/otbr/diagnostics/               # per-incident snapshots
 
 set -euo pipefail
 
@@ -50,6 +65,8 @@ NAT64_JOOL_SCRIPT="${SCRIPT_DIR}/setup-nat64-jool.sh"
 # systemd-journal group membership to read -- this file is created with the
 # default 644 mode so crash history can be checked without sudo.
 LOG_FILE="/mnt/data/appdata/otbr/watchdog.log"
+DIAG_DIR="/mnt/data/appdata/otbr/diagnostics"
+DIAG_RETENTION_COUNT=20
 
 log() {
     local line="[otbr-watchdog] $(date '+%Y-%m-%d %H:%M:%S') $*"
@@ -80,6 +97,56 @@ wait_for_otbr_responsive() {
     return 1
 }
 
+capture_diagnostics() {
+    # The whole point of this function is to run right as otbr-agent is
+    # confirmed unresponsive, so several of these (ot-ctl state, service
+    # status) are *expected* to fail or time out -- that's the diagnostic
+    # signal, not an error. Under this script's global `set -e`, even a
+    # guarded `cmd || true` on a command substitution assignment
+    # (`x="$(cmd)" || true`) doesn't reliably preserve cmd's real exit
+    # status for logging, so instead of guarding each line individually,
+    # errexit is turned off for this whole function and restored on the
+    # way out -- nothing in here may ever be able to abort the watchdog
+    # before it reaches `docker restart` below.
+    set +e
+    mkdir -p "${DIAG_DIR}" 2>/dev/null
+    local diag_file="${DIAG_DIR}/unresponsive-$(date '+%Y%m%d-%H%M%S').log"
+
+    {
+        echo "=== $(date '+%Y-%m-%d %H:%M:%S') otbr-agent unresponsive -- pre-restart snapshot ==="
+        echo ""
+        echo "--- ot-ctl state (the actual failing health check, with real output this time) ---"
+        docker exec "${CONTAINER_NAME}" timeout 5 ot-ctl state 2>&1
+        echo "exit code: $?"
+        echo ""
+        echo "--- ps aux inside container (is otbr-agent process even there?) ---"
+        docker exec "${CONTAINER_NAME}" ps aux 2>&1
+        echo ""
+        echo "--- service statuses ---"
+        docker exec "${CONTAINER_NAME}" sudo service otbr-agent status 2>&1
+        docker exec "${CONTAINER_NAME}" sudo service dbus status 2>&1
+        echo ""
+        echo "--- docker stats (container CPU/mem at time of detection) ---"
+        docker stats "${CONTAINER_NAME}" --no-stream 2>&1
+        echo ""
+        echo "--- host load/memory ---"
+        uptime 2>&1
+        free -h 2>&1
+        echo ""
+        echo "--- last 40 lines of the container's own log ---"
+        docker logs "${CONTAINER_NAME}" --tail 40 2>&1
+    } > "${diag_file}" 2>&1
+
+    # Retention: keep the newest DIAG_RETENTION_COUNT snapshots.
+    local old
+    while IFS= read -r old; do
+        rm -f "${old}"
+    done < <(ls -1t "${DIAG_DIR}"/unresponsive-*.log 2>/dev/null | tail -n "+$((DIAG_RETENTION_COUNT + 1))")
+    set -e
+
+    log "Captured pre-restart diagnostics -> ${diag_file}"
+}
+
 reapply_jool() {
     log "Reapplying Jool NAT64 override"
     if "${NAT64_JOOL_SCRIPT}"; then
@@ -94,6 +161,7 @@ watch_loop() {
     while true; do
         if ! otbr_responsive; then
             log "otbr-agent unresponsive (container may be 'Up' but the daemon is dead) -- restarting container"
+            capture_diagnostics
             docker restart "${CONTAINER_NAME}" > /dev/null
             if wait_for_otbr_responsive; then
                 log "otbr-agent responsive again after restart"
