@@ -382,9 +382,9 @@ extern "C" esp_err_t matter_device_init(void)
     // Renders in Home Assistant as its own switch entity; rename it
     // something unambiguous (e.g. "MiniSplit Main Power") once commissioned,
     // to keep it clearly distinct from the thermostat's Cool/Off control.
-    endpoint::on_off_plugin_unit::config_t power_cfg;
+    endpoint::on_off_plug_in_unit::config_t power_cfg;
     power_cfg.on_off.on_off = g_matter_state.onoff;
-    g_power_endpoint = endpoint::on_off_plugin_unit::create(g_node, &power_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    g_power_endpoint = endpoint::on_off_plug_in_unit::create(g_node, &power_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_power_endpoint) {
         ESP_LOGE(TAG, "Failed to create Power endpoint");
         return ESP_FAIL;
