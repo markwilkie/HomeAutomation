@@ -603,7 +603,7 @@ esp_err_t tuya_set_temperature(int16_t temp_c)
     cJSON_AddItemToArray(commands, cmd_c);
 
     // Some Tuya HVAC profiles only apply setpoint updates when Fahrenheit DP is also provided.
-    int16_t temp_f = (int16_t)((temp_c * 9 + 250) / 500 + 32); // Rounded Cx100 -> F integer
+    int16_t temp_f = tuya_setpoint_c_to_f(temp_c);
     cJSON *cmd_f = cJSON_CreateObject();
     cJSON_AddStringToObject(cmd_f, "code", "temp_set_f");
     cJSON_AddNumberToObject(cmd_f, "value", temp_f);

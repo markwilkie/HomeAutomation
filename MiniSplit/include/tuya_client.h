@@ -29,29 +29,44 @@ typedef struct {
 } tuya_device_status_t;
 
 /**
- * @brief Clamp and round a Matter/Celsius setpoint (×100) to the nearest
- *        whole Fahrenheit degree, then convert back to Celsius ×100.
- *
- * This device's real setpoint granularity is 1°F (the temp_set_f DP, what
- * the physical remote and HA's Fahrenheit-displayed thermostat card step
- * by), not 1°C. Rounding to the nearest whole Celsius degree first -- as
- * this used to do -- can be off by up to 1.8°F, which silently swallowed
- * 1°F nudges from HA (e.g. 70°F -> 69°F requested became 20.56°C, which
- * rounds to a whole 21°C, i.e. 69.8°F -> reported right back as 70°F).
- * Shared between main.c (to compute the expectation it reconciles Tuya's
- * shadow against) and tuya_set_temperature() (to compute what's actually
- * sent) so both agree on exactly the same value.
- * @param temp_c_x100 Setpoint in Celsius (×100)
- * @return Normalized setpoint in Celsius (×100)
+ * @brief Clamp a Celsius (×100) setpoint and round it to the nearest whole
+ *        Fahrenheit degree -- the single source of truth for the C->F step,
+ *        shared by tuya_normalize_setpoint_c(), tuya_set_temperature() (what
+ *        actually gets sent as both temp_set and temp_set_f), and main.c's
+ *        expectation tracking (what gets compared against Tuya's echoed-back
+ *        temp_set_f), so all three always agree on the same value.
+ * @param temp_c_x100 Setpoint in Celsius (×100), any range
+ * @return Whole-degree Fahrenheit, clamped to the device's 16-30C range
  */
-static inline int16_t tuya_normalize_setpoint_c(int16_t temp_c_x100)
+static inline int16_t tuya_setpoint_c_to_f(int16_t temp_c_x100)
 {
     if (temp_c_x100 < 1600) {
         temp_c_x100 = 1600;
     } else if (temp_c_x100 > 3000) {
         temp_c_x100 = 3000;
     }
-    int16_t temp_f = (int16_t)(((int32_t)temp_c_x100 * 9 + 250) / 500 + 32);
+    return (int16_t)(((int32_t)temp_c_x100 * 9 + 250) / 500 + 32);
+}
+
+/**
+ * @brief Clamp and round a Matter/Celsius setpoint (×100) to the nearest
+ *        whole Fahrenheit degree, then convert back to Celsius ×100.
+ *
+ * This device's real setpoint granularity is 1°F (the temp_set_f DP, what
+ * the physical remote and HA's Fahrenheit-displayed thermostat card step
+ * by), not 1°C -- and temp_set itself is further constrained to 0.5°C
+ * steps (per TUYA_DP_REFERENCE.md), which this whole-Fahrenheit-degree
+ * result is not guaranteed to land on. That mismatch is exactly why
+ * expectation-tracking compares against temp_set_f now, not temp_set --
+ * see tuya_setpoint_c_to_f() and main.c's g_expected_setpoint_f. This
+ * Celsius value remains only for what gets shown on the Matter Thermostat
+ * cluster (which is Celsius-native) while a command is pending.
+ * @param temp_c_x100 Setpoint in Celsius (×100)
+ * @return Normalized setpoint in Celsius (×100)
+ */
+static inline int16_t tuya_normalize_setpoint_c(int16_t temp_c_x100)
+{
+    int16_t temp_f = tuya_setpoint_c_to_f(temp_c_x100);
     return (int16_t)((((int32_t)temp_f - 32) * 500 + 4) / 9);
 }
 
