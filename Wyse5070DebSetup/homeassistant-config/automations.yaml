@@ -1,0 +1,163 @@
+- id: '1783728204972'
+  alias: MiniSplit
+  description: ''
+  triggers:
+  - trigger: temperature.crossed_threshold
+    target:
+      entity_id: climate.mini_split_ac_bridge
+    options:
+      behavior: each
+      for: 00:00:00
+      threshold:
+        type: above
+        value:
+          active_choice: number
+          unit_of_measurement: °F
+          number: 72
+          entity: input_number.2deg
+  conditions: []
+  actions:
+  - action: climate.set_temperature
+    metadata: {}
+    target:
+      entity_id: climate.mini_split_ac_bridge
+    data:
+      temperature: 70
+  mode: single
+- id: '1783985529104'
+  alias: MiniSplit BME280 setpoint nudge
+  description: Re-sends the current Tuya setpoint when the BME280 indoor sensor reads
+    more than 8 degrees above setpoint (6-degree BME280 placement offset + 2-degree
+    margin, per 2026-07-13 finding that this BME280 reads ~6F higher than true room
+    temp), to force the AC to re-evaluate cooling. Separate from the existing "MiniSplit"
+    automation, which uses the mini-split's own onboard sensor (reads ~11F low).
+  triggers:
+  - trigger: numeric_state
+    entity_id:
+    - sensor.mini_split_ac_bridge_temperature_2
+    - climate.mini_split_ac_bridge
+    value_template: '{{ states(''sensor.mini_split_ac_bridge_temperature_2'') | float(0)
+      - (state_attr(''climate.mini_split_ac_bridge'', ''temperature'') | float(0))
+      }}'
+    above: 6
+    for:
+      hours: 0
+      minutes: 10
+      seconds: 0
+  conditions: []
+  actions:
+  - action: climate.set_temperature
+    target:
+      entity_id: climate.mini_split_ac_bridge
+    data:
+      temperature: '{{ state_attr(''climate.mini_split_ac_bridge'', ''temperature'')
+        }}'
+  mode: single
+- id: '1784138281282'
+  alias: MiniSplit BME280 cascade setpoint correction
+  description: >-
+    Cascade-control outer loop over Tuya's own onboard thermostat. Every 10
+    minutes, computes a bias-corrected Tuya setpoint from the BME280 (true
+    room) reading -- projected forward by the ~16min measured BME280-behind-
+    Tuya lag, and scaled up on hot days via outdoor temp -- then writes it,
+    letting Tuya's own inner hysteresis keep handling the actual compressor
+    cycling. In this cooling-only setup, a downward setpoint move calls for
+    *more* cooling, so it's capped to at most 1 degree F per cycle
+    (max_step_down) for the same reason as before -- on a hot day with a
+    fast-rising trend the uncapped math can call for a 6+ degree jump in one
+    step, which is too aggressive for the compressor even when the
+    underlying calculation is correct. An upward move means the room has
+    overshot below target (over-cooled) and the correction is backing off,
+    which is safe to do faster, so it's allowed up to 4 degrees F per cycle
+    (max_step_up) instead -- confirmed needed 2026-07-15 after the old
+    symmetric 1-degree cap left the setpoint chasing an overshoot for
+    several cycles. Skips the write entirely if the compressor changed
+    on/off state in the last 5 minutes (anti-short-cycle) or its demand %
+    has changed in the last 3 minutes (still ramping --
+    sensor.mini_split_ac_bridge_humidity_5, a repurposed Humidity endpoint
+    carrying PICoolingDemand's 0-100% value, since HA's Matter integration
+    only exposes a sensor for PIHeatingDemand, which this device never
+    uses), or if the (already-capped) correction differs from the current
+    setpoint by less than 1 degree F. The demand-ramping guard is skipped
+    when the computed move is upward (an overshoot correction) -- added
+    2026-07-15 after a cycle where demand had just ticked up 2:44 before
+    the trigger (inside the 3-minute window) and the guard silently skipped
+    the whole automation while the BME280 trend was accelerating downward,
+    letting the overshoot run uncorrected for a full extra cycle. An
+    upward move relieves cooling demand rather than adding to it, so
+    letting it through mid-ramp doesn't fight the compressor the way
+    another downward move would.
+
+    Gain is adaptive, not the fixed 1.0 it used to be -- persisted across
+    runs in input_number.minisplit_adaptive_gain (configuration.yaml) since
+    templates carry no state between triggers. After every cycle that
+    actually writes a correction, the direction (+1 up / -1 down) is
+    compared against input_number.minisplit_last_correction_sign from the
+    previous write: a flip (this cycle disagrees with the last) means the
+    loop is oscillating, so gain is cut 15%; the same direction twice means
+    it's trending consistently, so gain eases back up 5%, capped to
+    [0.3, 1.2]. This targets the actual 2026-07-15 overnight symptom (BME280
+    stdev 1.45 vs. 1.24 the night before, 27 setpoint reversals >1.5F)
+    without hardcoding a single gain that's either too twitchy on calm
+    nights or too sluggish on ones that are actually swinging. The max_step
+    cap above still bounds worst-case movement per cycle regardless of
+    gain, so a runaway gain isn't a runaway setpoint.
+
+    Replaces the generic_thermostat + template switch approach (retired in
+    configuration.yaml), which only ever toggled hvac_mode and never
+    actually forced Tuya's own compressor decision.
+  triggers:
+  - trigger: time_pattern
+    minutes: /10
+  conditions:
+  - condition: template
+    value_template: >-
+      {{ (as_timestamp(now()) - as_timestamp(states.binary_sensor.mini_split_ac_bridge_occupancy.last_changed)) > 300 }}
+  actions:
+  - variables:
+      target_temp: "{{ states('input_number.minisplit_target_temp') | float(71) }}"
+      lag_minutes: 16
+      adaptive_gain: "{{ states('input_number.minisplit_adaptive_gain') | float(1.0) }}"
+      last_sign: "{{ states('input_number.minisplit_last_correction_sign') | int(0) }}"
+      bme280_now: "{{ states('sensor.mini_split_ac_bridge_temperature_2') | float(0) }}"
+      trend_per_hour: "{{ states('sensor.minisplit_bme280_trend') | float(0) }}"
+      outdoor_temp: "{{ states('sensor.mini_split_ac_bridge_outdoor_temperature') | float(75) }}"
+      tuya_now: "{{ state_attr('climate.mini_split_ac_bridge', 'current_temperature') | float(0) }}"
+      current_setpoint: "{{ state_attr('climate.mini_split_ac_bridge', 'temperature') | float(0) }}"
+      error: "{{ bme280_now - target_temp }}"
+      projected_error: "{{ error + trend_per_hour * (lag_minutes / 60) }}"
+      outdoor_factor: "{{ min(max((outdoor_temp - 75) / 20, 0), 1) }}"
+      gain: "{{ adaptive_gain * (1 + outdoor_factor) }}"
+      correction: "{{ gain * projected_error }}"
+      raw_setpoint: "{{ min(max(tuya_now - correction, 60), 75) }}"
+      max_step_down: 1
+      max_step_up: 4
+      new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
+  - condition: template
+    value_template: >-
+      {{ new_setpoint > current_setpoint
+         or (as_timestamp(now()) - as_timestamp(states.sensor.mini_split_ac_bridge_humidity_5.last_changed)) > 180 }}
+  - condition: template
+    value_template: "{{ (new_setpoint - current_setpoint) | abs >= 1 }}"
+  - action: climate.set_temperature
+    target:
+      entity_id: climate.mini_split_ac_bridge
+    data:
+      temperature: "{{ new_setpoint }}"
+  - variables:
+      this_sign: "{{ 1 if new_setpoint > current_setpoint else -1 }}"
+      gain_step: >-
+        {{ adaptive_gain * 0.85 if (last_sign != 0 and this_sign != last_sign)
+           else adaptive_gain * 1.05 }}
+      new_adaptive_gain: "{{ min(max(gain_step, 0.3), 1.2) | round(2) }}"
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.minisplit_adaptive_gain
+    data:
+      value: "{{ new_adaptive_gain }}"
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.minisplit_last_correction_sign
+    data:
+      value: "{{ this_sign }}"
+  mode: single

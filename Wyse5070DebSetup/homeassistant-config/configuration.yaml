@@ -1,0 +1,90 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# BME280 rate-of-change over a 15-minute window (deg F/hour). Used by the
+# "MiniSplit BME280 cascade setpoint correction" automation (automations.yaml)
+# to project the ~16min measured BME280-behind-Tuya lag forward, instead of
+# reacting to the raw absolute reading alone.
+#
+# Retires the generic_thermostat + template switch approach that used to be
+# here: that only ever toggled hvac_mode (Cool/Off), which is a no-op once
+# Tuya is already sitting in Cool mode (as it does in normal use) -- it never
+# touched the one thing that actually gates Tuya's own compressor decision
+# (its onboard temp_current vs temp_set). The cascade automation replaces it
+# by continuously correcting temp_set itself, letting Tuya's own inner
+# hysteresis keep doing the fast on/off cycling it already does reasonably
+# well.
+# User-adjustable target temperature for the cascade setpoint-correction
+# automation (automations.yaml), read fresh on each 10-minute run instead of
+# a hardcoded value.
+#
+# No "initial:" here on purpose: input_number's source (__init__.py) sets
+# _current_value straight from config[CONF_INITIAL] at construction time
+# whenever it's present, and only falls back to restoring the last saved
+# state when it's absent. With "initial: 71" set, every HA restart silently
+# reverted this back to 71, discarding whatever you'd actually set it to.
+input_number:
+  minisplit_target_temp:
+    name: "MiniSplit Target Temperature"
+    min: 65
+    max: 80
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:thermostat
+    mode: slider
+
+  # Adaptive gain state for the cascade automation (automations.yaml): the
+  # multiplier itself, and the direction (+1/-1) of the last correction it
+  # actually wrote, so the next run can tell whether it's oscillating (this
+  # cycle's direction flips the last one -> cut gain 15%) or trending
+  # consistently (same direction twice -> ease gain back up 5%). Same
+  # "no initial:" reasoning as minisplit_target_temp above -- these need to
+  # survive HA restarts, not reset to a hardcoded starting point every time.
+  minisplit_adaptive_gain:
+    name: "MiniSplit Adaptive Gain"
+    min: 0.3
+    max: 1.2
+    step: 0.01
+    icon: mdi:tune-variant
+    mode: box
+
+  minisplit_last_correction_sign:
+    name: "MiniSplit Last Correction Sign"
+    min: -1
+    max: 1
+    step: 1
+    icon: mdi:swap-vertical
+    mode: box
+
+sensor:
+  # A single BME280 quantization blip (e.g. 0.1F over one 30s poll) computes
+  # to a huge instantaneous F/hour rate once differentiated -- confirmed by
+  # reading derivative/sensor.py: it averages pairwise slopes between raw
+  # consecutive readings, weighted only by segment duration, so one noisy
+  # 30s segment isn't diluted much within a 15-minute window. Smoothing the
+  # source with a 5-minute moving average first removes that single-sample
+  # noise before it ever reaches the derivative, so the resulting trend
+  # reflects real multi-minute drift instead of sensor jitter.
+  - platform: filter
+    name: "MiniSplit BME280 Smoothed"
+    entity_id: sensor.mini_split_ac_bridge_temperature_2
+    filters:
+      - filter: time_simple_moving_average
+        type: last
+        window_size:
+          minutes: 5
+  - platform: derivative
+    source: sensor.minisplit_bme280_smoothed
+    name: "MiniSplit BME280 Trend"
+    unit_time: h
+    time_window:
+      minutes: 15
