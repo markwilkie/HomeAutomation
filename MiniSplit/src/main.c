@@ -584,6 +584,26 @@ void app_main(void)
         TUYA_CLIENT_SECRET
     ));
 
+    // Eagerly fetch and publish the real Tuya status right now, rather than
+    // waiting for sync_task's first scheduled poll (up to several seconds
+    // away, plus its own startup delay). g_started is already true at this
+    // point (set in matter_start_commissioning(), called well before this),
+    // so this publishes immediately instead of no-opping. Without this, the
+    // Matter node advertises its hardcoded boot-time defaults --
+    // g_matter_state.onoff=false among them -- to any subscribed controller
+    // for that whole window, which looks like the mini-split turning itself
+    // off on every reboot even though the real unit was never touched.
+    {
+        tuya_device_status_t initial_status = {0};
+        if (tuya_get_device_status(&initial_status) == ESP_OK) {
+            cache_and_apply_status(&initial_status);
+            ESP_LOGI(TAG, "Published real Tuya status immediately after boot (power=%s)",
+                     initial_status.switch_state ? "ON" : "OFF");
+        } else {
+            ESP_LOGW(TAG, "Initial Tuya status fetch failed; sync_task will retry shortly");
+        }
+    }
+
     // Initialize optional BME280 environment sensor (temperature + humidity).
     // If absent, the aux temperature endpoint falls back to the Tuya indoor temp.
     if (bme280_init() == ESP_OK) {
