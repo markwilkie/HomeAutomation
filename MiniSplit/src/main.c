@@ -73,7 +73,7 @@ static uint32_t g_power_expectation_tick = 0;
 // to the slow idle interval to conserve Tuya Cloud API quota.
 static uint32_t current_status_poll_interval_ms(void)
 {
-    bool expectation_pending = (g_expected_setpoint >= 0) ||
+    bool expectation_pending = (g_expected_setpoint_f >= 0) ||
                                 (g_expected_mode >= 0) ||
                                 (g_expected_power >= 0);
     return expectation_pending ? STATUS_POLL_INTERVAL_ACTIVE_MS : STATUS_POLL_INTERVAL_IDLE_MS;
