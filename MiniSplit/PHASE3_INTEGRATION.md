@@ -35,7 +35,9 @@ SmartThings Display Updated
 ## What's Implemented
 
 ### 1. Status Synchronization (✅)
-- Polls Tuya device every 30 seconds
+- Polls Tuya device adaptively: every 5 minutes while idle, every 30 seconds
+  while a local command is awaiting confirmation from Tuya's shadow (to
+  conserve Tuya Cloud API quota)
 - Gets current: power, temperature, mode, features
 - Updates Matter attributes automatically
 - Handles errors and retries
@@ -44,7 +46,7 @@ SmartThings Display Updated
 **File:** `src/main.c` - `sync_task()`
 
 **Features:**
-- Retry logic (3 attempts per poll)
+- Retry logic (3 attempts per poll, exponential backoff: 2s, 4s)
 - Failure tracking (alerts after 5+ failures)
 - Detailed logging of each status
 - Mode mapping (Tuya → Matter)
@@ -86,7 +88,7 @@ Three concurrent FreeRTOS tasks:
 
 | Task | Interval | Priority | Purpose |
 |------|----------|----------|---------|
-| `sync_task` | 30s | 4 (high) | Poll Tuya → Update Matter |
+| `sync_task` | 5min idle / 30s active | 4 (high) | Poll Tuya → Update Matter |
 | `command_task` | 5s | 3 (medium) | Route Matter → Tuya |
 | `health_task` | 60s | 2 (low) | Monitor system health |
 
@@ -95,7 +97,7 @@ Three concurrent FreeRTOS tasks:
 ### Flow 1: Tuya → Matter (Status Sync)
 
 ```
-sync_task (every 30s)
+sync_task (every 5min idle, or every 30s while a command is pending confirmation)
     ↓
 tuya_get_device_status()
     ↓
@@ -227,17 +229,20 @@ health_task (lowest priority)
 
 ```c
 // Timing
-#define STATUS_POLL_INTERVAL_MS 30000   // 30 seconds (Tuya → Matter)
-#define COMMAND_POLL_INTERVAL_MS 5000   // 5 seconds (Matter → Tuya)
-#define RETRY_DELAY_MS 2000             // 2 seconds between retries
-#define MAX_RETRIES 3                   // Max attempts per operation
+// Status polling is adaptive to conserve Tuya Cloud API quota: fast while a
+// local command is awaiting confirmation from Tuya's shadow, slow otherwise.
+#define STATUS_POLL_INTERVAL_ACTIVE_MS 30000   // 30 seconds, while a command confirmation is pending
+#define STATUS_POLL_INTERVAL_IDLE_MS 300000    // 5 minutes, otherwise (Tuya → Matter)
+#define COMMAND_POLL_INTERVAL_MS 5000          // 5 seconds (Matter → Tuya)
+#define RETRY_DELAY_MS 2000                    // 2 seconds, doubles per retry attempt
+#define MAX_RETRIES 3                          // Max attempts per operation
 ```
 
 **Tuning recommendations:**
-- Increase STATUS_POLL_INTERVAL_MS if WiFi unreliable
-- Decrease COMMAND_POLL_INTERVAL_MS for snappier response
+- Increase STATUS_POLL_INTERVAL_IDLE_MS if Tuya quota is tight; decrease if you need fresher out-of-band state (e.g. changes made via the Tuya app or physical remote) reflected sooner
+- Decrease STATUS_POLL_INTERVAL_ACTIVE_MS / COMMAND_POLL_INTERVAL_MS for snappier response to local commands
 - Increase MAX_RETRIES if network flaky
-- Increase RETRY_DELAY_MS if API rate-limited
+- RETRY_DELAY_MS is the base of an exponential backoff (2s, 4s, ...) across retry attempts; increase it if API rate-limited
 
 ## State Tracking
 
@@ -314,7 +319,9 @@ I (60000) health_task: Free Heap: 185432 bytes
 3. Observe SmartThings app
 
 **Expected Behavior:**
-- Within 30 seconds: SmartThings shows "Set Temperature: 25°C"
+- Within 5 minutes: SmartThings shows "Set Temperature: 25°C" -- this change
+  originates outside the bridge (Tuya app, not Matter), so it's picked up on
+  the next idle-interval poll rather than the faster active-interval one
 - Serial log shows status poll and update
 - Device icon reflects change
 
@@ -452,17 +459,17 @@ typedef struct {
 // Use: xQueueCreate(10, sizeof(command_t))
 ```
 
-### Feature 2: Adaptive Polling (Future)
+### Feature 2: Adaptive Polling (✅ Implemented)
 
-Currently: Fixed 30s interval
-
-Better: Adjust based on activity
+Implemented via `current_status_poll_interval_ms()` in `src/main.c`:
 
 ```
-No activity: Poll every 60s (save bandwidth)
-Activity detected: Poll every 10s (responsive)
-Error state: Poll every 5s (diagnose issue)
+Idle (no pending command): Poll every 5 min (STATUS_POLL_INTERVAL_IDLE_MS) -- conserves Tuya Cloud API quota
+Command pending confirmation: Poll every 30s (STATUS_POLL_INTERVAL_ACTIVE_MS) -- responsive
+Poll failure: Exponential backoff on retry (2s, 4s) rather than a fixed retry rate
 ```
+
+Not yet done: skipping polling entirely while the unit is known off (considered and deferred for now).
 
 ### Feature 3: OTA Firmware Updates (Phase 4)
 
@@ -480,20 +487,25 @@ Future: Array of devices with individual sync tasks
 
 1. Check serial: "Processing ... command from SmartThings"
 2. Verify: Tuya API call succeeds (check HTTP 200)
-3. Wait: Next status poll to confirm (30s max)
+3. Wait: Next status poll to confirm -- 30s max, since a pending command switches
+   sync_task to the fast STATUS_POLL_INTERVAL_ACTIVE_MS until confirmed
 4. If stuck: Check WiFi connection
 
 ### Status Not Updating
 
 1. Check: "Status synchronization task started"
-2. Wait: First poll is 30s after boot
-3. Verify: "Tuya status:" appears every 30s in logs
+2. Wait: First poll happens immediately at boot, then every
+   STATUS_POLL_INTERVAL_IDLE_MS (5 min) while idle, or every
+   STATUS_POLL_INTERVAL_ACTIVE_MS (30s) while a command confirmation is pending
+3. Verify: "Tuya Status Update:" appears in logs at that cadence
 4. If missing: WiFi may be disconnected
 
 ### High Latency
 
 1. Check: WiFi signal strength
-2. Reduce: STATUS_POLL_INTERVAL_MS (be careful of rate limits)
+2. Reduce: STATUS_POLL_INTERVAL_ACTIVE_MS (be careful of rate limits) -- this only
+   affects polling while a command is pending confirmation; idle polling is
+   governed separately by STATUS_POLL_INTERVAL_IDLE_MS
 3. Check: Tuya API response times (enable debug logging)
 4. Consider: Moving hub closer to WiFi router
 
@@ -506,7 +518,7 @@ Future: Array of devices with individual sync tasks
 
 ## Success Criteria
 
-- ✅ Status syncs from Tuya every 30 seconds
+- ✅ Status syncs from Tuya every 5 minutes while idle, every 30 seconds while a command is pending confirmation
 - ✅ Commands route from SmartThings to Tuya within 5 seconds
 - ✅ WiFi disconnections handled gracefully
 - ✅ Errors logged but don't crash system
@@ -520,7 +532,7 @@ Future: Array of devices with individual sync tasks
 Phase 3 implements the complete bidirectional synchronization:
 
 **From Tuya to Matter:**
-- Status polling every 30s
+- Adaptive status polling: every 5 min while idle, every 30s while a command is pending confirmation
 - Automatic attribute updates
 - Temperature, mode, power display
 

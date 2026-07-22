@@ -51,11 +51,30 @@ static int8_t g_expected_power = -1;       // -1 = no pending expectation (0/1)
 static uint32_t g_power_expectation_tick = 0;
 
 // Timing configuration
-#define STATUS_POLL_INTERVAL_MS 30000   // Poll Tuya every 30 seconds
-#define COMMAND_POLL_INTERVAL_MS 5000   // Check Matter commands every 5 seconds
-#define ENV_POLL_INTERVAL_MS 30000      // Read BME280 every 30 seconds
-#define RETRY_DELAY_MS 2000             // Wait before retry on error
-#define MAX_RETRIES 3                   // Retry up to 3 times before giving up
+//
+// Status polling is adaptive: fast (STATUS_POLL_INTERVAL_ACTIVE_MS) while a
+// local command is awaiting confirmation from Tuya's shadow (see
+// g_expected_setpoint et al. above), slow (STATUS_POLL_INTERVAL_IDLE_MS) the
+// rest of the time. This is the dominant contributor to Tuya Cloud API quota
+// usage, so idle polling is kept deliberately infrequent -- see
+// current_status_poll_interval_ms() below.
+#define STATUS_POLL_INTERVAL_ACTIVE_MS 30000    // While a command confirmation is pending
+#define STATUS_POLL_INTERVAL_IDLE_MS 300000     // Otherwise: every 5 minutes
+#define COMMAND_POLL_INTERVAL_MS 5000    // Check Matter commands every 5 seconds
+#define ENV_POLL_INTERVAL_MS 30000       // Read BME280 every 30 seconds
+#define RETRY_DELAY_MS 2000               // Base delay before retry on error (doubles per attempt)
+#define MAX_RETRIES 3                     // Retry up to 3 times before giving up
+
+// Fast-poll only while a local command is still waiting on Tuya's shadow to
+// confirm it (see the expectation-tracking block above); otherwise fall back
+// to the slow idle interval to conserve Tuya Cloud API quota.
+static uint32_t current_status_poll_interval_ms(void)
+{
+    bool expectation_pending = (g_expected_setpoint >= 0) ||
+                                (g_expected_mode >= 0) ||
+                                (g_expected_power >= 0);
+    return expectation_pending ? STATUS_POLL_INTERVAL_ACTIVE_MS : STATUS_POLL_INTERVAL_IDLE_MS;
+}
 
 // State tracking for error recovery
 typedef struct {
@@ -224,47 +243,50 @@ static esp_err_t wait_for_time_sync(void)
  */
 static void sync_task(void *param)
 {
-    ESP_LOGI(TAG, "Status synchronization task started (interval: %ums)", 
-             STATUS_POLL_INTERVAL_MS);
-    
+    ESP_LOGI(TAG, "Status synchronization task started (idle interval: %ums, active interval: %ums)",
+             STATUS_POLL_INTERVAL_IDLE_MS, STATUS_POLL_INTERVAL_ACTIVE_MS);
+
     // Initial delay to let device stabilize
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     // Fetch and publish real Tuya status immediately on the first pass
     // (skipping the poll-interval wait) so the Matter node doesn't sit on
     // its hardcoded boot-time defaults -- g_matter_state.onoff=false among
-    // them -- for a full STATUS_POLL_INTERVAL_MS, which looks like the
-    // mini-split turning itself off on every reboot even though the real
-    // unit was never touched. This must stay in sync_task rather than
-    // app_main() -- tuya_get_device_status() does HTTPS/TLS + cJSON parsing
-    // and needs the 16KB stack this task is given below, not app_main's
-    // default ~3.5KB main task stack (which it blew through, crash-looping
-    // the device on every boot when tried inline in app_main()).
+    // them -- for a full poll interval, which looks like the mini-split
+    // turning itself off on every reboot even though the real unit was
+    // never touched. This must stay in sync_task rather than app_main() --
+    // tuya_get_device_status() does HTTPS/TLS + cJSON parsing and needs the
+    // 16KB stack this task is given below, not app_main's default ~3.5KB
+    // main task stack (which it blew through, crash-looping the device on
+    // every boot when tried inline in app_main()).
     bool first_pass = true;
 
     while (1) {
         if (!first_pass) {
-            vTaskDelay(pdMS_TO_TICKS(STATUS_POLL_INTERVAL_MS));
+            vTaskDelay(pdMS_TO_TICKS(current_status_poll_interval_ms()));
         }
         first_pass = false;
 
         tuya_device_status_t device_status = {0};
-        
-        // Attempt to get device status with retries
+
+        // Attempt to get device status with retries, backing off
+        // exponentially (2s, 4s, ...) so a failure storm doesn't multiply
+        // Tuya API call volume at a fixed high rate.
         esp_err_t result = ESP_FAIL;
         for (uint8_t attempt = 0; attempt < MAX_RETRIES; attempt++) {
             result = tuya_get_device_status(&device_status);
-            
+
             if (result == ESP_OK) {
                 g_sync_state.status_poll_failures = 0;  // Reset failure counter
                 break;
             }
-            
-            // Retry with delay
+
+            // Retry with exponential backoff
             if (attempt < MAX_RETRIES - 1) {
-                ESP_LOGW(TAG, "Status poll attempt %u failed, retrying in %ums...", 
-                         attempt + 1, RETRY_DELAY_MS);
-                vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_MS));
+                uint32_t backoff_delay_ms = RETRY_DELAY_MS << attempt;
+                ESP_LOGW(TAG, "Status poll attempt %u failed, retrying in %ums...",
+                         attempt + 1, backoff_delay_ms);
+                vTaskDelay(pdMS_TO_TICKS(backoff_delay_ms));
             }
         }
         
@@ -638,7 +660,8 @@ void app_main(void)
                 NULL);
     
     ESP_LOGI(TAG, "\n=== MiniSplit Matter Bridge Ready ===");
-    ESP_LOGI(TAG, "Status Sync Interval: %ums", STATUS_POLL_INTERVAL_MS);
+    ESP_LOGI(TAG, "Status Sync Interval: idle %ums / active %ums",
+             STATUS_POLL_INTERVAL_IDLE_MS, STATUS_POLL_INTERVAL_ACTIVE_MS);
     ESP_LOGI(TAG, "Command Poll Interval: %ums", COMMAND_POLL_INTERVAL_MS);
     ESP_LOGI(TAG, "Status: Waiting for Matter commissioning...\n");
 }
