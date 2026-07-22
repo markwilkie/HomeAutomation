@@ -11,17 +11,30 @@
 #
 # Usage:
 #   ./setup-otbr.sh
+#   IMAGE=openthread/otbr:pre-thread14-20260721 ./setup-otbr.sh   # roll back
 #
 # Re-running this script is safe: it will remove and recreate the otbr
 # container and the web-forward service with the current settings, but does
 # not touch your Thread network data (persisted under APPDATA_ROOT).
+#
+# ROLLBACK: before any pull of a new `:latest`, retag the currently-running
+# image under a fixed tag first (`docker tag openthread/otbr:latest
+# openthread/otbr:pre-<change>-<date>`) -- :latest is a floating tag, so once
+# a new image is pulled the old one is only reachable via that fixed tag or
+# its digest. To roll back, re-run this script with IMAGE set to that fixed
+# tag (see above); it recreates the container from that exact image without
+# touching persisted Thread data. A pre-2026-07-21-update snapshot already
+# exists: image tag openthread/otbr:pre-thread14-20260721, and a full data
+# copy at /mnt/data/appdata/otbr-backup-20260721-212146 (restore the data
+# copy only if the update also corrupted on-disk state, not routinely --
+# rolling the image back is normally enough on its own).
 
 set -euo pipefail
 
 # ---- Config you may want to tweak -----------------------------------------
 APPDATA_ROOT="/mnt/data/appdata/otbr"
 CONTAINER_NAME="otbr"
-IMAGE="openthread/otbr:latest"
+IMAGE="${IMAGE:-openthread/otbr:latest}"
 BACKBONE_INTERFACE="enp1s0"   # <-- your LAN interface; check with `ip a` if unsure
 WEB_FORWARD_PORT="8080"        # externally reachable port for the OTBR web UI
 SERIAL_BY_ID_GLOB="/dev/serial/by-id/usb-SONOFF_SONOFF_Dongle_Plus_MG24_*"

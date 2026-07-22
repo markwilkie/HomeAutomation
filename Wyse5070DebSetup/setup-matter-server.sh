@@ -42,10 +42,25 @@
 #
 # Usage:
 #   ./setup-matter-server.sh
+#   IMAGE=ghcr.io/matter-js/matterjs-server:pre-visualizer-20260721 ./setup-matter-server.sh   # roll back
 #
 # Re-running this script is safe: it recreates the container with current
 # settings but does not touch persisted fabric/device data under
 # APPDATA_ROOT.
+#
+# ROLLBACK: before any `docker compose pull` against a new `:stable`, retag
+# the currently-running image under a fixed tag first (`docker tag
+# ghcr.io/matter-js/matterjs-server:stable
+# ghcr.io/matter-js/matterjs-server:pre-<change>-<date>`) -- :stable is a
+# floating tag, so the old image is only reachable via that fixed tag or its
+# digest once a new one is pulled. To roll back, re-run this script with
+# IMAGE set to that fixed tag (see above); it recreates the container from
+# that exact image without touching persisted fabric/device data. A
+# pre-2026-07-21-update snapshot already exists: image tag
+# ghcr.io/matter-js/matterjs-server:pre-visualizer-20260721, and a full data
+# copy at /mnt/data/appdata/matter-server-backup-20260721-212146 (restore
+# the data copy only if the update also corrupted on-disk state, not
+# routinely -- rolling the image back is normally enough on its own).
 
 set -euo pipefail
 
@@ -53,7 +68,7 @@ set -euo pipefail
 APPDATA_ROOT="/mnt/data/appdata/matter-server"
 COMPOSE_DIR="${APPDATA_ROOT}"
 CONTAINER_NAME="matter-server"
-IMAGE="ghcr.io/matter-js/matterjs-server:stable"
+IMAGE="${IMAGE:-ghcr.io/matter-js/matterjs-server:stable}"
 WEBSOCKET_PORT="5580"
 # -----------------------------------------------------------------------------
 
