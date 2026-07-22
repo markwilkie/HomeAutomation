@@ -41,7 +41,10 @@ static bool g_last_device_status_valid = false;
 // Tuya never converges (e.g. the command was silently rejected).
 #define EXPECTATION_MAX_WAIT_MS 120000  // give up waiting after 2 minutes
 
-static int16_t g_expected_setpoint = -1;   // -1 = no pending expectation
+static int16_t g_expected_setpoint = -1;   // -1 = no pending expectation (Celsius x100, for Matter display only)
+static int16_t g_expected_setpoint_f = -1; // -1 = no pending expectation (whole Fahrenheit -- what confirmation
+                                            // actually checks; temp_set's 0.5C step means a Celsius round-trip
+                                            // essentially never matches exactly, see tuya_setpoint_c_to_f())
 static uint32_t g_setpoint_expectation_tick = 0;
 
 static int8_t g_expected_mode = -1;        // -1 = no pending expectation (Tuya "mode" DP, 0-4)
@@ -321,17 +324,20 @@ static void sync_task(void *param)
         // doesn't visibly revert; every other field still applies normally.
         uint32_t now_tick = xTaskGetTickCount();
 
-        if (g_expected_setpoint >= 0) {
-            if (device_status.temp_set == g_expected_setpoint) {
+        if (g_expected_setpoint_f >= 0) {
+            if (device_status.temp_set_f == g_expected_setpoint_f) {
                 g_expected_setpoint = -1;
+                g_expected_setpoint_f = -1;
             } else if ((now_tick - g_setpoint_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
-                ESP_LOGW(TAG, "Setpoint expectation (%d) never confirmed by Tuya, giving up and trusting shadow (%d)",
-                         g_expected_setpoint, device_status.temp_set);
+                ESP_LOGW(TAG, "Setpoint expectation (%dF) never confirmed by Tuya, giving up and trusting shadow (%dF)",
+                         g_expected_setpoint_f, device_status.temp_set_f);
                 g_expected_setpoint = -1;
+                g_expected_setpoint_f = -1;
             } else {
-                ESP_LOGI(TAG, "Setpoint still pending confirmation (expected=%d actual=%d) -- keeping optimistic value",
-                         g_expected_setpoint, device_status.temp_set);
+                ESP_LOGI(TAG, "Setpoint still pending confirmation (expected=%dF actual=%dF) -- keeping optimistic value",
+                         g_expected_setpoint_f, device_status.temp_set_f);
                 device_status.temp_set = g_expected_setpoint;
+                device_status.temp_set_f = g_expected_setpoint_f;
             }
         }
 
@@ -429,8 +435,10 @@ static void command_task(void *param)
                 revert_from_last_status_if_available();
             } else {
                 g_expected_setpoint = expected_setpoint;
+                g_expected_setpoint_f = tuya_setpoint_c_to_f(expected_setpoint);
                 g_setpoint_expectation_tick = xTaskGetTickCount();
-                ESP_LOGI(TAG, "Temperature command sent (expecting setpoint=%d)", expected_setpoint);
+                ESP_LOGI(TAG, "Temperature command sent (expecting setpoint=%d, %dF)",
+                         expected_setpoint, g_expected_setpoint_f);
             }
 
             matter_clear_heating_setpoint_command();
@@ -449,8 +457,10 @@ static void command_task(void *param)
                 revert_from_last_status_if_available();
             } else {
                 g_expected_setpoint = expected_setpoint;
+                g_expected_setpoint_f = tuya_setpoint_c_to_f(expected_setpoint);
                 g_setpoint_expectation_tick = xTaskGetTickCount();
-                ESP_LOGI(TAG, "Cooling command sent (expecting setpoint=%d)", expected_setpoint);
+                ESP_LOGI(TAG, "Cooling command sent (expecting setpoint=%d, %dF)",
+                         expected_setpoint, g_expected_setpoint_f);
             }
 
             matter_clear_cooling_setpoint_command();
