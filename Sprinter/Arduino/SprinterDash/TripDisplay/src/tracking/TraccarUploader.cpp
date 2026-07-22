@@ -84,7 +84,7 @@ bool TraccarUploader::enqueue(float lat, float lon, float elevMeters, float spee
 
 // ---- Live position sending ----
 
-void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000)
+void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, bool ignitionOn)
 {
     // Skip if no valid position (0,0 = no fix yet)
     if (lat == 0 || lon == 0)
@@ -99,14 +99,14 @@ void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, flo
     // Convert units: Traccar/OsmAnd expects meters and knots
     float elevMeters = elevFeet * 0.3048;
     float speedKnots = speedMph * 0.868976;
-    
+
     // Convert our RTC time (seconds since 2000) to Unix timestamp
     // (seconds since 1970) which is what Traccar expects
     uint32_t unixTs = secondsSince2000 + SECONDS_FROM_1970_TO_2000;
 
-    logger.log(VERBOSE, "Traccar live: %f,%f elev=%fm spd=%fkn", lat, lon, elevMeters, speedKnots);
+    logger.log(VERBOSE, "Traccar live: %f,%f elev=%fm spd=%fkn ign=%d", lat, lon, elevMeters, speedKnots, ignitionOn);
 
-    enqueue(lat, lon, elevMeters, speedKnots, unixTs);
+    enqueue(lat, lon, elevMeters, speedKnots, unixTs, ignitionOn ? 1 : 0);
 }
 
 // ---- Batch upload of stored GPX files ----
@@ -206,7 +206,10 @@ void TraccarUploader::uploadBuffered()
 
             if (lat != 0 && lon != 0)
             {
-                enqueue(lat, lon, ele, spd, ts);
+                // Buffered points are recorded mid-trip (offline driving), so tag them
+                // ignition=on — otherwise they'd fall back to GPS-speed motion detection
+                // like live points did, and backfill as spurious stops.
+                enqueue(lat, lon, ele, spd, ts, 1);
                 pointsSent++;
             }
         }

@@ -449,7 +449,7 @@ void loop()
         logger.log(INFO, "Traccar trip active — geofence armed once we leave home at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
       }
 
-      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds);
+      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds, currentData.ignitionState);
       traccarUploader.uploadBuffered();
 
       // Auto-end Traccar trip when returning home (only after we've left home first)
@@ -662,7 +662,7 @@ void handleStatupAndShutdown()
         //Now make sure all the trip data objects have the latest
         sinceLastStop.ignitionOff();
         currentSegment.ignitionOff();
-        fullTrip.ignitionOff();           
+        fullTrip.ignitionOff();
 
         //Save to EEPROM
         logger.log(INFO,"Saving trip and prop bag data to EEPROM and activating STOPPING form");

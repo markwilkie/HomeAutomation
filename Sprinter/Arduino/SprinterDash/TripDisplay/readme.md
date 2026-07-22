@@ -242,8 +242,9 @@ Traccar uses ignition on/off events to define trip boundaries.  The server must 
   - **Simulator mode**: Automatically sent at startup when WiFi is connected
 - **Trip end**: An `&ignition=false` parameter is sent when:
   - **Home geofence**: The van returns within 200m of home (`HOME_LAT`/`HOME_LON` defines in `TripDisplay.ino`).  This auto-ends the Traccar trip.
-  - **Ignition off**: In real (non-sim) mode, when the physical ignition pin goes low
-- **Between events**: Regular position updates are sent without the ignition parameter — Traccar treats these as mid-trip points
+  - **Manual restart**: Pressing "Start New Trip" again sends OFF then ON, closing any open trip and starting a new one
+  - Physical ignition off does *not* end the trip — the whole multi-day journey (with overnight stops) stays one continuous Traccar trip until you return home
+- **Between events**: Regular live and batch-buffered position updates also carry the current `ignition` state (not just the two boundary transitions). Traccar's `useIgnition` motion detection only trusts ignition when it's present on the position — omitting it on routine updates made Traccar fall back to GPS-speed motion detection for them, causing spurious "Device stopped" events from GPS jitter at stoplights/in traffic
 - **State tracking**: The `traccarTripActive` flag prevents duplicate ignition-off events and ensures the home geofence only fires once per trip
 
 ### HTTP Endpoints for Track Files
