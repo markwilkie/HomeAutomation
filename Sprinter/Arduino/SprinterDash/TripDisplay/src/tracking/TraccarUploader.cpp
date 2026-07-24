@@ -246,12 +246,14 @@ bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, floa
 {
     HTTPClient http;
 
-    // Build OsmAnd protocol URL (no timestamp — Traccar uses server time)
+    // Build OsmAnd protocol URL. timestamp is the point's real GPS-derived time
+    // (unixTimestamp), not when it happens to reach the server — this matters most
+    // for buffered/backfilled points uploaded long after they were recorded.
     char url[300];
     int len = snprintf(url, sizeof(url),
-             "http://%s:%d/?id=%s&lat=%.6f&lon=%.6f&altitude=%.1f&speed=%.1f",
+             "http://%s:%d/?id=%s&lat=%.6f&lon=%.6f&altitude=%.1f&speed=%.1f&timestamp=%lu",
              TRACCAR_HOST, TRACCAR_PORT, TRACCAR_DEVICE_ID,
-             lat, lon, elevMeters, speedKnots);
+             lat, lon, elevMeters, speedKnots, (unsigned long)unixTimestamp);
 
     // Append ignition parameter if specified (0=off, 1=on, -1=omit)
     if (ignition >= 0)

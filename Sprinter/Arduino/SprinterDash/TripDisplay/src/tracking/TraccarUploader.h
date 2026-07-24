@@ -47,9 +47,11 @@ public:
     void init(TrackLogger *trackLogger);
     
     // Send live position (called every loop when WiFi is up) — non-blocking.
-    // ignitionOn is the current debounced ignition state, sent with every point so
+    // ignitionOn should reflect whether a Traccar trip is currently open
+    // (traccarTripActive), not the physical ignition pin — sent with every point so
     // Traccar's useIgnition motion detection always has it (it falls back to noisy
-    // GPS speed for any position missing the ignition attribute).
+    // GPS speed for any position missing the ignition attribute), without letting
+    // mid-trip engine-off stops split the trip.
     void sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, bool ignitionOn);
     
     // Upload buffered files (called periodically when WiFi is up) — non-blocking
