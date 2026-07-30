@@ -441,7 +441,8 @@ void loop()
       {
         logger.log(INFO, "Traccar deferred trip start at %f,%f", (double)lat, (double)lon);
         // Only send ignition ON — do not send a leading OFF that would split an existing trip.
-        traccarUploader.sendIgnitionEvent(true, lat, lon, elev, spd, currentData.currentSeconds);
+        traccarUploader.sendIgnitionEvent(true, lat, lon, elev, spd, currentData.currentSeconds,
+                                            currentData.currentMilesOnline ? currentData.currentMiles : -1);
         traccarTripActive = true;
         pendingTraccarTripStart = false;
         leftHomeAfterTripStart = false;
@@ -453,7 +454,8 @@ void loop()
       // pin — the trip is meant to stay open across engine-off stops until we
       // return home, so mid-trip points must keep reporting ignition=true even
       // while the engine is actually off.
-      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds, traccarTripActive);
+      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds, traccarTripActive,
+                                        currentData.currentMilesOnline ? currentData.currentMiles : -1);
       traccarUploader.uploadBuffered();
 
       // Auto-end Traccar trip when returning home (only after we've left home first)
@@ -474,7 +476,8 @@ void loop()
         if(leftHomeAfterTripStart && distM < HOME_RADIUS_M)
         {
           logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
-          traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds);
+          traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds,
+                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
           traccarTripActive = false;
           leftHomeAfterTripStart = false;
           propBag.savePropBag();
@@ -868,8 +871,10 @@ void myGenieEventHandler(void)
                      (double)tripLat, (double)tripLon);
           // Always send OFF then ON: cleanly closes any prior Traccar trip
           // and starts a new one, regardless of what the device thinks is open.
-          traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds);
-          traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds + 1);
+          traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds,
+                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
+          traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds + 1,
+                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
           traccarTripActive = true;
           pendingTraccarTripStart = false;
           leftHomeAfterTripStart = false;

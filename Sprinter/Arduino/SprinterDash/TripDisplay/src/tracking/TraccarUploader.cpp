@@ -52,7 +52,7 @@ void TraccarUploader::backgroundTask(void* param)
         // Block until a request is available (portMAX_DELAY = wait forever)
         if (xQueueReceive(self->_requestQueue, &req, portMAX_DELAY) == pdTRUE)
         {
-            if (self->sendToTraccar(req.lat, req.lon, req.elevMeters, req.speedKnots, req.unixTimestamp, req.ignition))
+            if (self->sendToTraccar(req.lat, req.lon, req.elevMeters, req.speedKnots, req.unixTimestamp, req.ignition, req.engineMiles))
                 self->uploadedCount++;
             else
                 self->failedCount++;
@@ -63,12 +63,12 @@ void TraccarUploader::backgroundTask(void* param)
 // ---- Enqueue a request for the background task ----
 // Returns true if queued, false if the queue is full (request is dropped).
 
-bool TraccarUploader::enqueue(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition)
+bool TraccarUploader::enqueue(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition, float engineMiles)
 {
     if (_requestQueue == nullptr)
         return false;
 
-    TraccarRequest req = { lat, lon, elevMeters, speedKnots, unixTimestamp, ignition };
+    TraccarRequest req = { lat, lon, elevMeters, speedKnots, unixTimestamp, ignition, engineMiles };
 
     // If queue is full, drop the oldest entry to make room for the newest
     if (xQueueSend(_requestQueue, &req, 0) != pdTRUE)
@@ -84,7 +84,7 @@ bool TraccarUploader::enqueue(float lat, float lon, float elevMeters, float spee
 
 // ---- Live position sending ----
 
-void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, bool ignitionOn)
+void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, bool ignitionOn, float engineMiles)
 {
     // Skip if no valid position (0,0 = no fix yet)
     if (lat == 0 || lon == 0)
@@ -104,9 +104,9 @@ void TraccarUploader::sendLivePosition(float lat, float lon, float elevFeet, flo
     // (seconds since 1970) which is what Traccar expects
     uint32_t unixTs = secondsSince2000 + SECONDS_FROM_1970_TO_2000;
 
-    logger.log(VERBOSE, "Traccar live: %f,%f elev=%fm spd=%fkn ign=%d", lat, lon, elevMeters, speedKnots, ignitionOn);
+    logger.log(VERBOSE, "Traccar live: %f,%f elev=%fm spd=%fkn ign=%d miles=%f", lat, lon, elevMeters, speedKnots, ignitionOn, engineMiles);
 
-    enqueue(lat, lon, elevMeters, speedKnots, unixTs, ignitionOn ? 1 : 0);
+    enqueue(lat, lon, elevMeters, speedKnots, unixTs, ignitionOn ? 1 : 0, engineMiles);
 }
 
 // ---- Batch upload of stored GPX files ----
@@ -232,24 +232,24 @@ void TraccarUploader::uploadBuffered()
 // Send ignition on/off event to Traccar for trip boundary detection.
 // When Traccar server has useIgnition=true, ignition transitions
 // define trip start (on) and trip end (off).
-void TraccarUploader::sendIgnitionEvent(bool ignitionOn, float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000)
+void TraccarUploader::sendIgnitionEvent(bool ignitionOn, float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, float engineMiles)
 {
     float elevMeters = elevFeet * 0.3048;
     float speedKnots = speedMph * 0.868976;
     uint32_t unixTs = secondsSince2000 + SECONDS_FROM_1970_TO_2000;
 
     logger.log(INFO, "Traccar ignition %s", ignitionOn ? "ON" : "OFF");
-    sendToTraccar(lat, lon, elevMeters, speedKnots, unixTs, ignitionOn ? 1 : 0);
+    sendToTraccar(lat, lon, elevMeters, speedKnots, unixTs, ignitionOn ? 1 : 0, engineMiles);
 }
 
-bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition)
+bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition, float engineMiles)
 {
     HTTPClient http;
 
     // Build OsmAnd protocol URL. timestamp is the point's real GPS-derived time
     // (unixTimestamp), not when it happens to reach the server — this matters most
     // for buffered/backfilled points uploaded long after they were recorded.
-    char url[300];
+    char url[340];
     int len = snprintf(url, sizeof(url),
              "http://%s:%d/?id=%s&lat=%.6f&lon=%.6f&altitude=%.1f&speed=%.1f&timestamp=%lu",
              TRACCAR_HOST, TRACCAR_PORT, TRACCAR_DEVICE_ID,
@@ -257,7 +257,16 @@ bool TraccarUploader::sendToTraccar(float lat, float lon, float elevMeters, floa
 
     // Append ignition parameter if specified (0=off, 1=on, -1=omit)
     if (ignition >= 0)
-        snprintf(url + len, sizeof(url) - len, "&ignition=%s", ignition ? "true" : "false");
+        len += snprintf(url + len, sizeof(url) - len, "&ignition=%s", ignition ? "true" : "false");
+
+    // Append raw OBD "distance since codes cleared" (PID 0x31) if the CAN board
+    // has reported it this session. Traccar stores unrecognized OsmAnd query
+    // params as custom position attributes automatically — no server config
+    // needed. This resets whenever the check-engine light is cleared; the app
+    // consuming it (TripTracker) tracks the true cumulative total across those
+    // resets itself, so the raw (possibly-reset) reading is all that's sent here.
+    if (engineMiles >= 0)
+        snprintf(url + len, sizeof(url) - len, "&enginemiles=%.1f", engineMiles);
 
     logger.log(VERBOSE, "Traccar GET: %s", url);
 

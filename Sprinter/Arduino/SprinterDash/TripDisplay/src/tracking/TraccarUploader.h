@@ -39,6 +39,9 @@ struct TraccarRequest {
     float speedKnots;
     uint32_t unixTimestamp;
     int ignition;       // -1 = omit, 0 = off, 1 = on
+    float engineMiles;  // -1 = omit (not yet read from CAN); OBD PID 0x31, resets when
+                         // codes are cleared — TripTracker tracks the true cumulative
+                         // total across resets itself, this is just the raw reading.
 };
 
 class TraccarUploader
@@ -52,27 +55,27 @@ public:
     // Traccar's useIgnition motion detection always has it (it falls back to noisy
     // GPS speed for any position missing the ignition attribute), without letting
     // mid-trip engine-off stops split the trip.
-    void sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, bool ignitionOn);
-    
+    void sendLivePosition(float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, bool ignitionOn, float engineMiles = -1);
+
     // Upload buffered files (called periodically when WiFi is up) — non-blocking
     void uploadBuffered();
-    
+
     // Status
     bool isUploading();
     int  getUploadedCount();
     int  getFailedCount();
 
     // Send ignition on/off event to Traccar (synchronous — guaranteed delivery)
-    void sendIgnitionEvent(bool ignitionOn, float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000);
+    void sendIgnitionEvent(bool ignitionOn, float lat, float lon, float elevFeet, float speedMph, uint32_t secondsSince2000, float engineMiles = -1);
 
 private:
     TrackLogger *trackLoggerPtr = nullptr;
-    
+
     // Synchronous HTTP send (used by background task and ignition events)
-    bool sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition = -1);
-    
+    bool sendToTraccar(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition = -1, float engineMiles = -1);
+
     // Enqueue a request for the background task (non-blocking, drops if full)
-    bool enqueue(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition = -1);
+    bool enqueue(float lat, float lon, float elevMeters, float speedKnots, uint32_t unixTimestamp, int ignition = -1, float engineMiles = -1);
 
     // FreeRTOS background task — runs on Core 0
     static void backgroundTask(void* param);
