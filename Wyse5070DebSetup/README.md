@@ -107,14 +107,15 @@ this host (`192.168.15.30`) — 80 for Let's Encrypt's renewal challenge, not
 just 443.
 
 Since neither gateway authenticates inbound requests on its own, Caddy
-checks a static bearer token (auto-generated on first run into
-`/mnt/data/appdata/caddy/.env`, never committed) before proxying either
-path through. External URLs:
+gates both paths on a static token (auto-generated on first run into
+`/mnt/data/appdata/caddy/.env`, never committed) — embedded as a URL path
+segment rather than a header, since Claude's custom-connector UI only
+offers a single URL field (plus optional OAuth client ID/secret), with no
+way to attach a custom header. External URLs (see `setup-caddy.sh`'s
+output for the actual token):
 
-- `https://wilkefamily.duckdns.org/todo/mcp`
-- `https://wilkefamily.duckdns.org/trilium/mcp`
-
-Both require an `Authorization: Bearer <token>` header.
+- `https://wilkefamily.duckdns.org/todo/<token>/mcp`
+- `https://wilkefamily.duckdns.org/trilium/<token>/mcp`
 
 ## Setup scripts, for reference
 

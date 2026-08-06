@@ -16,8 +16,14 @@
 # Auth: supergateway's HTTP server mode has no inbound authentication of
 # its own, and both gateways would otherwise expose read/write access to
 # personal notes (Trilium) and tasks (Microsoft To Do) to anyone who finds
-# the URL. Caddy checks a static bearer token (generated below, stored only
-# in .env, never committed) on both paths before proxying through.
+# the URL. A static token (generated below, stored only in .env, never
+# committed) gates both paths -- embedded as a URL path segment rather than
+# a header, because Claude's custom-connector UI only exposes a single
+# "Remote MCP server URL" field (plus optional OAuth client ID/secret) --
+# there's nowhere to attach a custom header from that form. Same trade-off
+# as an iCal share link or webhook URL: still TLS-encrypted in transit, but
+# more likely than a header to end up in a log line or browser history
+# somewhere along the way.
 #
 # Ports 80 and 443 must be forwarded from pfSense to this host's IP
 # (192.168.15.30) -- see the repo README / pfSense port-forward rules.
@@ -51,28 +57,12 @@ CADDYFILE="${APPDATA_ROOT}/Caddyfile"
 echo "==> Writing ${CADDYFILE}"
 tee "${CADDYFILE}" > /dev/null <<EOF
 ${DOMAIN} {
-	@todo path /todo/*
-	handle @todo {
-		@authorized header Authorization "Bearer {\$MCP_AUTH_TOKEN}"
-		handle @authorized {
-			uri strip_prefix /todo
-			reverse_proxy 127.0.0.1:8600
-		}
-		handle {
-			respond "Unauthorized" 401
-		}
+	handle_path /todo/{\$MCP_AUTH_TOKEN}/* {
+		reverse_proxy 127.0.0.1:8600
 	}
 
-	@trilium path /trilium/*
-	handle @trilium {
-		@authorized2 header Authorization "Bearer {\$MCP_AUTH_TOKEN}"
-		handle @authorized2 {
-			uri strip_prefix /trilium
-			reverse_proxy 127.0.0.1:8601
-		}
-		handle {
-			respond "Unauthorized" 401
-		}
+	handle_path /trilium/{\$MCP_AUTH_TOKEN}/* {
+		reverse_proxy 127.0.0.1:8601
 	}
 
 	handle {
@@ -112,10 +102,9 @@ echo "==> Recent logs:"
 docker logs "${CONTAINER_NAME}" --tail 30
 
 echo ""
+TOKEN=$(grep MCP_AUTH_TOKEN "${ENV_FILE}" | cut -d= -f2)
 echo "==> Done."
-echo "    https://${DOMAIN}/todo/mcp     -> mcp-gateway-todo (127.0.0.1:8600)"
-echo "    https://${DOMAIN}/trilium/mcp  -> mcp-gateway-trilium (127.0.0.1:8601)"
-echo "    Both require: Authorization: Bearer <token>"
-echo "    Token is in ${ENV_FILE} (not committed, not printed to logs)."
+echo "    https://${DOMAIN}/todo/${TOKEN}/mcp"
+echo "    https://${DOMAIN}/trilium/${TOKEN}/mcp"
 echo ""
 echo "    Requires ports 80 + 443 forwarded from pfSense to 192.168.15.30."
