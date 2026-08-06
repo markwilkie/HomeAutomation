@@ -57,6 +57,15 @@ error, not a UI.
   crash. Log: `/mnt/data/appdata/otbr/watchdog.log` (plain-text mirror of the
   journal, world-readable, no `sudo` needed to `tail -f` it).
 
+## On-demand services (no port, no daemon)
+
+- **microsoft-todo-mcp** — `microsoft-todo-mcp:latest` Docker image, built by
+  `setup-microsoft-todo-mcp.sh`. Not a running container — it's a stdio MCP
+  server that Claude Desktop spawns fresh (`docker run --rm -i`) over SSH per
+  session, so there's nothing to see in `docker ps` between calls. Config/
+  tokens (secrets, never committed) live in
+  `/mnt/data/appdata/microsoft-todo-mcp/config/`.
+
 ## Setup scripts, for reference
 
 Each service above is deployed by the correspondingly-named script in this
