@@ -100,7 +100,7 @@ one-time setup needed before first run.
 
 `setup-caddy.sh` deploys Caddy (Docker, `network_mode: host`) as the only
 thing this host exposes to the internet — automatic Let's Encrypt TLS for
-`wilkiefamily.duckdns.org`, reverse-proxying by path to the two MCP
+`wilkefamily.duckdns.org`, reverse-proxying by path to the two MCP
 gateways above (`/todo/*` → `mcp-gateway-todo`, `/trilium/*` →
 `mcp-gateway-trilium`). Requires ports 80 and 443 forwarded from pfSense to
 this host (`192.168.15.30`) — 80 for Let's Encrypt's renewal challenge, not
@@ -111,8 +111,8 @@ checks a static bearer token (auto-generated on first run into
 `/mnt/data/appdata/caddy/.env`, never committed) before proxying either
 path through. External URLs:
 
-- `https://wilkiefamily.duckdns.org/todo/mcp`
-- `https://wilkiefamily.duckdns.org/trilium/mcp`
+- `https://wilkefamily.duckdns.org/todo/mcp`
+- `https://wilkefamily.duckdns.org/trilium/mcp`
 
 Both require an `Authorization: Bearer <token>` header.
 
