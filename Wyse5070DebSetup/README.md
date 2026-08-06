@@ -96,11 +96,31 @@ and invalidate each other's access token. Desktop's existing config is
 untouched by either gateway. See each script's header comment for the
 one-time setup needed before first run.
 
+## Internet-facing entry point: Caddy
+
+`setup-caddy.sh` deploys Caddy (Docker, `network_mode: host`) as the only
+thing this host exposes to the internet — automatic Let's Encrypt TLS for
+`wilkiefamily.duckdns.org`, reverse-proxying by path to the two MCP
+gateways above (`/todo/*` → `mcp-gateway-todo`, `/trilium/*` →
+`mcp-gateway-trilium`). Requires ports 80 and 443 forwarded from pfSense to
+this host (`192.168.15.30`) — 80 for Let's Encrypt's renewal challenge, not
+just 443.
+
+Since neither gateway authenticates inbound requests on its own, Caddy
+checks a static bearer token (auto-generated on first run into
+`/mnt/data/appdata/caddy/.env`, never committed) before proxying either
+path through. External URLs:
+
+- `https://wilkiefamily.duckdns.org/todo/mcp`
+- `https://wilkiefamily.duckdns.org/trilium/mcp`
+
+Both require an `Authorization: Bearer <token>` header.
+
 ## Setup scripts, for reference
 
 Each service above is deployed by the correspondingly-named script in this
 directory (`setup-homeassistant.sh`, `setup-mg24.sh` for OTBR,
 `setup-zigbee2mqtt.sh`, `setup-zwave-js-ui.sh`, `setup-matter-server.sh`,
 `setup-mosquitto.sh`, `setup-trilium.sh`, `setup-mcp-gateway-todo.sh`,
-`setup-mcp-gateway-trilium.sh`). Re-running any of them is safe/idempotent
-and will recreate that one container with current settings.
+`setup-mcp-gateway-trilium.sh`, `setup-caddy.sh`). Re-running any of them is
+safe/idempotent and will recreate that one container with current settings.
