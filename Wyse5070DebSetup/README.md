@@ -18,6 +18,7 @@ this table exists specifically so that doesn't happen:
 | 3000 | Z-Wave JS server | No — WebSocket only, for HA's Z-Wave JS integration | Aeotec Z-Stick Gen5 (same dongle as :8091, different port) | `zwavejsui` |
 | 1883 | Mosquitto (MQTT) | No — broker only | (none) | `mosquitto` |
 | 9001 | Mosquitto (MQTT over WebSockets) | No — broker only | (none) | `mosquitto` |
+| **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
 
 ## The three dongle admin UIs, side by side
 
@@ -61,5 +62,5 @@ error, not a UI.
 Each service above is deployed by the correspondingly-named script in this
 directory (`setup-homeassistant.sh`, `setup-mg24.sh` for OTBR,
 `setup-zigbee2mqtt.sh`, `setup-zwave-js-ui.sh`, `setup-matter-server.sh`,
-`setup-mosquitto.sh`). Re-running any of them is safe/idempotent and will
-recreate that one container with current settings.
+`setup-mosquitto.sh`, `setup-trilium.sh`). Re-running any of them is
+safe/idempotent and will recreate that one container with current settings.
