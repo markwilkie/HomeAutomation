@@ -29,6 +29,19 @@
 # re-running step 2 is only needed if the refresh token itself is revoked
 # or expires from long inactivity.
 #
+# Windows/Claude Desktop gotcha: pointing Claude Desktop's mcpServers config
+# straight at "ssh" (Windows' native System32\OpenSSH\ssh.exe) fails silently
+# -- Electron spawns it with no console attached, and it dies in ~100ms
+# before ever reaching the network (confirmed via the invoke.log marker
+# below: zero entries appeared despite Claude Desktop reporting the process
+# as "connected"). Git for Windows' ssh.exe (MSYS-built) does not have this
+# problem. Fix: create a .bat file on the Windows box, e.g.
+# C:\Users\<user>\microsoft-todo-mcp-ssh.bat:
+#   @echo off
+#   "C:\Program Files\Git\usr\bin\ssh.exe" mwilkie@<host> /mnt/data/appdata/microsoft-todo-mcp/run.sh
+# then point mcpServers at that .bat file directly (command = full path to
+# the .bat, args = []), not at "ssh" with args.
+#
 # Usage:
 #   ./setup-microsoft-todo-mcp.sh
 
@@ -82,6 +95,10 @@ docker build -t "${IMAGE_TAG}" "${APP_DIR}"
 echo "==> Writing ${APPDATA_ROOT}/run.sh"
 tee "${APPDATA_ROOT}/run.sh" > /dev/null <<EOF
 #!/usr/bin/env bash
+# Marker log -- cheap way to confirm Claude Desktop's SSH command is even
+# reaching this box, since a failed spawn on the Windows side (see the
+# gotcha above) produces no error visible on this end at all.
+echo "\$(date -Iseconds) invoked, args=\$@" >> "${APPDATA_ROOT}/invoke.log"
 exec docker run --rm -i \\
   --env-file "${CONFIG_DIR}/.env" \\
   -e HOME=/data \\
@@ -96,8 +113,10 @@ echo "    Image:   ${IMAGE_TAG}"
 echo "    Config:  ${CONFIG_DIR}"
 echo "    Run via: ${APPDATA_ROOT}/run.sh"
 echo ""
-echo "    Point Claude Desktop's mcpServers config at this over SSH:"
+echo "    On the Windows box, create a .bat wrapper using Git's ssh.exe (see"
+echo "    the Windows/Claude Desktop gotcha in this script's header comment),"
+echo "    then point Claude Desktop's mcpServers config at that .bat file:"
 echo '      "microsoft-todo": {'
-echo '        "command": "ssh",'
-echo "        \"args\": [\"mwilkie@<this-host>\", \"${APPDATA_ROOT}/run.sh\"]"
+echo '        "command": "C:\\path\\to\\microsoft-todo-mcp-ssh.bat",'
+echo '        "args": []'
 echo '      }'
