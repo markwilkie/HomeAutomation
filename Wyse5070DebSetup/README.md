@@ -19,6 +19,8 @@ this table exists specifically so that doesn't happen:
 | 1883 | Mosquitto (MQTT) | No — broker only | (none) | `mosquitto` |
 | 9001 | Mosquitto (MQTT over WebSockets) | No — broker only | (none) | `mosquitto` |
 | **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
+| 8600 | MCP gateway: Microsoft To Do | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-todo` |
+| 8601 | MCP gateway: Trilium | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-trilium` |
 
 ## The three dongle admin UIs, side by side
 
@@ -71,10 +73,34 @@ error, not a UI.
   the fix (a `.bat` wrapper) in `setup-microsoft-todo-mcp.sh`'s header
   comment.
 
+## Remote-reachable MCP gateways (for Claude mobile, via Caddy)
+
+`microsoft-todo-mcp` and `triliumnext-mcp` (see "On-demand services" above)
+are both **stdio**-transport MCP servers, spawned locally per-session by
+Claude Desktop — there's nothing for a remote client like Claude mobile to
+connect to. `mcp-gateway-todo` and `mcp-gateway-trilium` are always-on
+Docker containers that wrap those same upstream servers with
+[`supergateway`](https://github.com/supercorp-ai/supergateway) to expose
+them over Streamable HTTP instead, without modifying either upstream
+server's code.
+
+Both gateways bind to `127.0.0.1` only — not reachable from the LAN or WAN,
+only from Caddy running on this same host, which is expected to be the
+thing enforcing access control in front of them (`supergateway`'s HTTP
+server mode has no built-in inbound auth of its own).
+
+The Microsoft To Do gateway uses its **own, separate OAuth grant** — not the
+one `microsoft-todo-mcp`/Claude Desktop uses — since two independent
+long-running consumers refreshing from the same `tokens.json` would race
+and invalidate each other's access token. Desktop's existing config is
+untouched by either gateway. See each script's header comment for the
+one-time setup needed before first run.
+
 ## Setup scripts, for reference
 
 Each service above is deployed by the correspondingly-named script in this
 directory (`setup-homeassistant.sh`, `setup-mg24.sh` for OTBR,
 `setup-zigbee2mqtt.sh`, `setup-zwave-js-ui.sh`, `setup-matter-server.sh`,
-`setup-mosquitto.sh`, `setup-trilium.sh`). Re-running any of them is
-safe/idempotent and will recreate that one container with current settings.
+`setup-mosquitto.sh`, `setup-trilium.sh`, `setup-mcp-gateway-todo.sh`,
+`setup-mcp-gateway-trilium.sh`). Re-running any of them is safe/idempotent
+and will recreate that one container with current settings.
