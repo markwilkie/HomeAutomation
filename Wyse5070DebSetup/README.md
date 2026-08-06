@@ -65,6 +65,11 @@ error, not a UI.
   session, so there's nothing to see in `docker ps` between calls. Config/
   tokens (secrets, never committed) live in
   `/mnt/data/appdata/microsoft-todo-mcp/config/`.
+  **Windows client gotcha:** Claude Desktop's `mcpServers` config must invoke
+  Git for Windows' `ssh.exe`, not `System32\OpenSSH\ssh.exe` — the native one
+  dies silently under Electron's spawn (~100ms, never reaches this box). See
+  the fix (a `.bat` wrapper) in `setup-microsoft-todo-mcp.sh`'s header
+  comment.
 
 ## Setup scripts, for reference
 
