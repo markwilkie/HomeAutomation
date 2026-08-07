@@ -37,7 +37,7 @@ set -euo pipefail
 
 APPDATA_ROOT="/mnt/data/appdata/caddy"
 CONTAINER_NAME="caddy"
-DOMAIN="wilkefamily.duckdns.org"
+DOMAIN="wilkiefamily.duckdns.org"
 
 echo "==> Creating directory structure under ${APPDATA_ROOT}"
 mkdir -p "${APPDATA_ROOT}/data" "${APPDATA_ROOT}/config"
