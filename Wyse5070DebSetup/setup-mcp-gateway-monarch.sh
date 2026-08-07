@@ -103,7 +103,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN npm install -g supergateway
 COPY . .
-RUN pip install --no-cache-dir .
+# monarch-mcp-server's pyproject.toml declares mcp[cli]>=1.10.0 with no
+# upper bound. mcp 2.0.0 (a breaking rewrite -- drops mcp.server.fastmcp,
+# which this server imports) exists on PyPI now, so an unconstrained
+# install grabs it and the server fails at startup with
+# "ModuleNotFoundError: No module named 'mcp.server.fastmcp'". Pin below
+# 2.0 first so the later install of "." is satisfied by this version and
+# leaves it alone.
+RUN pip install --no-cache-dir "mcp[cli]<2" \
+    && pip install --no-cache-dir .
 ENTRYPOINT ["npx", "supergateway", \
   "--stdio", "monarch-mcp-server", \
   "--outputTransport", "streamableHttp", \
