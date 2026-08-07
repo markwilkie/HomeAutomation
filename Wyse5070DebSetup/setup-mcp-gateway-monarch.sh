@@ -72,6 +72,17 @@ LISTEN_PORT="8602"
 echo "==> Creating directory structure under ${APPDATA_ROOT}"
 mkdir -p "${CONFIG_DIR}"
 
+# The upstream server's secure_session module rmdir()s the token directory
+# whenever it's empty, including at the start of every login_setup.py run
+# (via delete_token(), to clear any stale session first). Since this
+# directory is a bind mount here, rmdir()ing it hits EBUSY (can't rmdir an
+# active mount point) instead of the silent no-op it'd be on a normal
+# empty directory, and login_setup.py dies immediately with "Device or
+# resource busy" before it even asks how you want to log in. A placeholder
+# file keeps the directory permanently non-empty so that branch never
+# fires.
+touch "${CONFIG_DIR}/.keep"
+
 if [ -d "${APP_DIR}/.git" ]; then
   echo "==> ${APP_DIR} already cloned, pulling latest"
   git -C "${APP_DIR}" pull
