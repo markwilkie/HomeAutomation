@@ -4,21 +4,23 @@
 # Deploys Caddy as the single internet-facing entry point on
 # wilkie-home-server, terminating TLS (automatic Let's Encrypt via
 # wilkiefamily.duckdns.org) and reverse-proxying by path to the MCP
-# gateways deployed by setup-mcp-gateway-todo.sh / setup-mcp-gateway-trilium.sh.
+# gateways deployed by setup-mcp-gateway-todo.sh / setup-mcp-gateway-trilium.sh
+# / setup-mcp-gateway-monarch.sh.
 #
 # Runs via Docker (network_mode: host, matching this repo's convention for
 # most services) rather than an OS package install -- this host's operator
 # account doesn't have passwordless sudo, and host networking is required
-# anyway so Caddy can reach the two gateways on 127.0.0.1:8600/8601 (which
-# are deliberately bound to the host's loopback only, not reachable via
-# container-to-container networking or a bridge).
+# anyway so Caddy can reach the three gateways on 127.0.0.1:8600/8601/8602
+# (which are deliberately bound to the host's loopback only, not reachable
+# via container-to-container networking or a bridge).
 #
 # Auth: supergateway's HTTP server mode has no inbound authentication of
-# its own, and both gateways would otherwise expose read/write access to
-# personal notes (Trilium) and tasks (Microsoft To Do) to anyone who finds
-# the URL. A static token (generated below, stored only in .env, never
-# committed) gates both paths -- embedded as a URL path segment rather than
-# a header, because Claude's custom-connector UI only exposes a single
+# its own, and these gateways would otherwise expose read/write access to
+# personal notes (Trilium), tasks (Microsoft To Do), and financial data
+# (Monarch Money) to anyone who finds the URL. A static token (generated
+# below, stored only in .env, never committed) gates every path -- embedded
+# as a URL path segment rather than a header, because Claude's
+# custom-connector UI only exposes a single
 # "Remote MCP server URL" field (plus optional OAuth client ID/secret) --
 # there's nowhere to attach a custom header from that form. Same trade-off
 # as an iCal share link or webhook URL: still TLS-encrypted in transit, but
@@ -65,6 +67,10 @@ ${DOMAIN} {
 		reverse_proxy 127.0.0.1:8601
 	}
 
+	handle_path /monarch/{\$MCP_AUTH_TOKEN}/* {
+		reverse_proxy 127.0.0.1:8602
+	}
+
 	handle {
 		respond "Not found" 404
 	}
@@ -106,5 +112,6 @@ TOKEN=$(grep MCP_AUTH_TOKEN "${ENV_FILE}" | cut -d= -f2)
 echo "==> Done."
 echo "    https://${DOMAIN}/todo/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/trilium/${TOKEN}/mcp"
+echo "    https://${DOMAIN}/monarch/${TOKEN}/mcp"
 echo ""
 echo "    Requires ports 80 + 443 forwarded from pfSense to 192.168.15.30."

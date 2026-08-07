@@ -21,6 +21,7 @@ this table exists specifically so that doesn't happen:
 | **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
 | 8600 | MCP gateway: Microsoft To Do | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-todo` |
 | 8601 | MCP gateway: Trilium | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-trilium` |
+| 8602 | MCP gateway: Monarch Money | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-monarch` |
 
 ## The three dongle admin UIs, side by side
 
@@ -78,14 +79,16 @@ error, not a UI.
 `microsoft-todo-mcp` and `triliumnext-mcp` (see "On-demand services" above)
 are both **stdio**-transport MCP servers, spawned locally per-session by
 Claude Desktop — there's nothing for a remote client like Claude mobile to
-connect to. `mcp-gateway-todo` and `mcp-gateway-trilium` are always-on
-Docker containers that wrap those same upstream servers with
-[`supergateway`](https://github.com/supercorp-ai/supergateway) to expose
-them over Streamable HTTP instead, without modifying either upstream
-server's code.
+connect to. `mcp-gateway-todo`, `mcp-gateway-trilium`, and
+`mcp-gateway-monarch` are always-on Docker containers that wrap upstream
+stdio MCP servers (Microsoft To Do, Trilium, and
+[robcerda/monarch-mcp-server](https://github.com/robcerda/monarch-mcp-server)
+respectively) with [`supergateway`](https://github.com/supercorp-ai/supergateway)
+to expose them over Streamable HTTP instead, without modifying any
+upstream server's code.
 
-Both gateways bind to `127.0.0.1` only — not reachable from the LAN or WAN,
-only from Caddy running on this same host, which is expected to be the
+All three gateways bind to `127.0.0.1` only — not reachable from the LAN or
+WAN, only from Caddy running on this same host, which is expected to be the
 thing enforcing access control in front of them (`supergateway`'s HTTP
 server mode has no built-in inbound auth of its own).
 
@@ -93,21 +96,25 @@ The Microsoft To Do gateway uses its **own, separate OAuth grant** — not the
 one `microsoft-todo-mcp`/Claude Desktop uses — since two independent
 long-running consumers refreshing from the same `tokens.json` would race
 and invalidate each other's access token. Desktop's existing config is
-untouched by either gateway. See each script's header comment for the
-one-time setup needed before first run.
+untouched by either gateway. The Monarch gateway's one-time login has to
+run *inside* its own container too (needs the Python version the upstream
+package requires, and needs an environment with no OS keyring so the
+session token falls back to a plaintext file the container can read). See
+each script's header comment for the one-time setup needed before first
+run.
 
 ## Internet-facing entry point: Caddy
 
 `setup-caddy.sh` deploys Caddy (Docker, `network_mode: host`) as the only
 thing this host exposes to the internet — automatic Let's Encrypt TLS for
-`wilkiefamily.duckdns.org`, reverse-proxying by path to the two MCP
-gateways above (`/todo/*` → `mcp-gateway-todo`, `/trilium/*` →
-`mcp-gateway-trilium`). Requires ports 80 and 443 forwarded from pfSense to
-this host (`192.168.15.30`) — 80 for Let's Encrypt's renewal challenge, not
-just 443.
+`wilkiefamily.duckdns.org`, reverse-proxying by path to the MCP gateways
+above (`/todo/*` → `mcp-gateway-todo`, `/trilium/*` →
+`mcp-gateway-trilium`, `/monarch/*` → `mcp-gateway-monarch`). Requires
+ports 80 and 443 forwarded from pfSense to this host (`192.168.15.30`) —
+80 for Let's Encrypt's renewal challenge, not just 443.
 
-Since neither gateway authenticates inbound requests on its own, Caddy
-gates both paths on a static token (auto-generated on first run into
+Since none of the gateways authenticate inbound requests on their own,
+Caddy gates every path on a static token (auto-generated on first run into
 `/mnt/data/appdata/caddy/.env`, never committed) — embedded as a URL path
 segment rather than a header, since Claude's custom-connector UI only
 offers a single URL field (plus optional OAuth client ID/secret), with no
@@ -116,6 +123,7 @@ output for the actual token):
 
 - `https://wilkiefamily.duckdns.org/todo/<token>/mcp`
 - `https://wilkiefamily.duckdns.org/trilium/<token>/mcp`
+- `https://wilkiefamily.duckdns.org/monarch/<token>/mcp`
 
 ## Setup scripts, for reference
 
@@ -123,5 +131,6 @@ Each service above is deployed by the correspondingly-named script in this
 directory (`setup-homeassistant.sh`, `setup-mg24.sh` for OTBR,
 `setup-zigbee2mqtt.sh`, `setup-zwave-js-ui.sh`, `setup-matter-server.sh`,
 `setup-mosquitto.sh`, `setup-trilium.sh`, `setup-mcp-gateway-todo.sh`,
-`setup-mcp-gateway-trilium.sh`, `setup-caddy.sh`). Re-running any of them is
-safe/idempotent and will recreate that one container with current settings.
+`setup-mcp-gateway-trilium.sh`, `setup-mcp-gateway-monarch.sh`,
+`setup-caddy.sh`). Re-running any of them is safe/idempotent and will
+recreate that one container with current settings.
