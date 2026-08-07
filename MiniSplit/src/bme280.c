@@ -202,12 +202,23 @@ esp_err_t bme280_init(void)
         return err;
     }
 
-    // ctrl_hum must be written before ctrl_meas. 1x oversampling for humidity.
+    // Bosch datasheet section 3.5's "Indoor Navigation" preset -- the
+    // highest-accuracy/lowest-noise mode, chosen over the lower-power
+    // "Weather Monitoring" preset since this board is always mains-powered
+    // and self-heating from continuous Normal-mode sampling isn't a concern.
+    // The IIR filter only smooths anything when fed a continuous stream of
+    // back-to-back internal samples, which is why this pairs with Normal
+    // mode rather than Forced -- a filter coefficient with one-shot Forced
+    // reads 30s apart would have no prior samples to average against.
+    //
+    // ctrl_hum must be written before ctrl_meas. 1x oversampling for
+    // humidity -- Bosch's own presets never go beyond 1x for humidity, even
+    // in the highest-accuracy mode.
     bme280_write_reg(BME280_REG_CTRL_HUM, 0x01);
-    // config: standby 1000ms (0b101<<5), IIR filter off, SPI 3-wire off.
-    bme280_write_reg(BME280_REG_CONFIG, 0xA0);
-    // ctrl_meas: temp 1x (0b001<<5), press 1x (0b001<<2), normal mode (0b11).
-    bme280_write_reg(BME280_REG_CTRL_MEAS, 0x27);
+    // config: standby 0.5ms (0b000<<5), IIR filter coefficient 16 (0b100<<2), SPI 3-wire off.
+    bme280_write_reg(BME280_REG_CONFIG, 0x10);
+    // ctrl_meas: temp 2x (0b010<<5), press 16x (0b101<<2), normal mode (0b11).
+    bme280_write_reg(BME280_REG_CTRL_MEAS, 0x57);
 
     s_present = true;
     ESP_LOGI(TAG, "BME280 initialized (addr=0x%02X sda=%d scl=%d)",

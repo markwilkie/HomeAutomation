@@ -50,6 +50,15 @@ static uint32_t g_setpoint_expectation_tick = 0;
 static int8_t g_expected_mode = -1;        // -1 = no pending expectation (Tuya "mode" DP, 0-4)
 static uint32_t g_mode_expectation_tick = 0;
 
+// True when the Thermostat's SystemMode was last set to kOff, which we
+// implement as Tuya "fan" mode + fresh air open (see command_task) rather
+// than a real power-down -- kept running so the blower/fresh-air stays on.
+// Tuya's "mode" DP can't distinguish that from a genuine user-selected Fan
+// Only, so this locally remembers which reason we're in fan mode for and
+// lets map_tuya_mode_to_matter report kOff instead of kFanOnly while it's
+// set. Cleared the moment any other explicit mode command is processed.
+static bool g_mode_off_via_fan_proxy = false;
+
 static int8_t g_expected_power = -1;       // -1 = no pending expectation (0/1)
 static uint32_t g_power_expectation_tick = 0;
 
@@ -135,6 +144,9 @@ static uint8_t map_tuya_mode_to_matter(const tuya_device_status_t *device_status
 {
     if (!device_status->switch_state) {
         return 0; // kOff
+    }
+    if (device_status->ac_mode == 3 && g_mode_off_via_fan_proxy) {
+        return 0; // kOff -- idling in the fan-mode proxy, see g_mode_off_via_fan_proxy above
     }
     switch (device_status->ac_mode) {
         case 0: return 1; // kAuto
@@ -494,6 +506,24 @@ static void command_task(void *param)
                     continue;
                 }
                 expected_tuya_mode = (uint8_t)tuya_mode;
+
+                // Selecting a real operating mode implies the unit should be
+                // running -- without this, map_tuya_mode_to_matter always
+                // reports Off while switch_state is false regardless of
+                // ac_mode, so a mode command sent while the unit is off has
+                // no visible effect in the driver. Only fires when we last
+                // saw it off, to avoid a redundant Tuya call otherwise.
+                if (g_last_device_status_valid && !g_last_device_status.switch_state) {
+                    esp_err_t power_result = tuya_set_power(true);
+                    if (power_result == ESP_OK) {
+                        g_expected_power = 1;
+                        g_power_expectation_tick = xTaskGetTickCount();
+                        ESP_LOGI(TAG, "Powering on unit to apply mode command");
+                    } else {
+                        ESP_LOGW(TAG, "Failed to power on unit before mode command");
+                    }
+                }
+
                 result = tuya_set_mode(expected_tuya_mode);
             }
 
@@ -506,12 +536,52 @@ static void command_task(void *param)
                 // setpoint handlers above for why no verify-poll is done here.
                 g_expected_mode = (int8_t)expected_tuya_mode;
                 g_mode_expectation_tick = xTaskGetTickCount();
-                ESP_LOGI(TAG, "Mode command sent (expecting mode=%u)", expected_tuya_mode);
+                // Any explicit mode command -- including a genuine Fan Only
+                // selection -- reflects the user's real intent from here on,
+                // so it always overrides the fan-idle-proxy latch.
+                g_mode_off_via_fan_proxy = (mode_cmd == 0);
+                ESP_LOGI(TAG, "Mode command sent (expecting mode=%u)%s", expected_tuya_mode,
+                         g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "");
             }
 
             matter_clear_mode_command();
         }
     }
+}
+
+// Confirmed on real hardware: an intermittent corrupted I2C read occasionally
+// reports a physically implausible single-sample value (isolated ~20-40F
+// spikes that revert the very next 30s poll). This is a bad byte in transit
+// during the burst-read transaction, downstream of the sensor's own
+// measurement/filtering -- no BME280 sampling config can fix it, so instead
+// every fresh reading is sanity-checked against absolute physical limits and
+// against the last known-good reading before it's ever published to
+// Matter/HA. The delta thresholds are picked well above normal sample-to-
+// sample noise but far below the corruption spikes actually observed.
+#define BME280_TEMP_MIN_C -40.0f
+#define BME280_TEMP_MAX_C 85.0f
+#define BME280_TEMP_MAX_DELTA_C 5.0f          // ~9F per ENV_POLL_INTERVAL_MS
+#define BME280_HUMIDITY_MAX_DELTA_PCT 20.0f
+
+static bool g_last_good_bme280_valid = false;
+static float g_last_good_bme280_temp_c = 0.0f;
+static float g_last_good_bme280_humidity_pct = 0.0f;
+
+static bool bme280_reading_is_plausible(const bme280_reading_t *reading)
+{
+    if (reading->temperature_c < BME280_TEMP_MIN_C || reading->temperature_c > BME280_TEMP_MAX_C ||
+        reading->humidity_pct < 0.0f || reading->humidity_pct > 100.0f) {
+        return false;
+    }
+    if (g_last_good_bme280_valid) {
+        if (fabsf(reading->temperature_c - g_last_good_bme280_temp_c) > BME280_TEMP_MAX_DELTA_C) {
+            return false;
+        }
+        if (fabsf(reading->humidity_pct - g_last_good_bme280_humidity_pct) > BME280_HUMIDITY_MAX_DELTA_PCT) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /**
@@ -526,12 +596,21 @@ static void env_task(void *param)
     while (1) {
         bme280_reading_t reading = {0};
         if (bme280_read(&reading) == ESP_OK) {
-            int16_t temp_centi = (int16_t)lroundf(reading.temperature_c * 100.0f);
-            uint16_t hum_centi = (uint16_t)lroundf(reading.humidity_pct * 100.0f);
-            matter_update_aux_temperature(temp_centi);
-            matter_update_aux_humidity(hum_centi);
-            ESP_LOGI(TAG, "BME280: %.2f\u00b0C  %.1f%%RH  %.1f hPa",
-                     reading.temperature_c, reading.humidity_pct, reading.pressure_hpa);
+            if (bme280_reading_is_plausible(&reading)) {
+                g_last_good_bme280_valid = true;
+                g_last_good_bme280_temp_c = reading.temperature_c;
+                g_last_good_bme280_humidity_pct = reading.humidity_pct;
+
+                int16_t temp_centi = (int16_t)lroundf(reading.temperature_c * 100.0f);
+                uint16_t hum_centi = (uint16_t)lroundf(reading.humidity_pct * 100.0f);
+                matter_update_aux_temperature(temp_centi);
+                matter_update_aux_humidity(hum_centi);
+                ESP_LOGI(TAG, "BME280: %.2f\u00b0C  %.1f%%RH  %.1f hPa",
+                         reading.temperature_c, reading.humidity_pct, reading.pressure_hpa);
+            } else {
+                ESP_LOGW(TAG, "BME280 reading rejected as implausible (temp=%.2fC hum=%.1f%%) -- likely a corrupted I2C read, keeping last known-good value",
+                         reading.temperature_c, reading.humidity_pct);
+            }
         } else {
             ESP_LOGW(TAG, "BME280 read failed");
         }
