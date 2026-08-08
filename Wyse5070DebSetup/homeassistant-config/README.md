@@ -51,6 +51,31 @@ got to its current form, in order:
    It self-corrects over ~20-25 consistent-direction cycles (a few hours), bounded the whole time by the step
    cap above. Not repeated on subsequent restarts — from the second boot onward these restore whatever value
    was last learned (same "no `initial:`" reasoning as `input_number.minisplit_target_temp`).
+5. **Day/night setpoint ramp, replacing the flat target** — `input_number.minisplit_target_temp` (a single
+   hand-set slider) was retired 2026-08-07 in favor of `input_number.minisplit_day_setpoint` /
+   `minisplit_night_setpoint` plus a read-only `sensor.minisplit_computed_setpoint` (`template:` sensor,
+   `configuration.yaml`) that ramps between them across the day. Deliberately a template sensor, not another
+   input_number: the earlier design had an automation write a computed value into an input_number, and a
+   user's own edit would just get silently overwritten within minutes. A template sensor has no `set` service
+   at all, so there's nothing to silently overwrite.
+6. **BME280 smoothing and a corrected indoor-temp reading** — `sensor.minisplit_bme280_smoothed` (5-minute
+   moving average) replaced the raw BME280 sensor as `bme280_now`'s source 2026-08-08, after confirming on
+   real hardware that the raw reading swings genuinely (not noise) by several degrees within 15 minutes,
+   almost certainly from picking up the mini-split's own blown-air stream — sampled once per 10-minute cycle,
+   that swing was what actually drove the setpoint's persistent flip-flopping, not any control-loop bug.
+   Same day, `input_number.minisplit_temp_offset` was added (seeded to `-8`, assigned to the `bedroom` area)
+   to correct a BME280 placement/calibration bias, with `sensor.minisplit_bme280_corrected` = smoothed +
+   offset. **This offset must be applied on the BME280 side only.** It was briefly folded into
+   `sensor.minisplit_computed_setpoint`'s day/night values too, on the reasoning that "the target should
+   reflect the offset as well" — but `bme280_now - target_temp` is a subtraction, so an identical offset on
+   both sides cancels out completely and the offset ended up with zero effect on the setpoint actually
+   written to Tuya, only on what the display-facing sensors showed. Reverted the same day: `bme280_now` reads
+   `sensor.minisplit_bme280_corrected` (offset-adjusted), `target_temp` reads the un-offset computed setpoint.
+
+New `input_number`/template-sensor entities added via YAML don't get an `area_id` or (for `input_number`) a
+real starting value from config alone — both need a one-time `docker stop` / edit `.storage/core.entity_registry`
++ `.storage/core.restore_state` / `docker start` cycle after deploying. Done for `minisplit_day_setpoint`,
+`minisplit_night_setpoint` (2026-08-07), and `minisplit_temp_offset` (2026-08-08).
 
 This history — the *why* behind each change — lives in this repo's git log for this directory, not in the
 live HA instance itself.

@@ -23,25 +23,18 @@ scene: !include scenes.yaml
 # by continuously correcting temp_set itself, letting Tuya's own inner
 # hysteresis keep doing the fast on/off cycling it already does reasonably
 # well.
-# User-adjustable target temperature for the cascade setpoint-correction
-# automation (automations.yaml), read fresh on each 10-minute run instead of
-# a hardcoded value.
 #
-# No "initial:" here on purpose: input_number's source (__init__.py) sets
-# _current_value straight from config[CONF_INITIAL] at construction time
-# whenever it's present, and only falls back to restoring the last saved
-# state when it's absent. With "initial: 71" set, every HA restart silently
-# reverted this back to 71, discarding whatever you'd actually set it to.
+# The cascade automation's target temperature used to be a single
+# user-adjustable input_number (minisplit_target_temp), hand-set via a
+# slider. Replaced 2026-08-07 by a day/night schedule instead -- see
+# sensor.minisplit_computed_setpoint below -- since a single flat target
+# doesn't match how the room is actually used (warmer daytime target,
+# cooler overnight). minisplit_target_temp itself was removed rather than
+# kept alongside the new sensor: with both existing, "which one does the
+# cascade automation actually read" becomes a real question every time this
+# file is revisited, and there was never a reason to keep an unused,
+# identically-purposed input_number lying around once the sensor replaced it.
 input_number:
-  minisplit_target_temp:
-    name: "MiniSplit Target Temperature"
-    min: 65
-    max: 80
-    step: 0.5
-    unit_of_measurement: "°F"
-    icon: mdi:thermostat
-    mode: slider
-
   # Adaptive gain state for the cascade automation (automations.yaml): the
   # multiplier itself, and the direction (+1/-1) of the last correction it
   # actually wrote, so the next run can tell whether it's oscillating (this
@@ -65,6 +58,120 @@ input_number:
     icon: mdi:swap-vertical
     mode: box
 
+  # Day/night setpoints that sensor.minisplit_computed_setpoint (below)
+  # interpolates between. These two are the only MiniSplit values meant to
+  # be hand-set now -- the computed setpoint itself is read-only.
+  # Same "no initial:" reasoning as the other MiniSplit input_numbers.
+  minisplit_day_setpoint:
+    name: "MiniSplit Day Setpoint"
+    min: 65
+    max: 80
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:weather-sunny
+    mode: slider
+
+  minisplit_night_setpoint:
+    name: "MiniSplit Night Setpoint"
+    min: 65
+    max: 80
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:weather-night
+    mode: slider
+
+  # Single hand-tunable calibration constant, folded into the day/night
+  # setpoints (and therefore the computed setpoint derived from them, below)
+  # and into "MiniSplit BME280 Corrected" (sensor: block below) -- one
+  # number instead of baking a correction into each consumer separately.
+  # Seeded to -8 on 2026-08-08 via the entity registry/restore_state
+  # directly, not `initial:` -- same "no initial:" reasoning as the other
+  # MiniSplit input_numbers: this needs to survive HA restarts as whatever
+  # it was last hand-tuned to, not reset to a hardcoded value every time.
+  minisplit_temp_offset:
+    name: "MiniSplit Temperature Offset"
+    min: -15
+    max: 15
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:plus-minus-variant
+    mode: box
+
+# Read-only, computed setpoint interpolated from minisplit_day_setpoint and
+# minisplit_night_setpoint above: flat at the night setpoint 22:00-07:00,
+# ramps linearly up to the day setpoint 07:00-11:00, flat at the day
+# setpoint 11:00-19:00, ramps back down to the night setpoint 19:00-22:00.
+# Read by the "MiniSplit BME280 cascade setpoint correction" automation
+# (automations.yaml) as its target temperature every 10-minute run.
+#
+# Deliberately a `template:` sensor, not an input_number -- unlike the
+# input_numbers above, this value should never be hand-editable: it's fully
+# determined by the day/night setpoints and time of day, and a previous
+# input_number + automation-writes-to-it design (retired here) meant a user
+# edit would just get silently overwritten within 5 minutes, which read as
+# broken rather than intentional. A plain template sensor has no `set`
+# service at all, so there's nothing to silently overwrite -- the read-only-
+# ness is enforced by the entity type itself, not by convention.
+#
+# Needs the `trigger:` form (not a plain state/value_template sensor):
+# ordinary template sensors only recompute when a *referenced entity's
+# state* changes, but nothing here changes on its own as time passes within
+# a flat or ramp window (day/night setpoint can sit unchanged for hours) --
+# without an explicit time-based trigger, the sensor would only update
+# when you actually touch a day/night setpoint slider, not as the ramp
+# windows come and go. The time_pattern trigger below re-evaluates it every
+# 5 minutes regardless of whether anything else changed.
+template:
+  - trigger:
+      - trigger: time_pattern
+        minutes: "/5"
+    sensor:
+      - name: "MiniSplit Computed Setpoint"
+        unique_id: minisplit_computed_setpoint
+        unit_of_measurement: "°F"
+        icon: mdi:thermostat-auto
+        state: >-
+          {# Deliberately NOT offset-adjusted, despite input_number.minisplit_temp_offset
+             existing (2026-08-08) -- the offset belongs on the BME280 reading side only
+             (sensor.minisplit_bme280_corrected, below), which is what actually needs
+             correcting for a sensor placement/calibration bias. This sensor represents
+             the user's actual desired room temperature, which has no such bias to
+             correct. Folding the offset in here too was tried and reverted the same day:
+             with the same offset on both sides of the cascade automation's
+             `bme280_now - target_temp` comparison, it cancels out completely and the
+             offset ends up with zero effect on the setpoint actually written to Tuya. #}
+          {% set day_setpoint = states('input_number.minisplit_day_setpoint') | float(74) %}
+          {% set night_setpoint = states('input_number.minisplit_night_setpoint') | float(68) %}
+          {% set now_minutes = now().hour * 60 + now().minute %}
+          {% set ramp_up_start = 420 %}
+          {% set ramp_up_end = 660 %}
+          {% set ramp_down_start = 1140 %}
+          {% set ramp_down_end = 1320 %}
+          {% set frac_up = min(max((now_minutes - ramp_up_start) / (ramp_up_end - ramp_up_start), 0), 1) %}
+          {% set frac_down = min(max((now_minutes - ramp_down_start) / (ramp_down_end - ramp_down_start), 0), 1) %}
+          {% set raw = night_setpoint if now_minutes < ramp_up_start else
+                        (night_setpoint + frac_up * (day_setpoint - night_setpoint)) if now_minutes < ramp_up_end else
+                        day_setpoint if now_minutes < ramp_down_start else
+                        (day_setpoint + frac_down * (night_setpoint - day_setpoint)) if now_minutes < ramp_down_end else
+                        night_setpoint %}
+          {{ ((raw * 2) | round(0) / 2) }}
+
+  # State-based (no `trigger:`), unlike the computed-setpoint block above --
+  # this should track the raw smoothed BME280 reading immediately as it
+  # updates (~every 30s), not on a 5-minute polling cadence, since it's a
+  # live temperature reading rather than a slow day/night ramp. A plain
+  # template sensor without a trigger recomputes automatically whenever a
+  # referenced entity's state changes, which covers both a fresh BME280
+  # sample and a hand-adjusted offset slider.
+  - sensor:
+      - name: "MiniSplit BME280 Corrected"
+        unique_id: minisplit_bme280_corrected
+        unit_of_measurement: "°F"
+        icon: mdi:home-thermometer
+        state: >-
+          {% set offset = states('input_number.minisplit_temp_offset') | float(0) %}
+          {{ (states('sensor.minisplit_bme280_smoothed') | float(0)) + offset }}
+
 sensor:
   # A single BME280 quantization blip (e.g. 0.1F over one 30s poll) computes
   # to a huge instantaneous F/hour rate once differentiated -- confirmed by
@@ -83,7 +190,13 @@ sensor:
         window_size:
           minutes: 5
   - platform: derivative
-    source: sensor.minisplit_bme280_smoothed
+    # Sourced from the offset-corrected sensor (template: block above), not
+    # the raw smoothed one, so "trend" tracks whatever's now considered the
+    # canonical indoor reading. A constant offset doesn't change a
+    # derivative's value either way -- this is for conceptual consistency
+    # (one indoor-temp series feeding everything downstream), not because
+    # the numbers would otherwise differ.
+    source: sensor.minisplit_bme280_corrected
     name: "MiniSplit BME280 Trend"
     unit_time: h
     time_window:

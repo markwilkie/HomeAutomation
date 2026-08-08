@@ -115,11 +115,42 @@
       {{ (as_timestamp(now()) - as_timestamp(states.binary_sensor.mini_split_ac_bridge_occupancy.last_changed)) > 300 }}
   actions:
   - variables:
-      target_temp: "{{ states('input_number.minisplit_target_temp') | float(71) }}"
+      # Was input_number.minisplit_target_temp (a hand-set slider) until
+      # 2026-08-07, replaced by sensor.minisplit_computed_setpoint -- a
+      # read-only day/night-ramped value (configuration.yaml) -- so this
+      # automation's target now follows a schedule instead of a single flat
+      # number.
+      target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(71) }}"
       lag_minutes: 16
       adaptive_gain: "{{ states('input_number.minisplit_adaptive_gain') | float(1.0) }}"
       last_sign: "{{ states('input_number.minisplit_last_correction_sign') | int(0) }}"
-      bme280_now: "{{ states('sensor.mini_split_ac_bridge_temperature_2') | float(0) }}"
+      # Was the raw sensor until 2026-08-08. Confirmed on real hardware: this
+      # BME280's raw reading swings genuinely (not sensor noise/corruption --
+      # a smooth, monotonic ~8F drop over 15 minutes was directly observed)
+      # by several degrees within a single 15-minute window, almost
+      # certainly from picking up the mini-split's own blown-air stream as
+      # the compressor cycles. Since this automation only samples bme280_now
+      # once per 10-minute run, feeding it the raw value meant the computed
+      # error -- and therefore the setpoint this automation writes -- swung
+      # with whatever phase of that cycle it happened to sample, which is
+      # what was actually driving the setpoint's persistent 70/71F
+      # flip-flopping overnight rather than ever converging. Switched to the
+      # existing 5-minute moving average (configuration.yaml's "MiniSplit
+      # BME280 Smoothed" sensor, already computed for the trend/derivative
+      # below) so this averages out that real short-term swing while still
+      # tracking genuine longer-term drift.
+      # sensor.minisplit_bme280_corrected (configuration.yaml): the smoothed
+      # BME280 reading with input_number.minisplit_temp_offset (added
+      # 2026-08-08) added in, correcting for a sensor placement/calibration
+      # bias. target_temp above (sensor.minisplit_computed_setpoint) is
+      # deliberately NOT offset-adjusted -- it's the user's actual desired
+      # room temperature, nothing to correct there. Offset on this side
+      # only means it has real, non-cancelling effect on `error` /
+      # `correction` / the setpoint this automation actually writes below.
+      # (A same-magnitude offset was briefly applied to both sides on
+      # 2026-08-08 -- that cancels out of a subtraction entirely and made
+      # the offset a no-op for Tuya's actual setpoint, display-only.)
+      bme280_now: "{{ states('sensor.minisplit_bme280_corrected') | float(0) }}"
       trend_per_hour: "{{ states('sensor.minisplit_bme280_trend') | float(0) }}"
       outdoor_temp: "{{ states('sensor.mini_split_ac_bridge_outdoor_temperature') | float(75) }}"
       tuya_now: "{{ state_attr('climate.mini_split_ac_bridge', 'current_temperature') | float(0) }}"
