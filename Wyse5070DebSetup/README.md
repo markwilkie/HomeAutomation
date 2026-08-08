@@ -31,9 +31,18 @@ devices:
 
 - **http://192.168.15.30:8080/** — **OTBR** — Thread mesh (the MiniSplit
   bridge and anything else on Thread). Shows Thread topology, node roles,
-  NAT64 state. Internally the container serves this on port 80; a systemd
-  unit (`otbr-web-forward.service`, installed by `setup-mg24.sh`) forwards
-  host port 8080 -> `127.0.0.1:80` so it's reachable from the LAN.
+  NAT64 state. As of 2026-08-08 this runs `openthread/border-router`, the
+  OpenThread project's actual versioned production image (see
+  `setup-mg24-production.sh`) — `openthread/otbr` (used previously, still
+  the image `setup-mg24.sh` deploys) turned out to be their CI test image,
+  published only as a continuously-rebuilt `latest` tag with no release
+  channel at all. Internally the production container serves the web UI on
+  port 8082 (moved off its own default of 8080, which collided with the
+  external forward below); a systemd unit (`otbr-web-forward.service`,
+  installed by `setup-mg24-production.sh`) forwards host port 8080 ->
+  `127.0.0.1:8082` so it's reachable from the LAN. Rollback path and full
+  migration notes: `IMAGE=openthread/otbr:pre-thread14-20260721
+  ./setup-mg24.sh`.
 - **http://192.168.15.30:8099/** — **Zigbee2MQTT** — Zigbee mesh. Pairing
   ("Permit join"), device list, per-device diagnostics. Bridges to Home
   Assistant over MQTT, not Matter.

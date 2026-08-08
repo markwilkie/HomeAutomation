@@ -104,9 +104,24 @@ docker exec "${CONTAINER_NAME}" sh -c "ot-ctl route add ${NAT64_PREFIX} sn low" 
 docker exec "${CONTAINER_NAME}" sh -c "ot-ctl netdata register" > /dev/null
 
 echo "==> Determining this host's primary outbound IP"
-HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oE 'src [0-9.]+' | awk '{print $2}')
+# Confirmed on real hardware (nat64-jool.service failures on 2026-07-13,
+# both boots that day): `ip route get 1.1.1.1` came back empty when this ran
+# immediately at boot, right after docker.service was up but before routing
+# had actually settled -- `After=docker.service`/`Requires=docker.service`
+# says nothing about network readiness. Unlike the NAT64-prefix wait above
+# and the Jool-instance-add retry below, this had no retry at all, so it
+# failed hard on the very first empty result. Retry with the same style as
+# those two rather than assume routing is ready just because Docker is.
+HOST_IP=""
+for i in $(seq 1 30); do
+  HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oE 'src [0-9.]+' | awk '{print $2}')
+  if [ -n "${HOST_IP}" ]; then
+    break
+  fi
+  sleep 2
+done
 if [ -z "${HOST_IP}" ]; then
-  echo "!! Could not determine host IP" >&2
+  echo "!! Could not determine host IP after retrying" >&2
   exit 1
 fi
 echo "==> Using ${HOST_IP} as Jool's pool4 address"
@@ -154,8 +169,9 @@ echo "==> Installing systemd service for boot-time persistence"
 ${SUDO} tee "${SERVICE_FILE}" > /dev/null <<EOF
 [Unit]
 Description=Configure Jool NAT64 for the OTBR Thread network
-After=docker.service
+After=docker.service network-online.target
 Requires=docker.service
+Wants=network-online.target
 
 [Service]
 Type=oneshot
