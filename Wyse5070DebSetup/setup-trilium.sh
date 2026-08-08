@@ -26,7 +26,7 @@ set -euo pipefail
 # ---- Config you may want to tweak -----------------------------------------
 APPDATA_ROOT="/mnt/data/appdata/trilium"
 CONTAINER_NAME="trilium"
-IMAGE="triliumnext/notes:latest"
+IMAGE="triliumnext/trilium:latest"
 WEB_UI_PORT="8090"
 # -----------------------------------------------------------------------------
 
