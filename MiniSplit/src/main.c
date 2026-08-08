@@ -76,6 +76,7 @@ static uint32_t g_power_expectation_tick = 0;
 #define ENV_POLL_INTERVAL_MS 30000       // Read BME280 every 30 seconds
 #define RETRY_DELAY_MS 2000               // Base delay before retry on error (doubles per attempt)
 #define MAX_RETRIES 3                     // Retry up to 3 times before giving up
+#define POLL_WAIT_GRANULARITY_MS 1000     // sync_task's sleep chunk size -- see its loop for why
 
 // Fast-poll only while a local command is still waiting on Tuya's shadow to
 // confirm it (see the expectation-tracking block above); otherwise fall back
@@ -202,9 +203,32 @@ static void cache_and_apply_status(const tuya_device_status_t *device_status)
 
 static void revert_from_last_status_if_available(void)
 {
-    if (g_last_device_status_valid) {
-        apply_status_to_matter(&g_last_device_status);
+    if (!g_last_device_status_valid) {
+        return;
     }
+
+    // Confirmed on real hardware: a mode command's own failure (Tuya
+    // rejected it, unrelated to power) reverted the Power switch back to a
+    // stale cached OFF via a blind apply_status_to_matter(&g_last_device_status)
+    // below, even though a power-on moments earlier had already succeeded
+    // and was still awaiting sync_task's confirmation. The field that
+    // actually failed here has no pending expectation yet (command_task only
+    // sets g_expected_* in the success branch), so it's correct for THIS
+    // revert to fall back to the last cached value -- but any OTHER field
+    // with a still-pending expectation reflects a more recent, already-
+    // issued command and must not be clobbered by older cached data.
+    tuya_device_status_t status = g_last_device_status;
+    if (g_expected_power >= 0) {
+        status.switch_state = (bool)g_expected_power;
+    }
+    if (g_expected_mode >= 0) {
+        status.ac_mode = (uint8_t)g_expected_mode;
+    }
+    if (g_expected_setpoint_f >= 0) {
+        status.temp_set = g_expected_setpoint;
+        status.temp_set_f = g_expected_setpoint_f;
+    }
+    apply_status_to_matter(&status);
 }
 
 /**
@@ -278,7 +302,20 @@ static void sync_task(void *param)
 
     while (1) {
         if (!first_pass) {
-            vTaskDelay(pdMS_TO_TICKS(current_status_poll_interval_ms()));
+            // Slept in short increments, re-checking the interval each time,
+            // rather than committing to one vTaskDelay for the full duration
+            // decided at the top of this sleep. Confirmed on real hardware:
+            // a poll that had nothing pending yet locks into the 5-minute
+            // idle interval, and a command issued moments later (which sets
+            // g_expected_power/mode/setpoint and should shorten the wait to
+            // the 30s active interval) had no effect until that already-
+            // committed 5-minute sleep finished -- leaving a stale/incorrect
+            // value sitting in the UI the whole time.
+            uint32_t waited_ms = 0;
+            while (waited_ms < current_status_poll_interval_ms()) {
+                vTaskDelay(pdMS_TO_TICKS(POLL_WAIT_GRANULARITY_MS));
+                waited_ms += POLL_WAIT_GRANULARITY_MS;
+            }
         }
         first_pass = false;
 

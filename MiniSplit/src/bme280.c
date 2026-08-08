@@ -10,8 +10,10 @@
 
 #include <string.h>
 
+#include "driver/gpio.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -32,6 +34,29 @@ static const char *TAG = "BME280";
 #define BME280_RESET_WORD     0xB6
 #define BME280_I2C_TIMEOUT_MS 1000
 
+// status register (0xF3) bit 3: 1 while a conversion is in progress.
+#define BME280_STATUS_MEASURING_BIT 0x08
+// Generous bound on how long one forced conversion can take (measured max
+// per the datasheet's formula for x2 temp / x4 pressure / x1 humidity
+// oversampling is well under this), so a stuck/unresponsive sensor can't
+// hang env_task indefinitely.
+#define BME280_MEASURE_TIMEOUT_MS 200
+#define BME280_MEASURE_POLL_MS 5
+
+// ctrl_meas oversampling bits (temp x2 << 5 | press x4 << 2), mode bits left
+// as 00 (Sleep) here -- BME280_MODE_FORCED is OR'd in fresh before every
+// conversion in bme280_read() instead.
+#define BME280_CTRL_MEAS_OSRS 0x4C
+#define BME280_MODE_FORCED    0x01
+
+// Consecutive bme280_read() failures (any cause -- write, conversion
+// timeout, or a read) before attempting I2C bus recovery. ~90s of failures
+// at the normal 30s poll cadence; high enough that one-off transient blips
+// (already handled safely by bme280_read()'s own bounded timeouts) don't
+// trigger an unnecessary bus teardown, low enough that a genuinely wedged
+// bus gets fixed in under two minutes instead of persisting for hours.
+#define BME280_RECOVERY_THRESHOLD 3
+
 // Calibration data
 typedef struct {
     uint16_t T1;
@@ -50,6 +75,7 @@ static i2c_master_dev_handle_t s_dev = NULL;
 static bme280_calib_t s_calib;
 static int32_t s_t_fine;
 static bool s_present = false;
+static uint8_t s_consecutive_failures = 0;
 
 static esp_err_t bme280_write_reg(uint8_t reg, uint8_t val)
 {
@@ -202,28 +228,134 @@ esp_err_t bme280_init(void)
         return err;
     }
 
-    // Bosch datasheet section 3.5's "Indoor Navigation" preset -- the
-    // highest-accuracy/lowest-noise mode, chosen over the lower-power
-    // "Weather Monitoring" preset since this board is always mains-powered
-    // and self-heating from continuous Normal-mode sampling isn't a concern.
-    // The IIR filter only smooths anything when fed a continuous stream of
-    // back-to-back internal samples, which is why this pairs with Normal
-    // mode rather than Forced -- a filter coefficient with one-shot Forced
-    // reads 30s apart would have no prior samples to average against.
+    // Normal mode (continuous background conversion, just burst-read
+    // whatever's currently in the data registers) was tried first -- twice,
+    // at two different oversampling/filter combinations -- and confirmed on
+    // real hardware to silently stop re-converting after its first cycle
+    // both times: every subsequent 30s read returned bit-identical data for
+    // 6.5+ minutes straight, even though the device itself never crashed or
+    // rebooted. Root cause not conclusively isolated (register math checks
+    // out against the datasheet both times), but this chip (possibly a
+    // clone) evidently can't be trusted to keep autonomously re-triggering
+    // conversions in the background.
     //
+    // Switched to Forced mode instead: bme280_read() below explicitly
+    // re-arms and waits out one conversion every single call, so a fresh
+    // reading no longer depends on the chip's own background cycling at
+    // all -- whatever caused Normal mode to get stuck, this sidesteps the
+    // entire failure class rather than needing to actually explain it.
     // ctrl_hum must be written before ctrl_meas. 1x oversampling for
-    // humidity -- Bosch's own presets never go beyond 1x for humidity, even
-    // in the highest-accuracy mode.
+    // humidity -- Bosch's own presets never go beyond 1x for humidity
+    // regardless of accuracy target.
     bme280_write_reg(BME280_REG_CTRL_HUM, 0x01);
-    // config: standby 0.5ms (0b000<<5), IIR filter coefficient 16 (0b100<<2), SPI 3-wire off.
-    bme280_write_reg(BME280_REG_CONFIG, 0x10);
-    // ctrl_meas: temp 2x (0b010<<5), press 16x (0b101<<2), normal mode (0b11).
-    bme280_write_reg(BME280_REG_CTRL_MEAS, 0x57);
+    // config: standby time is irrelevant in Forced mode (chip returns to
+    // Sleep after each conversion rather than free-running), and the IIR
+    // filter only smooths a continuous back-to-back sample stream, which
+    // Forced mode's isolated one-shot conversions never provide -- so both
+    // are left at their off/zero defaults here.
+    bme280_write_reg(BME280_REG_CONFIG, 0x00);
+    // ctrl_meas: temp 2x (0b010<<5), press 4x (0b011<<2). Mode bits are set
+    // fresh before every conversion in bme280_read() (Forced mode -> Sleep
+    // is a one-shot cycle), so the mode bits written here don't matter.
+    bme280_write_reg(BME280_REG_CTRL_MEAS, BME280_CTRL_MEAS_OSRS);
 
     s_present = true;
     ESP_LOGI(TAG, "BME280 initialized (addr=0x%02X sda=%d scl=%d)",
              BME280_I2C_ADDR, BME280_I2C_SDA_GPIO, BME280_I2C_SCL_GPIO);
     return ESP_OK;
+}
+
+// Standard I2C bus-recovery sequence for a wedged bus -- a slave left
+// holding SDA low mid-transaction, most commonly from a brief power glitch
+// interrupting it mid-byte. Confirmed on real hardware: bme280_read()'s own
+// bounded timeouts correctly stop it from ever hanging env_task, but with no
+// recovery of its own it just keeps failing the same way forever -- a wedge
+// that started once persisted for 6+ hours until a physical reboot, with
+// every other subsystem (Thread, Matter, Tuya sync) completely unaffected
+// the entire time, which is what pointed at an I2C-specific lockup rather
+// than a device-wide hang.
+static void bme280_recover_bus(void)
+{
+    ESP_LOGW(TAG, "BME280 unresponsive for %u consecutive reads -- attempting I2C bus recovery",
+             s_consecutive_failures);
+
+    if (s_dev) {
+        i2c_master_bus_rm_device(s_dev);
+        s_dev = NULL;
+    }
+    if (s_bus) {
+        i2c_del_master_bus(s_bus);
+        s_bus = NULL;
+    }
+
+    // Manually clock SCL (as a plain open-drain GPIO, bypassing the I2C
+    // driver entirely) up to 9 times while watching SDA -- a wedged slave
+    // releases SDA once it's seen enough clock pulses to finish clocking
+    // out whatever bit it was stuck on. This is the actual fix; deleting
+    // and recreating the I2C peripheral alone (below) doesn't force a
+    // stuck slave to let go of the bus.
+    gpio_config_t scl_cfg = {
+        .pin_bit_mask = (1ULL << BME280_I2C_SCL_GPIO),
+        .mode = GPIO_MODE_OUTPUT_OD,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+    };
+    gpio_config(&scl_cfg);
+    gpio_config_t sda_input_cfg = {
+        .pin_bit_mask = (1ULL << BME280_I2C_SDA_GPIO),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+    };
+    gpio_config(&sda_input_cfg);
+
+    for (int i = 0; i < 9; i++) {
+        gpio_set_level(BME280_I2C_SCL_GPIO, 0);
+        esp_rom_delay_us(5);
+        gpio_set_level(BME280_I2C_SCL_GPIO, 1);
+        esp_rom_delay_us(5);
+        if (gpio_get_level(BME280_I2C_SDA_GPIO)) {
+            break; // SDA released -- bus is free
+        }
+    }
+
+    // Generate a STOP condition (SDA low-to-high while SCL is high) so the
+    // bus is left in a clean idle state before the driver reclaims the pins.
+    gpio_config_t sda_output_cfg = {
+        .pin_bit_mask = (1ULL << BME280_I2C_SDA_GPIO),
+        .mode = GPIO_MODE_OUTPUT_OD,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+    };
+    gpio_config(&sda_output_cfg);
+    gpio_set_level(BME280_I2C_SDA_GPIO, 0);
+    esp_rom_delay_us(5);
+    gpio_set_level(BME280_I2C_SCL_GPIO, 1);
+    esp_rom_delay_us(5);
+    gpio_set_level(BME280_I2C_SDA_GPIO, 1);
+    esp_rom_delay_us(5);
+
+    // Hand the pins back to the I2C driver and reconfigure the sensor from
+    // scratch, exactly as at boot.
+    s_present = false;
+    esp_err_t err = bme280_init();
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "I2C bus recovery succeeded, BME280 re-initialized");
+    } else {
+        ESP_LOGE(TAG, "I2C bus recovery failed to re-init BME280: %s", esp_err_to_name(err));
+    }
+    s_consecutive_failures = 0;
+}
+
+// Tracks a bme280_read() failure (any cause) and triggers bus recovery once
+// BME280_RECOVERY_THRESHOLD consecutive failures accumulate. If recovery
+// itself fails, the counter resets to 0 in bme280_recover_bus() and starts
+// climbing again from there, so a retry is attempted roughly every
+// BME280_RECOVERY_THRESHOLD * ENV_POLL_INTERVAL_MS instead of giving up
+// permanently after one failed attempt.
+static void bme280_note_failure(void)
+{
+    s_consecutive_failures++;
+    if (s_consecutive_failures >= BME280_RECOVERY_THRESHOLD) {
+        bme280_recover_bus();
+    }
 }
 
 esp_err_t bme280_read(bme280_reading_t *out)
@@ -232,14 +364,53 @@ esp_err_t bme280_read(bme280_reading_t *out)
         return ESP_ERR_INVALID_ARG;
     }
     if (!s_present) {
+        // Also counted as a failure (not just an early return) so that if a
+        // previous recovery attempt itself failed to bring the sensor back,
+        // subsequent calls keep retrying recovery periodically instead of
+        // leaving it permanently marked absent.
+        bme280_note_failure();
         return ESP_ERR_INVALID_STATE;
     }
 
-    uint8_t d[8];
-    esp_err_t err = bme280_read_regs(BME280_REG_DATA, d, sizeof(d));
+    // Re-arm a fresh conversion. Forced mode auto-reverts to Sleep once it
+    // completes, so this write is required on every call -- without it,
+    // the burst read below would just return whatever the last conversion
+    // (possibly from a previous call, or none at all) left in the data
+    // registers.
+    esp_err_t err = bme280_write_reg(BME280_REG_CTRL_MEAS, BME280_CTRL_MEAS_OSRS | BME280_MODE_FORCED);
     if (err != ESP_OK) {
+        bme280_note_failure();
         return err;
     }
+
+    // Poll the status register's "measuring" bit until the conversion
+    // completes, bounded so a stuck/unresponsive sensor can't hang env_task
+    // indefinitely.
+    uint32_t waited_ms = 0;
+    uint8_t status = BME280_STATUS_MEASURING_BIT;
+    while (status & BME280_STATUS_MEASURING_BIT) {
+        if (waited_ms >= BME280_MEASURE_TIMEOUT_MS) {
+            ESP_LOGW(TAG, "Timed out waiting for BME280 conversion (status=0x%02X)", status);
+            bme280_note_failure();
+            return ESP_ERR_TIMEOUT;
+        }
+        vTaskDelay(pdMS_TO_TICKS(BME280_MEASURE_POLL_MS));
+        waited_ms += BME280_MEASURE_POLL_MS;
+        err = bme280_read_regs(BME280_REG_STATUS, &status, 1);
+        if (err != ESP_OK) {
+            bme280_note_failure();
+            return err;
+        }
+    }
+
+    uint8_t d[8];
+    err = bme280_read_regs(BME280_REG_DATA, d, sizeof(d));
+    if (err != ESP_OK) {
+        bme280_note_failure();
+        return err;
+    }
+
+    s_consecutive_failures = 0;
 
     int32_t adc_P = ((int32_t)d[0] << 12) | ((int32_t)d[1] << 4) | (d[2] >> 4);
     int32_t adc_T = ((int32_t)d[3] << 12) | ((int32_t)d[4] << 4) | (d[5] >> 4);
