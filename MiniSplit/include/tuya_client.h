@@ -33,8 +33,9 @@ typedef struct {
  *        Fahrenheit degree -- the single source of truth for the C->F step,
  *        shared by tuya_normalize_setpoint_c(), tuya_set_temperature() (what
  *        actually gets sent as both temp_set and temp_set_f), and main.c's
- *        expectation tracking (what gets compared against Tuya's echoed-back
- *        temp_set_f), so all three always agree on the same value.
+ *        desired-setpoint reconciliation (what gets compared against Tuya's
+ *        polled temp_set_f to decide whether to resend), so all three always
+ *        agree on the same value.
  * @param temp_c_x100 Setpoint in Celsius (×100), any range
  * @return Whole-degree Fahrenheit, clamped to the device's 16-30C range
  */
@@ -57,10 +58,10 @@ static inline int16_t tuya_setpoint_c_to_f(int16_t temp_c_x100)
  * by), not 1°C -- and temp_set itself is further constrained to 0.5°C
  * steps (per TUYA_DP_REFERENCE.md), which this whole-Fahrenheit-degree
  * result is not guaranteed to land on. That mismatch is exactly why
- * expectation-tracking compares against temp_set_f now, not temp_set --
- * see tuya_setpoint_c_to_f() and main.c's g_expected_setpoint_f. This
- * Celsius value remains only for what gets shown on the Matter Thermostat
- * cluster (which is Celsius-native) while a command is pending.
+ * main.c's desired-setpoint reconciliation compares against temp_set_f, not
+ * temp_set -- see tuya_setpoint_c_to_f(). This Celsius value is what
+ * actually gets sent to Tuya and shown on the Matter Thermostat clusters
+ * (which are Celsius-native).
  * @param temp_c_x100 Setpoint in Celsius (×100)
  * @return Normalized setpoint in Celsius (×100)
  */

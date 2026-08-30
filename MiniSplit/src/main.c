@@ -29,27 +29,6 @@ static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
 static bool g_last_device_status_valid = false;
 
-// Pending "expected value" tracking. Tuya's cloud shadow lags the real
-// device by a variable amount -- sometimes under a second, sometimes well
-// over 30s -- so a fixed-duration grace period after a local command
-// (the previous approach) either reverts too early or blocks too long.
-// Instead, each field we command locally is remembered here as "expected",
-// and sync_task's periodic poll leaves that specific field exactly as we
-// set it -- letting every other field keep updating normally -- until
-// Tuya's own shadow read actually reports the same value, at which point
-// the expectation clears. EXPECTATION_MAX_WAIT_MS is a safety net in case
-// Tuya never converges (e.g. the command was silently rejected).
-#define EXPECTATION_MAX_WAIT_MS 120000  // give up waiting after 2 minutes
-
-static int16_t g_expected_setpoint = -1;   // -1 = no pending expectation (Celsius x100, for Matter display only)
-static int16_t g_expected_setpoint_f = -1; // -1 = no pending expectation (whole Fahrenheit -- what confirmation
-                                            // actually checks; temp_set's 0.5C step means a Celsius round-trip
-                                            // essentially never matches exactly, see tuya_setpoint_c_to_f())
-static uint32_t g_setpoint_expectation_tick = 0;
-
-static int8_t g_expected_mode = -1;        // -1 = no pending expectation (Tuya "mode" DP, 0-4)
-static uint32_t g_mode_expectation_tick = 0;
-
 // True when the Thermostat's SystemMode was last set to kOff, which we
 // implement as Tuya "fan" mode + fresh air open (see command_task) rather
 // than a real power-down -- kept running so the blower/fresh-air stays on.
@@ -59,35 +38,44 @@ static uint32_t g_mode_expectation_tick = 0;
 // set. Cleared the moment any other explicit mode command is processed.
 static bool g_mode_off_via_fan_proxy = false;
 
-static int8_t g_expected_power = -1;       // -1 = no pending expectation (0/1)
-static uint32_t g_power_expectation_tick = 0;
-
 // Timing configuration
 //
-// Status polling is adaptive: fast (STATUS_POLL_INTERVAL_ACTIVE_MS) while a
-// local command is awaiting confirmation from Tuya's shadow (see
-// g_expected_setpoint et al. above), slow (STATUS_POLL_INTERVAL_IDLE_MS) the
-// rest of the time. This is the dominant contributor to Tuya Cloud API quota
-// usage, so idle polling is kept deliberately infrequent -- see
-// current_status_poll_interval_ms() below.
-#define STATUS_POLL_INTERVAL_ACTIVE_MS 30000    // While a command confirmation is pending
-#define STATUS_POLL_INTERVAL_IDLE_MS 300000     // Otherwise: every 5 minutes
-#define COMMAND_POLL_INTERVAL_MS 5000    // Check Matter commands every 5 seconds
-#define ENV_POLL_INTERVAL_MS 30000       // Read BME280 every 30 seconds
+// Status polling used to be adaptive (fast for a while after any command,
+// slow otherwise), keyed off a "was a command recently sent" timestamp. That
+// stopped mattering once the expectation/revert machinery it supported was
+// removed: nothing downstream depends on catching a confirmation quickly
+// anymore (see sync_task's desired-setpoint reconciliation, which just
+// checks again on every poll regardless of timing), and the trigger never
+// even sped up picking up a *new* desired-setpoint change in the first
+// place, since it only fired after a command had already gone out. All it
+// actually traded off was display freshness against Tuya Cloud API quota
+// usage -- so it's now a single fixed interval instead, chosen on the quota
+// side of that tradeoff (this is "the dominant contributor to Tuya Cloud API
+// quota usage" per the original comment here): a new desired-setpoint value
+// may sit unpicked-up for up to this long, which is an accepted tradeoff
+// given nothing about correctness depends on it landing faster.
+#define STATUS_POLL_INTERVAL_MS 300000    // Poll Tuya every 5 minutes, fixed
+#define COMMAND_POLL_INTERVAL_MS 5000     // Check Matter commands every 5 seconds
+#define ENV_POLL_INTERVAL_MS 30000        // Read BME280 every 30 seconds
 #define RETRY_DELAY_MS 2000               // Base delay before retry on error (doubles per attempt)
 #define MAX_RETRIES 3                     // Retry up to 3 times before giving up
-#define POLL_WAIT_GRANULARITY_MS 1000     // sync_task's sleep chunk size -- see its loop for why
 
-// Fast-poll only while a local command is still waiting on Tuya's shadow to
-// confirm it (see the expectation-tracking block above); otherwise fall back
-// to the slow idle interval to conserve Tuya Cloud API quota.
-static uint32_t current_status_poll_interval_ms(void)
-{
-    bool expectation_pending = (g_expected_setpoint_f >= 0) ||
-                                (g_expected_mode >= 0) ||
-                                (g_expected_power >= 0);
-    return expectation_pending ? STATUS_POLL_INTERVAL_ACTIVE_MS : STATUS_POLL_INTERVAL_IDLE_MS;
-}
+// Self-restart threshold for a stalled sync_task, checked by health_task.
+// Not routed through ESP-IDF's Task Watchdog Timer: that's shared with
+// idle-task-starvation detection and tuned for a short (default ~5s)
+// timeout, appropriate for tasks that never legitimately block for long --
+// subscribing a task that sleeps for a full STATUS_POLL_INTERVAL_MS between
+// polls would either trip constantly (spurious reboots) or require
+// retuning the *global* timeout, affecting every other watched task too.
+// This is a dedicated, scoped check instead: g_sync_state.last_status_update
+// already gets stamped on every successful poll (see sync_task) and was
+// already being logged every 60s by health_task, just never acted on. Set
+// well above any expected normal cycle time -- even a run of consecutive
+// failures now bounded by TUYA_HTTP_TIMEOUT_MS (tuya_client.c) plus
+// MAX_RETRIES backoff totals well under a minute per poll -- so tripping
+// this means something hung in a way that timeout couldn't catch, not
+// ordinary transient Tuya API flakiness.
+#define SYNC_STALL_RESTART_MS (20 * 60 * 1000)  // 20 minutes
 
 // State tracking for error recovery
 typedef struct {
@@ -103,8 +91,8 @@ static int16_t normalize_tuya_setpoint(int16_t temp_c)
 {
     // Delegates to the shared helper so this matches exactly what
     // tuya_set_temperature() actually sends -- see its doc comment in
-    // tuya_client.h. g_expected_setpoint (set from this return value)
-    // is compared byte-for-byte against Tuya's echoed-back temp_set DP.
+    // tuya_client.h. sync_task's desired-setpoint reconciliation sends this
+    // return value to Tuya whenever it disagrees with Tuya's own poll.
     return tuya_normalize_setpoint_c(temp_c);
 }
 
@@ -201,36 +189,6 @@ static void cache_and_apply_status(const tuya_device_status_t *device_status)
     apply_status_to_matter(device_status);
 }
 
-static void revert_from_last_status_if_available(void)
-{
-    if (!g_last_device_status_valid) {
-        return;
-    }
-
-    // Confirmed on real hardware: a mode command's own failure (Tuya
-    // rejected it, unrelated to power) reverted the Power switch back to a
-    // stale cached OFF via a blind apply_status_to_matter(&g_last_device_status)
-    // below, even though a power-on moments earlier had already succeeded
-    // and was still awaiting sync_task's confirmation. The field that
-    // actually failed here has no pending expectation yet (command_task only
-    // sets g_expected_* in the success branch), so it's correct for THIS
-    // revert to fall back to the last cached value -- but any OTHER field
-    // with a still-pending expectation reflects a more recent, already-
-    // issued command and must not be clobbered by older cached data.
-    tuya_device_status_t status = g_last_device_status;
-    if (g_expected_power >= 0) {
-        status.switch_state = (bool)g_expected_power;
-    }
-    if (g_expected_mode >= 0) {
-        status.ac_mode = (uint8_t)g_expected_mode;
-    }
-    if (g_expected_setpoint_f >= 0) {
-        status.temp_set = g_expected_setpoint;
-        status.temp_set_f = g_expected_setpoint_f;
-    }
-    apply_status_to_matter(&status);
-}
-
 /**
  * @brief Wait until system time is synchronized via SNTP
  *
@@ -282,40 +240,28 @@ static esp_err_t wait_for_time_sync(void)
  */
 static void sync_task(void *param)
 {
-    ESP_LOGI(TAG, "Status synchronization task started (idle interval: %ums, active interval: %ums)",
-             STATUS_POLL_INTERVAL_IDLE_MS, STATUS_POLL_INTERVAL_ACTIVE_MS);
+    ESP_LOGI(TAG, "Status synchronization task started (interval: %ums)", STATUS_POLL_INTERVAL_MS);
 
     // Initial delay to let device stabilize
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     // Fetch and publish real Tuya status immediately on the first pass
     // (skipping the poll-interval wait) so the Matter node doesn't sit on
-    // its hardcoded boot-time defaults -- g_matter_state.onoff=false among
-    // them -- for a full poll interval, which looks like the mini-split
-    // turning itself off on every reboot even though the real unit was
-    // never touched. This must stay in sync_task rather than app_main() --
-    // tuya_get_device_status() does HTTPS/TLS + cJSON parsing and needs the
-    // 16KB stack this task is given below, not app_main's default ~3.5KB
-    // main task stack (which it blew through, crash-looping the device on
-    // every boot when tried inline in app_main()).
+    // its hardcoded boot-time defaults for a full poll interval, which used
+    // to look like the mini-split turning itself off on every reboot even
+    // though the real unit was never touched (the on/off default is now
+    // seeded to true instead specifically to make that cosmetic gap
+    // harmless either way -- see g_matter_state's onoff initializer). This
+    // must stay in sync_task rather than app_main() -- tuya_get_device_status()
+    // does HTTPS/TLS + cJSON parsing and needs the 16KB stack this task is
+    // given below, not app_main's default ~3.5KB main task stack (which it
+    // blew through, crash-looping the device on every boot when tried
+    // inline in app_main()).
     bool first_pass = true;
 
     while (1) {
         if (!first_pass) {
-            // Slept in short increments, re-checking the interval each time,
-            // rather than committing to one vTaskDelay for the full duration
-            // decided at the top of this sleep. Confirmed on real hardware:
-            // a poll that had nothing pending yet locks into the 5-minute
-            // idle interval, and a command issued moments later (which sets
-            // g_expected_power/mode/setpoint and should shorten the wait to
-            // the 30s active interval) had no effect until that already-
-            // committed 5-minute sleep finished -- leaving a stale/incorrect
-            // value sitting in the UI the whole time.
-            uint32_t waited_ms = 0;
-            while (waited_ms < current_status_poll_interval_ms()) {
-                vTaskDelay(pdMS_TO_TICKS(POLL_WAIT_GRANULARITY_MS));
-                waited_ms += POLL_WAIT_GRANULARITY_MS;
-            }
+            vTaskDelay(pdMS_TO_TICKS(STATUS_POLL_INTERVAL_MS));
         }
         first_pass = false;
 
@@ -366,61 +312,37 @@ static void sync_task(void *param)
                  device_status.compressor_frequency,
                  device_status.outdoor_temp / 100.0f);
 
-        // Reconcile any pending local commands against this fresh read, field
-        // by field, before applying to Matter -- see g_expected_setpoint et
-        // al. above. A field with a pending expectation that Tuya hasn't
-        // confirmed yet is patched back to our optimistic value so it
-        // doesn't visibly revert; every other field still applies normally.
-        uint32_t now_tick = xTaskGetTickCount();
-
-        if (g_expected_setpoint_f >= 0) {
-            if (device_status.temp_set_f == g_expected_setpoint_f) {
-                g_expected_setpoint = -1;
-                g_expected_setpoint_f = -1;
-            } else if ((now_tick - g_setpoint_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
-                ESP_LOGW(TAG, "Setpoint expectation (%dF) never confirmed by Tuya, giving up and trusting shadow (%dF)",
-                         g_expected_setpoint_f, device_status.temp_set_f);
-                g_expected_setpoint = -1;
-                g_expected_setpoint_f = -1;
-            } else {
-                ESP_LOGI(TAG, "Setpoint still pending confirmation (expected=%dF actual=%dF) -- keeping optimistic value",
-                         g_expected_setpoint_f, device_status.temp_set_f);
-                device_status.temp_set = g_expected_setpoint;
-                device_status.temp_set_f = g_expected_setpoint_f;
-            }
-        }
-
-        if (g_expected_mode >= 0) {
-            if (device_status.ac_mode == (uint8_t)g_expected_mode) {
-                g_expected_mode = -1;
-            } else if ((now_tick - g_mode_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
-                ESP_LOGW(TAG, "Mode expectation (%d) never confirmed by Tuya, giving up and trusting shadow (%d)",
-                         g_expected_mode, device_status.ac_mode);
-                g_expected_mode = -1;
-            } else {
-                ESP_LOGI(TAG, "Mode still pending confirmation (expected=%d actual=%d) -- keeping optimistic value",
-                         g_expected_mode, device_status.ac_mode);
-                device_status.ac_mode = (uint8_t)g_expected_mode;
-            }
-        }
-
-        if (g_expected_power >= 0) {
-            if (device_status.switch_state == (bool)g_expected_power) {
-                g_expected_power = -1;
-            } else if ((now_tick - g_power_expectation_tick) > pdMS_TO_TICKS(EXPECTATION_MAX_WAIT_MS)) {
-                ESP_LOGW(TAG, "Power expectation (%d) never confirmed by Tuya, giving up and trusting shadow (%d)",
-                         g_expected_power, device_status.switch_state);
-                g_expected_power = -1;
-            } else {
-                ESP_LOGI(TAG, "Power still pending confirmation (expected=%d actual=%d) -- keeping optimistic value",
-                         g_expected_power, device_status.switch_state);
-                device_status.switch_state = (bool)g_expected_power;
-            }
-        }
-
+        // No reconciliation against a locally-expected value anymore -- just
+        // apply whatever Tuya's shadow actually says. If a command we sent
+        // failed or hasn't landed yet, this plainly shows that, and the next
+        // poll (every STATUS_POLL_INTERVAL_MS, fixed) will show whatever's
+        // true then.
         cache_and_apply_status(&device_status);
 
         g_sync_state.last_status_update = xTaskGetTickCount();
+
+        // Desired-setpoint reconciliation: the standalone Desired Setpoint
+        // Matter endpoint (matter_get_desired_cooling_setpoint(), HA-writable,
+        // never touched by this task) is compared against what Tuya just
+        // reported, in whole-Fahrenheit-degree terms -- comparing raw Celsius
+        // is unreliable here since Tuya's temp_set only stores 0.5C steps, so
+        // a whole-Fahrenheit command doesn't generally round-trip back to an
+        // exact Celsius match even once genuinely applied (see
+        // tuya_setpoint_c_to_f()'s doc comment). If they disagree, send it
+        // again. No pending/expectation state: if this attempt doesn't stick
+        // either, the next poll sees that plainly and this same check just
+        // tries again -- self-healing by construction rather than by retry
+        // bookkeeping.
+        int16_t desired_f = tuya_setpoint_c_to_f(matter_get_desired_cooling_setpoint());
+        if (desired_f != device_status.temp_set_f) {
+            int16_t desired_c_normalized = normalize_tuya_setpoint(matter_get_desired_cooling_setpoint());
+            ESP_LOGI(TAG, "Desired setpoint (%dF) differs from Tuya's (%dF), sending update",
+                     desired_f, device_status.temp_set_f);
+            esp_err_t set_result = tuya_set_temperature(desired_c_normalized);
+            if (set_result != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send desired setpoint to Tuya; will retry next poll");
+            }
+        }
     }
 }
 
@@ -456,65 +378,43 @@ static void command_task(void *param)
             esp_err_t result = tuya_set_power(desired_onoff);
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send power command to Tuya");
-                revert_from_last_status_if_available();
             } else {
-                g_expected_power = desired_onoff ? 1 : 0;
-                g_power_expectation_tick = xTaskGetTickCount();
                 ESP_LOGI(TAG, "Power command sent successfully");
             }
 
             matter_clear_onoff_command();
         }
-        
-        // ===== Check for Heating Setpoint command =====
-        int16_t heat_setpoint_cmd = matter_get_heating_setpoint_command();
-        if (heat_setpoint_cmd >= 0) {
-            ESP_LOGI(TAG, "Processing heating setpoint command: %.1f°C", 
-                     heat_setpoint_cmd / 100.0f);
-            
-            // Send to Tuya. Confirmation against Tuya's shadow happens in
-            // sync_task's next poll(s) via g_expected_setpoint -- see its
-            // definition above for why an immediate verify-poll here isn't
-            // used (it's redundant with that reconciliation, and each one
-            // is an extra blocking Tuya round-trip we don't need).
-            int16_t expected_setpoint = normalize_tuya_setpoint(heat_setpoint_cmd);
-            esp_err_t result = tuya_set_temperature(expected_setpoint);
+
+        // ===== Check for a Desired Setpoint change from Matter =====
+        // Added 2026-08-30: sync_task's own reconciliation (below) still
+        // runs regardless and is what actually keeps things correct if this
+        // ever fails or gets missed -- this block only exists so the common,
+        // successful case doesn't have to wait for sync_task's next (up to
+        // 5-minute) status poll. Deliberately handled here rather than
+        // inline in the Matter attribute callback: that callback runs in the
+        // Matter/CHIP stack's own context, and tuya_set_temperature() is a
+        // blocking HTTPS call (now bounded at TUYA_HTTP_TIMEOUT_MS, but still
+        // multiple seconds in the normal case) -- blocking that callback
+        // directly risks stalling Matter's own event processing. Routing
+        // through command_task's existing 5-second poll keeps every real
+        // Tuya API call serialized through the one task that already owns
+        // g_tuya_ctx's shared state (access token, etc.), avoiding any
+        // concurrent-access race with sync_task's own calls.
+        if (matter_get_desired_setpoint_command_pending()) {
+            int16_t desired_c_normalized = normalize_tuya_setpoint(matter_get_desired_cooling_setpoint());
+            ESP_LOGI(TAG, "Desired setpoint changed via Matter, sending to Tuya now: %dC (x100)",
+                     desired_c_normalized);
+
+            esp_err_t result = tuya_set_temperature(desired_c_normalized);
             if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send temperature command to Tuya");
-                revert_from_last_status_if_available();
+                ESP_LOGE(TAG, "Failed to send desired setpoint to Tuya; sync_task's next poll will retry");
             } else {
-                g_expected_setpoint = expected_setpoint;
-                g_expected_setpoint_f = tuya_setpoint_c_to_f(expected_setpoint);
-                g_setpoint_expectation_tick = xTaskGetTickCount();
-                ESP_LOGI(TAG, "Temperature command sent (expecting setpoint=%d, %dF)",
-                         expected_setpoint, g_expected_setpoint_f);
+                ESP_LOGI(TAG, "Desired setpoint sent successfully");
             }
 
-            matter_clear_heating_setpoint_command();
+            matter_clear_desired_setpoint_command_pending();
         }
 
-        // ===== Check for Cooling Setpoint command =====
-        int16_t cool_setpoint_cmd = matter_get_cooling_setpoint_command();
-        if (cool_setpoint_cmd >= 0) {
-            ESP_LOGI(TAG, "Processing cooling setpoint command: %.1f°C",
-                     cool_setpoint_cmd / 100.0f);
-
-            int16_t expected_setpoint = normalize_tuya_setpoint(cool_setpoint_cmd);
-            esp_err_t result = tuya_set_temperature(expected_setpoint);
-            if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send cooling temperature command to Tuya");
-                revert_from_last_status_if_available();
-            } else {
-                g_expected_setpoint = expected_setpoint;
-                g_expected_setpoint_f = tuya_setpoint_c_to_f(expected_setpoint);
-                g_setpoint_expectation_tick = xTaskGetTickCount();
-                ESP_LOGI(TAG, "Cooling command sent (expecting setpoint=%d, %dF)",
-                         expected_setpoint, g_expected_setpoint_f);
-            }
-
-            matter_clear_cooling_setpoint_command();
-        }
-        
         // ===== Check for System Mode command =====
         uint8_t mode_cmd = matter_get_system_mode_command();
         if (mode_cmd != 0xFF) {  // 0xFF = no command
@@ -553,8 +453,6 @@ static void command_task(void *param)
                 if (g_last_device_status_valid && !g_last_device_status.switch_state) {
                     esp_err_t power_result = tuya_set_power(true);
                     if (power_result == ESP_OK) {
-                        g_expected_power = 1;
-                        g_power_expectation_tick = xTaskGetTickCount();
                         ESP_LOGI(TAG, "Powering on unit to apply mode command");
                     } else {
                         ESP_LOGW(TAG, "Failed to power on unit before mode command");
@@ -566,18 +464,12 @@ static void command_task(void *param)
 
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send mode command to Tuya");
-                revert_from_last_status_if_available();
             } else {
-                // Confirmation happens in sync_task's next poll(s) via
-                // g_expected_mode -- see the immediate-verify note in the
-                // setpoint handlers above for why no verify-poll is done here.
-                g_expected_mode = (int8_t)expected_tuya_mode;
-                g_mode_expectation_tick = xTaskGetTickCount();
                 // Any explicit mode command -- including a genuine Fan Only
                 // selection -- reflects the user's real intent from here on,
                 // so it always overrides the fan-idle-proxy latch.
                 g_mode_off_via_fan_proxy = (mode_cmd == 0);
-                ESP_LOGI(TAG, "Mode command sent (expecting mode=%u)%s", expected_tuya_mode,
+                ESP_LOGI(TAG, "Mode command sent (mode=%u)%s", expected_tuya_mode,
                          g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "");
             }
 
@@ -665,16 +557,30 @@ static void health_task(void *param)
     
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(60000));  // Every 60 seconds
-        
+
+        uint32_t last_update_age_ms =
+            (xTaskGetTickCount() - g_sync_state.last_status_update) * portTICK_PERIOD_MS;
+
         ESP_LOGI(TAG, "=== System Health Check ===");
         ESP_LOGI(TAG, "Network Disconnects: %u", g_sync_state.network_disconnects);
         ESP_LOGI(TAG, "Status Poll Failures: %u", g_sync_state.status_poll_failures);
-        ESP_LOGI(TAG, "Last Status Update: %ums ago",
-                 (xTaskGetTickCount() - g_sync_state.last_status_update));
-        
+        ESP_LOGI(TAG, "Last Status Update: %ums ago", last_update_age_ms);
+
         // Get free memory
         ESP_LOGI(TAG, "Free Heap: %u bytes", esp_get_free_heap_size());
-        
+
+        // sync_task should always be making progress well within this
+        // window (see SYNC_STALL_RESTART_MS above) -- if it hasn't, it's
+        // stuck somewhere a plain HTTP timeout couldn't unblock, and no
+        // other task can recover it from the outside. A full restart is
+        // the same remedy a physical power cycle provides, without needing
+        // physical access.
+        if (last_update_age_ms > SYNC_STALL_RESTART_MS) {
+            ESP_LOGE(TAG, "sync_task appears stalled (%ums since last successful Tuya poll, "
+                          "threshold %ums) -- restarting", last_update_age_ms, SYNC_STALL_RESTART_MS);
+            esp_restart();
+        }
+
         // Additional diagnostics can be added here
     }
 }
@@ -786,8 +692,7 @@ void app_main(void)
                 NULL);
     
     ESP_LOGI(TAG, "\n=== MiniSplit Matter Bridge Ready ===");
-    ESP_LOGI(TAG, "Status Sync Interval: idle %ums / active %ums",
-             STATUS_POLL_INTERVAL_IDLE_MS, STATUS_POLL_INTERVAL_ACTIVE_MS);
+    ESP_LOGI(TAG, "Status Sync Interval: %ums (fixed)", STATUS_POLL_INTERVAL_MS);
     ESP_LOGI(TAG, "Command Poll Interval: %ums", COMMAND_POLL_INTERVAL_MS);
     ESP_LOGI(TAG, "Status: Waiting for Matter commissioning...\n");
 }

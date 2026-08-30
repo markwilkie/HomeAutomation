@@ -9,6 +9,7 @@
 #include "esp_matter.h"
 #include "esp_matter_attribute_utils.h"
 #include "esp_matter_endpoint.h"
+#include "nvs.h"
 
 #include <app-common/zap-generated/cluster-objects.h>
 #include <setup_payload/OnboardingCodesUtil.h>
@@ -94,13 +95,39 @@ typedef struct {
     uint8_t compressor_demand;
     int16_t outdoor_temp;
     bool onoff_command_pending;
-    int16_t heating_setpoint_command_pending;
-    int16_t cooling_setpoint_command_pending;
     uint8_t mode_command_pending;
+    // Standalone "what HA actually wants," never touched by Tuya sync -- see
+    // g_desired_setpoint_endpoint below. sync_task still re-reads this and
+    // compares against Tuya's last poll every cycle regardless (self-healing
+    // safety net if the immediate send below ever fails or gets missed), so
+    // this value itself needs no latch/clear -- it always just reflects the
+    // last thing HA asked for.
+    int16_t desired_cooling_setpoint;
+    // Added 2026-08-30: sync_task's periodic reconciliation alone meant a
+    // real, successful setpoint change could sit unapplied to Tuya for up to
+    // a full 5-minute poll interval after HA asked for it -- confirmed on
+    // real hardware to cause visible confusion (checking the Tuya app
+    // immediately after a change and seeing it not yet reflected). This flag
+    // lets command_task notice the change and send it within its own 5-second
+    // cycle instead, without touching the status-poll interval (the actual
+    // quota-dominant call) at all -- see command_task in main.c.
+    bool desired_setpoint_command_pending;
 } matter_device_state_t;
 
 static matter_device_state_t g_matter_state = {
-    .onoff = false,
+    // Boot-time-only default, seeded before sync_task's first real Tuya poll
+    // comes back a few seconds later (see the comment on that first-pass
+    // fetch in main.c's sync_task). Seeding goes through update_attr_on_endpoint()
+    // with g_internal_attr_update set, which matter_attribute_callback()
+    // explicitly bypasses -- so this default was never capable of sending a
+    // real command to Tuya, only of briefly *displaying* the wrong on/off
+    // state in HA until the real poll lands. Defaulting to true rather than
+    // false removes even that cosmetic flash for the common case (a reboot
+    // of an already-running, already-on unit) at the cost of the flash
+    // running the other way on the rare boot where the unit is genuinely
+    // off -- accepted since a rare miscolored few-second UI flicker is a far
+    // smaller cost than one that reads as the AC turning itself off.
+    .onoff = true,
     .current_temp = 2200,
     .aux_temp = 2200,
     .aux_humidity = 5000,
@@ -110,9 +137,9 @@ static matter_device_state_t g_matter_state = {
     .compressor_demand = 0,
     .outdoor_temp = 0,
     .onoff_command_pending = false,
-    .heating_setpoint_command_pending = INT16_MIN,
-    .cooling_setpoint_command_pending = INT16_MIN,
     .mode_command_pending = 0xFF,
+    .desired_cooling_setpoint = 2400,
+    .desired_setpoint_command_pending = false,
 };
 
 static node_t *g_node = nullptr;
@@ -123,6 +150,7 @@ static endpoint_t *g_outdoor_temp_sensor_endpoint = nullptr;
 static endpoint_t *g_compressor_endpoint = nullptr;
 static endpoint_t *g_compressor_running_endpoint = nullptr;
 static endpoint_t *g_power_endpoint = nullptr;
+static endpoint_t *g_desired_setpoint_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
 static uint16_t g_temp_sensor_endpoint_id = 0;
 static uint16_t g_humidity_sensor_endpoint_id = 0;
@@ -130,8 +158,89 @@ static uint16_t g_outdoor_temp_sensor_endpoint_id = 0;
 static uint16_t g_compressor_endpoint_id = 0;
 static uint16_t g_compressor_running_endpoint_id = 0;
 static uint16_t g_power_endpoint_id = 0;
+static uint16_t g_desired_setpoint_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
+
+// Persisted across reboots: onoff, system_mode, and desired_cooling_setpoint
+// -- added 2026-08-30 after confirming on real hardware that
+// desired_cooling_setpoint has no other resync path (everything else in
+// matter_device_state_t is a mirror of Tuya or the BME280, refreshed from
+// its real source within seconds to a few minutes of every boot regardless
+// of what the hardcoded default is) and that onoff's existing "default to
+// true" boot guess is only ever right for the common case, not the
+// still-real one where the unit was genuinely off. Deliberately NOT
+// persisting current_temp/heating_setpoint/cooling_setpoint/compressor_demand/
+// outdoor_temp/aux_temp/aux_humidity or any of the *_command_pending flags --
+// the mirrors gain nothing from it (already correct again within seconds)
+// and the pending flags actively should NOT survive a reboot (there is no
+// in-flight command from a session that no longer exists).
+#define NVS_PERSIST_NAMESPACE "minisplit"
+#define NVS_KEY_ONOFF "onoff"
+#define NVS_KEY_SYSTEM_MODE "sys_mode"
+#define NVS_KEY_DESIRED_SETPOINT "desired_sp"
+
+static nvs_handle_t g_nvs_handle = 0;
+static bool g_nvs_ready = false;
+
+static void nvs_persist_init(void)
+{
+    esp_err_t err = nvs_open(NVS_PERSIST_NAMESPACE, NVS_READWRITE, &g_nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to open NVS namespace for persisted state (%s) -- "
+                      "onoff/system_mode/desired_cooling_setpoint will fall back "
+                      "to hardcoded defaults on every boot instead of surviving one",
+                 esp_err_to_name(err));
+        g_nvs_ready = false;
+        return;
+    }
+    g_nvs_ready = true;
+}
+
+// Overrides the caller's hardcoded defaults in-place with whatever was last
+// persisted, for whichever keys are actually present -- a fresh device (or
+// one that just had its NVS erased) simply keeps the hardcoded defaults for
+// every key that comes back ESP_ERR_NVS_NOT_FOUND, rather than failing.
+static void nvs_load_persisted_state(matter_device_state_t *state)
+{
+    if (!g_nvs_ready) {
+        return;
+    }
+    uint8_t onoff_u8 = 0;
+    if (nvs_get_u8(g_nvs_handle, NVS_KEY_ONOFF, &onoff_u8) == ESP_OK) {
+        state->onoff = (onoff_u8 != 0);
+    }
+    uint8_t system_mode = 0;
+    if (nvs_get_u8(g_nvs_handle, NVS_KEY_SYSTEM_MODE, &system_mode) == ESP_OK) {
+        state->system_mode = system_mode;
+    }
+    int16_t desired_setpoint = 0;
+    if (nvs_get_i16(g_nvs_handle, NVS_KEY_DESIRED_SETPOINT, &desired_setpoint) == ESP_OK) {
+        state->desired_cooling_setpoint = desired_setpoint;
+    }
+    ESP_LOGI(TAG, "Loaded persisted state: onoff=%d system_mode=%u desired_cooling_setpoint=%d",
+             state->onoff, state->system_mode, state->desired_cooling_setpoint);
+}
+
+static void nvs_persist_u8(const char *key, uint8_t value)
+{
+    if (!g_nvs_ready) {
+        return;
+    }
+    if (nvs_set_u8(g_nvs_handle, key, value) == ESP_OK) {
+        nvs_commit(g_nvs_handle);
+    }
+}
+
+static void nvs_persist_i16(const char *key, int16_t value)
+{
+    if (!g_nvs_ready) {
+        return;
+    }
+    if (nvs_set_i16(g_nvs_handle, key, value) == ESP_OK) {
+        nvs_commit(g_nvs_handle);
+    }
+}
 
 static esp_err_t update_attr_on_endpoint(endpoint_t *target_endpoint,
                                          uint16_t target_endpoint_id,
@@ -179,12 +288,16 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
 {
     (void)priv_data;
 
-    // g_endpoint (the Thermostat) still handles setpoint/mode commands as
-    // before. g_power_endpoint is the dedicated true-power On/Off Plug-in
-    // Unit added alongside it -- see matter_device_init() -- distinct from
-    // the Thermostat's own Cool/Off cycling, which (per main.c's
-    // command_task()) means "idle in fan mode", not a real power-down.
-    bool is_relevant_endpoint = (endpoint_id == g_endpoint_id || endpoint_id == g_power_endpoint_id);
+    // g_endpoint (the Thermostat) still handles mode commands as before, and
+    // mirrors Tuya's confirmed setpoint (read-only from HA's side now -- see
+    // the rejection below). g_power_endpoint is the dedicated true-power
+    // On/Off Plug-in Unit added alongside it -- see matter_device_init() --
+    // distinct from the Thermostat's own Cool/Off cycling, which (per
+    // main.c's command_task()) means "idle in fan mode", not a real
+    // power-down. g_desired_setpoint_endpoint is the standalone entity HA
+    // actually writes a target temperature to now -- see below.
+    bool is_relevant_endpoint = (endpoint_id == g_endpoint_id || endpoint_id == g_power_endpoint_id ||
+                                  endpoint_id == g_desired_setpoint_endpoint_id);
     if (!val || !is_relevant_endpoint || g_internal_attr_update) {
         return ESP_OK;
     }
@@ -202,16 +315,38 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
         return ESP_OK;
     }
 
-    if (cluster_id == Thermostat::Id) {
-        if (attribute_id == Thermostat::Attributes::OccupiedHeatingSetpoint::Id) {
-            g_matter_state.heating_setpoint = val->val.i16;
-            g_matter_state.heating_setpoint_command_pending = g_matter_state.heating_setpoint;
-            ESP_LOGI(TAG, "Heating setpoint command: %d", g_matter_state.heating_setpoint);
-        } else if (attribute_id == Thermostat::Attributes::OccupiedCoolingSetpoint::Id) {
-            g_matter_state.cooling_setpoint = val->val.i16;
-            g_matter_state.cooling_setpoint_command_pending = g_matter_state.cooling_setpoint;
-            ESP_LOGI(TAG, "Cooling setpoint command: %d", g_matter_state.cooling_setpoint);
-        } else if (attribute_id == Thermostat::Attributes::SystemMode::Id) {
+    if (endpoint_id == g_desired_setpoint_endpoint_id && cluster_id == Thermostat::Id &&
+        attribute_id == Thermostat::Attributes::OccupiedCoolingSetpoint::Id) {
+        if (g_matter_state.desired_cooling_setpoint != val->val.i16) {
+            g_matter_state.desired_cooling_setpoint = val->val.i16;
+            nvs_persist_i16(NVS_KEY_DESIRED_SETPOINT, g_matter_state.desired_cooling_setpoint);
+        }
+        g_matter_state.desired_setpoint_command_pending = true;
+        ESP_LOGI(TAG, "Desired setpoint set to %d (0.01C)", g_matter_state.desired_cooling_setpoint);
+        return ESP_OK;
+    }
+
+    if (endpoint_id == g_endpoint_id && cluster_id == Thermostat::Id) {
+        if (attribute_id == Thermostat::Attributes::OccupiedHeatingSetpoint::Id ||
+            attribute_id == Thermostat::Attributes::OccupiedCoolingSetpoint::Id) {
+            // This endpoint's setpoint is meant to be read-only now -- a
+            // plain mirror of whatever Tuya last confirmed (see
+            // apply_status_to_matter() in main.c). Real intent goes through
+            // g_desired_setpoint_endpoint instead, which sync_task
+            // reconciles against Tuya on every poll. Rejecting the write
+            // here (rather than silently accepting it and letting the next
+            // poll paper over it) is the actual "read-only" enforcement;
+            // NOT CONFIRMED on real hardware whether this esp-matter/CHIP
+            // version honors a non-OK PRE_UPDATE return as a write refusal
+            // versus just logging it and committing anyway -- if it turns
+            // out to be the latter, the value would still self-correct on
+            // the next sync_task poll regardless, just not instantaneously.
+            ESP_LOGW(TAG, "Rejecting write to read-only setpoint on thermostat endpoint "
+                          "(attr=0x%08" PRIx32 ") -- use the Desired Setpoint entity instead",
+                     attribute_id);
+            return ESP_ERR_NOT_SUPPORTED;
+        }
+        if (attribute_id == Thermostat::Attributes::SystemMode::Id) {
             g_matter_state.system_mode = val->val.u8;
             g_matter_state.mode_command_pending = g_matter_state.system_mode;
             ESP_LOGI(TAG, "System mode command: %u", g_matter_state.system_mode);
@@ -224,6 +359,13 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
 extern "C" esp_err_t matter_device_init(void)
 {
     ESP_LOGI(TAG, "Initializing Matter device...");
+
+    // Override g_matter_state's hardcoded onoff/system_mode/desired_cooling_setpoint
+    // defaults with whatever was last persisted, before anything below builds
+    // an endpoint config from them -- see nvs_load_persisted_state()'s
+    // comment for why only these three fields.
+    nvs_persist_init();
+    nvs_load_persisted_state(&g_matter_state);
 
     // Without this, Basic Information's NodeLabel stays empty and Home
     // Assistant falls back to a generic "Node <id>" device name.
@@ -395,6 +537,32 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Standalone "Desired Setpoint" endpoint -- a second, minimal Thermostat
+    // cluster (cooling-only; this is a cooling-only setup throughout) whose
+    // only job is to hold whatever HA last asked for. Never written by
+    // sync_task, so it carries none of the confirmation-lag/revert noise the
+    // main thermostat endpoint's setpoint used to have; main.c's sync_task
+    // just compares it against Tuya's own polled value every cycle and
+    // resends when they disagree. SystemMode is seeded to Cool (not Off) so
+    // HA's climate card doesn't grey out the setpoint control; nothing ever
+    // reads or reacts to this endpoint's own mode/local-temperature, they
+    // exist only because the Thermostat cluster requires them.
+    endpoint::thermostat::config_t desired_setpoint_cfg;
+    desired_setpoint_cfg.thermostat.feature_flags = cluster::thermostat::feature::cooling::get_id();
+    desired_setpoint_cfg.thermostat.system_mode = 3; // kCool
+    desired_setpoint_cfg.thermostat.local_temperature = nullable<int16_t>();
+    desired_setpoint_cfg.thermostat.features.cooling.occupied_cooling_setpoint = g_matter_state.desired_cooling_setpoint;
+    g_desired_setpoint_endpoint = endpoint::thermostat::create(g_node, &desired_setpoint_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_desired_setpoint_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Desired Setpoint endpoint");
+        return ESP_FAIL;
+    }
+    g_desired_setpoint_endpoint_id = endpoint::get_id(g_desired_setpoint_endpoint);
+    if (!g_desired_setpoint_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Desired Setpoint endpoint id");
+        return ESP_FAIL;
+    }
+
     update_attr(OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(g_matter_state.onoff));
     update_attr(Thermostat::Id, Thermostat::Attributes::LocalTemperature::Id,
                 esp_matter_nullable_int16(nullable<int16_t>(g_matter_state.current_temp)));
@@ -426,11 +594,14 @@ extern "C" esp_err_t matter_device_init(void)
     update_attr_on_endpoint(g_power_endpoint, g_power_endpoint_id,
                             OnOff::Id, OnOff::Attributes::OnOff::Id,
                             esp_matter_bool(g_matter_state.onoff));
+    update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
+                            Thermostat::Id, Thermostat::Attributes::OccupiedCoolingSetpoint::Id,
+                            esp_matter_int16(g_matter_state.desired_cooling_setpoint));
 
-    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u power_ep=%u",
+    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u power_ep=%u desired_setpoint_ep=%u",
              g_endpoint_id, g_temp_sensor_endpoint_id,
              g_humidity_sensor_endpoint_id, g_outdoor_temp_sensor_endpoint_id, g_compressor_endpoint_id,
-             g_compressor_running_endpoint_id, g_power_endpoint_id);
+             g_compressor_running_endpoint_id, g_power_endpoint_id, g_desired_setpoint_endpoint_id);
     return ESP_OK;
 }
 
@@ -493,6 +664,7 @@ extern "C" void matter_update_onoff(bool on_off)
         return;
     }
     g_matter_state.onoff = on_off;
+    nvs_persist_u8(NVS_KEY_ONOFF, on_off ? 1 : 0);
     update_attr(OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(on_off));
     update_attr_on_endpoint(g_power_endpoint, g_power_endpoint_id,
                             OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(on_off));
@@ -519,7 +691,10 @@ extern "C" void matter_update_cooling_setpoint(int16_t temp_c)
 
 extern "C" void matter_update_system_mode(uint8_t mode)
 {
-    g_matter_state.system_mode = mode;
+    if (g_matter_state.system_mode != mode) {
+        g_matter_state.system_mode = mode;
+        nvs_persist_u8(NVS_KEY_SYSTEM_MODE, mode);
+    }
     update_attr(Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
 }
 
@@ -592,20 +767,14 @@ extern "C" bool matter_get_onoff_state(void)
     return g_matter_state.onoff;
 }
 
-extern "C" int16_t matter_get_heating_setpoint_command(void)
+extern "C" int16_t matter_get_desired_cooling_setpoint(void)
 {
-    if (g_matter_state.heating_setpoint_command_pending == INT16_MIN) {
-        return -1;
-    }
-    return g_matter_state.heating_setpoint_command_pending;
+    return g_matter_state.desired_cooling_setpoint;
 }
 
-extern "C" int16_t matter_get_cooling_setpoint_command(void)
+extern "C" bool matter_get_desired_setpoint_command_pending(void)
 {
-    if (g_matter_state.cooling_setpoint_command_pending == INT16_MIN) {
-        return -1;
-    }
-    return g_matter_state.cooling_setpoint_command_pending;
+    return g_matter_state.desired_setpoint_command_pending;
 }
 
 extern "C" uint8_t matter_get_system_mode_command(void)
@@ -618,25 +787,14 @@ extern "C" void matter_clear_onoff_command(void)
     g_matter_state.onoff_command_pending = false;
 }
 
-extern "C" void matter_clear_setpoint_command(void)
-{
-    g_matter_state.heating_setpoint_command_pending = INT16_MIN;
-    g_matter_state.cooling_setpoint_command_pending = INT16_MIN;
-}
-
-extern "C" void matter_clear_heating_setpoint_command(void)
-{
-    g_matter_state.heating_setpoint_command_pending = INT16_MIN;
-}
-
-extern "C" void matter_clear_cooling_setpoint_command(void)
-{
-    g_matter_state.cooling_setpoint_command_pending = INT16_MIN;
-}
-
 extern "C" void matter_clear_mode_command(void)
 {
     g_matter_state.mode_command_pending = 0xFF;
+}
+
+extern "C" void matter_clear_desired_setpoint_command_pending(void)
+{
+    g_matter_state.desired_setpoint_command_pending = false;
 }
 
 extern "C" void matter_device_deinit(void)
@@ -649,6 +807,7 @@ extern "C" void matter_device_deinit(void)
     g_compressor_endpoint = nullptr;
     g_compressor_running_endpoint = nullptr;
     g_power_endpoint = nullptr;
+    g_desired_setpoint_endpoint = nullptr;
     g_endpoint_id = 0;
     g_temp_sensor_endpoint_id = 0;
     g_humidity_sensor_endpoint_id = 0;
@@ -656,6 +815,11 @@ extern "C" void matter_device_deinit(void)
     g_compressor_endpoint_id = 0;
     g_compressor_running_endpoint_id = 0;
     g_power_endpoint_id = 0;
+    g_desired_setpoint_endpoint_id = 0;
     g_started = false;
+    if (g_nvs_ready) {
+        nvs_close(g_nvs_handle);
+        g_nvs_ready = false;
+    }
     ESP_LOGI(TAG, "Matter device deinitialized");
 }

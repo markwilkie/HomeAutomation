@@ -31,6 +31,19 @@ static const char *TAG = "TUYA_CLIENT";
 // transient allocation, freed immediately after each request/response cycle.
 #define HTTP_BUFFER_SIZE 16384
 
+// esp_http_client_perform() is a single blocking call with no bound on its
+// own -- without an explicit timeout, a DNS stall, a TCP SYN that goes out
+// and is silently dropped (no RST/FIN), or a hung TLS handshake can block it
+// indefinitely. Confirmed on real hardware (2026-08-29/30): sync_task froze
+// for 44+ minutes with no self-recovery, while env_task (BME280, pure local
+// I2C, no network dependency) kept running normally the whole time -- a
+// hang here has no way to time out and hand control back to the retry loop
+// in sync_task, which never even gets a chance to run. 10s is generous for
+// a normal Tuya cloud round-trip (including the larger shadow/properties
+// payload) while still bounding the worst case to a small, known multiple
+// of this value rather than "indefinitely."
+#define TUYA_HTTP_TIMEOUT_MS 10000
+
 typedef struct {
     char device_id[64];
     char client_id[64];
@@ -268,6 +281,7 @@ static esp_err_t tuya_api_request(
         .user_data = &response_acc,
         .buffer_size = HTTP_BUFFER_SIZE,
         .crt_bundle_attach = esp_crt_bundle_attach,
+        .timeout_ms = TUYA_HTTP_TIMEOUT_MS,
     };
 
     // Override method if needed

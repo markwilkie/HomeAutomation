@@ -204,17 +204,19 @@ Precooling, Sleep) are logged and ignored rather than sent.
 
 ### Matter endpoint layout
 
-`src/matter_device.cpp` exposes 6 endpoints (fixed, hardcoded — this bridge only ever manages
-this one physical device, so there's no dynamic endpoint discovery). Full mapping, verified
-against a live serial capture (attribute writes logged by `esp_matter_attribute`):
+`src/matter_device.cpp` exposed 6 endpoints (fixed, hardcoded — this bridge only ever manages
+this one physical device, so there's no dynamic endpoint discovery) until 2026-08-30, when 7 and 8
+were added as part of the desired/actual setpoint split (flashed the same day). Full mapping,
+verified against a live serial capture (attribute writes logged by `esp_matter_attribute`) plus the
+2026-08-30 boot log for the two new endpoints:
 
 | EP | Matter device type | Cluster (hex ID) | Attribute (hex ID) | Real data source | HA entity (rename suggestion) |
 |---|---|---|---|---|---|
 | 1 (root) | Thermostat | OnOff (0x0006) | OnOff (0x0000) | Tuya `switch` | Climate on/off |
 | 1 | Thermostat | Thermostat (0x0201) | LocalTemperature (0x0000) | Tuya `temp_current` — **mini-split's own indoor reading** | Climate current temp |
-| 1 | | | OccupiedCoolingSetpoint (0x0011) | Tuya `temp_set` | Climate cool setpoint |
-| 1 | | | OccupiedHeatingSetpoint (0x0012) | Tuya `temp_set` | Climate heat setpoint |
-| 1 | | | SystemMode (0x001C) | Tuya `mode` (mapped) | Climate mode |
+| 1 | | | OccupiedCoolingSetpoint (0x0011) | Tuya `temp_set` | Climate cool setpoint — **read-only as of 2026-08-30, writes rejected (`ESP_ERR_NOT_SUPPORTED`)**; see EP8 |
+| 1 | | | OccupiedHeatingSetpoint (0x0012) | Tuya `temp_set` | Climate heat setpoint — **read-only as of 2026-08-30**, same as above |
+| 1 | | | SystemMode (0x001C) | Tuya `mode` (mapped) | Climate mode — still writable |
 | 1 | | | PICoolingDemand (0x0007) | `compressor_frequency` → 0–100% | Not rendered by SmartThings; may or may not surface in HA |
 | 1 | | | PIHeatingDemand (0x0008) | Always 0 | (unused — no heating-side compressor demand tracked) |
 | 1 | | | OutdoorTemperature (0x0001) | Tuya `ure` | Sub-attribute; the *real* rendered copy is endpoint 4 |
@@ -223,6 +225,9 @@ against a live serial capture (attribute writes logged by `esp_matter_attribute`
 | 4 | Temperature Sensor | TemperatureMeasurement (0x0402) | MeasuredValue (0x0000) | Tuya `ure` — **mini-split's own outdoor reading** | `sensor.*` "Outside Temp" |
 | 5 | Humidity Sensor *(repurposed)* | RelativeHumidityMeasurement (0x0405) | MeasuredValue (0x0000) | `compressor_frequency` → 0–100%, encoded as %RH×100 | Shows as "Humidity" — **rename to "Compressor Load"** |
 | 6 | Occupancy Sensor *(repurposed)* | OccupancySensing (0x0406) | Occupancy (0x0000, bit 0) | `compressor_frequency` > 0 | Shows as "Occupancy" — **rename to "Compressor Running"** |
+| 7 *(added 2026-08-30)* | On/Off Plug-in Unit | OnOff (0x0006) | OnOff (0x0000) | Tuya `switch`, same source as EP1's OnOff — but this is the one `tuya_set_power()` actually listens to now | `switch.*` — genuine power on/off (see `CONTROL_LOOP_SCENARIOS.md` Scenario 6 for why EP1's Thermostat on/off and this one aren't the same control) |
+| 8 *(added 2026-08-30)* | Thermostat (cooling-only feature) | Thermostat (0x0201) | OccupiedCoolingSetpoint (0x0011) | **Not Tuya at all** — a standalone HA-writable register (`g_matter_state.desired_cooling_setpoint`), reconciled against Tuya by `sync_task` every poll, never overwritten by it | `climate.*` "Desired Setpoint" — this is the one setpoint HA/automations should write to now |
+| 8 | | | LocalTemperature (0x0000) | Permanently `null` — this endpoint has no real sensor, `current_temperature` will always read unknown | (none — don't expect a reading here) |
 
 Three distinct temperatures, to avoid conflating them: **indoor (mini-split)** = EP1
 `LocalTemperature`, **indoor (BME280)** = EP2, **outdoor (mini-split)** = EP4.

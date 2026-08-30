@@ -163,16 +163,33 @@ bool matter_get_onoff_command(void);
 bool matter_get_onoff_state(void);
 
 /**
- * @brief Get pending heating setpoint command from the controller
- * @return Setpoint in Celsius (×100), or -1 if no pending command
+ * @brief Get the current desired cooling setpoint
+ *
+ * Reads the standalone Desired Setpoint endpoint's OccupiedCoolingSetpoint --
+ * a plain HA-writable value with no "pending command" semantics, since
+ * sync_task's reconciliation (main.c) just compares this against Tuya's last
+ * poll on every cycle and resends if they disagree. Never touched by Tuya
+ * sync itself, so it always reflects the last value HA actually asked for,
+ * with none of the confirmation-lag/revert noise the main Thermostat
+ * endpoint's setpoint used to carry.
+ *
+ * @return Desired setpoint in Celsius (×100)
  */
-int16_t matter_get_heating_setpoint_command(void);
+int16_t matter_get_desired_cooling_setpoint(void);
 
 /**
- * @brief Get pending cooling setpoint command from the controller
- * @return Setpoint in Celsius (×100), or -1 if no pending command
+ * @brief Check if the Desired Setpoint endpoint's value changed since
+ *        command_task last checked
+ *
+ * Added 2026-08-30 so a real setpoint change can reach Tuya within
+ * command_task's 5-second cycle instead of waiting for sync_task's next
+ * (up to 5-minute) status poll -- sync_task's own periodic reconciliation
+ * is unchanged and still runs regardless, as a self-healing safety net if
+ * this immediate send is ever missed or fails.
+ *
+ * @return true if the value has changed since the flag was last cleared
  */
-int16_t matter_get_cooling_setpoint_command(void);
+bool matter_get_desired_setpoint_command_pending(void);
 
 /**
  * @brief Get pending system mode command from the controller
@@ -187,24 +204,16 @@ uint8_t matter_get_system_mode_command(void);
 void matter_clear_onoff_command(void);
 
 /**
- * @brief Clear the pending setpoint command flag
- */
-void matter_clear_setpoint_command(void);
-
-/**
- * @brief Clear only the pending heating setpoint command flag
- */
-void matter_clear_heating_setpoint_command(void);
-
-/**
- * @brief Clear only the pending cooling setpoint command flag
- */
-void matter_clear_cooling_setpoint_command(void);
-
-/**
  * @brief Clear the pending mode command flag
  */
 void matter_clear_mode_command(void);
+
+/**
+ * @brief Clear the pending Desired Setpoint change flag
+ * Call after sending it to Tuya (or attempting to) to avoid re-sending the
+ * same value every 5-second cycle until it actually changes again.
+ */
+void matter_clear_desired_setpoint_command_pending(void);
 
 /**
  * @brief Cleanup/deinit Matter device
