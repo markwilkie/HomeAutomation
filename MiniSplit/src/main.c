@@ -12,6 +12,9 @@
 
 #include "tuya_client.h"
 #include "matter_device.h"
+#include "papertrail_logger.h"
+#include "flash_log.h"
+#include "log_server.h"
 #include "bme280.h"
 #include "secrets.h"
 
@@ -54,6 +57,14 @@ static bool g_mode_off_via_fan_proxy = false;
 // quota usage" per the original comment here): a new desired-setpoint value
 // may sit unpicked-up for up to this long, which is an accepted tradeoff
 // given nothing about correctness depends on it landing faster.
+// Same Papertrail account already used by Sprinter/PowerMonitor and
+// Sprinter/TripDisplay elsewhere in this repo (one syslog endpoint per
+// account; "system name" distinguishes devices in the Papertrail UI) --
+// see https://my.papertrailapp.com/systems/minisplit/events
+#define PAPERTRAIL_HOST       "logs4.papertrailapp.com"
+#define PAPERTRAIL_PORT       54449
+#define PAPERTRAIL_SYSTEMNAME "minisplit"
+
 #define STATUS_POLL_INTERVAL_MS 300000    // Poll Tuya every 5 minutes, fixed
 #define COMMAND_POLL_INTERVAL_MS 5000     // Check Matter commands every 5 seconds
 #define ENV_POLL_INTERVAL_MS 30000        // Read BME280 every 30 seconds
@@ -77,10 +88,22 @@ static bool g_mode_off_via_fan_proxy = false;
 // ordinary transient Tuya API flakiness.
 #define SYNC_STALL_RESTART_MS (20 * 60 * 1000)  // 20 minutes
 
+// Same idea as SYNC_STALL_RESTART_MS, but for env_task/BME280 -- a much
+// shorter bound since its normal cadence is ENV_POLL_INTERVAL_MS (30s), not
+// 5 minutes. bme280.c already has its own I2C bus-recovery logic that
+// handles an ordinary wedged bus within ~90s (BME280_RECOVERY_THRESHOLD),
+// so this threshold only needs to be generous enough to never fire during
+// that normal recovery -- it exists specifically for the case confirmed on
+// real hardware where bme280_read() itself never returns at all (an 8.5-hour
+// stall, zero log output the entire time), which silently bypasses that
+// recovery logic since it can only count a failure once a call returns.
+#define ENV_STALL_RESTART_MS (5 * 60 * 1000)    // 5 minutes
+
 // State tracking for error recovery
 typedef struct {
     uint32_t last_status_update;        // Timestamp of last successful status update
     uint32_t last_command_check;        // Timestamp of last command check
+    uint32_t last_env_heartbeat;        // Timestamp of last env_task loop iteration (see below)
     uint8_t status_poll_failures;       // Consecutive failures
     uint8_t network_disconnects;        // Count of connectivity drops
 } sync_state_t;
@@ -162,20 +185,40 @@ static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
     }
 }
 
+// Small delay between each Matter attribute update below -- confirmed on
+// real hardware (2026-08-31) that firing all of these back-to-back with no
+// spacing produces a dense burst of near-simultaneous IM reports, and on
+// this device's marginal Thread link, a burst that size was enough to
+// trigger a genuine "No available message buffer" cascade (the exact same
+// packets retransmitting repeatedly, several times a second, until
+// exhaustion -- CHIP's own reliable-messaging retries piling up faster than
+// the link could ack them). Increasing the buffer pool alone didn't help,
+// since the problem is the burst rate, not the total budget. This function
+// runs from sync_task (16KB stack, priority 4), so a few hundred ms of
+// total added latency here is trivial against its 5-minute poll interval.
+#define MATTER_UPDATE_BURST_SPACING_MS 50
+
 static void apply_status_to_matter(const tuya_device_status_t *device_status)
 {
     matter_update_onoff(device_status->switch_state);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     // Mini-split's own indoor reading -- the Thermostat's LocalTemperature.
     // The BME280's independent indoor reading (if fitted) lives on its own
     // Temperature Sensor endpoint instead; see env_task/matter_update_aux_temperature.
     matter_update_local_temperature(device_status->temp_current);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     matter_update_heating_setpoint(device_status->temp_set);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     matter_update_cooling_setpoint(device_status->temp_set);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     matter_update_system_mode(map_tuya_mode_to_matter(device_status));
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
 
     uint8_t compressor_pct = compressor_demand_percent(device_status);
     matter_update_compressor_demand(compressor_pct);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     matter_update_compressor_running(compressor_pct > 0);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
 
     // Mini-split's own outdoor ambient reading -- separate endpoint from both
     // indoor temperatures above.
@@ -410,6 +453,24 @@ static void command_task(void *param)
                 ESP_LOGE(TAG, "Failed to send desired setpoint to Tuya; sync_task's next poll will retry");
             } else {
                 ESP_LOGI(TAG, "Desired setpoint sent successfully");
+
+                // Immediately re-fetch status so EP1's mirrored setpoint/temp
+                // (and the Tuya app) reflect the change within seconds rather
+                // than waiting for sync_task's next (up to 5-minute) poll --
+                // this was the recurring source of "Tuya app doesn't match"
+                // confusion. This is a GET triggered only on a real, already-
+                // rare setpoint change (not a blanket faster polling interval),
+                // so it doesn't meaningfully add to Tuya API quota usage.
+                // Tuya's backend may not have fully applied the SET yet, so a
+                // mismatch here is expected/benign -- sync_task's own
+                // reconciliation (above) is still what guarantees convergence.
+                tuya_device_status_t refreshed_status = {0};
+                if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                    cache_and_apply_status(&refreshed_status);
+                    g_sync_state.last_status_update = xTaskGetTickCount();
+                } else {
+                    ESP_LOGW(TAG, "Post-setpoint-change status refresh failed; sync_task's next poll will catch it");
+                }
             }
 
             matter_clear_desired_setpoint_command_pending();
@@ -492,25 +553,65 @@ static void command_task(void *param)
 #define BME280_TEMP_MAX_DELTA_C 5.0f          // ~9F per ENV_POLL_INTERVAL_MS
 #define BME280_HUMIDITY_MAX_DELTA_PCT 20.0f
 
+// Confirmed on real hardware: rejecting against the last-good baseline alone
+// has no way to recover from a GENUINE environment change (device physically
+// relocated, or just a real swing bigger than one poll interval "should"
+// allow) -- since the baseline only ever updates on acceptance, a real
+// change that differs enough from the stale baseline gets rejected forever,
+// stuck for 7+ minutes or more until a reboot resets it. A corrupted I2C
+// read is isolated and reverts the very next 30s poll (see the comment on
+// bme280_reading_is_plausible() below); a real change stays consistent
+// across repeated polls. This threshold is how many consecutive rejections
+// have to agree with EACH OTHER (not the stale baseline) before treating it
+// as real and force-accepting it as the new baseline.
+#define BME280_CONSISTENT_REJECT_THRESHOLD 3
+
 static bool g_last_good_bme280_valid = false;
 static float g_last_good_bme280_temp_c = 0.0f;
 static float g_last_good_bme280_humidity_pct = 0.0f;
+
+static bool g_pending_bme280_valid = false;
+static float g_pending_bme280_temp_c = 0.0f;
+static float g_pending_bme280_humidity_pct = 0.0f;
+static uint8_t g_pending_bme280_streak = 0;
 
 static bool bme280_reading_is_plausible(const bme280_reading_t *reading)
 {
     if (reading->temperature_c < BME280_TEMP_MIN_C || reading->temperature_c > BME280_TEMP_MAX_C ||
         reading->humidity_pct < 0.0f || reading->humidity_pct > 100.0f) {
+        g_pending_bme280_streak = 0;
         return false;
     }
-    if (g_last_good_bme280_valid) {
-        if (fabsf(reading->temperature_c - g_last_good_bme280_temp_c) > BME280_TEMP_MAX_DELTA_C) {
-            return false;
-        }
-        if (fabsf(reading->humidity_pct - g_last_good_bme280_humidity_pct) > BME280_HUMIDITY_MAX_DELTA_PCT) {
-            return false;
-        }
+    if (!g_last_good_bme280_valid) {
+        return true;
     }
-    return true;
+    bool within_delta =
+        fabsf(reading->temperature_c - g_last_good_bme280_temp_c) <= BME280_TEMP_MAX_DELTA_C &&
+        fabsf(reading->humidity_pct - g_last_good_bme280_humidity_pct) <= BME280_HUMIDITY_MAX_DELTA_PCT;
+    if (within_delta) {
+        g_pending_bme280_streak = 0;
+        return true;
+    }
+
+    bool matches_pending = g_pending_bme280_valid &&
+        fabsf(reading->temperature_c - g_pending_bme280_temp_c) <= BME280_TEMP_MAX_DELTA_C &&
+        fabsf(reading->humidity_pct - g_pending_bme280_humidity_pct) <= BME280_HUMIDITY_MAX_DELTA_PCT;
+
+    g_pending_bme280_temp_c = reading->temperature_c;
+    g_pending_bme280_humidity_pct = reading->humidity_pct;
+    g_pending_bme280_valid = true;
+    g_pending_bme280_streak = matches_pending ? (uint8_t)(g_pending_bme280_streak + 1) : 1;
+
+    if (g_pending_bme280_streak >= BME280_CONSISTENT_REJECT_THRESHOLD) {
+        ESP_LOGW(TAG, "BME280 reading has repeated %u times despite differing from last known-good "
+                      "(temp=%.2fC hum=%.1f%%) -- accepting as a real environment change, not corruption",
+                 g_pending_bme280_streak, reading->temperature_c, reading->humidity_pct);
+        g_pending_bme280_streak = 0;
+        g_pending_bme280_valid = false;
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -523,6 +624,17 @@ static void env_task(void *param)
              ENV_POLL_INTERVAL_MS);
 
     while (1) {
+        // Stamped at the top of every iteration, before the read attempt --
+        // not on success -- so a genuine hang inside bme280_read() itself
+        // (confirmed on real hardware: an 8.5-hour stall with zero log
+        // output, meaning the call never returned at all despite its own
+        // internal timeouts, silently bypassing bme280.c's own
+        // failure-counting/bus-recovery logic since that only runs once a
+        // call actually returns) leaves this timestamp frozen instead of
+        // advancing, which is exactly what health_task's stall check below
+        // needs to detect it.
+        g_sync_state.last_env_heartbeat = xTaskGetTickCount();
+
         bme280_reading_t reading = {0};
         if (bme280_read(&reading) == ESP_OK) {
             if (bme280_reading_is_plausible(&reading)) {
@@ -569,6 +681,15 @@ static void health_task(void *param)
         // Get free memory
         ESP_LOGI(TAG, "Free Heap: %u bytes", esp_get_free_heap_size());
 
+        // Thread link quality: not polled here -- an earlier version tried
+        // acquiring the OpenThread API lock each cycle to log parent RSSI,
+        // but that lock frequently timed out (OpenThread busy with retries
+        // on this weak-signal link), producing more "could not acquire
+        // lock" noise than useful signal. OpenThread's own per-packet logs
+        // already include "rss:" on most received frames and flow through
+        // this same ESP_LOG -> Papertrail pipeline regardless, which covers
+        // the same diagnostic need without the extra noise.
+
         // sync_task should always be making progress well within this
         // window (see SYNC_STALL_RESTART_MS above) -- if it hasn't, it's
         // stuck somewhere a plain HTTP timeout couldn't unblock, and no
@@ -578,6 +699,23 @@ static void health_task(void *param)
         if (last_update_age_ms > SYNC_STALL_RESTART_MS) {
             ESP_LOGE(TAG, "sync_task appears stalled (%ums since last successful Tuya poll, "
                           "threshold %ums) -- restarting", last_update_age_ms, SYNC_STALL_RESTART_MS);
+            esp_restart();
+        }
+
+        uint32_t last_env_age_ms =
+            (xTaskGetTickCount() - g_sync_state.last_env_heartbeat) * portTICK_PERIOD_MS;
+        ESP_LOGI(TAG, "Last env_task Heartbeat: %ums ago", last_env_age_ms);
+
+        // See ENV_STALL_RESTART_MS -- confirmed on real hardware that
+        // bme280_read() can hang indefinitely in a way its own internal
+        // timeouts and bus-recovery logic don't catch, silently taking
+        // env_task down for hours while every other task (Thread, Matter,
+        // Tuya sync) kept working fine, which is exactly why this needs its
+        // own independent check rather than piggybacking on the sync_task
+        // one above.
+        if (last_env_age_ms > ENV_STALL_RESTART_MS) {
+            ESP_LOGE(TAG, "env_task appears stalled (%ums since last loop iteration, "
+                          "threshold %ums) -- restarting", last_env_age_ms, ENV_STALL_RESTART_MS);
             esp_restart();
         }
 
@@ -608,6 +746,25 @@ void app_main(void)
 
     // Initialize event loop
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    // Papertrail temporarily disabled (2026-08-31) to test whether its UDP
+    // traffic -- even after filtering out OpenThread's own routine trace
+    // logs -- is still adding enough load to this congested Thread link to
+    // worsen CASE re-establishment during NoBufs storms. Every remaining
+    // MAIN/TUYA_CLIENT log line still sends a UDP packet over the same link
+    // that's struggling; disabling entirely removes that variable so we can
+    // see whether disconnect frequency/duration actually improves without
+    // it. Re-enable by uncommenting once this comparison is done.
+    // papertrail_logger_init(PAPERTRAIL_HOST, PAPERTRAIL_PORT, PAPERTRAIL_SYSTEMNAME);
+
+    // Local, network-free replacement: a flash-backed ring log, off by
+    // default (zero flash-write cost during normal operation), armed only
+    // on request via the HTTP server started below once network is up. See
+    // flash_log.h -- this can never compete with Matter/Thread for
+    // OpenThread message buffers the way Papertrail's UDP traffic did,
+    // regardless of how much gets logged, since it never touches the
+    // network at all.
+    ESP_ERROR_CHECK(flash_log_init());
 
     // Initialize Matter device and start commissioning. Matter now owns
     // network bring-up (Thread) as part of its normal commissioning flow,
@@ -640,6 +797,11 @@ void app_main(void)
     }
     ESP_LOGI(TAG, "Network connectivity established");
 
+    // On-demand log access -- GET /logs, POST /logs/enable, POST /logs/disable
+    // -- reachable at this device's Thread IPv6 address, no physical access
+    // needed. Runs regardless of whether logging is currently armed.
+    log_server_start();
+
     // Tuya authentication requires valid system time. Retries indefinitely
     // rather than aborting -- see wait_for_time_sync() for why.
     wait_for_time_sync();
@@ -655,9 +817,16 @@ void app_main(void)
     // Initialize optional BME280 environment sensor (temperature + humidity).
     // If absent, the aux temperature endpoint falls back to the Tuya indoor temp.
     if (bme280_init() == ESP_OK) {
+        // Bumped alongside health_monitor's stack -- same reasoning: its
+        // ESP_LOGI calls (BME280 readings/warnings) now route through
+        // papertrail_vprintf's sendto() call chain too. Not confirmed
+        // crashing in practice like health_monitor was, but it's the
+        // second-tightest task in the app and shares the same exposure, so
+        // this is cheap, proactive margin rather than waiting for it to
+        // fail the same way.
         xTaskCreate(env_task,
                     "env_sensor",
-                    3072,
+                    4096,
                     NULL,
                     2,
                     NULL);
@@ -683,10 +852,21 @@ void app_main(void)
                 3,                  // Lower priority than sync
                 NULL);
     
-    // Health monitoring task
+    // Health monitoring task. 2048 was enough before Papertrail logging
+    // existed; confirmed on real hardware (2026-08-31) it is not enough
+    // after -- ESP_LOGI now routes through papertrail_vprintf's sendto()
+    // call chain (down through lwIP into OpenThread's network stack), which
+    // needs real stack depth of its own, apparently more under the error/
+    // retry paths OpenThread takes while it's short on message buffers.
+    // Caused a genuine stack-protection-fault panic (SP ~300 bytes past the
+    // lower bound) in this exact task, right on the first ESP_LOGI call of
+    // a health_task cycle, during a burst of OpenThread NoBufs errors. An
+    // earlier fix (moving papertrail_logger.c's own formatting buffers off
+    // the stack) wasn't sufficient on its own -- the task's total budget
+    // just needed to be bigger now that its logging path is heavier.
     xTaskCreate(health_task,
                 "health_monitor",
-                2048,
+                4096,
                 NULL,
                 2,
                 NULL);

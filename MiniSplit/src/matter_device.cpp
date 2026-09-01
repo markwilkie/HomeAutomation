@@ -5,6 +5,7 @@
 
 #include "matter_device.h"
 
+#include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_matter.h"
 #include "esp_matter_attribute_utils.h"
@@ -421,7 +422,14 @@ extern "C" esp_err_t matter_device_init(void)
     // Standalone temperature sensor endpoint. SmartThings exposes this as a
     // Temperature Measurement capability that can be used as a routine trigger.
     endpoint::temperature_sensor::config_t temp_sensor_cfg;
-    temp_sensor_cfg.temperature_measurement.measured_value = nullable<int16_t>(g_matter_state.aux_temp);
+    // Null/unknown, not g_matter_state.aux_temp -- that field isn't
+    // NVS-persisted (it self-heals from env_task within seconds, so it never
+    // needed to be), meaning it's always 0 on a fresh boot. Seeding with a
+    // real-looking 0 degrees C here made HA display a false "0.0C" reading
+    // after every reboot until commissioning came up and env_task's first
+    // accepted reading got through -- matches the outdoor temp sensor
+    // endpoint below, which already seeds null for the same reason.
+    temp_sensor_cfg.temperature_measurement.measured_value = nullable<int16_t>();
     g_temp_sensor_endpoint = endpoint::temperature_sensor::create(g_node, &temp_sensor_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_temp_sensor_endpoint) {
         ESP_LOGE(TAG, "Failed to create Temperature Sensor endpoint");
@@ -436,7 +444,8 @@ extern "C" esp_err_t matter_device_init(void)
     // Standalone humidity sensor endpoint. SmartThings exposes this as a
     // Relative Humidity Measurement capability usable as a routine trigger.
     endpoint::humidity_sensor::config_t humidity_sensor_cfg;
-    humidity_sensor_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>(g_matter_state.aux_humidity);
+    // Null/unknown -- see the temperature sensor endpoint above for why.
+    humidity_sensor_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>();
     g_humidity_sensor_endpoint = endpoint::humidity_sensor::create(g_node, &humidity_sensor_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_humidity_sensor_endpoint) {
         ESP_LOGE(TAG, "Failed to create Humidity Sensor endpoint");
@@ -526,6 +535,18 @@ extern "C" esp_err_t matter_device_init(void)
     // to keep it clearly distinct from the thermostat's Cool/Off control.
     endpoint::on_off_plug_in_unit::config_t power_cfg;
     power_cfg.on_off.on_off = g_matter_state.onoff;
+    // esp-matter's on_off_with_lighting_config defaults start_up_on_off to 0
+    // (Off) unconditionally -- per Matter spec, the OnOff cluster server
+    // applies this at every cluster init, i.e. on every reboot, overwriting
+    // whatever on_off value was just seeded above. Confirmed on real
+    // hardware: this was silently sending a real tuya_set_power(false) to
+    // the physical unit on every ESP32 reboot regardless of its prior state
+    // (visible in Home Assistant as the "Power-on behavior" select entity
+    // always reading "off", in lockstep with every unexplained power-off
+    // going back days). Null means "no defined startup behavior" -- leave
+    // the OnOff attribute as whatever it was already set to (the real,
+    // NVS-persisted state seeded immediately above), rather than forcing it.
+    power_cfg.on_off_lighting.start_up_on_off = nullable<uint8_t>();
     g_power_endpoint = endpoint::on_off_plug_in_unit::create(g_node, &power_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_power_endpoint) {
         ESP_LOGE(TAG, "Failed to create Power endpoint");
@@ -563,37 +584,56 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Spaced out -- confirmed on real hardware (2026-08-31) that firing a
+    // full endpoint re-assertion like this back-to-back with no delay
+    // produces a dense burst of near-simultaneous IM reports, which on this
+    // device's marginal Thread link was enough to trigger a genuine
+    // "No available message buffer" cascade (CHIP's own reliable-messaging
+    // retries piling up faster than the link could ack them). See the same
+    // fix and comment on apply_status_to_matter() in main.c, the more
+    // frequent (every 5 min) recurring version of this same pattern.
     update_attr(OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(g_matter_state.onoff));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr(Thermostat::Id, Thermostat::Attributes::LocalTemperature::Id,
                 esp_matter_nullable_int16(nullable<int16_t>(g_matter_state.current_temp)));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr(Thermostat::Id, Thermostat::Attributes::OccupiedHeatingSetpoint::Id,
                 esp_matter_int16(g_matter_state.heating_setpoint));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr(Thermostat::Id, Thermostat::Attributes::OccupiedCoolingSetpoint::Id,
                 esp_matter_int16(g_matter_state.cooling_setpoint));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr(Thermostat::Id, Thermostat::Attributes::SystemMode::Id,
                 esp_matter_enum8(g_matter_state.system_mode));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_temp_sensor_endpoint, g_temp_sensor_endpoint_id,
                             TemperatureMeasurement::Id,
                             TemperatureMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_int16(nullable<int16_t>(g_matter_state.aux_temp)));
+                            esp_matter_nullable_int16(nullable<int16_t>()));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_humidity_sensor_endpoint, g_humidity_sensor_endpoint_id,
                             RelativeHumidityMeasurement::Id,
                             RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_uint16(nullable<uint16_t>(g_matter_state.aux_humidity)));
+                            esp_matter_nullable_uint16(nullable<uint16_t>()));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_outdoor_temp_sensor_endpoint, g_outdoor_temp_sensor_endpoint_id,
                             TemperatureMeasurement::Id,
                             TemperatureMeasurement::Attributes::MeasuredValue::Id,
                             esp_matter_nullable_int16(nullable<int16_t>()));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_compressor_endpoint, g_compressor_endpoint_id,
                             RelativeHumidityMeasurement::Id,
                             RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
                             esp_matter_nullable_uint16(nullable<uint16_t>((uint16_t)0)));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_compressor_running_endpoint, g_compressor_running_endpoint_id,
                             OccupancySensing::Id, OccupancySensing::Attributes::Occupancy::Id,
                             esp_matter_bitmap8(0));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_power_endpoint, g_power_endpoint_id,
                             OnOff::Id, OnOff::Attributes::OnOff::Id,
                             esp_matter_bool(g_matter_state.onoff));
+    vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
                             Thermostat::Id, Thermostat::Attributes::OccupiedCoolingSetpoint::Id,
                             esp_matter_int16(g_matter_state.desired_cooling_setpoint));

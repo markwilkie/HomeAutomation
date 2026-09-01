@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "esp_http_client.h"
 #include "esp_crt_bundle.h"
+#include "esp_timer.h"
 #include "cJSON.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/md.h"
@@ -315,7 +316,18 @@ static esp_err_t tuya_api_request(
         esp_http_client_set_post_field(client, request_body, strlen(request_body));
     }
 
-    // Execute request
+    // Reverted (2026-08-31) back to the one-shot esp_http_client_perform()
+    // after the manual open/write/fetch_headers/read loop -- added earlier
+    // the same day to give an overall wall-clock deadline against a
+    // slow-trickle link -- turned out to have a real bug: it consistently
+    // read zero bytes of body even when the server reported a real
+    // Content-Length (e.g. "HTTP Status: 200, Content Length: 234" followed
+    // by an empty "Response:" line), breaking token refresh on every single
+    // call. That's a much worse failure than the theoretical slow-trickle
+    // case it was meant to guard against, which was never actually observed
+    // causing a real failure. perform() is simpler and was reliable all
+    // session before that refactor.
+    int64_t req_start_us = esp_timer_get_time();
     esp_err_t err = esp_http_client_perform(client);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "HTTP request failed: %s", esp_err_to_name(err));
@@ -323,11 +335,11 @@ static esp_err_t tuya_api_request(
         return err;
     }
 
-    // Get response status and content
     int status = esp_http_client_get_status_code(client);
     int content_len = esp_http_client_get_content_length(client);
-
+    int64_t total_ms = (esp_timer_get_time() - req_start_us) / 1000;
     ESP_LOGI(TAG, "HTTP Status: %d, Content Length: %d", status, content_len);
+    ESP_LOGI(TAG, "HTTP %s %s completed in %lldms", method, endpoint, (long long)total_ms);
 
     if (status != 200) {
         ESP_LOGE(TAG, "Tuya API returned status %d", status);
