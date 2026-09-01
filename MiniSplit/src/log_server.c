@@ -6,7 +6,6 @@
 #include "log_server.h"
 #include "flash_log.h"
 #include "outage_log.h"
-#include "rssi_log.h"
 
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -18,7 +17,6 @@ static const char *TAG = "LOG_SERVER";
 #define LOG_SERVER_PORT 8080
 #define LOG_CHUNK_SIZE 1024
 #define OUTAGE_JSON_BUF_SIZE 2048
-#define RSSI_JSON_BUF_SIZE 2048
 
 // static, not stack-local -- confirmed on real hardware (2026-09-01) that
 // stack-local buffers here caused a real overflow once a second one was
@@ -28,7 +26,6 @@ static const char *TAG = "LOG_SERVER";
 // shared static buffers -- fine for a diagnostic-only endpoint with one
 // expected caller at a time, not worth a dynamic allocation for.
 static char s_outage_buf[OUTAGE_JSON_BUF_SIZE];
-static char s_rssi_buf[RSSI_JSON_BUF_SIZE];
 static char s_log_chunk_buf[LOG_CHUNK_SIZE];
 static SemaphoreHandle_t s_response_lock = NULL;
 
@@ -53,20 +50,6 @@ static esp_err_t logs_get_handler(httpd_req_t *req)
             goto fail;
         }
         if (httpd_resp_send_chunk(req, s_outage_buf, HTTPD_RESP_USE_STRLEN) != ESP_OK) {
-            goto fail;
-        }
-        if (httpd_resp_send_chunk(req, "\n\n", HTTPD_RESP_USE_STRLEN) != ESP_OK) {
-            goto fail;
-        }
-    }
-
-    // RSSI history -- see rssi_log.h. Same always-on, no-new-route treatment
-    // as the outage history above.
-    if (rssi_log_write_json(s_rssi_buf, sizeof(s_rssi_buf)) == ESP_OK) {
-        if (httpd_resp_send_chunk(req, "=== RSSI ===\n", HTTPD_RESP_USE_STRLEN) != ESP_OK) {
-            goto fail;
-        }
-        if (httpd_resp_send_chunk(req, s_rssi_buf, HTTPD_RESP_USE_STRLEN) != ESP_OK) {
             goto fail;
         }
         if (httpd_resp_send_chunk(req, "\n\n=== LOG ===\n", HTTPD_RESP_USE_STRLEN) != ESP_OK) {
@@ -159,8 +142,8 @@ esp_err_t log_server_start(void)
     httpd_register_uri_handler(server, &logs_enable);
     httpd_register_uri_handler(server, &logs_disable);
 
-    ESP_LOGI(TAG, "Log server started on port %d (GET /logs [includes outage + RSSI history], "
-                  "POST /logs/enable, POST /logs/disable)",
+    ESP_LOGI(TAG, "Log server started on port %d (GET /logs [includes outage history, "
+                  "each record carrying an RSSI snapshot], POST /logs/enable, POST /logs/disable)",
              LOG_SERVER_PORT);
     return ESP_OK;
 }

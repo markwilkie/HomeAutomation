@@ -4,7 +4,7 @@
 # hasn't been build-verified (no ESP-IDF toolchain in the environment this
 # was written in -- see BUILD.md). If the build can't find OpenThread
 # headers, add "openthread" to REQUIRES below.
-idf_component_register(SRCS "main.c" "tuya_client.c" "bme280.c" "matter_device.cpp" "papertrail_logger.c" "flash_log.c" "log_server.c" "outage_log.c" "rssi_log.c"
+idf_component_register(SRCS "main.c" "tuya_client.c" "bme280.c" "matter_device.cpp" "papertrail_logger.c" "flash_log.c" "log_server.c" "outage_log.c"
                        INCLUDE_DIRS "." "../include"
                        REQUIRES esp_http_client mbedtls esp_driver_i2c espressif__esp_matter lwip esp_http_server esp_partition openthread)
 

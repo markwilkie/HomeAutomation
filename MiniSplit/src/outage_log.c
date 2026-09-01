@@ -37,6 +37,7 @@ static const char *TAG = "OUTAGE_LOG";
 typedef struct {
     uint8_t reason;
     uint8_t detail;
+    int8_t rssi_at_start;  // Thread parent RSSI snapshot when the record was opened
     uint32_t start_epoch;
     uint32_t end_epoch;  // 0 while still open
 } outage_record_t;
@@ -81,11 +82,12 @@ static int find_open_index_locked(outage_reason_t reason)
 }
 
 // Caller must hold s_lock.
-static void append_locked(outage_reason_t reason, uint8_t detail, uint32_t start_epoch, uint32_t end_epoch)
+static void append_locked(outage_reason_t reason, uint8_t detail, int8_t rssi_dbm, uint32_t start_epoch, uint32_t end_epoch)
 {
     outage_record_t *slot = &s_log.records[s_log.next_index];
     slot->reason = (uint8_t)reason;
     slot->detail = detail;
+    slot->rssi_at_start = rssi_dbm;
     slot->start_epoch = start_epoch;
     slot->end_epoch = end_epoch;
 
@@ -131,7 +133,7 @@ esp_err_t outage_log_init(void)
     return ESP_OK;
 }
 
-void outage_log_start(outage_reason_t reason)
+void outage_log_start(outage_reason_t reason, int8_t rssi_dbm)
 {
     if (!s_lock || xSemaphoreTake(s_lock, pdMS_TO_TICKS(1000)) != pdTRUE) {
         return;
@@ -142,10 +144,10 @@ void outage_log_start(outage_reason_t reason)
         return;
     }
     time_t now = time(NULL);
-    append_locked(reason, 0, (uint32_t)now, 0);
+    append_locked(reason, 0, rssi_dbm, (uint32_t)now, 0);
     persist_locked();
     xSemaphoreGive(s_lock);
-    ESP_LOGW(TAG, "Outage started: reason=%d", (int)reason);
+    ESP_LOGW(TAG, "Outage started: reason=%d rssi=%d", (int)reason, (int)rssi_dbm);
 }
 
 void outage_log_end(outage_reason_t reason)
@@ -165,16 +167,16 @@ void outage_log_end(outage_reason_t reason)
     ESP_LOGI(TAG, "Outage ended: reason=%d", (int)reason);
 }
 
-void outage_log_record_point_event(outage_reason_t reason, uint8_t detail)
+void outage_log_record_point_event(outage_reason_t reason, uint8_t detail, int8_t rssi_dbm)
 {
     if (!s_lock || xSemaphoreTake(s_lock, pdMS_TO_TICKS(1000)) != pdTRUE) {
         return;
     }
     time_t now = time(NULL);
-    append_locked(reason, detail, (uint32_t)now, (uint32_t)now);
+    append_locked(reason, detail, rssi_dbm, (uint32_t)now, (uint32_t)now);
     persist_locked();
     xSemaphoreGive(s_lock);
-    ESP_LOGW(TAG, "Outage point event: reason=%d detail=%u", (int)reason, (unsigned)detail);
+    ESP_LOGW(TAG, "Outage point event: reason=%d detail=%u rssi=%d", (int)reason, (unsigned)detail, (int)rssi_dbm);
 }
 
 bool outage_log_any_active(void)
@@ -228,8 +230,8 @@ esp_err_t outage_log_write_json(char *buf, size_t buf_len)
     for (uint8_t i = 0; i < valid; i++) {
         uint8_t idx = (uint8_t)((start_idx + i) % OUTAGE_LOG_MAX_RECORDS);
         const outage_record_t *r = &s_log.records[idx];
-        int n = snprintf(buf + pos, buf_len - pos, "%s{\"reason\":%u,\"detail\":%u,\"start\":%lu,\"end\":%lu}",
-                          (i == 0) ? "" : ",", (unsigned)r->reason, (unsigned)r->detail,
+        int n = snprintf(buf + pos, buf_len - pos, "%s{\"reason\":%u,\"detail\":%u,\"rssi\":%d,\"start\":%lu,\"end\":%lu}",
+                          (i == 0) ? "" : ",", (unsigned)r->reason, (unsigned)r->detail, (int)r->rssi_at_start,
                           (unsigned long)r->start_epoch, (unsigned long)r->end_epoch);
         if (n < 0 || (size_t)n >= buf_len - pos) {
             // Out of room -- stop here rather than emit truncated/invalid JSON.

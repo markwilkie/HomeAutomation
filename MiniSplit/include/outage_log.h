@@ -40,8 +40,16 @@ esp_err_t outage_log_init(void);
  * twice in a row without an intervening end) -- callers are expected to
  * call this only on a genuine bad->worse transition, but this guards
  * against accidental double-starts regardless.
+ *
+ * @param reason Outage reason
+ * @param rssi_dbm Thread parent RSSI at the moment the outage was detected
+ *                 (OT_RADIO_RSSI_INVALID/127 if unavailable). Deliberately
+ *                 the only place RSSI is recorded locally -- see main.c's
+ *                 get_thread_parent_rssi() callers -- there's no separate
+ *                 always-on RSSI log; a snapshot tied to an actual outage
+ *                 is what's useful, not a continuous time series.
  */
-void outage_log_start(outage_reason_t reason);
+void outage_log_start(outage_reason_t reason, int8_t rssi_dbm);
 
 /**
  * @brief Close the currently-open record of the given reason, if any
@@ -60,8 +68,10 @@ void outage_log_end(outage_reason_t reason);
  * @param reason Outage reason
  * @param detail Reason-specific extra byte (currently only meaningful for
  *               OUTAGE_REASON_DEVICE_RESTART: the raw esp_reset_reason_t value)
+ * @param rssi_dbm Thread parent RSSI at the moment of the event -- see
+ *                 outage_log_start()'s doc comment
  */
-void outage_log_record_point_event(outage_reason_t reason, uint8_t detail);
+void outage_log_record_point_event(outage_reason_t reason, uint8_t detail, int8_t rssi_dbm);
 
 /**
  * @brief Whether any outage record is currently open (end_epoch == 0)
@@ -80,8 +90,9 @@ uint8_t outage_log_last_reason(void);
 /**
  * @brief Write the full ring as a JSON array into buf
  *
- * Format: [{"reason":1,"detail":0,"start":1788200000,"end":1788200300}, ...]
- * (end is 0 for a still-open record). Oldest record first. Truncates
+ * Format: [{"reason":1,"detail":0,"rssi":-75,"start":1788200000,"end":1788200300}, ...]
+ * (end is 0 for a still-open record; rssi is the snapshot from when the
+ * record was opened -- see outage_log_start()). Oldest record first. Truncates
  * silently (still valid JSON) if buf_len is too small for the full ring --
  * callers with a fixed-size buffer should size it generously (20 records
  * is at most a few hundred bytes of JSON).
