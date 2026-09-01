@@ -16,7 +16,6 @@
 #include "flash_log.h"
 #include "log_server.h"
 #include "outage_log.h"
-#include "rssi_log.h"
 #include "bme280.h"
 #include "secrets.h"
 #include "esp_openthread.h"
@@ -245,18 +244,66 @@ static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
 // total added latency here is trivial against its 5-minute poll interval.
 #define MATTER_UPDATE_BURST_SPACING_MS 50
 
-// 0 is a plausible-looking but impossible RSSI (Thread's practical range is
-// roughly -20 to -100 dBm), used as the "couldn't read it" sentinel so a
-// lock/API failure doesn't silently report a suspiciously strong link.
-static int8_t get_thread_parent_rssi(void)
+// OpenThread's own sentinel for "no RSSI available" -- matches
+// OT_RADIO_RSSI_INVALID (openthread/platform/radio.h) without pulling in
+// that platform header just for one constant.
+#define THREAD_RSSI_INVALID 127
+
+// Role-aware: confirmed live (2026-09-01) via the border router's own
+// `ot-ctl router table`/`ot-ctl neighbor table` that this device operates
+// as a Thread ROUTER, not a Child -- expected, since CONFIG_OPENTHREAD_FTD=y
+// makes it router-eligible, and the network apparently promoted it. Routers
+// have no "parent," only peer neighbors, so otThreadGetParentAverageRssi()
+// was silently failing (and returning its own invalid sentinel) every
+// single time it was called, all night, regardless of how good the actual
+// link was -- confirmed separately that the real link was a healthy
+// -71 dBm the whole time. Caller must already hold the OpenThread lock (or
+// be running from OpenThread's own task context, e.g. a state-changed
+// callback) and pass a non-null instance.
+static int8_t read_thread_link_rssi_locked(otInstance *instance)
 {
-    int8_t rssi = 0;
+    int8_t rssi = THREAD_RSSI_INVALID;
+    otDeviceRole role = otThreadGetDeviceRole(instance);
+    if (role == OT_DEVICE_ROLE_CHILD) {
+        otThreadGetParentAverageRssi(instance, &rssi);
+        return rssi;
+    }
+    if (role != OT_DEVICE_ROLE_ROUTER && role != OT_DEVICE_ROLE_LEADER) {
+        // Detached/disabled -- no parent and no meaningful neighbor table
+        // either; the invalid sentinel is the honest answer here.
+        return rssi;
+    }
+    // Average across router-peer neighbors, excluding any children of our
+    // own (CONFIG_OPENTHREAD_MLE_MAX_CHILDREN allows this device to have
+    // some, though unlikely in practice) -- what matters is the link
+    // toward the rest of the mesh/border router, not to something attached
+    // to us.
+    otNeighborInfoIterator iter = OT_NEIGHBOR_INFO_ITERATOR_INIT;
+    otNeighborInfo info;
+    int32_t sum = 0;
+    int count = 0;
+    while (otThreadGetNextNeighborInfo(instance, &iter, &info) == OT_ERROR_NONE) {
+        if (info.mIsChild) {
+            continue;
+        }
+        sum += info.mAverageRssi;
+        count++;
+    }
+    if (count > 0) {
+        rssi = (int8_t)(sum / count);
+    }
+    return rssi;
+}
+
+static int8_t get_thread_link_rssi(void)
+{
+    int8_t rssi = THREAD_RSSI_INVALID;
     if (!esp_openthread_lock_acquire(pdMS_TO_TICKS(1000))) {
         return rssi;
     }
     otInstance *instance = esp_openthread_get_instance();
     if (instance) {
-        otThreadGetParentAverageRssi(instance, &rssi);
+        rssi = read_thread_link_rssi_locked(instance);
     }
     esp_openthread_lock_release();
     return rssi;
@@ -311,12 +358,12 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     // Thread parent RSSI -- piggybacks on this same 5-minute sync_task poll
     // cadence rather than anything tighter, deliberately: RSSI fluctuates
     // constantly, and reporting it more often would be exactly the kind of
-    // steady-state Matter chatter that caused tonight's NoBufs cascades.
-    int8_t rssi = get_thread_parent_rssi();
-    matter_update_thread_rssi(rssi);
-    // Also sampled locally (rssi_log.h) so there's still a record through a
-    // Thread outage, when the Matter update above can't reach HA at all.
-    rssi_log_sample(rssi);
+    // steady-state Matter chatter that caused tonight's NoBufs cascades. No
+    // separate local log for this (deliberately, per the user) -- RSSI is
+    // only recorded locally as a snapshot on an actual outage, via
+    // outage_log_start()/outage_log_record_point_event()'s rssi_dbm
+    // parameter, not as its own continuous time series.
+    matter_update_thread_rssi(get_thread_link_rssi());
 }
 
 static void cache_and_apply_status(const tuya_device_status_t *device_status)
@@ -432,7 +479,7 @@ static void sync_task(void *param)
         if (result != ESP_OK) {
             if (g_sync_state.status_poll_failures == 0) {
                 // First failure after a prior success -- outage begins.
-                outage_log_start(OUTAGE_REASON_TUYA_UNREACHABLE);
+                outage_log_start(OUTAGE_REASON_TUYA_UNREACHABLE, get_thread_link_rssi());
             }
             g_sync_state.status_poll_failures++;
             ESP_LOGE(TAG, "Failed to get Tuya status (failures: %u)",
@@ -486,7 +533,7 @@ static void sync_task(void *param)
         // of send_stepped_setpoint()'s result below.
         int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(matter_get_desired_cooling_setpoint());
         if (desired_f_for_outage_check != device_status.temp_set_f) {
-            outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH);
+            outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH, get_thread_link_rssi());
         } else {
             outage_log_end(OUTAGE_REASON_SETPOINT_MISMATCH);
         }
@@ -853,7 +900,17 @@ static void thread_state_changed_cb(otChangedFlags flags, void *context)
     if (attached && !s_thread_was_attached) {
         outage_log_end(OUTAGE_REASON_THREAD_DISCONNECTED);
     } else if (!attached && s_thread_was_attached) {
-        outage_log_start(OUTAGE_REASON_THREAD_DISCONNECTED);
+        // read_thread_link_rssi_locked() directly here, not the
+        // lock-acquiring get_thread_link_rssi() -- this callback already
+        // runs from within OpenThread's own task context (invoked directly
+        // by the OT stack), so taking the app-side esp_openthread_lock
+        // would be redundant at best and a possible deadlock at worst.
+        // otThreadGetDeviceRole() inside it will read whatever role we're
+        // transitioning *into* (Detached/Disabled), which correctly falls
+        // through to the invalid sentinel -- there's no parent and no
+        // meaningful neighbor table left to read from at this exact moment
+        // either way, so that's the honest answer.
+        outage_log_start(OUTAGE_REASON_THREAD_DISCONNECTED, read_thread_link_rssi_locked(instance));
     }
     s_thread_was_attached = attached;
 }
@@ -907,11 +964,6 @@ void app_main(void)
     // an actual start/end transition (never a timer), and unlike flash_log
     // it's always on, not something that needs to be armed.
     ESP_ERROR_CHECK(outage_log_init());
-
-    // RSSI log: plain time series, separate concern from outage_log above --
-    // see rssi_log.h for why (survives a Thread outage locally even though
-    // the live Matter sensor can't report anything while the link is down).
-    ESP_ERROR_CHECK(rssi_log_init());
 
     // Initialize Matter device and start commissioning. Matter now owns
     // network bring-up (Thread) as part of its normal commissioning flow,
@@ -980,7 +1032,7 @@ void app_main(void)
     esp_reset_reason_t reset_reason = esp_reset_reason();
     if (reset_reason != ESP_RST_POWERON) {
         ESP_LOGW(TAG, "Booted from unexpected reset reason: %d", (int)reset_reason);
-        outage_log_record_point_event(OUTAGE_REASON_DEVICE_RESTART, (uint8_t)reset_reason);
+        outage_log_record_point_event(OUTAGE_REASON_DEVICE_RESTART, (uint8_t)reset_reason, get_thread_link_rssi());
     }
 
     // Initialize Tuya client
