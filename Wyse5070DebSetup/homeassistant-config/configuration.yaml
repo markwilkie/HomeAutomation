@@ -22,7 +22,7 @@ homeassistant:
       friendly_name: "MiniSplit Outage Reason (raw code)"
       icon: mdi:alert-circle-outline
     binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9:
-      friendly_name: "MiniSplit Outage Active"
+      friendly_name: "MiniSplit Outage Active (raw)"
       icon: mdi:alert
     sensor.bedroom_mini_split_ac_bridge_humidity_11:
       friendly_name: "MiniSplit Thread RSSI (raw)"
@@ -250,29 +250,47 @@ template:
           {% set offset = states('input_number.minisplit_temp_offset') | float(0) %}
           {{ (states('sensor.minisplit_bme280_smoothed') | float(0)) + offset }}
 
-  # Friendly label for the MiniSplit firmware's "Outage Reason" endpoint
-  # (outage_log.h / matter_device.cpp's matter_update_outage_reason(),
-  # 2026-09-01) -- a repurposed Humidity Sensor endpoint whose raw value is
-  # a reason code (0=none, 1=Tuya unreachable, 2=Setpoint mismatch,
-  # 3=Device restart, 4=Thread disconnected), not a percentage. Reason 4
-  # can only ever show up here *after the fact*, once Thread reattaches --
-  # see outage_log.h's doc comment for why that one can't be reported live.
+  # Combined outage status for the MiniSplit firmware's "Outage Active"
+  # (occupancy_9) and "Outage Reason" (humidity_10) endpoints
+  # (outage_log.h / matter_device.cpp, 2026-09-01). Reason is a code
+  # (0=none, 1=Tuya unreachable, 2=Setpoint mismatch, 3=Device restart,
+  # 4=Thread disconnected), not a percentage -- humidity_10 is a repurposed
+  # Humidity Sensor endpoint. Reason 4 can only ever show up here *after
+  # the fact*, once Thread reattaches -- see outage_log.h's doc comment for
+  # why that one can't be reported live.
   #
-  # Confirmed live (2026-09-01): appeared automatically after restarting the
-  # matter-server container (no full re-pairing or manual re-interview
-  # needed) as endpoint 10, picking up the device's "bedroom_" name prefix
-  # like the other more-recently-added endpoints (7, 8).
+  # Originally two separate sensors (an "Outage Active" binary_sensor and a
+  # "Last Outage Reason" text sensor, which kept showing the last reason
+  # even once resolved). Combined 2026-09-01 so one entity answers "is
+  # something wrong, and what" at a glance -- state is "Clear" whenever
+  # occupancy_9 is off, otherwise the decoded reason string. The full
+  # open/close timeline is still free from this entity's own history/
+  # logbook, same as the old binary sensor gave.
+  #
+  # Confirmed live (2026-09-01): humidity_10 appeared automatically after
+  # restarting the matter-server container (no full re-pairing or manual
+  # re-interview needed) as endpoint 10, picking up the device's
+  # "bedroom_" name prefix like the other more-recently-added endpoints
+  # (7, 8).
   - trigger:
       - trigger: state
-        entity_id: sensor.bedroom_mini_split_ac_bridge_humidity_10
+        entity_id:
+          - binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9
+          - sensor.bedroom_mini_split_ac_bridge_humidity_10
+      - trigger: homeassistant
+        event: start
     sensor:
-      - name: "MiniSplit Last Outage Reason"
-        unique_id: minisplit_last_outage_reason
+      - name: "MiniSplit Outage Status"
+        unique_id: minisplit_outage_status
         icon: mdi:alert-circle-outline
         state: >-
-          {% set code = states('sensor.bedroom_mini_split_ac_bridge_humidity_10') | int(0) %}
-          {{ {0: "none", 1: "Tuya unreachable", 2: "Setpoint mismatch",
-              3: "Device restart", 4: "Thread disconnected"}.get(code, "unknown") }}
+          {% if not is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9', 'on') %}
+            Clear
+          {% else %}
+            {% set code = states('sensor.bedroom_mini_split_ac_bridge_humidity_10') | int(0) %}
+            {{ {0: "none", 1: "Tuya unreachable", 2: "Setpoint mismatch",
+                3: "Device restart", 4: "Thread disconnected"}.get(code, "unknown") }}
+          {% endif %}
 
   # Friendly relabel + decode for the MiniSplit firmware's Thread parent RSSI
   # endpoint (matter_device.cpp's matter_update_thread_rssi(), 2026-09-01).
