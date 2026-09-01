@@ -50,6 +50,22 @@ static inline int16_t tuya_setpoint_c_to_f(int16_t temp_c_x100)
 }
 
 /**
+ * @brief Inverse of tuya_setpoint_c_to_f(): convert a whole Fahrenheit
+ *        degree back to Celsius (×100).
+ *
+ * Shared by tuya_normalize_setpoint_c() (round-trips a Celsius input
+ * through this) and main.c's send_stepped_setpoint() (converts an
+ * already-stepped whole-F target back to Celsius for the actual DP write),
+ * so both directions of this conversion always agree.
+ * @param temp_f Whole-degree Fahrenheit
+ * @return Celsius (×100)
+ */
+static inline int16_t tuya_setpoint_f_to_c(int16_t temp_f)
+{
+    return (int16_t)((((int32_t)temp_f - 32) * 500 + 4) / 9);
+}
+
+/**
  * @brief Clamp and round a Matter/Celsius setpoint (×100) to the nearest
  *        whole Fahrenheit degree, then convert back to Celsius ×100.
  *
@@ -68,7 +84,7 @@ static inline int16_t tuya_setpoint_c_to_f(int16_t temp_c_x100)
 static inline int16_t tuya_normalize_setpoint_c(int16_t temp_c_x100)
 {
     int16_t temp_f = tuya_setpoint_c_to_f(temp_c_x100);
-    return (int16_t)((((int32_t)temp_f - 32) * 500 + 4) / 9);
+    return tuya_setpoint_f_to_c(temp_f);
 }
 
 /**

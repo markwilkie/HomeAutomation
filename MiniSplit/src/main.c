@@ -119,6 +119,47 @@ static int16_t normalize_tuya_setpoint(int16_t temp_c)
     return tuya_normalize_setpoint_c(temp_c);
 }
 
+// Sends at most a 1-degree-Fahrenheit step toward the desired setpoint,
+// using the most recently confirmed Tuya temp_set_f (g_last_device_status,
+// updated only by a real poll -- see cache_and_apply_status()) as "actual."
+// Added 2026-09-01 after two Thread mesh stalls the same night let desired
+// and Tuya's real state drift apart for 15+ minutes each: without this, the
+// first command sent once connectivity returned would have jumped the
+// physical unit's setpoint by the entire accumulated gap in one shot. No
+// pending/expectation state is kept, matching this file's existing
+// self-healing-by-construction approach (see sync_task's reconciliation
+// comment below) -- a gap bigger than 1F just takes proportionally more
+// calls to this function to close, each one still only ever moving 1F.
+static esp_err_t send_stepped_setpoint(int16_t desired_c_x100)
+{
+    int16_t desired_f = tuya_setpoint_c_to_f(desired_c_x100);
+
+    if (!g_last_device_status_valid) {
+        // No confirmed Tuya state yet to step from (e.g. very first boot,
+        // before sync_task's first poll has completed) -- nothing to step
+        // relative to, so send the full value once. sync_task's next poll
+        // establishes a real baseline for stepping to take over from there.
+        ESP_LOGW(TAG, "No confirmed Tuya state yet; sending desired setpoint (%dF) directly", desired_f);
+        return tuya_set_temperature(normalize_tuya_setpoint(desired_c_x100));
+    }
+
+    int16_t actual_f = g_last_device_status.temp_set_f;
+    if (desired_f == actual_f) {
+        return ESP_OK;
+    }
+
+    int16_t step = (desired_f > actual_f) ? 1 : -1;
+    int16_t target_f = actual_f + step;
+    // Don't overshoot past desired for gaps that are already <=1F.
+    if ((step > 0 && target_f > desired_f) || (step < 0 && target_f < desired_f)) {
+        target_f = desired_f;
+    }
+
+    ESP_LOGI(TAG, "Stepping Tuya setpoint %dF -> %dF (final target %dF)",
+             actual_f, target_f, desired_f);
+    return tuya_set_temperature(tuya_setpoint_f_to_c(target_f));
+}
+
 // The product spec claims compressor_frequency is x10-scaled (max 1500 = 150.0Hz),
 // but live readings show it reporting the same raw, unscaled Hz value as
 // outdoor_comptar_freqrun (max 150) -- e.g. both read 14 simultaneously. Treat it
@@ -207,9 +248,18 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     // Temperature Sensor endpoint instead; see env_task/matter_update_aux_temperature.
     matter_update_local_temperature(device_status->temp_current);
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
-    matter_update_heating_setpoint(device_status->temp_set);
+    // Derived from temp_set_f (Fahrenheit-native), not the raw temp_set
+    // Celsius DP -- added 2026-09-01 after finding they can genuinely
+    // disagree (temp_set_f is Tuya's/the unit's own trusted field per
+    // tuya_setpoint_c_to_f()'s doc comment; temp_set is coarser 0.5C-quantized
+    // and was found sitting a full degree off it one night). This keeps
+    // thermostat1's mirrored setpoint consistent with what
+    // send_stepped_setpoint()'s reconciliation above already treats as
+    // ground truth.
+    int16_t confirmed_setpoint_c = tuya_setpoint_f_to_c(device_status->temp_set_f);
+    matter_update_heating_setpoint(confirmed_setpoint_c);
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
-    matter_update_cooling_setpoint(device_status->temp_set);
+    matter_update_cooling_setpoint(confirmed_setpoint_c);
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     matter_update_system_mode(map_tuya_mode_to_matter(device_status));
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
@@ -371,20 +421,16 @@ static void sync_task(void *param)
         // is unreliable here since Tuya's temp_set only stores 0.5C steps, so
         // a whole-Fahrenheit command doesn't generally round-trip back to an
         // exact Celsius match even once genuinely applied (see
-        // tuya_setpoint_c_to_f()'s doc comment). If they disagree, send it
-        // again. No pending/expectation state: if this attempt doesn't stick
-        // either, the next poll sees that plainly and this same check just
-        // tries again -- self-healing by construction rather than by retry
-        // bookkeeping.
-        int16_t desired_f = tuya_setpoint_c_to_f(matter_get_desired_cooling_setpoint());
-        if (desired_f != device_status.temp_set_f) {
-            int16_t desired_c_normalized = normalize_tuya_setpoint(matter_get_desired_cooling_setpoint());
-            ESP_LOGI(TAG, "Desired setpoint (%dF) differs from Tuya's (%dF), sending update",
-                     desired_f, device_status.temp_set_f);
-            esp_err_t set_result = tuya_set_temperature(desired_c_normalized);
-            if (set_result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send desired setpoint to Tuya; will retry next poll");
-            }
+        // tuya_setpoint_c_to_f()'s doc comment). If they disagree, step
+        // toward it by at most 1F (send_stepped_setpoint(), which reads
+        // g_last_device_status/temp_set_f -- already just refreshed by
+        // cache_and_apply_status() above). No pending/expectation state: if
+        // this attempt doesn't stick either, the next poll sees that plainly
+        // and this same check just tries again -- self-healing by
+        // construction rather than by retry bookkeeping.
+        esp_err_t set_result = send_stepped_setpoint(matter_get_desired_cooling_setpoint());
+        if (set_result != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to send desired setpoint step to Tuya; will retry next poll");
         }
     }
 }
@@ -444,11 +490,9 @@ static void command_task(void *param)
         // g_tuya_ctx's shared state (access token, etc.), avoiding any
         // concurrent-access race with sync_task's own calls.
         if (matter_get_desired_setpoint_command_pending()) {
-            int16_t desired_c_normalized = normalize_tuya_setpoint(matter_get_desired_cooling_setpoint());
-            ESP_LOGI(TAG, "Desired setpoint changed via Matter, sending to Tuya now: %dC (x100)",
-                     desired_c_normalized);
+            ESP_LOGI(TAG, "Desired setpoint changed via Matter, stepping toward it now");
 
-            esp_err_t result = tuya_set_temperature(desired_c_normalized);
+            esp_err_t result = send_stepped_setpoint(matter_get_desired_cooling_setpoint());
             if (result != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send desired setpoint to Tuya; sync_task's next poll will retry");
             } else {

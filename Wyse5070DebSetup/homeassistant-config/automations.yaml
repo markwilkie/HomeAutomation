@@ -177,7 +177,7 @@
       # removed the same day since this was their only consumer.
       raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
       max_step_down: 1
-      max_step_up: 4
+      max_step_up: 1
       new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
   - condition: template
     value_template: >-
@@ -419,7 +419,7 @@
       # version instead of the pre-fix formula when it was written.
       raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
       max_step_down: 1
-      max_step_up: 4
+      max_step_up: 1
       new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
       # The threshold this incident actually got stuck on: a sustained
       # (>=40min, no reversal) trend can act on a half-degree move instead of
