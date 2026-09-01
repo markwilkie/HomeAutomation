@@ -63,7 +63,7 @@ input_number:
   # be hand-set now -- the computed setpoint itself is read-only.
   # Same "no initial:" reasoning as the other MiniSplit input_numbers.
   minisplit_day_setpoint:
-    name: "MiniSplit Day Setpoint"
+    name: "MiniSplit Day Temp"
     min: 65
     max: 80
     step: 0.5
@@ -72,7 +72,7 @@ input_number:
     mode: slider
 
   minisplit_night_setpoint:
-    name: "MiniSplit Night Setpoint"
+    name: "MiniSplit Night Temp"
     min: 65
     max: 80
     step: 0.5
@@ -96,6 +96,48 @@ input_number:
     unit_of_measurement: "°F"
     icon: mdi:plus-minus-variant
     mode: box
+
+  # --- State for the "MiniSplit BME280 predictive setpoint correction"
+  # automation (automations.yaml). Kept entirely separate from the
+  # minisplit_adaptive_gain / minisplit_last_correction_sign pair above
+  # (used by the older cascade automation) so the two controllers -- which
+  # may be enabled one at a time while comparing them -- never share
+  # learned state. Only ever one of the two automations should be enabled
+  # at a time; both write to climate.mini_split_ac_bridge's setpoint and
+  # will fight each other otherwise.
+  #
+  # No `initial:` on any of these, same reasoning as the pair above: these
+  # need to survive HA restarts as whatever they last adapted to. Since
+  # they're brand new (2026-08-26) with nothing to restore yet, each is
+  # seeded once via a one-time input_number.set_value / input_datetime.set_datetime
+  # call right after this file is first loaded, rather than via `initial:`
+  # (which would reset it on every restart instead of just the first).
+  minisplit_predictive_adaptive_gain:
+    name: "MiniSplit Predictive Adaptive Gain"
+    min: 0.3
+    max: 1.2
+    step: 0.01
+    icon: mdi:tune-variant
+    mode: box
+
+  minisplit_predictive_last_correction_sign:
+    name: "MiniSplit Predictive Last Correction Sign"
+    min: -1
+    max: 1
+    step: 1
+    icon: mdi:swap-vertical
+    mode: box
+
+  # Sign (-1/0/+1) of sensor.minisplit_bme280_trend as of the *previous*
+  # predictive-automation run, compared against the current sign each run to
+  # detect when the trend direction actually flips (vs. holding steady) --
+  # see minisplit_trend_sign_since below, which only resets on a real flip.
+  minisplit_trend_last_sign:
+    name: "MiniSplit Trend Last Sign"
+    min: -1
+    max: 1
+    step: 1
+    icon: mdi:swap-vertical
 
 # Read-only, computed setpoint interpolated from minisplit_day_setpoint and
 # minisplit_night_setpoint above: flat at the night setpoint 22:00-07:00,
@@ -126,7 +168,7 @@ template:
       - trigger: time_pattern
         minutes: "/5"
     sensor:
-      - name: "MiniSplit Computed Setpoint"
+      - name: "MiniSplit Target Temp"
         unique_id: minisplit_computed_setpoint
         unit_of_measurement: "°F"
         icon: mdi:thermostat-auto
@@ -156,14 +198,32 @@ template:
                         night_setpoint %}
           {{ ((raw * 2) | round(0) / 2) }}
 
-  # State-based (no `trigger:`), unlike the computed-setpoint block above --
-  # this should track the raw smoothed BME280 reading immediately as it
-  # updates (~every 30s), not on a 5-minute polling cadence, since it's a
-  # live temperature reading rather than a slow day/night ramp. A plain
-  # template sensor without a trigger recomputes automatically whenever a
-  # referenced entity's state changes, which covers both a fresh BME280
-  # sample and a hand-adjusted offset slider.
-  - sensor:
+  # Trigger-based (2026-08-29, was a plain state-based sensor) -- still
+  # updates immediately on a fresh BME280 sample or a hand-adjusted offset
+  # slider, same as before, but now via an explicit state trigger with a
+  # condition instead of implicit recompute-on-any-referenced-entity-change.
+  # The plain state-based version recomputed on EVERY change to
+  # sensor.minisplit_bme280_smoothed, including a transient "unavailable" --
+  # which fed straight into `| float(0)`, producing a real recorded reading
+  # of exactly -10.0F (0 + the -10 offset) for one sample on 2026-08-28
+  # 5:22pm. The condition below makes the trigger a no-op whenever the
+  # source is unavailable/unknown, so the sensor just holds its last good
+  # value for that tick instead of recording a physically impossible number.
+  - trigger:
+      - trigger: state
+        entity_id:
+          - sensor.minisplit_bme280_smoothed
+          - input_number.minisplit_temp_offset
+    conditions:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: sensor.minisplit_bme280_smoothed
+            state: "unavailable"
+          - condition: state
+            entity_id: sensor.minisplit_bme280_smoothed
+            state: "unknown"
+    sensor:
       - name: "MiniSplit BME280 Corrected"
         unique_id: minisplit_bme280_corrected
         unit_of_measurement: "°F"
@@ -171,6 +231,17 @@ template:
         state: >-
           {% set offset = states('input_number.minisplit_temp_offset') | float(0) %}
           {{ (states('sensor.minisplit_bme280_smoothed') | float(0)) + offset }}
+
+# Timestamp state for the predictive automation's persistent-trend tracking
+# (see input_number.minisplit_trend_last_sign above). Starts unset
+# ("unknown") until the automation's first run, which the relevant template
+# treats as "just started now" rather than erroring or computing a nonsense
+# duration.
+input_datetime:
+  minisplit_trend_sign_since:
+    name: "MiniSplit Trend Sign Since"
+    has_date: true
+    has_time: true
 
 sensor:
   # A single BME280 quantization blip (e.g. 0.1F over one 30s poll) computes
