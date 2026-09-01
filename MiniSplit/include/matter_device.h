@@ -140,6 +140,48 @@ void matter_update_compressor_demand(uint8_t percent);
 void matter_update_compressor_running(bool running);
 
 /**
+ * @brief Update whether any outage is currently active -- see outage_log.h
+ *
+ * Written to a dedicated Occupancy Sensor endpoint, same rendering
+ * reasoning as matter_update_compressor_running() (a read-only
+ * binary_sensor in Home Assistant, not an actionable toggle).
+ *
+ * @param active outage_log_any_active()
+ */
+void matter_update_outage_active(bool active);
+
+/**
+ * @brief Update the most recent outage's reason code -- see outage_log.h
+ *
+ * Written to a dedicated Humidity Sensor endpoint, repurposed the same way
+ * as matter_update_compressor_demand() -- here the raw value is the reason
+ * code itself (see outage_reason_t), not a percentage. Persists after the
+ * outage resolves, so this always reflects "what was the last outage,"
+ * separate from matter_update_outage_active()'s "is one active right now."
+ *
+ * @param reason outage_log_last_reason()
+ */
+void matter_update_outage_reason(uint8_t reason);
+
+/**
+ * @brief Update the Thread parent link's average RSSI
+ *
+ * Written to a dedicated Humidity Sensor endpoint (repurposed, same pattern
+ * as matter_update_outage_reason() -- deliberately NOT a Temperature Sensor
+ * endpoint despite this being a natural fit for one: confirmed live that
+ * Home Assistant applies a real Celsius->Fahrenheit conversion to those,
+ * which corrupts a raw dBm value). Encoded as (rssi_dbm + 128) * 100 to
+ * keep it non-negative for RelativeHumidityMeasurement's unsigned
+ * MeasuredValue -- see matter_update_thread_rssi()'s own comment. Read via
+ * otThreadGetParentAverageRssi(); this device has no WiFi fallback, so this
+ * link's health is the single point of failure for everything the device
+ * does, including reaching Tuya's cloud API.
+ *
+ * @param rssi_dbm Average RSSI to the Thread parent, in dBm (typically negative)
+ */
+void matter_update_thread_rssi(int8_t rssi_dbm);
+
+/**
  * @brief Update outdoor ambient temperature from the Tuya ure DP
  *
  * Writes to both the Thermostat's OutdoorTemperature sub-attribute (not

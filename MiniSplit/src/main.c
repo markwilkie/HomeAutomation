@@ -15,8 +15,14 @@
 #include "papertrail_logger.h"
 #include "flash_log.h"
 #include "log_server.h"
+#include "outage_log.h"
+#include "rssi_log.h"
 #include "bme280.h"
 #include "secrets.h"
+#include "esp_openthread.h"
+#include "esp_openthread_lock.h"
+#include <openthread/instance.h>
+#include <openthread/thread.h>
 
 static const char *TAG = "MAIN";
 
@@ -239,6 +245,23 @@ static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
 // total added latency here is trivial against its 5-minute poll interval.
 #define MATTER_UPDATE_BURST_SPACING_MS 50
 
+// 0 is a plausible-looking but impossible RSSI (Thread's practical range is
+// roughly -20 to -100 dBm), used as the "couldn't read it" sentinel so a
+// lock/API failure doesn't silently report a suspiciously strong link.
+static int8_t get_thread_parent_rssi(void)
+{
+    int8_t rssi = 0;
+    if (!esp_openthread_lock_acquire(pdMS_TO_TICKS(1000))) {
+        return rssi;
+    }
+    otInstance *instance = esp_openthread_get_instance();
+    if (instance) {
+        otThreadGetParentAverageRssi(instance, &rssi);
+    }
+    esp_openthread_lock_release();
+    return rssi;
+}
+
 static void apply_status_to_matter(const tuya_device_status_t *device_status)
 {
     matter_update_onoff(device_status->switch_state);
@@ -273,6 +296,27 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     // Mini-split's own outdoor ambient reading -- separate endpoint from both
     // indoor temperatures above.
     matter_update_outdoor_temperature(device_status->outdoor_temp);
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
+
+    // Outage active/reason -- see outage_log.h. Reflects whatever's been
+    // recorded as of this poll; the detectors themselves (sync_task's retry
+    // loop and reconciliation block, the Thread state-change callback, and
+    // the boot-time reset-reason check) are what actually decide when an
+    // outage starts/ends.
+    matter_update_outage_active(outage_log_any_active());
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
+    matter_update_outage_reason(outage_log_last_reason());
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
+
+    // Thread parent RSSI -- piggybacks on this same 5-minute sync_task poll
+    // cadence rather than anything tighter, deliberately: RSSI fluctuates
+    // constantly, and reporting it more often would be exactly the kind of
+    // steady-state Matter chatter that caused tonight's NoBufs cascades.
+    int8_t rssi = get_thread_parent_rssi();
+    matter_update_thread_rssi(rssi);
+    // Also sampled locally (rssi_log.h) so there's still a record through a
+    // Thread outage, when the Matter update above can't reach HA at all.
+    rssi_log_sample(rssi);
 }
 
 static void cache_and_apply_status(const tuya_device_status_t *device_status)
@@ -368,6 +412,10 @@ static void sync_task(void *param)
             result = tuya_get_device_status(&device_status);
 
             if (result == ESP_OK) {
+                if (g_sync_state.status_poll_failures > 0) {
+                    // Was failing, now succeeded -- outage over.
+                    outage_log_end(OUTAGE_REASON_TUYA_UNREACHABLE);
+                }
                 g_sync_state.status_poll_failures = 0;  // Reset failure counter
                 break;
             }
@@ -382,10 +430,14 @@ static void sync_task(void *param)
         }
         
         if (result != ESP_OK) {
+            if (g_sync_state.status_poll_failures == 0) {
+                // First failure after a prior success -- outage begins.
+                outage_log_start(OUTAGE_REASON_TUYA_UNREACHABLE);
+            }
             g_sync_state.status_poll_failures++;
-            ESP_LOGE(TAG, "Failed to get Tuya status (failures: %u)", 
+            ESP_LOGE(TAG, "Failed to get Tuya status (failures: %u)",
                      g_sync_state.status_poll_failures);
-            
+
             // After multiple failures, consider device offline
             if (g_sync_state.status_poll_failures > 5) {
                 ESP_LOGW(TAG, "Multiple status poll failures - device may be offline");
@@ -428,6 +480,17 @@ static void sync_task(void *param)
         // this attempt doesn't stick either, the next poll sees that plainly
         // and this same check just tries again -- self-healing by
         // construction rather than by retry bookkeeping.
+        // Outage log: tracks the same disagreement send_stepped_setpoint()
+        // is about to (partially) correct -- a separate concern from
+        // whether the step itself succeeds, so this is checked regardless
+        // of send_stepped_setpoint()'s result below.
+        int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(matter_get_desired_cooling_setpoint());
+        if (desired_f_for_outage_check != device_status.temp_set_f) {
+            outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH);
+        } else {
+            outage_log_end(OUTAGE_REASON_SETPOINT_MISMATCH);
+        }
+
         esp_err_t set_result = send_stepped_setpoint(matter_get_desired_cooling_setpoint());
         if (set_result != ESP_OK) {
             ESP_LOGE(TAG, "Failed to send desired setpoint step to Tuya; will retry next poll");
@@ -767,6 +830,34 @@ static void health_task(void *param)
     }
 }
 
+// Tracks whether the last-seen role was attached (Child/Router/Leader), so
+// the callback below only opens/closes an outage record on an actual
+// attached<->detached transition, not on every role change (e.g.
+// Child->Router while still attached the whole time shouldn't count).
+static bool s_thread_was_attached = false;
+
+static void thread_state_changed_cb(otChangedFlags flags, void *context)
+{
+    (void)context;
+    if (!(flags & OT_CHANGED_THREAD_ROLE)) {
+        return;
+    }
+    otInstance *instance = esp_openthread_get_instance();
+    if (!instance) {
+        return;
+    }
+    otDeviceRole role = otThreadGetDeviceRole(instance);
+    bool attached = (role == OT_DEVICE_ROLE_CHILD || role == OT_DEVICE_ROLE_ROUTER ||
+                      role == OT_DEVICE_ROLE_LEADER);
+
+    if (attached && !s_thread_was_attached) {
+        outage_log_end(OUTAGE_REASON_THREAD_DISCONNECTED);
+    } else if (!attached && s_thread_was_attached) {
+        outage_log_start(OUTAGE_REASON_THREAD_DISCONNECTED);
+    }
+    s_thread_was_attached = attached;
+}
+
 /**
  * @brief Application main entry point
  */
@@ -810,6 +901,18 @@ void app_main(void)
     // network at all.
     ESP_ERROR_CHECK(flash_log_init());
 
+    // Outage log: small NVS-backed record of what kind of connectivity/state
+    // problem happened, when it started, and when it recovered -- see
+    // outage_log.h. Independent of flash_log above: this only ever writes on
+    // an actual start/end transition (never a timer), and unlike flash_log
+    // it's always on, not something that needs to be armed.
+    ESP_ERROR_CHECK(outage_log_init());
+
+    // RSSI log: plain time series, separate concern from outage_log above --
+    // see rssi_log.h for why (survives a Thread outage locally even though
+    // the live Matter sensor can't report anything while the link is down).
+    ESP_ERROR_CHECK(rssi_log_init());
+
     // Initialize Matter device and start commissioning. Matter now owns
     // network bring-up (Thread) as part of its normal commissioning flow,
     // rather than the app pre-connecting with baked-in credentials first --
@@ -841,6 +944,25 @@ void app_main(void)
     }
     ESP_LOGI(TAG, "Network connectivity established");
 
+    // Outage log, Thread-disconnected detector: register once now that
+    // Thread has attached at least once (esp_openthread_get_instance()
+    // needs a live instance, which is only guaranteed after this point --
+    // Matter owns Thread bring-up internally, see matter_device_init()
+    // above). s_thread_was_attached starts true here deliberately, so the
+    // callback only reacts to a *future* detach, not this initial connect.
+    s_thread_was_attached = true;
+    if (esp_openthread_lock_acquire(pdMS_TO_TICKS(1000))) {
+        otInstance *instance = esp_openthread_get_instance();
+        if (instance) {
+            otSetStateChangedCallback(instance, thread_state_changed_cb, NULL);
+        } else {
+            ESP_LOGW(TAG, "No OpenThread instance yet; Thread-disconnected outage detection not registered");
+        }
+        esp_openthread_lock_release();
+    } else {
+        ESP_LOGW(TAG, "Could not acquire OpenThread lock; Thread-disconnected outage detection not registered");
+    }
+
     // On-demand log access -- GET /logs, POST /logs/enable, POST /logs/disable
     // -- reachable at this device's Thread IPv6 address, no physical access
     // needed. Runs regardless of whether logging is currently armed.
@@ -849,6 +971,17 @@ void app_main(void)
     // Tuya authentication requires valid system time. Retries indefinitely
     // rather than aborting -- see wait_for_time_sync() for why.
     wait_for_time_sync();
+
+    // Outage log, device-restart detector: record why we're booting, unless
+    // this was an expected plain power-on (deliberate reflash or a mains
+    // power-cycle, like normal operation) -- only the unexpected reset
+    // reasons are worth a record. This needs to run after wait_for_time_sync()
+    // above, since it needs a real epoch timestamp to be meaningful.
+    esp_reset_reason_t reset_reason = esp_reset_reason();
+    if (reset_reason != ESP_RST_POWERON) {
+        ESP_LOGW(TAG, "Booted from unexpected reset reason: %d", (int)reset_reason);
+        outage_log_record_point_event(OUTAGE_REASON_DEVICE_RESTART, (uint8_t)reset_reason);
+    }
 
     // Initialize Tuya client
     ESP_LOGI(TAG, "Initializing Tuya client...");

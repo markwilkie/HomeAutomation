@@ -152,6 +152,9 @@ static endpoint_t *g_compressor_endpoint = nullptr;
 static endpoint_t *g_compressor_running_endpoint = nullptr;
 static endpoint_t *g_power_endpoint = nullptr;
 static endpoint_t *g_desired_setpoint_endpoint = nullptr;
+static endpoint_t *g_outage_active_endpoint = nullptr;
+static endpoint_t *g_outage_reason_endpoint = nullptr;
+static endpoint_t *g_thread_rssi_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
 static uint16_t g_temp_sensor_endpoint_id = 0;
 static uint16_t g_humidity_sensor_endpoint_id = 0;
@@ -160,6 +163,9 @@ static uint16_t g_compressor_endpoint_id = 0;
 static uint16_t g_compressor_running_endpoint_id = 0;
 static uint16_t g_power_endpoint_id = 0;
 static uint16_t g_desired_setpoint_endpoint_id = 0;
+static uint16_t g_outage_active_endpoint_id = 0;
+static uint16_t g_thread_rssi_endpoint_id = 0;
+static uint16_t g_outage_reason_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
 
@@ -584,6 +590,68 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Outage active/reason endpoints -- see outage_log.h. Two new endpoints,
+    // deliberately not more (no separate duration/start-time endpoint):
+    // this device already fights a marginal Thread link, and every endpoint
+    // adds to the boot-time re-assertion burst below. Full per-episode
+    // history lives in the on-device outage log (via GET /logs), not here --
+    // these two are just "is something wrong right now, and what was it,"
+    // same repurposed-sensor pattern as compressor demand/running above.
+    endpoint::occupancy_sensor::config_t outage_active_cfg;
+    outage_active_cfg.occupancy_sensing.occupancy = 0;
+    outage_active_cfg.occupancy_sensing.occupancy_sensor_type = 0;
+    outage_active_cfg.occupancy_sensing.feature_flags = cluster::occupancy_sensing::feature::other::get_id();
+    g_outage_active_endpoint = endpoint::occupancy_sensor::create(g_node, &outage_active_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_outage_active_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Outage Active endpoint");
+        return ESP_FAIL;
+    }
+    g_outage_active_endpoint_id = endpoint::get_id(g_outage_active_endpoint);
+    if (!g_outage_active_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Outage Active endpoint id");
+        return ESP_FAIL;
+    }
+
+    endpoint::humidity_sensor::config_t outage_reason_cfg;
+    outage_reason_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>((uint16_t)0);
+    g_outage_reason_endpoint = endpoint::humidity_sensor::create(g_node, &outage_reason_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_outage_reason_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Outage Reason endpoint");
+        return ESP_FAIL;
+    }
+    g_outage_reason_endpoint_id = endpoint::get_id(g_outage_reason_endpoint);
+    if (!g_outage_reason_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Outage Reason endpoint id");
+        return ESP_FAIL;
+    }
+
+    // Thread parent RSSI -- added 2026-09-01 after tonight's stalls traced
+    // partly to a genuinely weak Thread link (-96 to -101 dBm observed live
+    // via the flash log). Originally a repurposed Temperature Sensor
+    // endpoint -- wrong choice, confirmed live: Home Assistant's Matter
+    // integration correctly treats a Temperature Sensor cluster as a real
+    // temperature and unit-converts it (127 "°C" -> 260.6 "°F"), which a
+    // Humidity Sensor endpoint never does (a %RH value has no F/C notion).
+    // Switched to Humidity Sensor like the other repurposed endpoints, but
+    // that cluster's MeasuredValue is *unsigned* (uint16), so a genuinely
+    // negative dBm value needs an offset: encoded = (rssi_dbm + 128) * 100.
+    // +128 keeps the full int8_t range (-128..127) non-negative before
+    // scaling, comfortably inside uint16 range once x100'd (max 25500).
+    // The HA-side template sensor undoes both the /100 (Home Assistant's
+    // own) and the +128 (this offset) to recover the real dBm value.
+    endpoint::humidity_sensor::config_t thread_rssi_cfg;
+    thread_rssi_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>((uint16_t)0);
+    g_thread_rssi_endpoint = endpoint::humidity_sensor::create(g_node, &thread_rssi_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_thread_rssi_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Thread RSSI endpoint");
+        return ESP_FAIL;
+    }
+    g_thread_rssi_endpoint_id = endpoint::get_id(g_thread_rssi_endpoint);
+    if (!g_thread_rssi_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Thread RSSI endpoint id");
+        return ESP_FAIL;
+    }
+
     // Spaced out -- confirmed on real hardware (2026-08-31) that firing a
     // full endpoint re-assertion like this back-to-back with no delay
     // produces a dense burst of near-simultaneous IM reports, which on this
@@ -764,6 +832,44 @@ extern "C" void matter_update_compressor_running(bool running)
     update_attr_on_endpoint(g_compressor_running_endpoint, g_compressor_running_endpoint_id,
                             OccupancySensing::Id, OccupancySensing::Attributes::Occupancy::Id,
                             esp_matter_bitmap8(running ? 1 : 0));
+}
+
+extern "C" void matter_update_outage_active(bool active)
+{
+    // Same repurposed Occupancy Sensor pattern as matter_update_compressor_running().
+    update_attr_on_endpoint(g_outage_active_endpoint, g_outage_active_endpoint_id,
+                            OccupancySensing::Id, OccupancySensing::Attributes::Occupancy::Id,
+                            esp_matter_bitmap8(active ? 1 : 0));
+}
+
+extern "C" void matter_update_outage_reason(uint8_t reason)
+{
+    // Same repurposed Humidity Sensor pattern as matter_update_compressor_demand(),
+    // *including* the x100 scaling -- confirmed live (2026-09-01) that Home
+    // Assistant's Matter integration renders RelativeHumidityMeasurement's
+    // raw value divided by 100 (the spec's 0-10000 = 0.00-100.00% scale), so
+    // without this the reason code (1-4) shows up in HA as 0.01-0.04 and
+    // rounds straight to 0 through any int() template filter. x100 here
+    // means it comes back out as the exact integer reason code on the HA
+    // side, same reasoning as compressor_demand's percent*100.
+    update_attr_on_endpoint(g_outage_reason_endpoint, g_outage_reason_endpoint_id,
+                            RelativeHumidityMeasurement::Id,
+                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_uint16(nullable<uint16_t>((uint16_t)(reason * 100))));
+}
+
+extern "C" void matter_update_thread_rssi(int8_t rssi_dbm)
+{
+    // Repurposed Humidity Sensor endpoint -- see its creation comment above
+    // for why (Temperature Sensor gets real F/C conversion applied by Home
+    // Assistant, which corrupts a raw dBm value; Humidity Sensor doesn't).
+    // +128 offset keeps this non-negative before the x100 scale, since
+    // RelativeHumidityMeasurement's MeasuredValue is unsigned.
+    uint16_t encoded = (uint16_t)(((int)rssi_dbm + 128) * 100);
+    update_attr_on_endpoint(g_thread_rssi_endpoint, g_thread_rssi_endpoint_id,
+                            RelativeHumidityMeasurement::Id,
+                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
+                            esp_matter_nullable_uint16(nullable<uint16_t>(encoded)));
 }
 
 extern "C" void matter_update_outdoor_temperature(int16_t temp_c)

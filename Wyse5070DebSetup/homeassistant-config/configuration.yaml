@@ -10,6 +10,24 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
+# Human-readable names for the MiniSplit firmware's raw repurposed Matter
+# endpoints (2026-09-01) -- these are the underlying sensors the "MiniSplit
+# Last Outage Reason" / "MiniSplit Thread RSSI" template sensors below read
+# from and translate; customize: just makes the raw ones legible too,
+# instead of Home Assistant's auto-generated "Bedroom Mini Split Ac Bridge
+# Humidity 10"-style names, without touching the entity registry directly.
+homeassistant:
+  customize:
+    sensor.bedroom_mini_split_ac_bridge_humidity_10:
+      friendly_name: "MiniSplit Outage Reason (raw code)"
+      icon: mdi:alert-circle-outline
+    binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9:
+      friendly_name: "MiniSplit Outage Active"
+      icon: mdi:alert
+    sensor.bedroom_mini_split_ac_bridge_humidity_11:
+      friendly_name: "MiniSplit Thread RSSI (raw)"
+      icon: mdi:signal
+
 # BME280 rate-of-change over a 15-minute window (deg F/hour). Used by the
 # "MiniSplit BME280 cascade setpoint correction" automation (automations.yaml)
 # to project the ~16min measured BME280-behind-Tuya lag forward, instead of
@@ -231,6 +249,58 @@ template:
         state: >-
           {% set offset = states('input_number.minisplit_temp_offset') | float(0) %}
           {{ (states('sensor.minisplit_bme280_smoothed') | float(0)) + offset }}
+
+  # Friendly label for the MiniSplit firmware's "Outage Reason" endpoint
+  # (outage_log.h / matter_device.cpp's matter_update_outage_reason(),
+  # 2026-09-01) -- a repurposed Humidity Sensor endpoint whose raw value is
+  # a reason code (0=none, 1=Tuya unreachable, 2=Setpoint mismatch,
+  # 3=Device restart, 4=Thread disconnected), not a percentage. Reason 4
+  # can only ever show up here *after the fact*, once Thread reattaches --
+  # see outage_log.h's doc comment for why that one can't be reported live.
+  #
+  # Confirmed live (2026-09-01): appeared automatically after restarting the
+  # matter-server container (no full re-pairing or manual re-interview
+  # needed) as endpoint 10, picking up the device's "bedroom_" name prefix
+  # like the other more-recently-added endpoints (7, 8).
+  - trigger:
+      - trigger: state
+        entity_id: sensor.bedroom_mini_split_ac_bridge_humidity_10
+    sensor:
+      - name: "MiniSplit Last Outage Reason"
+        unique_id: minisplit_last_outage_reason
+        icon: mdi:alert-circle-outline
+        state: >-
+          {% set code = states('sensor.bedroom_mini_split_ac_bridge_humidity_10') | int(0) %}
+          {{ {0: "none", 1: "Tuya unreachable", 2: "Setpoint mismatch",
+              3: "Device restart", 4: "Thread disconnected"}.get(code, "unknown") }}
+
+  # Friendly relabel + decode for the MiniSplit firmware's Thread parent RSSI
+  # endpoint (matter_device.cpp's matter_update_thread_rssi(), 2026-09-01).
+  # Originally a repurposed Temperature Sensor endpoint -- confirmed live
+  # that was the wrong choice: Home Assistant applies a real C->F conversion
+  # to those (127 "°C" rendered as 260.6 "°F"), corrupting the raw dBm
+  # value. Switched to a Humidity Sensor endpoint (no unit conversion
+  # applied), encoded firmware-side as (rssi_dbm + 128) * 100 since that
+  # cluster's value is unsigned. Home Assistant's own /100 division already
+  # happens on the Matter side, so this template only needs to undo the
+  # +128 offset. 255 decodes from OpenThread's own OT_RADIO_RSSI_INVALID
+  # sentinel (127 + 128) -- shown as "unknown" rather than a fake -1 dBm.
+  - trigger:
+      - trigger: state
+        entity_id: sensor.bedroom_mini_split_ac_bridge_humidity_11
+    sensor:
+      - name: "MiniSplit Thread RSSI"
+        unique_id: minisplit_thread_rssi
+        unit_of_measurement: "dBm"
+        icon: mdi:signal
+        state: >-
+          {% set raw = states('sensor.bedroom_mini_split_ac_bridge_humidity_11') %}
+          {% set v = raw | float(-1) | round(0) | int %}
+          {% if v < 0 or v == 255 %}
+            unknown
+          {% else %}
+            {{ v - 128 }}
+          {% endif %}
 
 # Timestamp state for the predictive automation's persistent-trend tracking
 # (see input_number.minisplit_trend_last_sign above). Starts unset
