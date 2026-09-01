@@ -153,14 +153,29 @@
       bme280_now: "{{ states('sensor.minisplit_bme280_corrected') | float(0) }}"
       trend_per_hour: "{{ states('sensor.minisplit_bme280_trend') | float(0) }}"
       outdoor_temp: "{{ states('sensor.mini_split_ac_bridge_outdoor_temperature') | float(75) }}"
-      tuya_now: "{{ state_attr('climate.mini_split_ac_bridge', 'current_temperature') | float(0) }}"
       current_setpoint: "{{ state_attr('climate.mini_split_ac_bridge', 'temperature') | float(0) }}"
       error: "{{ bme280_now - target_temp }}"
       projected_error: "{{ error + trend_per_hour * (lag_minutes / 60) }}"
       outdoor_factor: "{{ min(max((outdoor_temp - 75) / 20, 0), 1) }}"
       gain: "{{ adaptive_gain * (1 + outdoor_factor) }}"
       correction: "{{ gain * projected_error }}"
-      raw_setpoint: "{{ min(max(tuya_now - correction, 60), 75) }}"
+      # Was tuya_now - correction (tuya_now = Tuya's own onboard
+      # current_temperature, smoothed via sensor.minisplit_tuya_current_smoothed)
+      # until 2026-08-09. That anchored the written setpoint to Tuya's own
+      # live sensor reading every cycle -- but tuya_now is used nowhere else
+      # in this automation, and overnight analysis found the setpoint
+      # reversing direction 38 times across 56 writes, traced to Tuya's own
+      # sensor swinging 62-70F with single-step jumps up to 4F (smoothing it
+      # helped but didn't remove the noise, just filtered it). Switched to a
+      # pure incremental correction off current_setpoint instead -- "whatever
+      # we last wrote" is not a live physical sensor, so it carries none of
+      # that noise. current_setpoint is still read fresh from the climate
+      # entity every cycle (not cached), so a manual override via the
+      # physical remote/app is still picked up as the new baseline either
+      # way -- nothing lost by dropping tuya_now. sensor.minisplit_tuya_current_temp
+      # and sensor.minisplit_tuya_current_smoothed (configuration.yaml) were
+      # removed the same day since this was their only consumer.
+      raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
       max_step_down: 1
       max_step_up: 4
       new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
@@ -191,4 +206,311 @@
       entity_id: input_number.minisplit_last_correction_sign
     data:
       value: "{{ this_sign }}"
+  mode: single
+- id: '1787800000001'
+  alias: MiniSplit BME280 predictive setpoint correction
+  description: >-
+    Alternative to "MiniSplit BME280 cascade setpoint correction" above --
+    created 2026-08-26 to try anticipating a BME280 drift instead of reacting
+    to it, after tracing a real overnight incident where the trend sensor
+    turned unambiguously positive at 5:06am but no correction landed until
+    5:40am (34 minutes later): the cascade automation's own anti-short-cycle
+    guards were both satisfied the whole time, so the real blocker was its
+    damped adaptive gain (0.46 that night) shrinking a real, sustained
+    correction below its fixed "must move >=1 degree F" threshold on every
+    intervening 10-minute cycle, with no memory of those near-misses carried
+    forward. Live/enabled as of the 2026-08-26 cutover (initial `initial_state:
+    false` + a one-shot bootstrap automation handled the first turn-on and
+    have both been removed now that it's the active controller -- `initial_state`
+    turned out to re-apply on every restart, not just the first, which is why
+    a later restart silently left this off with no bootstrap left to flip it
+    back; removing the key lets normal on/off state persist across restarts
+    like every other automation here). Both this
+    and the cascade automation write to climate.mini_split_ac_bridge's
+    setpoint and will fight each other if both run, so only enable one at a
+    time. Gain/last-correction-sign/trend-sign-since state lives in its own
+    input_number/input_datetime helpers (configuration.yaml,
+    "predictive"/"trend" prefixed), entirely separate from the cascade
+    automation's, so switching between the two for comparison doesn't
+    cross-contaminate either one's learned state.
+
+    One change from the cascade automation: persistent-trend threshold
+    override. input_number.minisplit_trend_last_sign and
+    input_datetime.minisplit_trend_sign_since track how long
+    sensor.minisplit_bme280_trend has held its current sign with no
+    reversal (reset to 0 elapsed only on an actual sign flip, not every
+    run). Once that persistence reaches 40 minutes, the minimum-move
+    threshold that gates whether a correction actually gets written relaxes
+    from 1 degree F to 0.5 -- so a real, sustained trend that keeps
+    computing a sub-1-degree correction can no longer get silently dropped
+    cycle after cycle the way it did in the 5:06-5:40am incident. A trend
+    that reverses within those 40 minutes never earns the relaxed
+    threshold, so this doesn't make the loop more sensitive to a single
+    noisy blip -- persistence has to actually hold.
+
+    2026-08-26, later same day: this automation originally also carried a
+    live-measured lag estimate (input_number.minisplit_lag_estimate_min)
+    replacing the cascade automation's fixed `lag_minutes: 16`, updated from
+    how long the trend took to reach an expected sign after each command.
+    Removed after a few hours live: the compressor's own ~25-35 minute
+    on/off duty cycle turned out to imprint a real, smooth, near-periodic
+    swing directly onto sensor.minisplit_bme280_trend (confirmed against
+    sensor.mini_split_ac_bridge_humidity_5's demand-cycle timestamps, not
+    just inferred), so "time until the trend reaches the expected sign" was
+    mostly measuring coincidental alignment with the compressor's own
+    rhythm, not the room's causal response to a setpoint command. The
+    estimate drifted from the seeded 16 minutes down toward 11 as a result,
+    and the persistence gate above was getting reset by those same
+    compressor-driven swings almost every cycle (many resolved in exactly
+    one 10-minute tick), reintroducing setpoint oscillation this redesign
+    was meant to reduce. Back to the fixed 16-minute constant below; the
+    persistence threshold was raised from 20 to 40 minutes at the same time
+    so one compressor half-cycle alone is much less likely to satisfy it.
+
+    Everything else -- the occupancy-stability gate, the demand-ramp
+    anti-short-cycle guard (skipped for upward/overshoot moves, same
+    reasoning as the cascade automation), the outdoor-temp gain scaling, the
+    asymmetric 1-degree-down/4-degree-up step caps, and the gain-adaptation
+    logic itself (15% cut on a reversal, 5% ease-up otherwise) -- is carried
+    over unchanged from the cascade automation.
+
+    2026-08-29: tried moving gain-adaptation to run every 10-minute tick
+    against the computed new_setpoint instead of only on ticks that write,
+    after tracing gain sitting pinned at its 0.3 floor for hours (real
+    corrections almost always alternate direction near equilibrium, so
+    comparing write-to-write treated nearly every correction as a
+    "reversal"). Simulated against ~39 hours of real data before deploying,
+    validated the simulator against real history first (exact match), and
+    the every-tick version genuinely did react faster on average -- but the
+    same simulation also showed the setpoint running away to the 60F floor
+    repeatedly (twice even after two rounds of deadband fixes), something
+    the real write-gated version never did once in the same real window.
+    Reverted the same day, before it had run long enough live to show the
+    same runaway for real. The underlying idea (comparing decisions too
+    close together in time treats normal alternation as a mistake) is
+    still valid and worth revisiting, but needs a design that can't
+    compound gain upward indefinitely through a single sustained real
+    trend with nothing to check it -- not attempted again without a
+    reworked cap (e.g. capping consecutive eases per persistence episode,
+    or requiring evidence of actual overshoot rather than just "sign held")
+    and a fresh simulation showing the runaway is actually gone, not just
+    smaller.
+
+    2026-08-30: rewritten firmware flashed (desired/actual setpoint split,
+    no more revert-on-failure logic, fixed poll interval, HTTP timeout +
+    stall self-restart). current_setpoint now reads
+    climate.bedroom_mini_split_ac_bridge_thermostat_8's temperature
+    attribute (Matter endpoint 8, dedicated desired-setpoint entity) instead
+    of input_number.minisplit_desired_setpoint, and the real command target
+    for climate.set_temperature moved from climate.mini_split_ac_bridge (now
+    read-only, rejects setpoint writes) to that same new entity.
+    input_number.minisplit_desired_setpoint's final write was removed --
+    the new entity's own attribute is the record now, no separate
+    bookkeeping helper needed. input_number.minisplit_desired_setpoint
+    itself is unused by this automation as of this change but left in
+    configuration.yaml for now rather than deleted, in case anything else
+    still references it.
+
+    2026-08-30, same day: found this automation switched off after the
+    firmware flash/restart cycle, with nothing in the logs explaining why
+    and no `initial_state` key to have caused it (that was deliberately
+    removed back on 2026-08-26 -- see above -- specifically because it
+    re-asserts on every restart, not just the first). Restoring the
+    previous run state (whatever it happened to be) across a restart is
+    HA's own default for automations with no initial_state, so once
+    something switched this off, it silently stayed off. Setting
+    `initial_state: true` (below) trades that default for "always come back
+    on," which is the correct posture for this one specifically -- it's the
+    intended always-on controller, not a reference/comparison automation
+    like the cascade one above (which is deliberately left disabled and
+    should stay whatever a person last set it to).
+
+    2026-08-30, later same day: temporarily disabled (initial_state: false)
+    while the ESP32 bridge was out of the room for reboot-loop debugging --
+    no point correcting against a BME280 reading/setpoint the unit couldn't
+    act on. Bridge is back in place and stable (~8.5 hours uptime, no
+    reboots, no spurious power-offs since the StartUpOnOff fix); re-enabled
+    the same day.
+  initial_state: true
+  triggers:
+  - trigger: time_pattern
+    minutes: /10
+  conditions:
+  # Anti-short-cycle guard, changed 2026-08-28: only blocks when the
+  # compressor is currently OFF *and* stopped less than 5 minutes ago --
+  # give a just-stopped compressor a chance to settle before nudging the
+  # setpoint again. If it's currently running, act regardless of how long
+  # it's been running -- there's no short-cycle risk from adjusting the
+  # setpoint while the compressor is already on, only from disturbing it
+  # right after it stops. The old version blocked on ANY recent transition
+  # in either direction, including one *into* "on" -- which meant two of the
+  # last four scheduled ticks got blocked purely by coincidence (a real
+  # on/off flip landing 1-2 minutes before the check), even though the
+  # compressor was actively running at the time and there was no actual
+  # short-cycle risk.
+  - condition: template
+    value_template: >-
+      {{ is_state('binary_sensor.mini_split_ac_bridge_occupancy', 'on')
+         or (as_timestamp(now()) - as_timestamp(states.binary_sensor.mini_split_ac_bridge_occupancy.last_changed)) > 300 }}
+  actions:
+  - variables:
+      target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(71) }}"
+      adaptive_gain: "{{ states('input_number.minisplit_predictive_adaptive_gain') | float(1.0) }}"
+      last_sign: "{{ states('input_number.minisplit_predictive_last_correction_sign') | int(0) }}"
+      lag_minutes: 16
+      bme280_now: "{{ states('sensor.minisplit_bme280_corrected') | float(0) }}"
+      trend_per_hour: "{{ states('sensor.minisplit_bme280_trend') | float(0) }}"
+      outdoor_temp: "{{ states('sensor.mini_split_ac_bridge_outdoor_temperature') | float(75) }}"
+      # 2026-08-30: firmware flashed with the desired/actual setpoint split --
+      # climate.bedroom_mini_split_ac_bridge_thermostat_8 (Matter endpoint 8)
+      # is a dedicated, HA-writable setpoint that nothing else touches or
+      # mirrors Tuya status onto, so it's read directly now instead of via
+      # the HA-side input_number.minisplit_desired_setpoint bookkeeping
+      # helper that stood in for it pre-flash (retired the same day -- see
+      # the removed final action below). climate.mini_split_ac_bridge's own
+      # temperature attribute is still never read here: post-flash it's
+      # read-only and purely mirrors whatever Tuya's cloud reports, still
+      # carrying the same Celsius-0.5-step rounding/compressor-driven-trend
+      # noise this avoided pre-flash too.
+      current_setpoint: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_8', 'temperature') | float(72) }}"
+      # Small deadband around zero so float noise right at a near-flat trend
+      # doesn't flap the tracked sign back and forth every run.
+      current_trend_sign: "{{ 1 if trend_per_hour > 0.1 else (-1 if trend_per_hour < -0.1 else 0) }}"
+      trend_last_sign: "{{ states('input_number.minisplit_trend_last_sign') | int(0) }}"
+      is_sign_flip: "{{ current_trend_sign != trend_last_sign }}"
+      # If the sign just flipped this run, persistence is 0 regardless of
+      # what minisplit_trend_sign_since still says (it hasn't been updated
+      # yet this run) -- computed this way so the threshold-relaxation logic
+      # below doesn't need a second read after the helper-update step.
+      sign_since_ts: "{{ as_timestamp(states('input_datetime.minisplit_trend_sign_since'), as_timestamp(now())) }}"
+      persistence_minutes: "{{ 0 if is_sign_flip else ((as_timestamp(now()) - sign_since_ts) / 60) }}"
+  # Record a new trend-sign-since timestamp only on an actual flip, so
+  # persistence_minutes above keeps growing across runs where the sign holds.
+  - choose:
+    - conditions: "{{ is_sign_flip }}"
+      sequence:
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.minisplit_trend_last_sign
+        data:
+          value: "{{ current_trend_sign }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.minisplit_trend_sign_since
+        data:
+          timestamp: "{{ now().timestamp() }}"
+  - variables:
+      error: "{{ bme280_now - target_temp }}"
+      projected_error: "{{ error + trend_per_hour * (lag_minutes / 60) }}"
+      outdoor_factor: "{{ min(max((outdoor_temp - 75) / 20, 0), 1) }}"
+      gain: "{{ adaptive_gain * (1 + outdoor_factor) }}"
+      correction: "{{ gain * projected_error }}"
+      # Anchored to current_setpoint, not Tuya's own onboard current_temperature
+      # (tuya_now, dropped 2026-08-26 evening) -- that anchored every write to
+      # Tuya's own sensor, which reads well below the setpoints this loop
+      # actually manages (a persistent multi-degree gap, not noise), so the
+      # gap alone dominated raw_setpoint and pushed corrections downward every
+      # cycle regardless of what the BME280-driven `correction` term above
+      # concluded. Traced from three real corrections the same evening where
+      # `correction` was consistently positive (calling to warm up, correctly,
+      # since the room was already below target and still falling) but the
+      # setpoint moved down anyway. The cascade automation above already made
+      # this exact fix on 2026-08-09; this automation should have copied that
+      # version instead of the pre-fix formula when it was written.
+      raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
+      max_step_down: 1
+      max_step_up: 4
+      new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
+      # The threshold this incident actually got stuck on: a sustained
+      # (>=40min, no reversal) trend can act on a half-degree move instead of
+      # needing a full degree, since persistence has already ruled out noise.
+      # 40 (not the original 20) so one compressor half-cycle (~25-35min,
+      # see the description above) can't satisfy this on its own.
+      min_move: "{{ 0.5 if persistence_minutes >= 40 else 1 }}"
+  # 2026-08-29: gain-adaptation runs every 10-minute tick against the
+  # computed decision, not just on ticks that clear the write threshold.
+  # Original problem: comparing WRITE-to-write direction treated nearly
+  # every real correction as a "reversal" (a healthy control loop
+  # oscillating near equilibrium naturally alternates direction almost
+  # every time it acts), pinning gain at its 0.3 floor for hours overnight
+  # as steady-state behavior, not an edge case.
+  #
+  # Two failed attempts before this one, both caught in simulation before
+  # being left live long enough to matter for real:
+  #  1. Gating on new_setpoint != current_setpoint (a "tie") turned out to
+  #     be a no-op -- current_setpoint/new_setpoint are always whole
+  #     numbers, so "not a tie" is mathematically identical to "clears
+  #     min_move," collapsing gain-updates back to firing on nearly the
+  #     same ticks as real writes and erasing the benefit.
+  #  2. Deadbanding on `correction` (|correction|>0.1) let the threshold's
+  #     effective sensitivity shrink as gain grew (correction = gain *
+  #     projected_error), a self-reinforcing loop -- simulated over ~39
+  #     real hours, gain raced to its 1.2 ceiling and the setpoint marched
+  #     to the 60F floor repeatedly, something the real deployed policy
+  #     never did once in the same window.
+  #
+  # This version deadbands on `projected_error` instead (gain-independent,
+  # doesn't shrink as confidence grows) -- same 0.1F deadband convention as
+  # current_trend_sign above. Also re-simulated with the compressor-guard
+  # responding to THIS policy's own downward pushes (turns on ~immediately
+  # after a push, holds ~15min, matching real measured engagement/cycle
+  # data) instead of being graded against the real, milder policy's
+  # occupancy history, which had been letting pushes stack up in the
+  # simulation that the live guard would actually have blocked. With that
+  # more realistic guard: zero floor hits, setpoint bottomed at 63F (vs the
+  # real policy's 69F, over the same ~39 real hours) instead of 60F, write
+  # frequency stayed roughly flat across the window instead of accelerating,
+  # and the latency/error-at-intervention benefit held (~36%/~17% better
+  # than the write-gated original) though more modestly than the first
+  # (invalid, fixed-history-guard) estimate suggested.
+  - choose:
+    - conditions: "{{ projected_error | abs > 0.1 }}"
+      sequence:
+      - variables:
+          this_sign: "{{ -1 if projected_error > 0 else 1 }}"
+          gain_step: >-
+            {{ adaptive_gain * 0.85 if (last_sign != 0 and this_sign != last_sign)
+               else adaptive_gain * 1.05 }}
+          new_adaptive_gain: "{{ min(max(gain_step, 0.3), 1.2) | round(2) }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.minisplit_predictive_adaptive_gain
+        data:
+          value: "{{ new_adaptive_gain }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.minisplit_predictive_last_correction_sign
+        data:
+          value: "{{ this_sign }}"
+  # 2026-08-28: added the occupancy (compressor-proxy) check to the downward
+  # branch after finding 3 of 7 compressor cycles overnight got a *second*
+  # downward nudge stacked on top of an already-running cooling call, each
+  # one landing before the 16-minute lag had a chance to show the first
+  # nudge's effect in the trend -- integrator windup, and a likely
+  # contributor to the largest overshoot of the night (70->62F on the
+  # Tuya-reported temp, 12:10-12:42am, the longest cycle of the night).
+  # Upward moves stay unconditional -- easing off mid-cycle is always safe.
+  # Downward moves now also require the compressor to be off right now, on
+  # top of the existing humidity-stability guard below.
+  - condition: template
+    value_template: >-
+      {{ new_setpoint > current_setpoint
+         or (is_state('binary_sensor.mini_split_ac_bridge_occupancy', 'off')
+             and (as_timestamp(now()) - as_timestamp(states.sensor.mini_split_ac_bridge_humidity_5.last_changed)) > 180) }}
+  - condition: template
+    value_template: "{{ (new_setpoint - current_setpoint) | abs >= min_move }}"
+  # 2026-08-30: now targets the dedicated Desired Setpoint endpoint (see
+  # current_setpoint above), not climate.mini_split_ac_bridge -- writing the
+  # main endpoint's setpoint post-flash is rejected outright by the firmware
+  # (it's read-only now, mirroring Tuya only). The firmware's own sync_task
+  # reconciles this endpoint's value against Tuya every poll and re-sends on
+  # its own if they disagree, so this action's only job now is recording the
+  # automation's decision -- no separate input_number bookkeeping write
+  # needed afterward the way there was pre-flash, since this entity's own
+  # `temperature` attribute *is* that record (see current_setpoint above).
+  - action: climate.set_temperature
+    target:
+      entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_8
+    data:
+      temperature: "{{ new_setpoint }}"
   mode: single
