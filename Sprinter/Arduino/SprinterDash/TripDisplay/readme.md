@@ -174,10 +174,10 @@ The PCF8523 real-time clock starts at its default epoch (Jan 1, 2000, 00:00:00) 
 ### Other Notes:
 - Software updates require USB flashing (OTA removed to use the no_ota partition scheme for more app/storage space).
 
-## GPS Tracking & Traccar Integration
+## GPS Tracking & TripTracker Integration
 
 ### Overview
-The system logs GPS position data to the ESP32's flash storage (LittleFS) as standard GPX files, and uploads positions to a remote [Traccar](https://www.traccar.org/) server when WiFi is available.
+The system logs GPS position data to the ESP32's flash storage (LittleFS) as standard GPX files, and uploads positions directly to [TripTracker](https://github.com/markwilkie/TripTracker)'s own ingestion API when connectivity is available. This reaches the home server over a Tailscale tunnel - the van's GL-iNet GL-X750 travel router is a tailnet node, so the ESP32 just POSTs to the server's Tailscale IP like it would any LAN address, with no port-forwarding, DDNS, or public exposure involved. (This replaced an earlier design that relayed through a separate Traccar server; TripTracker does its own complete home-geofence trip detection from the raw position stream, so there's no trip-boundary state to track in firmware at all anymore - every point is just reported as it comes in.)
 
 ### I2C Bus
 All sensors share a single I2C bus:
@@ -198,7 +198,7 @@ All sensors share a single I2C bus:
    - **Speed** from OBD-II via CAN bus (more accurate than GPS-derived speed)
    - **Timestamp** from the PCF8523 RTC
 3. The trackpoint is written to a GPX file on LittleFS (one file per calendar day, e.g. `/tracks/2026-02-18.gpx`)
-4. If WiFi is connected, the current position is also sent live to Traccar, and any previously buffered files are uploaded point-by-point
+4. If connected, the current position is also sent live to TripTracker, and any previously buffered files are uploaded as batches
 
 ### Data Flow
 ```
@@ -206,7 +206,7 @@ TEL0157 GPS  ──→ lat/lon          ─┐
 MPL3115A2   ──→ elevation (feet)  ├──→ TrackLogger ──→ LittleFS (/tracks/*.gpx)
 OBD-II/CAN  ──→ speed (mph)      │                         │
 PCF8523 RTC ──→ timestamp        ─┘                         │
-                                                   WiFi? ──→ TraccarUploader ──→ Traccar server
+                                              Connected? ──→ TripTrackerUploader ──→ TripTracker (via Tailscale)
                                                          └──→ ElevationAPI  ──→ barometer offset ──→ EEPROM
 ```
 
@@ -223,35 +223,26 @@ PCF8523 RTC ──→ timestamp        ─┘                         │
 - The **current day's file** is never thinned (always full resolution)
 - This means trip start and end locations/times are always preserved at full accuracy
 
-### Traccar Upload (TraccarUploader)
-- **Protocol**: OsmAnd (simple HTTP GET on port 5055)
-- **Live mode**: When WiFi is connected, sends current position every 10 seconds
-- **Batch mode**: When WiFi reconnects after being offline, uploads buffered GPX files point-by-point (5 points per loop call to avoid blocking), then deletes the file after successful upload
-- **Error handling**: On HTTP failure, pauses batch uploads for 60 seconds before retrying
-- **Timestamp**: No timestamp is sent in the URL — Traccar uses its own server time.  This avoids the problem where positions with timestamps older than existing ones are silently dropped.
-- **Configuration**: Edit defines in `TraccarUploader.h`:
-  - `TRACCAR_HOST` — your Traccar server hostname
-  - `TRACCAR_PORT` — OsmAnd listener port (default 5055)
-  - `TRACCAR_DEVICE_ID` — must match the device identifier configured in Traccar (currently a UUID for security)
+### TripTracker Upload (TripTrackerUploader)
+- **Protocol**: plain JSON over HTTP, matching TripTracker's own ingestion API (`POST /api/v1/positions` and `/api/v1/positions/batch`), authenticated with an `X-Device-Key` header
+- **Transport**: reaches the home server over a Tailscale tunnel (the van's GL-iNet GL-X750 is a tailnet node) - not a public address, no port-forwarding
+- **Live mode**: sends current position every 30 seconds when connected
+- **Batch mode**: when connectivity returns after being offline, uploads buffered GPX files as JSON array POSTs to `/positions/batch` (up to `BATCH_POINTS_PER_UPLOAD` = 20 points per call, to keep each main-loop iteration bounded), then deletes the file after upload
+- **Error handling**: on HTTP failure, pauses batch uploads for 60 seconds before retrying
+- **Timestamp**: sent as a plain Unix timestamp number (`recorded_at`) - TripTracker's ingestion schema accepts this directly, no ISO8601 formatting needed on-device
+- **Configuration**: edit defines in `secrets.h` (see `secrets.h.example`):
+  - `TRIPTRACKER_HOST` — the home server's Tailscale IP or MagicDNS name
+  - `TRIPTRACKER_PORT` — TripTracker's port (8000)
+  - `TRIPTRACKER_DEVICE_KEY` — the device's API key, issued from TripTracker's `/admin/devices` page
 
-### Trip Detection (Ignition Events)
-Traccar uses ignition on/off events to define trip boundaries.  The server must have `useIgnition: true` in its attributes (currently set).
-
-- **Trip start**: An `&ignition=true` parameter is appended to the OsmAnd HTTP GET when:
-  - **Real mode**: The "Start New Trip" button is pressed on the LCD
-  - **Simulator mode**: Automatically sent at startup when WiFi is connected
-- **Trip end**: An `&ignition=false` parameter is sent when:
-  - **Home geofence**: The van returns within 200m of home (`HOME_LAT`/`HOME_LON` defines in `TripDisplay.ino`).  This auto-ends the Traccar trip.
-  - **Manual restart**: Pressing "Start New Trip" again sends OFF then ON, closing any open trip and starting a new one
-  - Physical ignition off does *not* end the trip — the whole multi-day journey (with overnight stops) stays one continuous Traccar trip until you return home
-- **Between events**: Regular live and batch-buffered position updates also carry an `ignition` value (not just the two boundary transitions), because Traccar's `useIgnition` motion detection only trusts ignition when it's present on the position — omitting it on routine updates made Traccar fall back to GPS-speed motion detection for them, causing spurious "Device stopped" events from GPS jitter at stoplights/in traffic. This value tracks `traccarTripActive` (whether a Traccar trip is currently open), **not** the physical ignition pin — sending the real pin state here would re-split the trip every time the engine is cycled mid-trip (errand stops, lunch, etc.), defeating the "one continuous trip until home" behavior above
-- **State tracking**: The `traccarTripActive` flag prevents duplicate ignition-off events and ensures the home geofence only fires once per trip
+### Trip Detection
+TripTracker infers trip boundaries itself, server-side, purely from the raw position stream (distance from a configurable home location, debounced - see TripTracker's own README) - it does **not** use ignition events, and there's no trip-boundary state kept in this firmware at all. Every position is just reported as it comes in, tagged with the actual physical ignition pin state (`currentIgnState`) for informational/storage purposes only. The "Start New Trip" button on the LCD only resets the on-device trip counters (`sinceLastStop`/`currentSegment`/`fullTrip` - the driver-facing mileage/fuel display) and has no effect on TripTracker's own trip detection.
 
 ### HTTP Endpoints for Track Files
 These are available when connected to the same WiFi network as the ESP32:
 | Endpoint | Description |
 |----------|-------------|
-| `GET /tracks` | Lists all GPX files with download/delete links, storage usage, and Traccar upload stats |
+| `GET /tracks` | Lists all GPX files with download/delete links, storage usage, and TripTracker upload stats |
 | `GET /tracks/download?file=2026-02-18.gpx` | Downloads a GPX file (with proper XML footer appended) |
 | `GET /tracks/delete?file=2026-02-18.gpx` | Deletes a specific GPX file |
 | `GET /tracks/storage` | Shows LittleFS total/used bytes and file count |
@@ -300,7 +291,13 @@ correctedElevation = rawBaroElevation + elevationOffset
 ### HTTP Diagnostics
 Visit `http://<ESP32_IP>/elevation` to see calibration status, or `http://<ESP32_IP>/elevation?recalibrate=1` to force a recalibration.
 
-## Traccar Server Setup (Azure)
+## Traccar Server Setup (Azure) — historical, no longer used
+
+The firmware no longer sends anything to Traccar (see "GPS Tracking &
+TripTracker Integration" above) - it now posts directly to TripTracker over
+Tailscale. This section is kept only as a record of the Azure resources
+below, in case you want to decommission them (they'll otherwise keep
+costing/running with no new data arriving).
 
 The Traccar server runs as an Azure Container Instance.  Here are the steps taken to set it up.
 

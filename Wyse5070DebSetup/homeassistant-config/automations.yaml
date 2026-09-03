@@ -373,6 +373,21 @@
       # carrying the same Celsius-0.5-step rounding/compressor-driven-trend
       # noise this avoided pre-flash too.
       current_setpoint: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_8', 'temperature') | float(72) }}"
+      # Guard added 2026-09-01: current_setpoint above is the DESIRED entity's
+      # own last-written value, not confirmation that Tuya's actual setpoint
+      # ever caught up to it. Found live tonight: the firmware's correction
+      # to Tuya silently failed to land (stuck at 71F for over an hour) while
+      # this automation kept computing new_setpoint from its own prior write
+      # and stepping further away every 10-minute tick with no way to notice
+      # -- desired drifted 71->70->69->68 chasing a target that was never
+      # actually reached, exactly the unbounded-gap failure mode the 1-degree
+      # step cap was meant to prevent (it only bounds movement per cycle, not
+      # cumulative drift when a correction doesn't confirm). actual_temp
+      # anchors the final clamp below to Tuya's own confirmed mirror
+      # (climate.mini_split_ac_bridge, read-only post-2026-08-30 flash) so
+      # desired can never end up more than 1 degree from what's actually
+      # confirmed, regardless of how many ticks pass without confirmation.
+      actual_temp: "{{ state_attr('climate.mini_split_ac_bridge', 'temperature') | float(current_setpoint) }}"
       # Small deadband around zero so float noise right at a near-flat trend
       # doesn't flap the tracked sign back and forth every run.
       current_trend_sign: "{{ 1 if trend_per_hour > 0.1 else (-1 if trend_per_hour < -0.1 else 0) }}"
@@ -420,7 +435,13 @@
       raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
       max_step_down: 1
       max_step_up: 1
-      new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
+      stepped_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
+      # Final clamp (2026-09-01, see actual_temp above): never let the
+      # per-cycle step above carry desired more than 1 degree from Tuya's
+      # last confirmed actual, no matter how many uncorrected cycles have
+      # passed. A no-op whenever actual is already caught up (the normal
+      # case) or hasn't fallen more than 1 degree behind yet.
+      new_setpoint: "{{ min(max(stepped_setpoint, actual_temp - 1), actual_temp + 1) }}"
       # The threshold this incident actually got stuck on: a sustained
       # (>=40min, no reversal) trend can act on a half-degree move instead of
       # needing a full degree, since persistence has already ruled out noise.

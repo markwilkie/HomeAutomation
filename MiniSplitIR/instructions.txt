@@ -1,0 +1,273 @@
+# Pioneer Mini Split — IR Follow-Me Bridge Implementation Plan
+
+## Goal
+
+Bypass the unreliable Tuya cloud command path for the Pioneer WT012GLUI25FVQ
+mini split by controlling it locally over Matter/Thread, and replicate the
+unit's "follow me" behavior using a real ambient temperature sensor instead
+of the mini split's own (poorly placed / Tuya-mediated) sensor.
+
+Two devices, two jobs, connected over Matter:
+
+- **Device A — Sensor node (existing).** Already-deployed BME280 unit for
+  the bedroom. Currently ESPHome + Home Assistant native API. Needs to
+  become a real Matter Temperature Sensor node so it can publish readings
+  over the Thread fabric directly, not just to HA.
+- **Device B — IR blaster node (new).** One of the ESP32s below, driving
+  the Dorhea IR transmitter at the mini split, receiving Matter commands,
+  and running the follow-me heartbeat loop using Device A's temperature.
+
+Tuya's status GETs can keep running in parallel — they're read-only and
+harmless. This project only replaces the *command* path.
+
+---
+
+## Hardware on hand
+
+Dorhea 4x transmitter / 4x receiver kit (HX-03 transmitter, HX-M121 receiver):
+
+- **Transmitter (HX-03):** bare 940nm IR LED breakout, 5V, DAT/VCC/GND.
+  "Direct transmission without modulation" — there's no onboard 38kHz
+  carrier generator, which is exactly what IRremoteESP8266's `IRsend`
+  class expects (it bit-bangs the carrier itself). Drive DAT from a GPIO.
+  **Caveat:** rated range is only ~1.3m at 5V/38kHz — no onboard driver
+  transistor, just a current-limited LED. That's short for "mount it
+  across the room." Two ways to handle it, decide once you know your
+  mounting spot:
+  - Mount Device B close enough to have clean line-of-sight to the
+    unit's receiver window (very doable for a wall-mount unit — a small
+    ESP32 box on the same wall or ceiling nearby is unobtrusive).
+  - Add a driver transistor (2N2222/similar) + a higher-output IR LED
+    (e.g. TSAL6200) between the GPIO and LED for real range/reliability
+    margin. Cheap, recommend doing this regardless of mounting distance —
+    it removes a whole class of "sometimes doesn't register" flakiness.
+- **Receiver (HX-M121):** demodulating IR receiver (outputs already-decoded
+  digital pulses, same role as a TSOP382x). 5V nominal; ESP32 GPIOs are
+  3.3V-tolerant inputs only, so either confirm the module's output swing
+  is safe at 3.3V logic (many of these work fine powered at 3.3V with
+  reduced range, acceptable for capture work) or use a simple voltage
+  divider / level shifter on DAT if you power it at 5V.
+
+Needed but not yet listed as on-hand: a temp/humidity-safe enclosure
+consideration is already solved on Device A per your earlier BME280
+placement work — no change needed there.
+
+---
+
+## Where the IR receiver is on your unit
+
+Pulled the WYS-series factory disassembly guide. It confirms your unit has
+a distinct **display board module** (separate from the main control PCB)
+mounted on the front panel frame — this is the assembly that holds the
+LED status display, and on virtually every mini split in this class
+(Pioneer's WYS/WS line included) the IR receiver photodiode is co-located
+on that same display board, sitting behind the small smoked/tinted plastic
+window on the front panel. I couldn't pull an exact pixel-level photo of
+*your* specific model's panel, but the disassembly guide's structure
+(display board = own connector, own screw, separate from the control box)
+strongly confirms it's grouped there rather than elsewhere on the unit.
+
+**Practical way to confirm exact aim point:** it's a very identifiable
+small dark/smoked rectangular or oval window near the digital display —
+look at the front panel before disassembling anything. Once you find it,
+verify with the real remote from a few different angles/distances and
+note where response is reliable (a chirp/beep or display change confirms
+receipt) — that's your target for mounting Device B's LED.
+
+---
+
+## Milestone 1 — Capture the real protocol (blocking, do this first)
+
+Nothing else in this plan can be written until you know the actual IR
+protocol. This step is independent of the final architecture — do it on
+whichever ESP32 is easiest to wire up right now.
+
+1. Wire the HX-M121 receiver DAT pin to a GPIO (avoid boot-strapping pins),
+   VCC/GND per the module.
+2. Flash IRremoteESP8266's `IRrecvDumpV2` example.
+3. Capture, in order:
+   - Power on, each mode (cool/heat/dry/fan/auto), a couple of setpoint
+     changes, fan speed changes — this is your "full state frame" baseline.
+   - **Specifically toggle Follow Me on** via the real remote and capture
+     that frame.
+   - Then, without touching the remote, leave the receiver logging and
+     capture the periodic follow-me heartbeat frames it sends automatically
+     (this is the short, temp-only frame you'll be replicating).
+4. Check whether IRrecvDumpV2 auto-decodes it as a known protocol
+   (possible candidates given this market segment: Gree/Kelvinator-family,
+   York, or a generic 48/64-bit "Coolix"-style protocol — Pioneer's WYS
+   line is very likely OEM'd from one of these). If it decodes cleanly,
+   you get the full named-field `IRac` API for free (temp, mode, fan,
+   swing, and hopefully a follow-me bit already broken out).
+5. If it comes back UNKNOWN, you're doing manual protocol reverse
+   engineering — more work, but IRremoteESP8266's wiki has a documented
+   process for it, and the raw timing dump is enough to start.
+6. **Also use this capture session to determine your unit's actual
+   follow-me fallback timeout** (not a number I could find documented for
+   this protocol family) — start the real remote in follow-me mode, then
+   stop transmitting entirely and watch when the unit's behavior reverts
+   to its internal sensor. Bracket it with a couple of trials. This number
+   drives your heartbeat interval in Milestone 4.
+
+**Deliverable:** raw + (if decoded) named-field state data for: power,
+mode, setpoint, fan, follow-me-on, and the follow-me heartbeat frame
+format, plus a measured real timeout value.
+
+---
+
+## Milestone 2 — Device A: convert the BME280 node to native Matter
+
+Current state: ESPHome + HA native API, BME280 over I2C, already tuned
+with a two-stage smoothing filter (sliding window + EMA) from earlier work
+— keep that filtering logic, just port the transport.
+
+- Framework: ESP-IDF + `esp-matter` (Espressif's official Matter SDK).
+  Recommend **not** relying on ESPHome's current Matter support for this —
+  it's alpha-stage as of last check (ESPHome's Thread support up to now
+  has mostly been "ESPHome's own protocol carried over Thread," not the
+  actual Matter protocol), and this project wants a real Matter
+  Temperature Sensor node with reliable subscription/reporting behavior.
+- Device type: Matter **Temperature Sensor**, endpoint exposing:
+  - `Temperature Measurement` cluster (0x0402) — `MeasuredValue`, fed by
+    your existing filtered BME280 reading, in centidegrees C per spec.
+  - Optionally `Relative Humidity Measurement` (0x0405) too — free, since
+    the BME280 already gives you humidity and you're rewriting this
+    device's firmware anyway.
+- Keep publishing to HA as well if you still want it in your dashboards —
+  either dual-publish (Matter + HA native API) or let HA pick it up as a
+  Matter device once your Matter Server / OTBR setup is live.
+
+---
+
+## Milestone 3 — Device B: IR blaster + Thermostat Matter device
+
+- Framework: ESP-IDF + `esp-matter`, same stack as Device A for
+  consistency.
+- Device type: Matter **Thermostat** (cluster 0x0201), exposing:
+  - `SystemMode`, `OccupiedCoolingSetpoint`, `OccupiedHeatingSetpoint`,
+    `ControlSequenceOfOperation` — standard attributes any Matter
+    controller (HA, Apple Home, Google Home, Alexa) can drive.
+  - `LocalTemperature` — **not sourced from a local sensor** (Device B
+    has none). Populate it by having Device B act as a Matter client
+    that **binds to Device A's Temperature Measurement cluster** and
+    subscribes to attribute reports. This is the standard Matter pattern
+    for "thermostat + remote sensor" pairs (same mechanism Ecobee/Nest
+    remote sensors use) — it's the cleanest match for "Device A sends
+    the request via Matter" the way you described it.
+- IR hardware: HX-03 transmitter DAT → GPIO, ideally through the
+  transistor driver mod noted above.
+
+### State model — full frames, not deltas
+
+This protocol family (like nearly all AC IR protocols) has no "just
+change the setpoint" command — every transmission is a **complete** state
+frame carrying power, mode, setpoint, fan speed, swing, and the follow-me
+bit all at once. There's no partial/delta update.
+
+- Device B keeps a persistent **shadow state struct**:
+  `{power, mode, setpoint, fan_speed, swing, followme_enabled}`.
+- A Matter attribute write updates *one field* of that struct in memory.
+  The actual IR transmission always serializes and sends the **entire**
+  struct — never just the changed field — since that's what the real
+  remote does and what the unit expects.
+- This applies to follow-me too: since the follow-me-enable bit lives
+  inside a full-state frame (per Milestone 1), turning it on/off means
+  sending a full frame with the *correct current* mode/setpoint/fan
+  alongside it, not a bare toggle byte.
+- Persist the shadow state to NVS flash so a Device B reboot doesn't lose
+  track of the AC's last-intended state and risk sending a stale or wrong
+  full frame on the next command after a restart.
+
+### Command send heuristics
+
+Don't wire Matter attribute writes straight to an IR send 1:1 — that's
+both wasteful and likely to misbehave. Apply these before actually
+transmitting:
+
+- **Debounce rapid writes.** Controllers can emit several quick attribute
+  writes in a row (HA slider drag, repeated app taps). Hold a short
+  debounce window (~300–500ms) after the last write, coalesce into one
+  send using the final settled values.
+- **Minimum meaningful change.** Skip sending if the new setpoint is
+  within the unit's own step resolution of what's already in the shadow
+  state (most AC protocols step by whole degrees) — no point firing IR
+  for a sub-resolution delta.
+- **Dedup against shadow state.** Before sending, compare the incoming
+  write against current shadow state. If it's just an echo of state you
+  already set (common with subscription re-reads), don't retransmit.
+- **Minimum inter-command spacing.** Real AC IR receivers typically need
+  a cooldown between accepted frames (often 500ms–1s+). Enforce a floor
+  on send spacing so rapid changes don't get silently dropped by the unit.
+- **Optional: cross-check Tuya status before sending.** Since Tuya status
+  GETs are reliable for you, Device B (or a coordinating layer) could read
+  Tuya's last-known reported state and skip the IR send if Tuya already
+  confirms the unit is in the desired state — reduces redundant commands
+  and the odds of fighting with another command source (physical remote,
+  Tuya app). Only worth building if you want Device B talking to Tuya at
+  all; otherwise trust the shadow state alone and skip this.
+- **Serialize against the follow-me heartbeat.** Only one thing can be on
+  the IR LED at a time. An explicit command send and a scheduled heartbeat
+  tick landing close together must queue, not overlap. Simplest rule: a
+  command send resets/delays the next heartbeat tick by one interval —
+  the command frame already reflects current state, so an immediately-
+  following heartbeat frame would be redundant anyway.
+
+---
+
+## Milestone 4 — Follow-me heartbeat logic
+
+Runs independently of normal command handling, on Device B:
+
+- Background timer task, interval = roughly **half** your Milestone-1
+  measured timeout (safety margin against a single missed cycle causing
+  a visible fallback).
+- Each tick: read the latest value received via the Device A subscription
+  (not a fresh poll — Matter subscriptions push updates on change/interval,
+  so just use last-known-good), format it into the short follow-me frame
+  captured in Milestone 1, send it.
+- If Device A's subscription goes stale (no updates for some window —
+  pick something sane like 2x its normal report interval), **stop** the
+  heartbeat rather than keep transmitting a frozen last-known temperature.
+  Letting the mini split's own timeout kick in and fall back to its
+  internal sensor is the correct fail-safe behavior here, same as the
+  real remote losing power.
+- One-time follow-me **enable** frame gets sent when SystemMode moves to
+  an active conditioning mode (or whenever you decide follow-me should
+  turn on) — this goes through the same shadow-state-driven full-frame
+  send as any other command (see State model, Milestone 3), just setting
+  `followme_enabled = true` before serializing.
+- Heartbeat ticks and command sends share the same IR send queue/spacing
+  rules from the Command send heuristics above — a heartbeat is just a
+  lower-priority, shorter frame competing for the same LED.
+
+---
+
+## Open questions to settle before/during the build
+
+1. **Protocol identity** — unknown until Milestone 1 capture. Everything
+   downstream depends on it.
+2. **Actual follow-me timeout for this unit** — also unknown until
+   measured in Milestone 1.
+3. **Device A's current chip** — confirm it's Thread-capable (ESP32-C6/H2
+   class) before committing to esp-matter/Thread for it; if it's an
+   older ESP32/ESP8266 without a Thread radio, it'll need Matter-over-WiFi
+   instead, which still works but is a different esp-matter build config.
+4. Whether you want Device B to *also* accept plain manual IR-remote input
+   (via the HX-M121 receiver you already have four of) so a physical
+   button press stays in sync with Matter-reported state — optional
+   nice-to-have, not required for the core follow-me goal.
+
+---
+
+## Suggested order for Claude Code
+
+1. Milestone 1 (protocol capture) — do this yourself first, it needs the
+   physical remote and unit in front of you; hand the captured data to
+   Claude Code afterward rather than having it guess at a protocol.
+2. Device B skeleton: esp-matter Thermostat device type, no IR logic yet
+   — get it commissioning onto your Thread network and controllable from
+   HA/a Matter controller.
+3. Wire in the IR send logic using Milestone 1's captured frames.
+4. Device A conversion to esp-matter Temperature Sensor.
+5. Binding Device B to Device A, verify `LocalTemperature` updates flow.
+6. Follow-me heartbeat loop + timeout/fail-safe logic.

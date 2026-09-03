@@ -11,7 +11,7 @@
 #include "src/sensors/GPS.h"
 #include "src/tracking/TrackLogger.h"
 #include "src/tracking/ElevationAPI.h"
-#include "src/tracking/TraccarUploader.h"
+#include "src/tracking/TripTrackerUploader.h"
 
 #include "src/ui/FormHelpers.h"
 #include "src/ui/PrimaryForm.h"
@@ -75,19 +75,12 @@ unsigned long turnOffTime;
 Genie genie;  
 VanWifi wifi;
 
-//TraccarUploader sends positions to a remote Traccar server via HTTP
-TraccarUploader traccarUploader;
-
-// Home geofence — auto-end Traccar trip when van returns
-#define HOME_LAT  47.756602
-#define HOME_LON -122.274359
-#define HOME_RADIUS_M 200.0   // meters from home to trigger arrival
-// traccarTripActive and leftHomeAfterTripStart are now stored in propBag.data
-// so they survive power cycles (rest stops in the middle of a trip).
-// These macros make the rest of the code read/write the persisted copies.
-#define traccarTripActive      propBag.data.traccarTripActive
-#define leftHomeAfterTripStart propBag.data.leftHomeAfterTripStart
-bool pendingTraccarTripStart = false;  // deferred until GPS fix available (session-only)
+//TripTrackerUploader sends telemetry directly to TripTracker's ingestion API.
+//TripTracker does its own complete home-geofence trip detection server-side
+//from the raw position stream, so (unlike the old Traccar uploader) there's
+//no trip-boundary state to track here at all — every point is just reported
+//as it comes in.
+TripTrackerUploader tripTrackerUploader;
 
 //GPS and track logging
 GPSModule gpsModule;
@@ -195,7 +188,7 @@ void setup()
   trackLogger.init();
 
   //Initialize Traccar uploader with TrackLogger for batch uploads
-  traccarUploader.init(&trackLogger);
+  tripTrackerUploader.init(&trackLogger);
 
   //Initialize elevation API for barometric altitude auto-calibration.
   elevationAPI.init();
@@ -436,53 +429,14 @@ void loop()
 
     if(wifi.isConnected())
     {
-      // Deferred trip start: send ignition ON now that we have real coordinates
-      if(pendingTraccarTripStart)
-      {
-        logger.log(INFO, "Traccar deferred trip start at %f,%f", (double)lat, (double)lon);
-        // Only send ignition ON — do not send a leading OFF that would split an existing trip.
-        traccarUploader.sendIgnitionEvent(true, lat, lon, elev, spd, currentData.currentSeconds,
+      // TripTracker does its own home-geofence trip detection server-side
+      // from the raw position stream, so every point is just reported as-is
+      // — no trip-boundary tracking needed here. currentIgnState is the
+      // actual physical ignition pin state; TripTracker stores it but
+      // doesn't use it for trip detection.
+      tripTrackerUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds, currentIgnState,
                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
-        traccarTripActive = true;
-        pendingTraccarTripStart = false;
-        leftHomeAfterTripStart = false;
-        propBag.savePropBag();
-        logger.log(INFO, "Traccar trip active — geofence armed once we leave home at %f,%f r=%dm", HOME_LAT, HOME_LON, (int)HOME_RADIUS_M);
-      }
-
-      // Use traccarTripActive (Traccar trip open/closed), not the physical ignition
-      // pin — the trip is meant to stay open across engine-off stops until we
-      // return home, so mid-trip points must keep reporting ignition=true even
-      // while the engine is actually off.
-      traccarUploader.sendLivePosition(lat, lon, elev, spd, currentData.currentSeconds, traccarTripActive,
-                                        currentData.currentMilesOnline ? currentData.currentMiles : -1);
-      traccarUploader.uploadBuffered();
-
-      // Auto-end Traccar trip when returning home (only after we've left home first)
-      if(traccarTripActive)
-      {
-        float dLat = (lat - HOME_LAT) * 111320.0;
-        float dLon = (lon - HOME_LON) * 111320.0 * cos(lat * 0.01745329);
-        float distM = sqrt(dLat * dLat + dLon * dLon);
-
-        // Track when we've actually left the home area (2km to avoid GPS jitter)
-        if(!leftHomeAfterTripStart && distM >= 2000.0)
-        {
-          leftHomeAfterTripStart = true;
-          propBag.savePropBag();
-          logger.log(INFO, "Left home geofence: %fm — trip end now armed", distM);
-        }
-
-        if(leftHomeAfterTripStart && distM < HOME_RADIUS_M)
-        {
-          logger.log(INFO, "Home geofence: %fm — ending Traccar trip", distM);
-          traccarUploader.sendIgnitionEvent(false, lat, lon, elev, spd, currentData.currentSeconds,
-                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
-          traccarTripActive = false;
-          leftHomeAfterTripStart = false;
-          propBag.savePropBag();
-        }
-      }
+      tripTrackerUploader.uploadBuffered();
 
       int rawBaro = currentData.getRawBaroElevation();
       if(elevationAPI.update(lat, lon, rawBaro))
@@ -859,47 +813,19 @@ void myGenieEventHandler(void)
       break;  
     case ACTION_START_NEW_TRIP:
       logger.log(VERBOSE,"Start Trip button pressed!");
-      {
-        float tripLat = gpsModule.getLatitude();
-        float tripLon = gpsModule.getLongitude();
-        if(wifi.isConnected() && (tripLat != 0.0 || tripLon != 0.0))
-        {
-          float tripElev = currentData.currentElevation;
-          float tripSpd = currentData.currentSpeed;
-          logger.log(INFO, "Traccar new trip start at %s fix %f,%f",
-                     gpsModule.hasFix() ? "current" : "last known",
-                     (double)tripLat, (double)tripLon);
-          // Always send OFF then ON: cleanly closes any prior Traccar trip
-          // and starts a new one, regardless of what the device thinks is open.
-          traccarUploader.sendIgnitionEvent(false, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds,
-                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
-          traccarUploader.sendIgnitionEvent(true, tripLat, tripLon, tripElev, tripSpd, currentData.currentSeconds + 1,
-                                             currentData.currentMilesOnline ? currentData.currentMiles : -1);
-          traccarTripActive = true;
-          pendingTraccarTripStart = false;
-          leftHomeAfterTripStart = false;
-        }
-        else
-        {
-          // No coordinates yet — defer until GPS gets a fix
-          pendingTraccarTripStart = true;
-          traccarTripActive = false;
-          logger.log(INFO, "New trip — Traccar trip start deferred until GPS fix");
-        }
-      }
-      idlingStartSeconds=currentData.currentSeconds; 
+      // TripTracker infers trips itself from the raw position stream (see
+      // sendLivePosition in the main loop), so this button only resets the
+      // on-device trip counters below - there's no server-side trip
+      // boundary to signal anymore.
+      idlingStartSeconds=currentData.currentSeconds;
       sinceLastStop.resetTripData();
       currentSegment.resetTripData();
       fullTrip.resetTripData();
       {
         // resetPropBag() resets calibration values but must not clobber the
-        // Traccar trip flags or the elevation offset we may have just set above.  Capture them first.
-        bool savedTripActive = traccarTripActive;
-        bool savedLeftHome   = leftHomeAfterTripStart;
+        // elevation offset we may have just set above. Capture it first.
         int savedElevationOffset = propBag.data.elevationOffset;
         propBag.resetPropBag();
-        traccarTripActive      = savedTripActive;
-        leftHomeAfterTripStart = savedLeftHome;
         propBag.data.elevationOffset = savedElevationOffset;
       }
       propBag.savePropBag();
@@ -1075,7 +1001,7 @@ void handleTrackList()
   String html = "<h2>GPS Track Files</h2>";
   html += "<p>Storage: " + String(trackLogger.getUsedBytes()) + "/" + String(trackLogger.getTotalBytes()) + " bytes (";
   html += String(trackLogger.getUsagePercent(), 0) + "%)</p>";
-  html += "<p>Traccar uploads: " + String(traccarUploader.getUploadedCount()) + " sent, " + String(traccarUploader.getFailedCount()) + " failed</p>";
+  html += "<p>TripTracker uploads: " + String(tripTrackerUploader.getUploadedCount()) + " sent, " + String(tripTrackerUploader.getFailedCount()) + " failed</p>";
   
   if (count == 0)
   {
