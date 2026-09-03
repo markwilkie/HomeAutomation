@@ -340,6 +340,22 @@ sensor:
   # source with a 5-minute moving average first removes that single-sample
   # noise before it ever reaches the derivative, so the resulting trend
   # reflects real multi-minute drift instead of sensor jitter.
+  # 2026-09-03: window_size widened 5->10min after the BME280 was physically
+  # relocated in the room and started reading the mini-split's own supply
+  # airflow directly -- confirmed via recorder history from 2026-09-02
+  # afternoon showing sensor.minisplit_bme280_trend swinging +-5F/hr in
+  # lockstep with compressor on/off, while the room itself moved only ~1.5F
+  # over the same 6 hours. That noise was propagating into the predictive
+  # automation's projected_error term and pinning its adaptive gain at the
+  # 1.2 ceiling for hours, producing a 1F sawtooth setpoint (see
+  # "MiniSplit BME280 predictive setpoint correction" in automations.yaml).
+  # Reimplemented this filter's and the derivative sensor's actual HA
+  # algorithms in a local simulator, validated against real Sept 2 history
+  # (exact match for the first ~2 hours), then compared window sizes: 5/15
+  # (then-current) produced 12 setpoint writes with 8 reversals over a
+  # noon-9pm replay; 10/30 (this change, paired with the derivative's
+  # time_window below) produced 5 writes with 1 reversal and gain topping
+  # out at 1.08 instead of pinning at the ceiling.
   - platform: filter
     name: "MiniSplit BME280 Smoothed"
     entity_id: sensor.mini_split_ac_bridge_temperature_2
@@ -347,7 +363,7 @@ sensor:
       - filter: time_simple_moving_average
         type: last
         window_size:
-          minutes: 5
+          minutes: 10
   - platform: derivative
     # Sourced from the offset-corrected sensor (template: block above), not
     # the raw smoothed one, so "trend" tracks whatever's now considered the
@@ -359,4 +375,10 @@ sensor:
     name: "MiniSplit BME280 Trend"
     unit_time: h
     time_window:
-      minutes: 15
+      # 2026-09-03: widened 15->30min alongside the filter's window_size
+      # above -- see that comment. The compressor's own ~25-35min on/off
+      # duty cycle (documented in automations.yaml) was small enough
+      # relative to the old 15min window that a single half-cycle could
+      # dominate the whole weighted-average derivative; 30min spans close
+      # to a full duty cycle so on/off phases average out instead.
+      minutes: 30
