@@ -61,6 +61,57 @@ devices:
   directly over the websocket on :3000 (its own separate "Z-Wave JS"
   integration), not MQTT.
 
+### Zigbee temp/humidity sensors (SONOFF SNZB-02P) — reporting is factory-coarse by default
+
+Out of the box, a newly-paired SNZB-02P only sends a temperature update on a
+full 1.0°C change (or once per hour regardless). This is Z2M's built-in
+default reporting config (`min 10s / max 3600s / change 100` raw units,
+i.e. 1.0°C) — nothing in `configuration.yaml`'s `devices:` block controls
+it, and there's no schema key for it. It has to be pushed to the physical
+device's Zigbee cluster directly, after pairing, while the device happens to
+be awake (it's a battery/sleepy end device, so the bind can time out if sent
+between check-ins — retry right after you see it report).
+
+`minisplit_followme_temp` (`0x18690afffe5602f1`) has had this tightened to
+0.1°C so it's responsive enough to drive the MiniSplit follow-me
+automations (see `automations.yaml`). Any *new* SNZB-02P — including
+`Upstairs Hallway` (`0x70d07efffea47190`), tightened 2026-09-09 — needs the
+same treatment manually. To do it: SSH to `192.168.15.30`, then publish to
+the `zigbee2mqtt` bridge over the `mosquitto` container:
+
+```
+mosquitto_pub -h localhost -p 1883 -u mwilkie -P <password from setup-mosquitto.sh> \
+  -t 'zigbee2mqtt/bridge/request/device/reporting/configure' \
+  -f reporting_payload.json
+```
+
+where `reporting_payload.json` is:
+
+```json
+{
+  "id": "<friendly_name>",
+  "endpoint": "1",
+  "cluster": "msTemperatureMeasurement",
+  "attribute": "measuredValue",
+  "minimum_report_interval": 10,
+  "maximum_report_interval": 3600,
+  "reportable_change": 10
+}
+```
+
+Watch `docker logs zigbee2mqtt` for `Configured reporting for '<name>',
+'msTemperatureMeasurement.measuredValue'` to confirm it landed — a bind
+timeout just means it missed the device's wake window, retry. Humidity
+(`msRelativeHumidity`) is left at the 1.0% factory default on both sensors
+today; there's been no need to tighten it yet, but the same request shape
+works with `"cluster": "msRelativeHumidity"` if that changes.
+
+This configuration lives only on the physical device's firmware (and Z2M's
+local cache of it) — there's no YAML record. A factory reset or re-pair
+silently reverts it to the 1.0°C default with nothing in git to catch the
+drift, so re-check `configured_reportings` in `zigbee2mqtt/bridge/devices`
+after any re-pairing.
+
 ## Non-browsable endpoints
 
 `ws://192.168.15.30:5580/ws` (Matter Server) and
