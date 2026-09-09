@@ -1,0 +1,13 @@
+# This board (ESP32-C6 devkit) has no separate UART-to-USB bridge chip --
+# the only physical PC connection is the chip's native USB-Serial-JTAG
+# peripheral (that's what showed up as COM3 during flashing: esptool logged
+# "USB mode: USB-Serial/JTAG"). ESP-IDF's default target config instead makes
+# physical UART0 the primary console (read+write) and USB-Serial-JTAG only a
+# secondary, write-only mirror (see esp_vfs_console/vfs_console.c:
+# console_read() only ever reads the primary fd). That default silently
+# breaks this app's interactive prompts: "Ready"/"Did the unit respond..."
+# print fine over the secondary-mirrored COM3, but keystrokes typed there
+# have nowhere to land -- UART0's pins aren't wired to anything. Found via
+# live hardware test 2026-09-07 ("I don't see anything" / input not
+# registering). Making USB-Serial-JTAG the primary fixes both directions.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
