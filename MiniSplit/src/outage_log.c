@@ -209,6 +209,27 @@ uint8_t outage_log_last_reason(void)
     return reason;
 }
 
+uint8_t outage_log_active_reason(void)
+{
+    if (!s_lock || xSemaphoreTake(s_lock, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        return 0;
+    }
+    uint8_t reason = 0;
+    // Scan newest-to-oldest (same index math as outage_log_last_reason())
+    // for the first still-open record, rather than blindly the most
+    // recently appended one -- see this function's header doc for why that
+    // distinction matters.
+    for (uint8_t i = 0; i < s_log.count; i++) {
+        uint8_t idx = (uint8_t)((s_log.next_index + OUTAGE_LOG_MAX_RECORDS - 1 - i) % OUTAGE_LOG_MAX_RECORDS);
+        if (s_log.records[idx].end_epoch == 0) {
+            reason = s_log.records[idx].reason;
+            break;
+        }
+    }
+    xSemaphoreGive(s_lock);
+    return reason;
+}
+
 esp_err_t outage_log_write_json(char *buf, size_t buf_len)
 {
     if (!buf || buf_len < 3) {

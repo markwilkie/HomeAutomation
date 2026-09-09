@@ -88,6 +88,22 @@ bool outage_log_any_active(void);
 uint8_t outage_log_last_reason(void);
 
 /**
+ * @brief The reason of whichever record is currently open, or 0 if none is
+ *
+ * Unlike outage_log_last_reason() (which keeps reflecting the most
+ * recently recorded reason even after it closes), this only looks at
+ * what's actually still open -- what outage_log_any_active() means by
+ * "active." Added 2026-09-07 after main.c's combined outage-status display
+ * (outage_log_any_active() + outage_log_last_reason() together) showed a
+ * stale reason: a brief, already-closed Tuya-unreachable blip logged after
+ * a still-open setpoint-mismatch outage made the display say "Tuya
+ * unreachable" while the real ongoing problem was the setpoint mismatch.
+ * If more than one reason happens to be open at once, returns whichever
+ * was opened most recently.
+ */
+uint8_t outage_log_active_reason(void);
+
+/**
  * @brief Write the full ring as a JSON array into buf
  *
  * Format: [{"reason":1,"detail":0,"rssi":-75,"start":1788200000,"end":1788200300}, ...]
