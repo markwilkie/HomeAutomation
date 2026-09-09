@@ -7,7 +7,8 @@
   IDF target chip. Defaults to esp32c6. Do NOT use esp32s3 for this project.
 
 .PARAMETER Port
-  COM port to flash. Defaults to COM6.
+  COM port to flash. Defaults to COM3 (this machine's port as of 2026-09-09 -- it moves,
+  verify against Device Manager / BUILD.md's VID_303A&PID_1001 check before trusting this).
 
 .EXAMPLE
   .\build.ps1
@@ -16,7 +17,7 @@
 
 param(
     [string]$Target = "esp32c6",
-    [string]$Port = "COM6"
+    [string]$Port = "COM3"
 )
 
 $ErrorActionPreference = "Stop"

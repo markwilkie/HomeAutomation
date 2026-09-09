@@ -6,15 +6,21 @@ firmware to compile and run on real hardware. If you only read one build doc, re
 
 ## TL;DR — verified working build
 
-**This machine's ESP-IDF is installed via EIM (Espressif Installation Manager), not a bare
-`git clone` + `export.ps1`.** EIM lays things out differently than the generic ESP-IDF docs
-describe — see "EIM vs. plain ESP-IDF" below before you go looking for `export.ps1`.
+**Both an EIM install and a plain-upstream install exist on this machine, and the on-disk
+`build/` directory is actually configured against the plain-upstream one** (confirmed
+2026-09-09 doing a real build+flash — the EIM activation path below produces a python.exe
+mismatch against this project's existing CMake cache). Use `export.ps1` from the framework
+source, not the EIM profile script, unless you've just done a `fullclean` and are starting
+fresh (in which case either works, but pick one and keep using it — see "EIM vs. plain
+ESP-IDF" below).
 
 ```powershell
 # From a PowerShell prompt (Windows)
 
-# 1. Activate the EIM-managed ESP-IDF 5.4.1 environment (NOT export.ps1 — see below)
-. C:\Espressif\tools\Microsoft.v5.4.1.PowerShell_profile.ps1
+# 1. Activate ESP-IDF -- export.ps1, not the EIM profile script, matches what this
+#    project's build/ cache is actually configured with (see note above).
+cd C:\esp\v5.4.1\esp-idf
+. .\export.ps1
 
 # 2. Work around the Windows path-length limit for the component cache
 $env:IDF_COMPONENT_CACHE_PATH = "C:\icc"
@@ -29,23 +35,33 @@ idf.py set-target esp32c6
 # 5. Build
 idf.py build
 
-# 6. Flash (adjust COM port -- check Device Manager, don't assume COM6; see below)
-idf.py -p COM4 flash
+# 6. Flash -- verify the port against Device Manager / the VID/PID check below every
+#    time, don't assume a fixed COM number; it's moved before (was COM4, is COM3 as of
+#    2026-09-09).
+idf.py -p COM3 flash
 
 # 7. Monitor: idf.py monitor requires an interactive TTY and will fail in any
 #    non-interactive/automated shell ("Monitor requires standard input to be
 #    attached to TTY"). From an actual interactive PowerShell window it's fine:
-#    idf.py -p COM4 monitor
+#    idf.py -p COM3 monitor
 #    From automation (no TTY), read the port directly instead -- see
 #    "Reading serial output without a TTY" below.
 ```
+
+**Confirming which port is the real board, not an assumption:** its native
+USB-Serial-JTAG shows up as VID 303A / PID 1001 (Espressif's own VID) --
+`Get-CimInstance Win32_PnPEntity | Where-Object { $_.Name -match 'COM\d+' } | Select-Object Name, DeviceID`
+and match the `VID_303A&PID_1001` substring in `DeviceID`, don't just trust whichever
+`COM#` looks familiar.
 
 ## EIM vs. plain ESP-IDF -- read this first
 
 There can be **two different, non-interchangeable** ESP-IDF installs on a Windows machine:
 
 1. **EIM (Espressif Installation Manager)** — installed via `winget install Espressif.EIM-CLI`
-   then `eim install -i v5.4.1`. This is what's actually set up and working on this machine.
+   then `eim install -i v5.4.1`. Installed on this machine, but **this project's existing
+   `build/` directory is not configured against it** (confirmed 2026-09-09) — use it only after
+   a `fullclean`, or expect the python.exe-mismatch error below.
    - Framework source: `C:\esp\v5.4.1\esp-idf`
    - Toolchain + Python venv: under `C:\Espressif\tools\` (e.g.
      `C:\Espressif\tools\python\v5.4.1\venv\Scripts\python.exe`)
@@ -86,7 +102,7 @@ without a TTY" below for a workaround in that situation.
 | Target | **esp32c6** | RISC-V architecture |
 | esp-matter | 1.5.0 | Pulled by the IDF Component Manager (`src/idf_component.yml`) |
 | cJSON | espressif/cjson ^1.7.19 | Component Manager |
-| Flash port | **COM4** on this machine (native USB-Serial-JTAG, VID 303A/PID 1001) — **not** COM6; always verify against Device Manager / `Get-CimInstance Win32_PnPEntity \| ? Name -match 'COM\d+'` rather than assuming |
+| Flash port | **COM3** on this machine as of 2026-09-09 (native USB-Serial-JTAG, VID 303A/PID 1001) — was COM4 before that, was never COM6; the number moves, always verify against Device Manager / `Get-CimInstance Win32_PnPEntity \| ? Name -match 'COM\d+'` rather than assuming |
 
 ## Prerequisites
 
