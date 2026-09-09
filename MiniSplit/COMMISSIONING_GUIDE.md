@@ -267,6 +267,68 @@ succeed)
 3. Confirm BLE is available on the host running `matterjs-server` (see Prerequisites above)
 4. Restart the HA Matter integration and retry
 
+### BLE Discovers the Device, Then "Error while connecting to peripheral ... le-connection-abort-by-local"
+
+**Symptom:** matter-server's `Initiating discovery of node with discriminator N` succeeds (logs show
+`1 discovered`), but the commission attempt still fails, with an error chain ending in
+`[ble] Error while connecting to peripheral <MAC>` / `Caused by: le-connection-abort-by-local`. The
+device's own serial log shows it stayed in CHIPoBLE advertising the whole time with no incoming
+connection ever registered -- the *host's* Bluetooth stack aborted before ever reaching the device,
+not a device-side rejection.
+
+**Cause:** flaky BlueZ/D-Bus state on the `matterjs-server` host (specifically observed with the
+`@stoprocent/noble` + `dbus-next` bindings this server uses) -- not a range or RF issue. Confirmed
+on real hardware (2026-09-03) with the device physically adjacent to the host, ruling out range
+entirely: `bluetoothctl show` on the host showed the adapter powered on and actively discovering the
+whole time this was failing.
+
+**Solutions, in order (cheapest first):**
+1. `docker restart matter-server` -- resets its internal BLE binding without touching the host's
+   BlueZ daemon at all. Sometimes sufficient on its own.
+2. If that doesn't help, on the `matterjs-server` host:
+   ```
+   sudo bluetoothctl remove <the peripheral MAC from the error>
+   sudo systemctl restart bluetooth
+   ```
+   then `docker restart matter-server` again so it reconnects to the freshly-restarted BlueZ daemon.
+   `systemctl restart bluetooth` is host-wide, not scoped to this one connection attempt -- low risk
+   on a home-automation server with no other Bluetooth consumers, but worth knowing before running it
+   on a host that has any.
+3. Give the device a fresh BLE commissioning window before retrying (erase just its NVS partition,
+   e.g. `esptool.py --chip esp32c6 -p COMx erase_region 0x9000 0x6000`, then let it reboot) -- a
+   stale/already-"commissioned" fabric on the device side (see the SmartThings-unfamiliar-network
+   entry above for a related but distinct symptom) independently stops it advertising at all, which
+   looks identical from the controller side (`No commissionable device was discovered`) until you
+   check the device's own serial log.
+
+### Attestation Rejected: "This device uses a test/development certificate"
+
+**Symptom:** BLE pairing, PASE, ArmFailsafe, and regulatory config all succeed, then commissioning
+fails at the `OperationalCredentials.DeviceAttestation` step with: *"This device uses a
+test/development certificate. To commission it, enable the 'Test DCL' option in the settings --
+only do this if you trust the vendor."*
+
+**Cause:** the device is running firmware with a CSA test-range Vendor ID (esp-matter's default is
+`0xFFF1`/65521 for any build that hasn't been through real DCL certification -- true of any
+just-built dev/test esp-matter device, this project's included). `matterjs-server`'s default
+"production trust policy" rejects test/dev attestation certificates outright.
+
+**The error's own suggested fix does not apply to this deployment.** "Enable the Test DCL option in
+the settings" describes Home Assistant's *bundled* Matter add-on, which has that as a UI toggle.
+This stack runs matterjs-server standalone (`Wyse5070DebSetup/setup-matter-server.sh`), which has no
+such toggle anywhere in its own web UI (`http://<host>:5580`) -- the actual control is a **server
+startup flag**: `--enable-test-net-dcl` / env var `ENABLE_TEST_NET_DCL=true`. Already wired into
+`setup-matter-server.sh`'s generated `docker-compose.yml` as of 2026-09-03; if a *different* Matter
+server instance ever hits this, that's the fix -- add the env var and recreate the container
+(`docker compose up -d --force-recreate`).
+
+**Why MiniSplit's own device never hit this:** it was migrated in from the older python-matter-server
+storage format (watch for `LegacyDataInjector` / `Commissioned nodes migration completed` log lines
+on startup), not freshly commissioned under this server's stricter policy -- grandfathered in, not
+exempt from the rule. Confirmed hitting this for real, and confirmed the fix, while commissioning
+`MiniSplitIR/DeviceB` (2026-09-03) -- see that project's `captures/` and `DeviceB/README.md` for the
+full session.
+
 ### Commissioning Starts but Thread Join Fails
 
 **Causes:**

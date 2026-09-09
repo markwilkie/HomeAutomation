@@ -112,9 +112,32 @@ services:
     #
     # Unlike python-matter-server's old command override, STORAGE_PATH
     # already defaults to /data -- no need to repeat it here.
+    #
+    # ENABLE_TEST_NET_DCL=true (maps to matter-server's --enable-test-net-dcl
+    # CLI flag): without this, matterjs-server's default "production trust
+    # policy" rejects Device Attestation for any device using a CSA test-range
+    # Vendor ID (e.g. 0xFFF1/65521, esp-matter's default for unreleased/dev
+    # firmware) with "This device uses a test/development certificate... To
+    # commission it, enable the 'Test DCL' option in the settings" -- despite
+    # the error text, there is NO such toggle in this deployment's own web UI
+    # (that message is worded for HA's bundled Matter add-on, which does
+    # expose one); here it's this env var / CLI flag only. Confirmed on real
+    # hardware while commissioning MiniSplitIR/DeviceB (2026-09-03): BLE
+    # pairing and every commissioning step up through regulatory config
+    # succeeded fine, then attestation failed with exactly this message every
+    # time until this flag was added and the container recreated. MiniSplit's
+    # own node never hit this because it was migrated in from the old
+    # python-matter-server storage format (see LegacyDataInjector log lines
+    # on startup), not freshly commissioned under this server's stricter
+    # policy -- so it's untested/unaffected, but ANY new dev-firmware Matter
+    # device commissioned fresh against this server needs this flag set
+    # first. See MiniSplit/COMMISSIONING_GUIDE.md for the full story
+    # (including a separate, unrelated BLE connection issue hit in the same
+    # session).
     environment:
       - NOBLE_BINDINGS=dbus
       - BLUETOOTH_ADAPTER=0
+      - ENABLE_TEST_NET_DCL=true
     volumes:
       - ${APPDATA_ROOT}/data:/data
       - /run/dbus:/run/dbus:ro
