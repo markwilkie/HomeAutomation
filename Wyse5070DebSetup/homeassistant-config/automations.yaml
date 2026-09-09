@@ -25,21 +25,28 @@
       temperature: 70
   mode: single
 - id: '1783985529104'
-  alias: MiniSplit BME280 setpoint nudge
-  description: Re-sends the current Tuya setpoint when the BME280 indoor sensor reads
-    more than 8 degrees above setpoint (6-degree BME280 placement offset + 2-degree
-    margin, per 2026-07-13 finding that this BME280 reads ~6F higher than true room
-    temp), to force the AC to re-evaluate cooling. Separate from the existing "MiniSplit"
-    automation, which uses the mini-split's own onboard sensor (reads ~11F low).
+  alias: MiniSplit FollowMe setpoint nudge
+  description: >-
+    Re-sends the current Tuya setpoint when the indoor sensor reads more than
+    2 degrees above setpoint for 10 minutes, to force the AC to re-evaluate
+    cooling. Separate from the existing "MiniSplit" automation, which uses
+    the mini-split's own onboard sensor (reads ~11F low).
+
+    2026-09-06: source switched from BME280 (sensor.mini_split_ac_bridge_temperature_2)
+    to a Zigbee "follow me" temp sensor (sensor.0x18690afffe5602f1_temperature).
+    Threshold dropped from 8 to 2 degrees at the same time -- the old 8 was a
+    6-degree BME280 placement offset plus a 2-degree margin (per the 2026-07-13
+    finding that BME280 read ~6F high); follow-me has no known placement bias,
+    so only the 2-degree margin carries over.
   triggers:
   - trigger: numeric_state
     entity_id:
-    - sensor.mini_split_ac_bridge_temperature_2
+    - sensor.0x18690afffe5602f1_temperature
     - climate.mini_split_ac_bridge
-    value_template: '{{ states(''sensor.mini_split_ac_bridge_temperature_2'') | float(0)
+    value_template: '{{ states(''sensor.0x18690afffe5602f1_temperature'') | float(0)
       - (state_attr(''climate.mini_split_ac_bridge'', ''temperature'') | float(0))
       }}'
-    above: 6
+    above: 2
     for:
       hours: 0
       minutes: 10
@@ -54,7 +61,7 @@
         }}'
   mode: single
 - id: '1784138281282'
-  alias: MiniSplit BME280 cascade setpoint correction
+  alias: MiniSplit FollowMe cascade setpoint correction
   description: >-
     Cascade-control outer loop over Tuya's own onboard thermostat. Every 10
     minutes, computes a bias-corrected Tuya setpoint from the BME280 (true
@@ -74,7 +81,8 @@
     several cycles. Skips the write entirely if the compressor changed
     on/off state in the last 5 minutes (anti-short-cycle) or its demand %
     has changed in the last 3 minutes (still ramping --
-    sensor.mini_split_ac_bridge_humidity_5, a repurposed Humidity endpoint
+    sensor.bedroom_mini_split_ac_bridge_humidity_3 (was humidity_5 until the
+    2026-09-08 BME280-removal endpoint shift), a repurposed Humidity endpoint
     carrying PICoolingDemand's 0-100% value, since HA's Matter integration
     only exposes a sensor for PIHeatingDemand, which this device never
     uses), or if the (already-capped) correction differs from the current
@@ -106,6 +114,15 @@
     Replaces the generic_thermostat + template switch approach (retired in
     configuration.yaml), which only ever toggled hvac_mode and never
     actually forced Tuya's own compressor decision.
+
+    2026-09-06: BME280 retired for a Zigbee "follow me" temp sensor
+    (sensor.0x18690afffe5602f1_temperature), read directly with no smoothing
+    or offset -- see configuration.yaml for the corresponding removal of
+    sensor.minisplit_bme280_corrected, sensor.minisplit_bme280_smoothed, and
+    input_number.minisplit_temp_offset. lag_minutes/trend_per_hour/
+    projected_error (the BME280 drift-projection terms) were removed too;
+    `error` is now used directly in their place. Day/night setpoints also
+    dropped 5 degrees (75/75 -> 70/70 live).
   triggers:
   - trigger: time_pattern
     minutes: /10
@@ -120,45 +137,22 @@
       # read-only day/night-ramped value (configuration.yaml) -- so this
       # automation's target now follows a schedule instead of a single flat
       # number.
-      target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(71) }}"
-      lag_minutes: 16
+      target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(66) }}"
       adaptive_gain: "{{ states('input_number.minisplit_adaptive_gain') | float(1.0) }}"
       last_sign: "{{ states('input_number.minisplit_last_correction_sign') | int(0) }}"
-      # Was the raw sensor until 2026-08-08. Confirmed on real hardware: this
-      # BME280's raw reading swings genuinely (not sensor noise/corruption --
-      # a smooth, monotonic ~8F drop over 15 minutes was directly observed)
-      # by several degrees within a single 15-minute window, almost
-      # certainly from picking up the mini-split's own blown-air stream as
-      # the compressor cycles. Since this automation only samples bme280_now
-      # once per 10-minute run, feeding it the raw value meant the computed
-      # error -- and therefore the setpoint this automation writes -- swung
-      # with whatever phase of that cycle it happened to sample, which is
-      # what was actually driving the setpoint's persistent 70/71F
-      # flip-flopping overnight rather than ever converging. Switched to the
-      # existing 5-minute moving average (configuration.yaml's "MiniSplit
-      # BME280 Smoothed" sensor, already computed for the trend/derivative
-      # below) so this averages out that real short-term swing while still
-      # tracking genuine longer-term drift.
-      # sensor.minisplit_bme280_corrected (configuration.yaml): the smoothed
-      # BME280 reading with input_number.minisplit_temp_offset (added
-      # 2026-08-08) added in, correcting for a sensor placement/calibration
-      # bias. target_temp above (sensor.minisplit_computed_setpoint) is
-      # deliberately NOT offset-adjusted -- it's the user's actual desired
-      # room temperature, nothing to correct there. Offset on this side
-      # only means it has real, non-cancelling effect on `error` /
-      # `correction` / the setpoint this automation actually writes below.
-      # (A same-magnitude offset was briefly applied to both sides on
-      # 2026-08-08 -- that cancels out of a subtraction entirely and made
-      # the offset a no-op for Tuya's actual setpoint, display-only.)
-      bme280_now: "{{ states('sensor.minisplit_bme280_corrected') | float(0) }}"
-      trend_per_hour: "{{ states('sensor.minisplit_bme280_trend') | float(0) }}"
+      # 2026-09-06: reads the Zigbee "follow me" temp sensor directly, no
+      # smoothing or offset. BME280 (sensor.minisplit_bme280_corrected, and
+      # the 5-minute smoothing average it was built on -- both retired the
+      # same day) needed that pipeline because it sat in the mini-split's
+      # own supply airflow; follow-me doesn't share that placement problem,
+      # so there's nothing here left to smooth or offset-correct.
+      followme_now: "{{ states('sensor.0x18690afffe5602f1_temperature') | float(0) }}"
       outdoor_temp: "{{ states('sensor.mini_split_ac_bridge_outdoor_temperature') | float(75) }}"
       current_setpoint: "{{ state_attr('climate.mini_split_ac_bridge', 'temperature') | float(0) }}"
-      error: "{{ bme280_now - target_temp }}"
-      projected_error: "{{ error + trend_per_hour * (lag_minutes / 60) }}"
+      error: "{{ followme_now - target_temp }}"
       outdoor_factor: "{{ min(max((outdoor_temp - 75) / 20, 0), 1) }}"
       gain: "{{ adaptive_gain * (1 + outdoor_factor) }}"
-      correction: "{{ gain * projected_error }}"
+      correction: "{{ gain * error }}"
       # Was tuya_now - correction (tuya_now = Tuya's own onboard
       # current_temperature, smoothed via sensor.minisplit_tuya_current_smoothed)
       # until 2026-08-09. That anchored the written setpoint to Tuya's own
@@ -182,7 +176,7 @@
   - condition: template
     value_template: >-
       {{ new_setpoint > current_setpoint
-         or (as_timestamp(now()) - as_timestamp(states.sensor.mini_split_ac_bridge_humidity_5.last_changed)) > 180 }}
+         or (as_timestamp(now()) - as_timestamp(states.sensor.bedroom_mini_split_ac_bridge_humidity_3.last_changed)) > 180 }}
   - condition: template
     value_template: "{{ (new_setpoint - current_setpoint) | abs >= 1 }}"
   - action: climate.set_temperature
@@ -208,7 +202,7 @@
       value: "{{ this_sign }}"
   mode: single
 - id: '1787800000001'
-  alias: MiniSplit BME280 predictive setpoint correction
+  alias: MiniSplit FollowMe predictive setpoint correction
   description: >-
     Alternative to "MiniSplit BME280 cascade setpoint correction" above --
     created 2026-08-26 to try anticipating a BME280 drift instead of reacting
@@ -255,7 +249,7 @@
     Removed after a few hours live: the compressor's own ~25-35 minute
     on/off duty cycle turned out to imprint a real, smooth, near-periodic
     swing directly onto sensor.minisplit_bme280_trend (confirmed against
-    sensor.mini_split_ac_bridge_humidity_5's demand-cycle timestamps, not
+    sensor.bedroom_mini_split_ac_bridge_humidity_3's demand-cycle timestamps, not
     just inferred), so "time until the trend reaches the expected sign" was
     mostly measuring coincidental alignment with the compressor's own
     rhythm, not the room's causal response to a setpoint command. The
@@ -299,11 +293,23 @@
     2026-08-30: rewritten firmware flashed (desired/actual setpoint split,
     no more revert-on-failure logic, fixed poll interval, HTTP timeout +
     stall self-restart). current_setpoint now reads
-    climate.bedroom_mini_split_ac_bridge_thermostat_8's temperature
-    attribute (Matter endpoint 8, dedicated desired-setpoint entity) instead
+    climate.bedroom_mini_split_ac_bridge_thermostat_6's temperature
+    attribute (Matter endpoint 6, dedicated desired-setpoint entity) instead
     of input_number.minisplit_desired_setpoint, and the real command target
     for climate.set_temperature moved from climate.mini_split_ac_bridge (now
     read-only, rejects setpoint writes) to that same new entity.
+
+    2026-09-08: this was thermostat_8 (endpoint 8) until the BME280 removal
+    shifted every later Matter endpoint down by 2 -- HA doesn't renumber an
+    existing entity when the underlying endpoint moves, it just leaves the
+    old one frozen and creates a new one at the new number, so this had to
+    be repointed by hand. (The pre-shift entity_id was actually never
+    "bedroom_mini_split_ac_bridge_thermostat_8" either -- that one was
+    created before the device's HA name gained "Bedroom," so its real
+    entity_id was "mini_split_ac_bridge_thermostat_8" with no prefix. This
+    automation had been silently targeting a nonexistent entity_id the
+    whole time; the endpoint-shift fix happens to also correct that, since
+    thermostat_6 was created after the rename and does carry the prefix.)
     input_number.minisplit_desired_setpoint's final write was removed --
     the new entity's own attribute is the record now, no separate
     bookkeeping helper needed. input_number.minisplit_desired_setpoint
@@ -331,6 +337,35 @@
     act on. Bridge is back in place and stable (~8.5 hours uptime, no
     reboots, no spurious power-offs since the StartUpOnOff fix); re-enabled
     the same day.
+
+    2026-09-06: BME280 retired for a Zigbee "follow me" temp sensor
+    (sensor.0x18690afffe5602f1_temperature), read directly with no smoothing
+    or offset -- see configuration.yaml for the corresponding removal of
+    sensor.minisplit_bme280_corrected, sensor.minisplit_bme280_smoothed, and
+    input_number.minisplit_temp_offset. lag_minutes/trend_per_hour/
+    projected_error (the BME280 drift-projection terms) were removed;
+    `error` is used directly in `correction` below. The persistent-sign
+    threshold-relaxation subsystem (input_number.minisplit_trend_last_sign,
+    input_datetime.minisplit_trend_sign_since, persistence_minutes, the
+    relaxed 0.5-degree min_move, and the 2026-09-04 max_step_down/up
+    halving -- see both below) was rebuilt on the sign of `error` itself
+    rather than removed: that protection was never actually specific to
+    BME280's supply-airflow noise, it just needs some signal to track
+    persistence of, and error is the one this automation still reads
+    directly. The helper entity IDs were kept as-is (still
+    "trend"-prefixed) so their live state carries over with no reseed.
+    Also discovered this same day: the 2026-09-04 max_step_down/up
+    persistence gate had been deployed live but never synced back to this
+    repo file -- now folded in below along with the rest of this rework.
+    Day/night setpoints also dropped 5 degrees (75/75 -> 70/70 live).
+
+    2026-09-06, later same day: added a flat 29-minute cooldown (see the
+    condition just above the final action) capping writes to at most one
+    per cooldown window regardless of direction or confidence -- a direct
+    measurement of "has the last correction had time to show up yet"
+    rather than the occupancy/demand-ramp proxy above, which stays in place
+    alongside it. 29 (not 30) to line up with the compressor's own
+    ~25-35 minute duty cycle.
   initial_state: true
   triggers:
   - trigger: time_pattern
@@ -354,15 +389,19 @@
          or (as_timestamp(now()) - as_timestamp(states.binary_sensor.mini_split_ac_bridge_occupancy.last_changed)) > 300 }}
   actions:
   - variables:
-      target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(71) }}"
+      target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(66) }}"
       adaptive_gain: "{{ states('input_number.minisplit_predictive_adaptive_gain') | float(1.0) }}"
       last_sign: "{{ states('input_number.minisplit_predictive_last_correction_sign') | int(0) }}"
-      lag_minutes: 16
-      bme280_now: "{{ states('sensor.minisplit_bme280_corrected') | float(0) }}"
-      trend_per_hour: "{{ states('sensor.minisplit_bme280_trend') | float(0) }}"
+      # 2026-09-06: reads the Zigbee "follow me" temp sensor directly, no
+      # smoothing or offset. BME280 (sensor.minisplit_bme280_corrected, and
+      # the 5-minute smoothing average it was built on -- both retired the
+      # same day) needed that pipeline because it sat in the mini-split's
+      # own supply airflow; follow-me doesn't share that placement problem,
+      # so there's nothing here left to smooth or offset-correct.
+      followme_now: "{{ states('sensor.0x18690afffe5602f1_temperature') | float(0) }}"
       outdoor_temp: "{{ states('sensor.mini_split_ac_bridge_outdoor_temperature') | float(75) }}"
       # 2026-08-30: firmware flashed with the desired/actual setpoint split --
-      # climate.bedroom_mini_split_ac_bridge_thermostat_8 (Matter endpoint 8)
+      # climate.bedroom_mini_split_ac_bridge_thermostat_6 (Matter endpoint 6)
       # is a dedicated, HA-writable setpoint that nothing else touches or
       # mirrors Tuya status onto, so it's read directly now instead of via
       # the HA-side input_number.minisplit_desired_setpoint bookkeeping
@@ -372,7 +411,7 @@
       # read-only and purely mirrors whatever Tuya's cloud reports, still
       # carrying the same Celsius-0.5-step rounding/compressor-driven-trend
       # noise this avoided pre-flash too.
-      current_setpoint: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_8', 'temperature') | float(72) }}"
+      current_setpoint: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') | float(67) }}"
       # Guard added 2026-09-01: current_setpoint above is the DESIRED entity's
       # own last-written value, not confirmation that Tuya's actual setpoint
       # ever caught up to it. Found live tonight: the firmware's correction
@@ -388,18 +427,26 @@
       # desired can never end up more than 1 degree from what's actually
       # confirmed, regardless of how many ticks pass without confirmation.
       actual_temp: "{{ state_attr('climate.mini_split_ac_bridge', 'temperature') | float(current_setpoint) }}"
-      # Small deadband around zero so float noise right at a near-flat trend
-      # doesn't flap the tracked sign back and forth every run.
-      current_trend_sign: "{{ 1 if trend_per_hour > 0.1 else (-1 if trend_per_hour < -0.1 else 0) }}"
-      trend_last_sign: "{{ states('input_number.minisplit_trend_last_sign') | int(0) }}"
-      is_sign_flip: "{{ current_trend_sign != trend_last_sign }}"
+      error: "{{ followme_now - target_temp }}"
+      # 2026-09-06: was sensor.minisplit_bme280_trend's derivative sign until
+      # BME280 was retired -- rebuilt on error's own sign instead, since the
+      # "a freshly reversed signal isn't trustworthy yet" protection this
+      # feeds (both the step-cap below and the min_move relaxation further
+      # down) was never actually BME280-specific. Small deadband around zero
+      # so float noise right at target doesn't flap the tracked sign.
+      # Entities kept as minisplit_trend_last_sign / minisplit_trend_sign_since
+      # (configuration.yaml) rather than renamed, so existing live helper
+      # state carries over with no new-helper reseed needed.
+      current_error_sign: "{{ 1 if error > 0.1 else (-1 if error < -0.1 else 0) }}"
+      error_last_sign: "{{ states('input_number.minisplit_trend_last_sign') | int(0) }}"
+      is_sign_flip: "{{ current_error_sign != error_last_sign }}"
       # If the sign just flipped this run, persistence is 0 regardless of
       # what minisplit_trend_sign_since still says (it hasn't been updated
       # yet this run) -- computed this way so the threshold-relaxation logic
       # below doesn't need a second read after the helper-update step.
       sign_since_ts: "{{ as_timestamp(states('input_datetime.minisplit_trend_sign_since'), as_timestamp(now())) }}"
       persistence_minutes: "{{ 0 if is_sign_flip else ((as_timestamp(now()) - sign_since_ts) / 60) }}"
-  # Record a new trend-sign-since timestamp only on an actual flip, so
+  # Record a new sign-since timestamp only on an actual flip, so
   # persistence_minutes above keeps growing across runs where the sign holds.
   - choose:
     - conditions: "{{ is_sign_flip }}"
@@ -408,18 +455,34 @@
         target:
           entity_id: input_number.minisplit_trend_last_sign
         data:
-          value: "{{ current_trend_sign }}"
+          value: "{{ current_error_sign }}"
       - action: input_datetime.set_datetime
         target:
           entity_id: input_datetime.minisplit_trend_sign_since
         data:
           timestamp: "{{ now().timestamp() }}"
   - variables:
-      error: "{{ bme280_now - target_temp }}"
-      projected_error: "{{ error + trend_per_hour * (lag_minutes / 60) }}"
       outdoor_factor: "{{ min(max((outdoor_temp - 75) / 20, 0), 1) }}"
-      gain: "{{ adaptive_gain * (1 + outdoor_factor) }}"
-      correction: "{{ gain * projected_error }}"
+      # 2026-09-03: load_factor added after finding the loop reversing the
+      # setpoint almost every tick during low-load stretches -- the BME280's
+      # +-1F/20-30min idle swing (supply-airflow placement) looked exactly
+      # like a real trend to this formula with nothing distinguishing "the
+      # compressor is actually working" from "it's not running and this is
+      # noise." sensor.minisplit_duty_cycle_ewma (configuration.yaml) is an
+      # EWMA of compressor on/off state, ~20min half-life -- dividing by
+      # 0.15 (a typical active-evening duty cycle) and clamping to
+      # [0.15, 1.0] means gain is ~full strength once duty cycle reaches
+      # that level, scales down smoothly below it, and never fully zeroes
+      # out (the 0.15 floor still allows a slow correction to get through
+      # given enough persistence, rather than freezing solid during a long
+      # idle stretch). Simulated against the 9/2 21:00-9/3 17:00 window
+      # before deploying: cut writes 28->8 and reversals 13->2 over that
+      # replay, and fully eliminated reversals in the specific afternoon
+      # window (compressor idle almost the whole time) that prompted this.
+      duty_cycle_ewma: "{{ states('sensor.minisplit_duty_cycle_ewma') | float(0) / 100 }}"
+      load_factor: "{{ min(max(duty_cycle_ewma / 0.15, 0.15), 1.0) }}"
+      gain: "{{ adaptive_gain * (1 + outdoor_factor) * load_factor }}"
+      correction: "{{ gain * error }}"
       # Anchored to current_setpoint, not Tuya's own onboard current_temperature
       # (tuya_now, dropped 2026-08-26 evening) -- that anchored every write to
       # Tuya's own sensor, which reads well below the setpoints this loop
@@ -433,8 +496,33 @@
       # this exact fix on 2026-08-09; this automation should have copied that
       # version instead of the pre-fix formula when it was written.
       raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
-      max_step_down: 1
-      max_step_up: 1
+      # Persistence gate (originally added 2026-09-04, live-only and never
+      # synced back to this repo until the 2026-09-06 BME280->follow-me
+      # rework surfaced the gap): a sign that just flipped (persistence_minutes
+      # == 0, i.e. this tick or the flip itself) hasn't earned the full
+      # 1F/cycle budget yet, so it gets half instead. Traced to a real
+      # incident: compressor ran hard then stopped at 13:04, BME280 kept
+      # reading colder for several minutes on residual airflow, and the
+      # fresh (unconfirmed) trend that produced got a full 1F step at 13:10
+      # same as a trend held for an hour would have -- three such ticks in a
+      # row (13:10/13:20/13:30) pushed the setpoint 72->75 before the trend
+      # reversed at 13:40 and gave a degree back. Backtested against
+      # 2026-09-02 12:00 - 2026-09-04 14:00 real history before deploying:
+      # this change caps that specific incident's peak at 74 instead of 75
+      # (the two ticks with zero persistence -- the initial reaction and the
+      # reversal -- get halved; the two ticks that had already held for
+      # 10+/20+ minutes are unaffected), while leaving reversal count and
+      # where the loop settles over the full 48-hour window essentially
+      # unchanged (22 writes/9 reversals baseline vs. 20 writes/9 reversals
+      # gated, same final setpoint). Threshold is intentionally short (10
+      # min, one tick) -- long enough to filter a single-tick blip, short
+      # enough that a real fast trend only loses one half-strength cycle
+      # before resuming full authority. 2026-09-06: re-based on error's own
+      # sign (persistence_minutes above) rather than BME280's derivative
+      # trend sign, same as the min_move relaxation below -- this guard was
+      # never actually about BME280's noise specifically.
+      max_step_down: "{{ 1 if persistence_minutes >= 10 else 0.5 }}"
+      max_step_up: "{{ 1 if persistence_minutes >= 10 else 0.5 }}"
       stepped_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
       # Final clamp (2026-09-01, see actual_temp above): never let the
       # per-cycle step above carry desired more than 1 degree from Tuya's
@@ -443,7 +531,7 @@
       # case) or hasn't fallen more than 1 degree behind yet.
       new_setpoint: "{{ min(max(stepped_setpoint, actual_temp - 1), actual_temp + 1) }}"
       # The threshold this incident actually got stuck on: a sustained
-      # (>=40min, no reversal) trend can act on a half-degree move instead of
+      # (>=40min, no reversal) sign can act on a half-degree move instead of
       # needing a full degree, since persistence has already ruled out noise.
       # 40 (not the original 20) so one compressor half-cycle (~25-35min,
       # see the description above) can't satisfy this on its own.
@@ -470,9 +558,11 @@
   #     to the 60F floor repeatedly, something the real deployed policy
   #     never did once in the same window.
   #
-  # This version deadbands on `projected_error` instead (gain-independent,
-  # doesn't shrink as confidence grows) -- same 0.1F deadband convention as
-  # current_trend_sign above. Also re-simulated with the compressor-guard
+  # This version deadbands on `error` instead (gain-independent, doesn't
+  # shrink as confidence grows) -- was `projected_error` (BME280's trend-
+  # projected error term) until 2026-09-06, renamed when that term was
+  # removed along with BME280 itself; the deadband value and reasoning are
+  # unchanged. Also re-simulated with the compressor-guard
   # responding to THIS policy's own downward pushes (turns on ~immediately
   # after a push, holds ~15min, matching real measured engagement/cycle
   # data) instead of being graded against the real, milder policy's
@@ -485,10 +575,10 @@
   # than the write-gated original) though more modestly than the first
   # (invalid, fixed-history-guard) estimate suggested.
   - choose:
-    - conditions: "{{ projected_error | abs > 0.1 }}"
+    - conditions: "{{ error | abs > 0.1 }}"
       sequence:
       - variables:
-          this_sign: "{{ -1 if projected_error > 0 else 1 }}"
+          this_sign: "{{ -1 if error > 0 else 1 }}"
           gain_step: >-
             {{ adaptive_gain * 0.85 if (last_sign != 0 and this_sign != last_sign)
                else adaptive_gain * 1.05 }}
@@ -517,9 +607,36 @@
     value_template: >-
       {{ new_setpoint > current_setpoint
          or (is_state('binary_sensor.mini_split_ac_bridge_occupancy', 'off')
-             and (as_timestamp(now()) - as_timestamp(states.sensor.mini_split_ac_bridge_humidity_5.last_changed)) > 180) }}
+             and (as_timestamp(now()) - as_timestamp(states.sensor.bedroom_mini_split_ac_bridge_humidity_3.last_changed)) > 180) }}
   - condition: template
     value_template: "{{ (new_setpoint - current_setpoint) | abs >= min_move }}"
+  # 2026-09-06: hard cooldown -- at most one write per 29 minutes, regardless
+  # of direction or how confident the correction is. Uses last_updated (not
+  # last_changed) on the desired-setpoint entity itself, since a
+  # climate.set_temperature call only changes its `temperature` attribute,
+  # never its `state` (the hvac mode) -- last_changed would never move and
+  # the cooldown would be a no-op. Safe to key off this specific entity's
+  # last_updated with no extra guard: per the comment above, nothing else
+  # ever writes to climate.bedroom_mini_split_ac_bridge_thermostat_6, so any
+  # update to it is this automation's own last write.
+  #
+  # 29 minutes (not a round 30) lines up with the compressor's own
+  # documented ~25-35 minute on/off duty cycle -- caps corrections at
+  # roughly one per cycle, which is the cadence the guards above were
+  # already chasing indirectly (both the 2026-07-15 and 2026-08-28
+  # incidents were a second correction landing before the first had time to
+  # show up in the reading). This is a direct measurement of that same
+  # thing instead of a proxy, so it overlaps in purpose with the
+  # occupancy/demand-ramp guard above rather than replacing it -- left both
+  # in place for now.
+  #
+  # Applied to both directions, not just downward like the guard above --
+  # the user asked for a flat "once every 29 minutes" limit, not an
+  # asymmetric one. Revisit if upward/overshoot corrections end up feeling
+  # too sluggish in practice.
+  - condition: template
+    value_template: >-
+      {{ (as_timestamp(now()) - as_timestamp(states.climate.bedroom_mini_split_ac_bridge_thermostat_6.last_updated)) >= 1740 }}
   # 2026-08-30: now targets the dedicated Desired Setpoint endpoint (see
   # current_setpoint above), not climate.mini_split_ac_bridge -- writing the
   # main endpoint's setpoint post-flash is rejected outright by the firmware
@@ -531,7 +648,47 @@
   # `temperature` attribute *is* that record (see current_setpoint above).
   - action: climate.set_temperature
     target:
-      entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_8
+      entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
     data:
       temperature: "{{ new_setpoint }}"
+  mode: single
+- id: '1788809000000'
+  alias: MiniSplit FollowMe temp relay to firmware
+  description: >-
+    Relays the Zigbee "follow me" sensor's real reading straight to the
+    MiniSplit firmware's own Follow-Me Matter endpoint
+    (climate.bedroom_mini_split_ac_bridge_thermostat_10, endpoint 10) every
+    time it updates. Added 2026-09-07 as part of that milestone's final
+    architecture (was endpoint 12/thermostat_12 until the 2026-09-08 BME280
+    removal shifted every later endpoint down by 2 -- see thermostat_6's
+    note above, same repoint, same reason): the firmware originally tried
+    running its own MQTT client
+    directly against Mosquitto, but that connection never worked on this
+    Thread-only device (no usable DNS/NAT64 path found after several
+    attempts -- see MiniSplit/PLAN.md Milestone 3 for the full writeup), so
+    HA relays the value instead, the same way it already does for
+    thermostat_6's Desired Setpoint. No unit conversion applied -- passed
+    straight through in Celsius, matching how this same sensor is already
+    compared directly against thermostat_6's `temperature` attribute
+    elsewhere in this file (the "predictive setpoint correction" automation
+    above) with no conversion, confirming Matter climate attributes read in
+    Celsius via templates regardless of the frontend's display unit.
+
+    The firmware only actually sends a Follow-Me IR frame every ~3 minutes
+    (its own heartbeat cadence, delayed further if a real command was just
+    sent -- see main.c's followme_task) -- this automation firing more often
+    than that on every sensor update is harmless, since the firmware just
+    keeps the freshest value cached until its own timer next fires.
+  triggers:
+    - trigger: state
+      entity_id: sensor.0x18690afffe5602f1_temperature
+  conditions:
+    - condition: template
+      value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable', 'none'] }}"
+  actions:
+    - action: climate.set_temperature
+      target:
+        entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_10
+      data:
+        temperature: "{{ trigger.to_state.state | float }}"
   mode: single

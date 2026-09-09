@@ -16,22 +16,41 @@ scene: !include scenes.yaml
 # from and translate; customize: just makes the raw ones legible too,
 # instead of Home Assistant's auto-generated "Bedroom Mini Split Ac Bridge
 # Humidity 10"-style names, without touching the entity registry directly.
+#
+# 2026-09-08: retargeted from _8/_9/_10/_11 to _6/_7/_8/_9 (endpoint -> 6/7/8/9)
+# after removing the firmware's BME280 endpoints shifted every later Matter
+# endpoint down by 2. Also dropped the "deprecated BME280" and "STALE
+# DUPLICATE" entries that used to live here -- BME280 support and the old
+# duplicate Matter node are both actually gone now (firmware recompiled
+# without it; the duplicate node's entities were deleted from the registry
+# directly), so there's nothing left for those entries to hide.
 homeassistant:
   customize:
-    sensor.bedroom_mini_split_ac_bridge_humidity_10:
+    sensor.bedroom_mini_split_ac_bridge_humidity_8:
       friendly_name: "MiniSplit Outage Reason (raw code)"
       icon: mdi:alert-circle-outline
-    binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9:
+    binary_sensor.bedroom_mini_split_ac_bridge_occupancy_7:
       friendly_name: "MiniSplit Outage Active (raw)"
       icon: mdi:alert
-    sensor.bedroom_mini_split_ac_bridge_humidity_11:
+    sensor.bedroom_mini_split_ac_bridge_humidity_9:
       friendly_name: "MiniSplit Thread RSSI (raw)"
       icon: mdi:signal
+    # Canonical MiniSplit humidity value as of 2026-09-06 -- the Zigbee
+    # "follow me" device (sensor.0x18690afffe5602f1_temperature is its
+    # temperature counterpart, already used in automations.yaml) also
+    # reports humidity, with no BME280 dependency.
+    sensor.0x18690afffe5602f1_humidity:
+      friendly_name: "MiniSplit Humidity"
+      icon: mdi:water-percent
 
-# BME280 rate-of-change over a 15-minute window (deg F/hour). Used by the
-# "MiniSplit BME280 cascade setpoint correction" automation (automations.yaml)
-# to project the ~16min measured BME280-behind-Tuya lag forward, instead of
-# reacting to the raw absolute reading alone.
+# 2026-09-06: the BME280 rate-of-change / lag-projection mechanism that used
+# to be documented here (sensor.minisplit_bme280_trend, lag_minutes,
+# projected_error) has been removed -- BME280 itself was retired for a
+# Zigbee "follow me" temp sensor (sensor.0x18690afffe5602f1_temperature),
+# and the smoothing/derivative pipeline built specifically to filter
+# BME280's supply-airflow noise has nothing left to filter. Both
+# setpoint-correction automations now compare the follow-me reading against
+# target_temp directly, with no lag projection.
 #
 # Retires the generic_thermostat + template switch approach that used to be
 # here: that only ever toggled hvac_mode (Cool/Off), which is a no-op once
@@ -98,24 +117,14 @@ input_number:
     icon: mdi:weather-night
     mode: slider
 
-  # Single hand-tunable calibration constant, folded into the day/night
-  # setpoints (and therefore the computed setpoint derived from them, below)
-  # and into "MiniSplit BME280 Corrected" (sensor: block below) -- one
-  # number instead of baking a correction into each consumer separately.
-  # Seeded to -8 on 2026-08-08 via the entity registry/restore_state
-  # directly, not `initial:` -- same "no initial:" reasoning as the other
-  # MiniSplit input_numbers: this needs to survive HA restarts as whatever
-  # it was last hand-tuned to, not reset to a hardcoded value every time.
-  minisplit_temp_offset:
-    name: "MiniSplit Temperature Offset"
-    min: -15
-    max: 15
-    step: 0.5
-    unit_of_measurement: "°F"
-    icon: mdi:plus-minus-variant
-    mode: box
+  # minisplit_temp_offset (calibration constant for BME280 placement bias)
+  # removed 2026-09-06: BME280 was retired in favor of a Zigbee "follow me"
+  # temp sensor (sensor.0x18690afffe5602f1_temperature) with no comparable
+  # placement bias to correct for, so there's nothing left for this to feed.
+  # sensor.minisplit_bme280_corrected (below) removed the same day for the
+  # same reason.
 
-  # --- State for the "MiniSplit BME280 predictive setpoint correction"
+  # --- State for the "MiniSplit FollowMe predictive setpoint correction"
   # automation (automations.yaml). Kept entirely separate from the
   # minisplit_adaptive_gain / minisplit_last_correction_sign pair above
   # (used by the older cascade automation) so the two controllers -- which
@@ -146,12 +155,26 @@ input_number:
     icon: mdi:swap-vertical
     mode: box
 
-  # Sign (-1/0/+1) of sensor.minisplit_bme280_trend as of the *previous*
-  # predictive-automation run, compared against the current sign each run to
-  # detect when the trend direction actually flips (vs. holding steady) --
-  # see minisplit_trend_sign_since below, which only resets on a real flip.
+  # Sign (-1/0/+1) of the predictive automation's `error` term (followme_now
+  # - target_temp) as of the *previous* run, compared against the current
+  # sign each run to detect a reversal -- see minisplit_trend_sign_since
+  # below, which only resets on a real flip. Feeds two anti-overshoot
+  # guards in automations.yaml: a halved max_step_down/up for ~10 minutes
+  # after a fresh flip, and a relaxed (1 -> 0.5 degree) min_move threshold
+  # once a sign has held unreversed for 40+ minutes.
+  #
+  # 2026-09-06: until this date the tracked sign was sensor.minisplit_bme280_trend's
+  # derivative (rate of change), not error's own sign -- rebuilt on error
+  # directly when BME280 (and that derivative sensor) was retired for a
+  # Zigbee "follow me" temp sensor, since the underlying "a freshly reversed
+  # signal isn't trustworthy yet" protection was never actually specific to
+  # BME280's supply-airflow noise; it just needs *some* signal to track
+  # persistence of, and error is the one this automation still reads
+  # directly. Entity IDs kept as minisplit_trend_last_sign / (below)
+  # minisplit_trend_sign_since rather than renamed, so the existing live
+  # helper state carries over with no new-helper reseed needed.
   minisplit_trend_last_sign:
-    name: "MiniSplit Trend Last Sign"
+    name: "MiniSplit Error Sign (Last)"
     min: -1
     max: 1
     step: 1
@@ -161,7 +184,7 @@ input_number:
 # minisplit_night_setpoint above: flat at the night setpoint 22:00-07:00,
 # ramps linearly up to the day setpoint 07:00-11:00, flat at the day
 # setpoint 11:00-19:00, ramps back down to the night setpoint 19:00-22:00.
-# Read by the "MiniSplit BME280 cascade setpoint correction" automation
+# Read by the "MiniSplit FollowMe cascade setpoint correction" automation
 # (automations.yaml) as its target temperature every 10-minute run.
 #
 # Deliberately a `template:` sensor, not an input_number -- unlike the
@@ -191,17 +214,15 @@ template:
         unit_of_measurement: "°F"
         icon: mdi:thermostat-auto
         state: >-
-          {# Deliberately NOT offset-adjusted, despite input_number.minisplit_temp_offset
-             existing (2026-08-08) -- the offset belongs on the BME280 reading side only
-             (sensor.minisplit_bme280_corrected, below), which is what actually needs
-             correcting for a sensor placement/calibration bias. This sensor represents
-             the user's actual desired room temperature, which has no such bias to
-             correct. Folding the offset in here too was tried and reverted the same day:
-             with the same offset on both sides of the cascade automation's
-             `bme280_now - target_temp` comparison, it cancels out completely and the
-             offset ends up with zero effect on the setpoint actually written to Tuya. #}
-          {% set day_setpoint = states('input_number.minisplit_day_setpoint') | float(74) %}
-          {% set night_setpoint = states('input_number.minisplit_night_setpoint') | float(68) %}
+          {# 2026-09-06: the offset-cancellation note that used to live here is now
+             moot -- input_number.minisplit_temp_offset and sensor.minisplit_bme280_corrected
+             are both gone (BME280 retired for a Zigbee "follow me" sensor with no
+             placement bias to correct for), so there's no offset on either side of the
+             cascade/predictive automations' `followme_now - target_temp` comparison to
+             cancel. Day/night setpoints also dropped 5F this same day (75/75 -> 70/70
+             live), hence the lowered fallback defaults below. #}
+          {% set day_setpoint = states('input_number.minisplit_day_setpoint') | float(69) %}
+          {% set night_setpoint = states('input_number.minisplit_night_setpoint') | float(63) %}
           {% set now_minutes = now().hour * 60 + now().minute %}
           {% set ramp_up_start = 420 %}
           {% set ramp_up_end = 660 %}
@@ -216,45 +237,18 @@ template:
                         night_setpoint %}
           {{ ((raw * 2) | round(0) / 2) }}
 
-  # Trigger-based (2026-08-29, was a plain state-based sensor) -- still
-  # updates immediately on a fresh BME280 sample or a hand-adjusted offset
-  # slider, same as before, but now via an explicit state trigger with a
-  # condition instead of implicit recompute-on-any-referenced-entity-change.
-  # The plain state-based version recomputed on EVERY change to
-  # sensor.minisplit_bme280_smoothed, including a transient "unavailable" --
-  # which fed straight into `| float(0)`, producing a real recorded reading
-  # of exactly -10.0F (0 + the -10 offset) for one sample on 2026-08-28
-  # 5:22pm. The condition below makes the trigger a no-op whenever the
-  # source is unavailable/unknown, so the sensor just holds its last good
-  # value for that tick instead of recording a physically impossible number.
-  - trigger:
-      - trigger: state
-        entity_id:
-          - sensor.minisplit_bme280_smoothed
-          - input_number.minisplit_temp_offset
-    conditions:
-      - condition: not
-        conditions:
-          - condition: state
-            entity_id: sensor.minisplit_bme280_smoothed
-            state: "unavailable"
-          - condition: state
-            entity_id: sensor.minisplit_bme280_smoothed
-            state: "unknown"
-    sensor:
-      - name: "MiniSplit BME280 Corrected"
-        unique_id: minisplit_bme280_corrected
-        unit_of_measurement: "°F"
-        icon: mdi:home-thermometer
-        state: >-
-          {% set offset = states('input_number.minisplit_temp_offset') | float(0) %}
-          {{ (states('sensor.minisplit_bme280_smoothed') | float(0)) + offset }}
+  # sensor.minisplit_bme280_corrected removed 2026-09-06: BME280 (and its
+  # smoothing sensor, sensor.minisplit_bme280_smoothed) retired in favor of
+  # a Zigbee "follow me" temp sensor (sensor.0x18690afffe5602f1_temperature)
+  # with no placement bias to correct for and no need for the offset/
+  # smoothing this sensor applied. automations.yaml now reads the follow-me
+  # entity directly.
 
   # Combined outage status for the MiniSplit firmware's "Outage Active"
-  # (occupancy_9) and "Outage Reason" (humidity_10) endpoints
+  # (occupancy_7) and "Outage Reason" (humidity_8) endpoints
   # (outage_log.h / matter_device.cpp, 2026-09-01). Reason is a code
   # (0=none, 1=Tuya unreachable, 2=Setpoint mismatch, 3=Device restart,
-  # 4=Thread disconnected), not a percentage -- humidity_10 is a repurposed
+  # 4=Thread disconnected), not a percentage -- humidity_8 is a repurposed
   # Humidity Sensor endpoint. Reason 4 can only ever show up here *after
   # the fact*, once Thread reattaches -- see outage_log.h's doc comment for
   # why that one can't be reported live.
@@ -263,11 +257,11 @@ template:
   # "Last Outage Reason" text sensor, which kept showing the last reason
   # even once resolved). Combined 2026-09-01 so one entity answers "is
   # something wrong, and what" at a glance -- state is "Clear" whenever
-  # occupancy_9 is off, otherwise the decoded reason string. The full
+  # occupancy_7 is off, otherwise the decoded reason string. The full
   # open/close timeline is still free from this entity's own history/
   # logbook, same as the old binary sensor gave.
   #
-  # Confirmed live (2026-09-01): humidity_10 appeared automatically after
+  # Confirmed live (2026-09-01): humidity_8 appeared automatically after
   # restarting the matter-server container (no full re-pairing or manual
   # re-interview needed) as endpoint 10, picking up the device's
   # "bedroom_" name prefix like the other more-recently-added endpoints
@@ -275,8 +269,8 @@ template:
   - trigger:
       - trigger: state
         entity_id:
-          - binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9
-          - sensor.bedroom_mini_split_ac_bridge_humidity_10
+          - binary_sensor.bedroom_mini_split_ac_bridge_occupancy_7
+          - sensor.bedroom_mini_split_ac_bridge_humidity_8
       - trigger: homeassistant
         event: start
     sensor:
@@ -284,10 +278,10 @@ template:
         unique_id: minisplit_outage_status
         icon: mdi:alert-circle-outline
         state: >-
-          {% if not is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_9', 'on') %}
+          {% if not is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_7', 'on') %}
             Clear
           {% else %}
-            {% set code = states('sensor.bedroom_mini_split_ac_bridge_humidity_10') | int(0) %}
+            {% set code = states('sensor.bedroom_mini_split_ac_bridge_humidity_8') | int(0) %}
             {{ {0: "none", 1: "Tuya unreachable", 2: "Setpoint mismatch",
                 3: "Device restart", 4: "Thread disconnected"}.get(code, "unknown") }}
           {% endif %}
@@ -302,83 +296,133 @@ template:
   # cluster's value is unsigned. Home Assistant's own /100 division already
   # happens on the Matter side, so this template only needs to undo the
   # +128 offset. 255 decodes from OpenThread's own OT_RADIO_RSSI_INVALID
-  # sentinel (127 + 128) -- shown as "unknown" rather than a fake -1 dBm.
+  # sentinel (127 + 128) -- shown as unknown rather than a fake -1 dBm.
+  #
+  # 2026-09-09: found this sensor had been stuck on "unknown" since at least
+  # 2026-09-03 (confirmed via repeated "Received invalid sensor state:
+  # unknown for entity sensor.minisplit_thread_rssi, expected a number"
+  # errors in the HA log, spanning 9/3-9/7, well before today's endpoint
+  # retargeting) -- unrelated to the endpoint shift, a real pre-existing
+  # bug. Root cause: this sensor declares unit_of_measurement, so Home
+  # Assistant validates its rendered state as numeric; the old template's
+  # `{% else %} unknown {% endif %}` branch produced the literal three-
+  # letter STRING "unknown" as a candidate state, which fails that numeric
+  # check and gets rejected outright (logged, then the entity is left
+  # however it was, which was however this exact failure had already left
+  # it -- self-reinforcing once it happens once). Fixed by rendering Jinja's
+  # `none` for the invalid case instead of literal text -- that's the
+  # actually-blessed way to make a numeric template sensor report unknown,
+  # since Home Assistant special-cases a fully-None render rather than
+  # trying to parse it as a number.
   - trigger:
       - trigger: state
-        entity_id: sensor.bedroom_mini_split_ac_bridge_humidity_11
+        entity_id: sensor.bedroom_mini_split_ac_bridge_humidity_9
     sensor:
       - name: "MiniSplit Thread RSSI"
         unique_id: minisplit_thread_rssi
         unit_of_measurement: "dBm"
         icon: mdi:signal
         state: >-
-          {% set raw = states('sensor.bedroom_mini_split_ac_bridge_humidity_11') %}
+          {% set raw = states('sensor.bedroom_mini_split_ac_bridge_humidity_9') %}
           {% set v = raw | float(-1) | round(0) | int %}
-          {% if v < 0 or v == 255 %}
-            unknown
-          {% else %}
-            {{ v - 128 }}
-          {% endif %}
+          {{ (v - 128) if (v >= 0 and v != 255) else none }}
 
-# Timestamp state for the predictive automation's persistent-trend tracking
-# (see input_number.minisplit_trend_last_sign above). Starts unset
-# ("unknown") until the automation's first run, which the relevant template
-# treats as "just started now" rather than erroring or computing a nonsense
-# duration.
+  # Compressor duty-cycle estimate feeding the predictive automation's gain
+  # (automations.yaml, "MiniSplit FollowMe predictive setpoint correction") --
+  # added 2026-09-03 after finding the loop reversing the setpoint on almost
+  #
+  # 2026-09-08: the trigger/state entity_id below was
+  # "binary_sensor.mini_split_ac_bridge_occupancy" with no number -- that
+  # entity has never existed (missing the endpoint suffix entirely, a typo
+  # from whenever this was written), so this sensor was silently running on
+  # the /10-minute timer fallback alone the whole time, never actually
+  # decaying toward a fresh compressor-state change until the next tick.
+  # Fixed to point at the real Compressor Running entity (also retargeted
+  # from endpoint 6 to 4 by the same BME280-removal endpoint shift as
+  # everything else on this page).
+  # every 10-minute tick during low-load stretches (idle overnight, a mild
+  # afternoon) even after the same day's BME280 smoothing/derivative
+  # widening: the corrected sensor still swings +-1F within a single
+  # 20-30min stretch at idle (BME280 sits in the unit's own supply
+  # airflow), and with nothing tracking how much the compressor has
+  # actually been running lately, the loop treated that swing exactly like
+  # a real room trend and reversed direction to match it every time.
+  #
+  # An exponential moving average of instantaneous compressor state (1=on,
+  # 0=off), not a fixed rolling window -- simulated both against real
+  # 9/2-9/3 history before choosing: a fixed window has a hard edge, so a
+  # single cycle aging out of it can jump the estimate sharply (one real
+  # case: 0% -> 2.9% -> 34.7% across two 10-minute ticks as a cycle entered
+  # a 30-minute window). EWMA decays continuously instead, so the same
+  # event moves the estimate more gradually (7.8% -> 25.8% in the
+  # equivalent case) with no cliff as history ages out. At an equivalent
+  # time constant, EWMA halved the write/reversal counts a same-length
+  # fixed window got on the same replay (half-life 15-20min: 8 writes / 2
+  # reversals over the 9/2 21:00 - 9/3 17:00 replay, vs 14/6 for a 3-hour
+  # fixed window) and fully eliminated reversals in the afternoon window
+  # that prompted this change.
+  #
+  # tau = half_life / ln(2); 20-minute half-life -> tau ~= 1731s. Self-
+  # referencing (reads its own last state and last_updated), so it needs
+  # the trigger form -- decays toward the current compressor state on every
+  # occupancy change AND on a 10-minute timer, so it keeps decaying even
+  # through a long stretch with no on/off transition at all (matching the
+  # cadence the predictive automation reads it at). First run has no prior
+  # state, so `ent is not none` guards a clean bootstrap: dt collapses to 0
+  # and the sensor starts at 0% (assume no load until proven otherwise)
+  # rather than erroring on a nonexistent previous state.
+  - trigger:
+      - trigger: state
+        entity_id: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
+      - trigger: time_pattern
+        minutes: "/10"
+      # Without this, the sensor sits at "unknown" after every HA restart
+      # until the next occupancy change or /10 tick -- confirmed live
+      # 2026-09-03 right after the first deploy (predictive automation
+      # still worked, since `| float(0)` degrades load_factor to its 0.15
+      # floor rather than erroring, but there's no reason to wait when
+      # "MiniSplit Outage Status" above already established this pattern
+      # for the same problem).
+      - trigger: homeassistant
+        event: start
+    sensor:
+      # Named (not just unique_id'd) so the friendly-name slug lands on
+      # sensor.minisplit_duty_cycle_ewma -- `object_id:` isn't a valid key
+      # for trigger-based template sensors in this HA version (caught by
+      # `check_config` before deploy), so entity_id has to come from the
+      # name slug matching what this sensor's own self-reference and
+      # automations.yaml's gain formula both expect.
+      - name: "MiniSplit Duty Cycle EWMA"
+        unique_id: minisplit_duty_cycle_ewma
+        unit_of_measurement: "%"
+        icon: mdi:sine-wave
+        state: >-
+          {% set tau = 1731 %}
+          {% set ent = states.sensor.minisplit_duty_cycle_ewma %}
+          {% set prev = (ent.state | float(0) / 100) if (ent is not none and ent.state not in ['unknown', 'unavailable']) else 0 %}
+          {% set last_ts = as_timestamp(ent.last_updated) if ent is not none else as_timestamp(now()) %}
+          {% set dt = as_timestamp(now()) - last_ts %}
+          {% set instant = 1 if is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'on') else 0 %}
+          {% set decayed = instant + (prev - instant) * (2.718281828459045 ** (-dt / tau)) %}
+          {{ (decayed * 100) | round(2) }}
+
+# Timestamp state for the predictive automation's persistent-sign tracking
+# (see input_number.minisplit_trend_last_sign above -- 2026-09-06: now
+# tracks error-sign persistence, not BME280 trend, entity ID kept for
+# continuity). Starts unset ("unknown") until the automation's first run,
+# which the relevant template treats as "just started now" rather than
+# erroring or computing a nonsense duration.
 input_datetime:
   minisplit_trend_sign_since:
-    name: "MiniSplit Trend Sign Since"
+    name: "MiniSplit Error Sign Since"
     has_date: true
     has_time: true
 
-sensor:
-  # A single BME280 quantization blip (e.g. 0.1F over one 30s poll) computes
-  # to a huge instantaneous F/hour rate once differentiated -- confirmed by
-  # reading derivative/sensor.py: it averages pairwise slopes between raw
-  # consecutive readings, weighted only by segment duration, so one noisy
-  # 30s segment isn't diluted much within a 15-minute window. Smoothing the
-  # source with a 5-minute moving average first removes that single-sample
-  # noise before it ever reaches the derivative, so the resulting trend
-  # reflects real multi-minute drift instead of sensor jitter.
-  # 2026-09-03: window_size widened 5->10min after the BME280 was physically
-  # relocated in the room and started reading the mini-split's own supply
-  # airflow directly -- confirmed via recorder history from 2026-09-02
-  # afternoon showing sensor.minisplit_bme280_trend swinging +-5F/hr in
-  # lockstep with compressor on/off, while the room itself moved only ~1.5F
-  # over the same 6 hours. That noise was propagating into the predictive
-  # automation's projected_error term and pinning its adaptive gain at the
-  # 1.2 ceiling for hours, producing a 1F sawtooth setpoint (see
-  # "MiniSplit BME280 predictive setpoint correction" in automations.yaml).
-  # Reimplemented this filter's and the derivative sensor's actual HA
-  # algorithms in a local simulator, validated against real Sept 2 history
-  # (exact match for the first ~2 hours), then compared window sizes: 5/15
-  # (then-current) produced 12 setpoint writes with 8 reversals over a
-  # noon-9pm replay; 10/30 (this change, paired with the derivative's
-  # time_window below) produced 5 writes with 1 reversal and gain topping
-  # out at 1.08 instead of pinning at the ceiling.
-  - platform: filter
-    name: "MiniSplit BME280 Smoothed"
-    entity_id: sensor.mini_split_ac_bridge_temperature_2
-    filters:
-      - filter: time_simple_moving_average
-        type: last
-        window_size:
-          minutes: 10
-  - platform: derivative
-    # Sourced from the offset-corrected sensor (template: block above), not
-    # the raw smoothed one, so "trend" tracks whatever's now considered the
-    # canonical indoor reading. A constant offset doesn't change a
-    # derivative's value either way -- this is for conceptual consistency
-    # (one indoor-temp series feeding everything downstream), not because
-    # the numbers would otherwise differ.
-    source: sensor.minisplit_bme280_corrected
-    name: "MiniSplit BME280 Trend"
-    unit_time: h
-    time_window:
-      # 2026-09-03: widened 15->30min alongside the filter's window_size
-      # above -- see that comment. The compressor's own ~25-35min on/off
-      # duty cycle (documented in automations.yaml) was small enough
-      # relative to the old 15min window that a single half-cycle could
-      # dominate the whole weighted-average derivative; 30min spans close
-      # to a full duty cycle so on/off phases average out instead.
-      minutes: 30
+# sensor.minisplit_bme280_smoothed (filter platform) and
+# sensor.minisplit_bme280_trend (derivative platform) removed 2026-09-06:
+# both existed solely to filter BME280's own supply-airflow noise before
+# feeding it into the setpoint-correction automations' trend/projected-error
+# math. BME280 has been retired for a Zigbee "follow me" temp sensor
+# (sensor.0x18690afffe5602f1_temperature), which automations.yaml now reads
+# directly with no smoothing or derivative -- see automations.yaml for the
+# corresponding removal of lag_minutes/trend_per_hour/projected_error.
