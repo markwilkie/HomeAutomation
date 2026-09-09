@@ -83,28 +83,6 @@ void matter_update_cooling_setpoint(int16_t temp_c);
 void matter_update_system_mode(uint8_t mode);
 
 /**
- * @brief Update the standalone (BME280) indoor Temperature Sensor endpoint value
- *
- * This is the BME280's own indoor reading -- deliberately separate from the
- * mini-split's indoor reading on the Thermostat's LocalTemperature
- * (matter_update_local_temperature). Only called from env_task, and only when
- * a BME280 is present; there is no Tuya fallback onto this endpoint.
- *
- * @param temp_c Temperature in Celsius (×100, e.g., 2200 = 22°C)
- */
-void matter_update_aux_temperature(int16_t temp_c);
-
-/**
- * @brief Update the standalone Humidity Sensor endpoint value
- *
- * Exposed to SmartThings as a Relative Humidity Measurement capability, usable
- * as a routine trigger/condition.
- *
- * @param humidity_centi_pct Relative humidity in percent ×100 (e.g., 5000 = 50%)
- */
-void matter_update_aux_humidity(uint16_t humidity_centi_pct);
-
-/**
  * @brief Update compressor load state from the Tuya compressor_frequency DP
  *
  * Writes to two places:
@@ -218,6 +196,22 @@ bool matter_get_onoff_state(void);
  * @return Desired setpoint in Celsius (×100)
  */
 int16_t matter_get_desired_cooling_setpoint(void);
+
+/**
+ * @brief Get the Follow-Me ambient sensor temperature, if HA has ever set one
+ *
+ * Reads the standalone Follow-Me endpoint's OccupiedCoolingSetpoint (PLAN.md
+ * Milestone 3) -- pushed by an HA automation that relays the real
+ * Zigbee2MQTT sensor reading here, since this firmware's own attempt at a
+ * direct MQTT connection never got a working DNS/NAT64 path on this
+ * Thread-only device (2026-09-07 decision).
+ *
+ * @param out_temp_c_x100 Set to the last value HA wrote, in Celsius x100 --
+ *                         unmodified if this function returns false.
+ * @return true if HA has written a real value since boot, false otherwise
+ *         (no reading yet -- callers should not send a Follow-Me frame).
+ */
+bool matter_get_followme_ambient_temp_c_x100(int16_t *out_temp_c_x100);
 
 /**
  * @brief Check if the Desired Setpoint endpoint's value changed since

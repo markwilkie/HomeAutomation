@@ -88,8 +88,6 @@ extern "C" void matter_set_network_event_group(EventGroupHandle_t event_group, E
 typedef struct {
     bool onoff;
     int16_t current_temp;
-    int16_t aux_temp;
-    uint16_t aux_humidity;
     int16_t heating_setpoint;
     int16_t cooling_setpoint;
     uint8_t system_mode;
@@ -113,6 +111,14 @@ typedef struct {
     // cycle instead, without touching the status-poll interval (the actual
     // quota-dominant call) at all -- see command_task in main.c.
     bool desired_setpoint_command_pending;
+    // Follow-Me ambient sensor temperature (PLAN.md Milestone 3), pushed by
+    // an HA automation rather than read by this firmware directly -- see
+    // g_followme_endpoint below. No hardcoded default is meaningful here
+    // (unlike desired_cooling_setpoint above), so followme_ambient_valid
+    // tracks whether HA has ever actually written a real value; main.c's
+    // followme_task won't send a Follow-Me frame until this is true.
+    int16_t followme_ambient_temp_c_x100;
+    bool followme_ambient_valid;
 } matter_device_state_t;
 
 static matter_device_state_t g_matter_state = {
@@ -130,8 +136,6 @@ static matter_device_state_t g_matter_state = {
     // smaller cost than one that reads as the AC turning itself off.
     .onoff = true,
     .current_temp = 2200,
-    .aux_temp = 2200,
-    .aux_humidity = 5000,
     .heating_setpoint = 2000,
     .cooling_setpoint = 2400,
     .system_mode = 3,
@@ -141,12 +145,12 @@ static matter_device_state_t g_matter_state = {
     .mode_command_pending = 0xFF,
     .desired_cooling_setpoint = 2400,
     .desired_setpoint_command_pending = false,
+    .followme_ambient_temp_c_x100 = 0,
+    .followme_ambient_valid = false,
 };
 
 static node_t *g_node = nullptr;
 static endpoint_t *g_endpoint = nullptr;
-static endpoint_t *g_temp_sensor_endpoint = nullptr;
-static endpoint_t *g_humidity_sensor_endpoint = nullptr;
 static endpoint_t *g_outdoor_temp_sensor_endpoint = nullptr;
 static endpoint_t *g_compressor_endpoint = nullptr;
 static endpoint_t *g_compressor_running_endpoint = nullptr;
@@ -155,9 +159,8 @@ static endpoint_t *g_desired_setpoint_endpoint = nullptr;
 static endpoint_t *g_outage_active_endpoint = nullptr;
 static endpoint_t *g_outage_reason_endpoint = nullptr;
 static endpoint_t *g_thread_rssi_endpoint = nullptr;
+static endpoint_t *g_followme_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
-static uint16_t g_temp_sensor_endpoint_id = 0;
-static uint16_t g_humidity_sensor_endpoint_id = 0;
 static uint16_t g_outdoor_temp_sensor_endpoint_id = 0;
 static uint16_t g_compressor_endpoint_id = 0;
 static uint16_t g_compressor_running_endpoint_id = 0;
@@ -166,19 +169,20 @@ static uint16_t g_desired_setpoint_endpoint_id = 0;
 static uint16_t g_outage_active_endpoint_id = 0;
 static uint16_t g_thread_rssi_endpoint_id = 0;
 static uint16_t g_outage_reason_endpoint_id = 0;
+static uint16_t g_followme_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
 
 // Persisted across reboots: onoff, system_mode, and desired_cooling_setpoint
 // -- added 2026-08-30 after confirming on real hardware that
 // desired_cooling_setpoint has no other resync path (everything else in
-// matter_device_state_t is a mirror of Tuya or the BME280, refreshed from
-// its real source within seconds to a few minutes of every boot regardless
-// of what the hardcoded default is) and that onoff's existing "default to
-// true" boot guess is only ever right for the common case, not the
-// still-real one where the unit was genuinely off. Deliberately NOT
-// persisting current_temp/heating_setpoint/cooling_setpoint/compressor_demand/
-// outdoor_temp/aux_temp/aux_humidity or any of the *_command_pending flags --
+// matter_device_state_t is a mirror of Tuya, refreshed from its real source
+// within seconds to a few minutes of every boot regardless of what the
+// hardcoded default is) and that onoff's existing "default to true" boot
+// guess is only ever right for the common case, not the still-real one
+// where the unit was genuinely off. Deliberately NOT persisting
+// current_temp/heating_setpoint/cooling_setpoint/compressor_demand/
+// outdoor_temp or any of the *_command_pending flags --
 // the mirrors gain nothing from it (already correct again within seconds)
 // and the pending flags actively should NOT survive a reboot (there is no
 // in-flight command from a session that no longer exists).
@@ -304,7 +308,8 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
     // power-down. g_desired_setpoint_endpoint is the standalone entity HA
     // actually writes a target temperature to now -- see below.
     bool is_relevant_endpoint = (endpoint_id == g_endpoint_id || endpoint_id == g_power_endpoint_id ||
-                                  endpoint_id == g_desired_setpoint_endpoint_id);
+                                  endpoint_id == g_desired_setpoint_endpoint_id ||
+                                  endpoint_id == g_followme_endpoint_id);
     if (!val || !is_relevant_endpoint || g_internal_attr_update) {
         return ESP_OK;
     }
@@ -322,14 +327,47 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
         return ESP_OK;
     }
 
-    if (endpoint_id == g_desired_setpoint_endpoint_id && cluster_id == Thermostat::Id &&
-        attribute_id == Thermostat::Attributes::OccupiedCoolingSetpoint::Id) {
-        if (g_matter_state.desired_cooling_setpoint != val->val.i16) {
-            g_matter_state.desired_cooling_setpoint = val->val.i16;
-            nvs_persist_i16(NVS_KEY_DESIRED_SETPOINT, g_matter_state.desired_cooling_setpoint);
+    if (endpoint_id == g_desired_setpoint_endpoint_id && cluster_id == Thermostat::Id) {
+        // Single-setpoint AC: Heating and Cooling setpoint writes on this
+        // endpoint both mean the same thing -- "the target temperature,"
+        // whichever mode ends up active -- so both feed the same underlying
+        // value (see the endpoint's own config comment above).
+        if (attribute_id == Thermostat::Attributes::OccupiedCoolingSetpoint::Id ||
+            attribute_id == Thermostat::Attributes::OccupiedHeatingSetpoint::Id) {
+            if (g_matter_state.desired_cooling_setpoint != val->val.i16) {
+                g_matter_state.desired_cooling_setpoint = val->val.i16;
+                nvs_persist_i16(NVS_KEY_DESIRED_SETPOINT, g_matter_state.desired_cooling_setpoint);
+            }
+            g_matter_state.desired_setpoint_command_pending = true;
+            ESP_LOGI(TAG, "Desired setpoint set to %d (0.01C)", g_matter_state.desired_cooling_setpoint);
+            return ESP_OK;
         }
-        g_matter_state.desired_setpoint_command_pending = true;
-        ESP_LOGI(TAG, "Desired setpoint set to %d (0.01C)", g_matter_state.desired_cooling_setpoint);
+        if (attribute_id == Thermostat::Attributes::SystemMode::Id) {
+            // Same pending-command mechanism the main endpoint's SystemMode
+            // write uses below -- command_task's existing "System Mode
+            // command" handling doesn't care which endpoint the write came
+            // from, only the resulting mode value. Added 2026-09-07 so
+            // selecting Heat (now available, see the Heat feature flag
+            // added above) from this endpoint's climate card actually does
+            // something instead of being silently accepted and ignored.
+            g_matter_state.system_mode = val->val.u8;
+            g_matter_state.mode_command_pending = g_matter_state.system_mode;
+            ESP_LOGI(TAG, "System mode command (Desired Setpoint endpoint): %u", g_matter_state.system_mode);
+            return ESP_OK;
+        }
+    }
+
+    if (endpoint_id == g_followme_endpoint_id && cluster_id == Thermostat::Id &&
+        attribute_id == Thermostat::Attributes::OccupiedCoolingSetpoint::Id) {
+        // PLAN.md Milestone 3, routed through HA instead of this firmware's
+        // own MQTT client (2026-09-07 decision -- a direct MQTT connection
+        // to Mosquitto never got a working DNS/NAT64 path on this Thread-only
+        // device; HA already reads the same Zigbee2MQTT sensor for its own
+        // FollowMe automations, so it relays the value here instead via an
+        // HA automation calling climate.set_temperature on this endpoint).
+        g_matter_state.followme_ambient_temp_c_x100 = val->val.i16;
+        g_matter_state.followme_ambient_valid = true;
+        ESP_LOGI(TAG, "Follow-Me ambient temp set to %d (0.01C)", g_matter_state.followme_ambient_temp_c_x100);
         return ESP_OK;
     }
 
@@ -425,46 +463,8 @@ extern "C" esp_err_t matter_device_init(void)
         ESP_LOGW(TAG, "Thermostat cluster not found; compressor demand / outdoor temperature unavailable");
     }
 
-    // Standalone temperature sensor endpoint. SmartThings exposes this as a
-    // Temperature Measurement capability that can be used as a routine trigger.
-    endpoint::temperature_sensor::config_t temp_sensor_cfg;
-    // Null/unknown, not g_matter_state.aux_temp -- that field isn't
-    // NVS-persisted (it self-heals from env_task within seconds, so it never
-    // needed to be), meaning it's always 0 on a fresh boot. Seeding with a
-    // real-looking 0 degrees C here made HA display a false "0.0C" reading
-    // after every reboot until commissioning came up and env_task's first
-    // accepted reading got through -- matches the outdoor temp sensor
-    // endpoint below, which already seeds null for the same reason.
-    temp_sensor_cfg.temperature_measurement.measured_value = nullable<int16_t>();
-    g_temp_sensor_endpoint = endpoint::temperature_sensor::create(g_node, &temp_sensor_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_temp_sensor_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Temperature Sensor endpoint");
-        return ESP_FAIL;
-    }
-    g_temp_sensor_endpoint_id = endpoint::get_id(g_temp_sensor_endpoint);
-    if (!g_temp_sensor_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Temperature Sensor endpoint id");
-        return ESP_FAIL;
-    }
-
-    // Standalone humidity sensor endpoint. SmartThings exposes this as a
-    // Relative Humidity Measurement capability usable as a routine trigger.
-    endpoint::humidity_sensor::config_t humidity_sensor_cfg;
-    // Null/unknown -- see the temperature sensor endpoint above for why.
-    humidity_sensor_cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>();
-    g_humidity_sensor_endpoint = endpoint::humidity_sensor::create(g_node, &humidity_sensor_cfg, ENDPOINT_FLAG_NONE, nullptr);
-    if (!g_humidity_sensor_endpoint) {
-        ESP_LOGE(TAG, "Failed to create Humidity Sensor endpoint");
-        return ESP_FAIL;
-    }
-    g_humidity_sensor_endpoint_id = endpoint::get_id(g_humidity_sensor_endpoint);
-    if (!g_humidity_sensor_endpoint_id) {
-        ESP_LOGE(TAG, "Failed to resolve Humidity Sensor endpoint id");
-        return ESP_FAIL;
-    }
-
-    // Standalone outdoor temperature sensor endpoint. Same pattern as the aux
-    // indoor temperature/humidity sensors above -- SmartThings only reliably
+    // Standalone outdoor temperature sensor endpoint. Same pattern as the
+    // Thermostat's bundled attributes above -- SmartThings only reliably
     // renders sensor data that lives on its own endpoint, not extra attributes
     // bundled onto the Thermostat cluster (confirmed: PICoolingDemand and the
     // Thermostat's own OutdoorTemperature attribute do not show up in the app).
@@ -532,10 +532,11 @@ extern "C" esp_err_t matter_device_init(void)
 
     // Dedicated true-power endpoint (On/Off Plug-in Unit), separate from the
     // Thermostat's own Cool/Off cycling. The Thermostat's SystemMode "Off"
-    // (see main.c's command_task()) now means "idle in fan mode, fresh-air
-    // valve open" -- NOT a real power-down -- so this endpoint's OnOff
-    // cluster is the only Matter/HA-reachable control that maps to
-    // tuya_set_power() and genuinely powers the physical unit off/on.
+    // (see main.c's command_task()) now means "idle in fan mode" -- NOT a
+    // real power-down -- so this endpoint's OnOff cluster is the only
+    // Matter/HA-reachable control that genuinely powers the physical unit
+    // off/on. Wired to real IR (send_ir_frame()'s power_on parameter) as of
+    // 2026-09-07, replacing the old always-disabled tuya_set_power() no-op.
     // Renders in Home Assistant as its own switch entity; rename it
     // something unambiguous (e.g. "MiniSplit Main Power") once commissioned,
     // to keep it clearly distinct from the thermostat's Cool/Off control.
@@ -564,21 +565,31 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
-    // Standalone "Desired Setpoint" endpoint -- a second, minimal Thermostat
-    // cluster (cooling-only; this is a cooling-only setup throughout) whose
-    // only job is to hold whatever HA last asked for. Never written by
-    // sync_task, so it carries none of the confirmation-lag/revert noise the
-    // main thermostat endpoint's setpoint used to have; main.c's sync_task
-    // just compares it against Tuya's own polled value every cycle and
-    // resends when they disagree. SystemMode is seeded to Cool (not Off) so
-    // HA's climate card doesn't grey out the setpoint control; nothing ever
-    // reads or reacts to this endpoint's own mode/local-temperature, they
-    // exist only because the Thermostat cluster requires them.
+    // Standalone "Desired Setpoint" endpoint -- a second Thermostat cluster
+    // (Cool+Heat as of 2026-09-07; this unit supports both, see
+    // IR_MODE_HEAT in main.c) whose only job is to hold whatever HA last
+    // asked for. Never written by sync_task, so it carries none of the
+    // confirmation-lag/revert noise the main thermostat endpoint's setpoint
+    // used to have; main.c's sync_task just compares it against Tuya's own
+    // polled value every cycle and resends when they disagree. SystemMode
+    // and both setpoints are also actively mirrored from real Tuya state on
+    // every poll (see matter_update_system_mode()/matter_update_heating_
+    // setpoint()/matter_update_cooling_setpoint() below), unlike before
+    // when nothing ever touched this endpoint's own mode/local-temperature
+    // after creation.
     endpoint::thermostat::config_t desired_setpoint_cfg;
-    desired_setpoint_cfg.thermostat.feature_flags = cluster::thermostat::feature::cooling::get_id();
+    desired_setpoint_cfg.thermostat.feature_flags = cluster::thermostat::feature::cooling::get_id() |
+                                                     cluster::thermostat::feature::heating::get_id();
     desired_setpoint_cfg.thermostat.system_mode = 3; // kCool
     desired_setpoint_cfg.thermostat.local_temperature = nullable<int16_t>();
     desired_setpoint_cfg.thermostat.features.cooling.occupied_cooling_setpoint = g_matter_state.desired_cooling_setpoint;
+    // Same single "desired target temperature" concept as cooling above --
+    // this is a single-setpoint AC (one target regardless of which mode is
+    // active), not a true dual-setpoint system, so both start from the same
+    // seeded value. See the write-handler and mirroring code below, which
+    // both treat Heating/CoolingSetpoint writes/updates on this endpoint as
+    // the same underlying value.
+    desired_setpoint_cfg.thermostat.features.heating.occupied_heating_setpoint = g_matter_state.desired_cooling_setpoint;
     g_desired_setpoint_endpoint = endpoint::thermostat::create(g_node, &desired_setpoint_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!g_desired_setpoint_endpoint) {
         ESP_LOGE(TAG, "Failed to create Desired Setpoint endpoint");
@@ -652,6 +663,45 @@ extern "C" esp_err_t matter_device_init(void)
         return ESP_FAIL;
     }
 
+    // Follow-Me ambient temperature endpoint (PLAN.md Milestone 3) -- same
+    // "borrow a Thermostat cluster's writable setpoint as a generic
+    // HA-writable numeric input" pattern as the Desired Setpoint endpoint
+    // above, since Matter has no simpler standard writable-numeric
+    // primitive that HA's frontend renders nicely. HA relays the SNZB-02P
+    // sensor's real reading here (via an automation calling
+    // climate.set_temperature on this endpoint) instead of this firmware
+    // running its own MQTT client -- see the write-handler's comment above
+    // for why. Cooling-only feature (no Heat needed, this isn't really a
+    // thermostat) and SystemMode seeded to Cool for the same
+    // don't-grey-out-the-setpoint-control reason as Desired Setpoint.
+    //
+    // Deliberately added LAST (after every other endpoint), not inline
+    // where it was first tried (right after Desired Setpoint) -- esp-matter
+    // assigns endpoint numbers sequentially by creation order, and inserting
+    // a new endpoint in the middle shifted every endpoint created after it,
+    // which silently reused outage_reason's and thread_rssi's OLD endpoint
+    // numbers for DIFFERENT clusters (found live 2026-09-07: Home
+    // Assistant's Matter integration keys entities by a unique_id that
+    // embeds the endpoint number, so the renumbering collided with already-
+    // registered entities and relabeled them with stale names showing the
+    // wrong data). Adding new endpoints only at the end avoids ever
+    // reassigning a number an existing endpoint already owns.
+    endpoint::thermostat::config_t followme_cfg;
+    followme_cfg.thermostat.feature_flags = cluster::thermostat::feature::cooling::get_id();
+    followme_cfg.thermostat.system_mode = 3; // kCool
+    followme_cfg.thermostat.local_temperature = nullable<int16_t>();
+    followme_cfg.thermostat.features.cooling.occupied_cooling_setpoint = g_matter_state.followme_ambient_temp_c_x100;
+    g_followme_endpoint = endpoint::thermostat::create(g_node, &followme_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_followme_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Follow-Me endpoint");
+        return ESP_FAIL;
+    }
+    g_followme_endpoint_id = endpoint::get_id(g_followme_endpoint);
+    if (!g_followme_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Follow-Me endpoint id");
+        return ESP_FAIL;
+    }
+
     // Spaced out -- confirmed on real hardware (2026-08-31) that firing a
     // full endpoint re-assertion like this back-to-back with no delay
     // produces a dense burst of near-simultaneous IM reports, which on this
@@ -673,16 +723,6 @@ extern "C" esp_err_t matter_device_init(void)
     vTaskDelay(pdMS_TO_TICKS(50));
     update_attr(Thermostat::Id, Thermostat::Attributes::SystemMode::Id,
                 esp_matter_enum8(g_matter_state.system_mode));
-    vTaskDelay(pdMS_TO_TICKS(50));
-    update_attr_on_endpoint(g_temp_sensor_endpoint, g_temp_sensor_endpoint_id,
-                            TemperatureMeasurement::Id,
-                            TemperatureMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_int16(nullable<int16_t>()));
-    vTaskDelay(pdMS_TO_TICKS(50));
-    update_attr_on_endpoint(g_humidity_sensor_endpoint, g_humidity_sensor_endpoint_id,
-                            RelativeHumidityMeasurement::Id,
-                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_uint16(nullable<uint16_t>()));
     vTaskDelay(pdMS_TO_TICKS(50));
     update_attr_on_endpoint(g_outdoor_temp_sensor_endpoint, g_outdoor_temp_sensor_endpoint_id,
                             TemperatureMeasurement::Id,
@@ -706,10 +746,10 @@ extern "C" esp_err_t matter_device_init(void)
                             Thermostat::Id, Thermostat::Attributes::OccupiedCoolingSetpoint::Id,
                             esp_matter_int16(g_matter_state.desired_cooling_setpoint));
 
-    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u temp_sensor_ep=%u humidity_sensor_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u power_ep=%u desired_setpoint_ep=%u",
-             g_endpoint_id, g_temp_sensor_endpoint_id,
-             g_humidity_sensor_endpoint_id, g_outdoor_temp_sensor_endpoint_id, g_compressor_endpoint_id,
-             g_compressor_running_endpoint_id, g_power_endpoint_id, g_desired_setpoint_endpoint_id);
+    ESP_LOGI(TAG, "Matter device initialized: thermostat_ep=%u outdoor_temp_sensor_ep=%u compressor_ep=%u compressor_running_ep=%u power_ep=%u desired_setpoint_ep=%u followme_ep=%u",
+             g_endpoint_id, g_outdoor_temp_sensor_endpoint_id, g_compressor_endpoint_id,
+             g_compressor_running_endpoint_id, g_power_endpoint_id, g_desired_setpoint_endpoint_id,
+             g_followme_endpoint_id);
     return ESP_OK;
 }
 
@@ -804,6 +844,15 @@ extern "C" void matter_update_system_mode(uint8_t mode)
         nvs_persist_u8(NVS_KEY_SYSTEM_MODE, mode);
     }
     update_attr(Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
+    // Mirror onto the Desired Setpoint endpoint too, as of 2026-09-07 (Heat
+    // mode added there) -- so its climate card reflects the unit's real
+    // current mode from Tuya's GET, not just whatever was last selected
+    // there. Setpoint attributes on that endpoint are deliberately NOT
+    // mirrored this way (see its own config comment) -- only mode, since
+    // the whole point of that endpoint is that its setpoint stays exactly
+    // what HA asked for, never overwritten by sync_task/Tuya's own reading.
+    update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
+                            Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
 }
 
 extern "C" void matter_update_compressor_demand(uint8_t percent)
@@ -885,24 +934,6 @@ extern "C" void matter_update_outdoor_temperature(int16_t temp_c)
                             esp_matter_nullable_int16(nullable<int16_t>(temp_c)));
 }
 
-extern "C" void matter_update_aux_temperature(int16_t temp_c)
-{
-    g_matter_state.aux_temp = temp_c;
-    update_attr_on_endpoint(g_temp_sensor_endpoint, g_temp_sensor_endpoint_id,
-                            TemperatureMeasurement::Id,
-                            TemperatureMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_int16(nullable<int16_t>(temp_c)));
-}
-
-extern "C" void matter_update_aux_humidity(uint16_t humidity_centi_pct)
-{
-    g_matter_state.aux_humidity = humidity_centi_pct;
-    update_attr_on_endpoint(g_humidity_sensor_endpoint, g_humidity_sensor_endpoint_id,
-                            RelativeHumidityMeasurement::Id,
-                            RelativeHumidityMeasurement::Attributes::MeasuredValue::Id,
-                            esp_matter_nullable_uint16(nullable<uint16_t>(humidity_centi_pct)));
-}
-
 extern "C" bool matter_get_onoff_command(void)
 {
     return g_matter_state.onoff_command_pending;
@@ -921,6 +952,15 @@ extern "C" int16_t matter_get_desired_cooling_setpoint(void)
 extern "C" bool matter_get_desired_setpoint_command_pending(void)
 {
     return g_matter_state.desired_setpoint_command_pending;
+}
+
+extern "C" bool matter_get_followme_ambient_temp_c_x100(int16_t *out_temp_c_x100)
+{
+    if (!g_matter_state.followme_ambient_valid || !out_temp_c_x100) {
+        return false;
+    }
+    *out_temp_c_x100 = g_matter_state.followme_ambient_temp_c_x100;
+    return true;
 }
 
 extern "C" uint8_t matter_get_system_mode_command(void)
@@ -947,21 +987,19 @@ extern "C" void matter_device_deinit(void)
 {
     g_node = nullptr;
     g_endpoint = nullptr;
-    g_temp_sensor_endpoint = nullptr;
-    g_humidity_sensor_endpoint = nullptr;
     g_outdoor_temp_sensor_endpoint = nullptr;
     g_compressor_endpoint = nullptr;
     g_compressor_running_endpoint = nullptr;
     g_power_endpoint = nullptr;
     g_desired_setpoint_endpoint = nullptr;
+    g_followme_endpoint = nullptr;
     g_endpoint_id = 0;
-    g_temp_sensor_endpoint_id = 0;
-    g_humidity_sensor_endpoint_id = 0;
     g_outdoor_temp_sensor_endpoint_id = 0;
     g_compressor_endpoint_id = 0;
     g_compressor_running_endpoint_id = 0;
     g_power_endpoint_id = 0;
     g_desired_setpoint_endpoint_id = 0;
+    g_followme_endpoint_id = 0;
     g_started = false;
     if (g_nvs_ready) {
         nvs_close(g_nvs_handle);

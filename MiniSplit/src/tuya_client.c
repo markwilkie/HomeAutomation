@@ -411,14 +411,14 @@ static esp_err_t tuya_validate_success_response(const char *response_json, bool 
 }
 
 /**
- * @brief Send command payload to a specific Tuya device and validate response
+ * @brief Actually send a command payload to a specific Tuya device and
+ *        validate the response. Real implementation, unchanged -- kept
+ *        intact and callable so re-enabling writes later (see
+ *        tuya_send_device_command() below) is a one-line change, not a
+ *        rewrite.
  */
-static esp_err_t tuya_send_device_command(const char *body_str)
+static esp_err_t __attribute__((unused)) tuya_send_device_command_real(const char *body_str)
 {
-    if (!body_str) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
     bool token_retry_attempted = false;
 
     char endpoint[256];
@@ -454,6 +454,35 @@ retry_request:
     }
 
     return ESP_FAIL;
+}
+
+/**
+ * @brief Send command payload to a specific Tuya device and validate response
+ *
+ * DISABLED 2026-09-04: this project is migrating command authority to local
+ * IR (see ../PLAN.md Milestone 2/4) -- until that migration is verified
+ * working, a duplicate physical device (MiniSplitIR's old commissioned
+ * node, since repurposed to run this codebase) exists on the same Matter
+ * fabric and can independently receive Matter writes that used to forward
+ * here, hitting the same real Tuya device as the production bridge. Rather
+ * than risk two live command paths to one AC, every write is now a no-op
+ * that logs and returns success without ever reaching Tuya's cloud --
+ * tuya_send_device_command_real() above is never called. GETs
+ * (tuya_get_device_status(), tuya_refresh_token()) are untouched -- they
+ * use a separate code path and stay fully functional, including as the
+ * pre-send-refresh/verification source PLAN.md's IR work depends on.
+ * Re-enable only as part of deliberately restoring Tuya as a command path
+ * -- which the current plan never intends to do; this is expected to be
+ * replaced by IR outright, not restored.
+ */
+static esp_err_t tuya_send_device_command(const char *body_str)
+{
+    if (!body_str) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    ESP_LOGW(TAG, "Tuya command WRITE suppressed (writes disabled, see comment above) -- would have sent: %s", body_str);
+    return ESP_OK;
 }
 
 esp_err_t tuya_client_init(const char *device_id, const char *client_id, const char *client_secret)
@@ -570,6 +599,8 @@ retry_status_request:
             status->cleaning = value_obj->valueint;
         } else if (strcmp(code, "fresh_air_valve") == 0) {
             status->fresh_air_valve = value_obj->valueint;
+        } else if (strcmp(code, "light") == 0) {
+            status->light = value_obj->valueint;
         } else if (strcmp(code, "compressor_frequency") == 0) {
             status->compressor_frequency = value_obj->valueint;
         } else if (strcmp(code, "ure") == 0) {

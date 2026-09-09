@@ -9,6 +9,8 @@
 #include "esp_sntp.h"
 #include <time.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "tuya_client.h"
 #include "matter_device.h"
@@ -16,7 +18,7 @@
 #include "flash_log.h"
 #include "log_server.h"
 #include "outage_log.h"
-#include "bme280.h"
+#include "ir_tcl112.h"
 #include "secrets.h"
 #include "esp_openthread.h"
 #include "esp_openthread_lock.h"
@@ -24,6 +26,16 @@
 #include <openthread/thread.h>
 
 static const char *TAG = "MAIN";
+
+// TCL112AC protocol mode values (see ../IR_PROTOCOL_REFERENCE.md's "State
+// byte map") -- deliberately a separate encoding from Tuya's own "mode" DP
+// (0=auto,1=cool,2=dry,3=fan,4=heat, see map_matter_mode_to_tuya() below).
+// Don't conflate the two.
+#define IR_MODE_HEAT 1
+#define IR_MODE_DRY  2
+#define IR_MODE_COOL 3
+#define IR_MODE_FAN  7
+#define IR_MODE_AUTO 8
 
 // Set once Matter's network layer (Thread) reports connectivity -- see
 // matter_set_network_event_group() / app_chip_event_handler() in
@@ -72,7 +84,6 @@ static bool g_mode_off_via_fan_proxy = false;
 
 #define STATUS_POLL_INTERVAL_MS 300000    // Poll Tuya every 5 minutes, fixed
 #define COMMAND_POLL_INTERVAL_MS 5000     // Check Matter commands every 5 seconds
-#define ENV_POLL_INTERVAL_MS 30000        // Read BME280 every 30 seconds
 #define RETRY_DELAY_MS 2000               // Base delay before retry on error (doubles per attempt)
 #define MAX_RETRIES 3                     // Retry up to 3 times before giving up
 
@@ -93,77 +104,23 @@ static bool g_mode_off_via_fan_proxy = false;
 // ordinary transient Tuya API flakiness.
 #define SYNC_STALL_RESTART_MS (20 * 60 * 1000)  // 20 minutes
 
-// Same idea as SYNC_STALL_RESTART_MS, but for env_task/BME280 -- a much
-// shorter bound since its normal cadence is ENV_POLL_INTERVAL_MS (30s), not
-// 5 minutes. bme280.c already has its own I2C bus-recovery logic that
-// handles an ordinary wedged bus within ~90s (BME280_RECOVERY_THRESHOLD),
-// so this threshold only needs to be generous enough to never fire during
-// that normal recovery -- it exists specifically for the case confirmed on
-// real hardware where bme280_read() itself never returns at all (an 8.5-hour
-// stall, zero log output the entire time), which silently bypasses that
-// recovery logic since it can only count a failure once a call returns.
-#define ENV_STALL_RESTART_MS (5 * 60 * 1000)    // 5 minutes
-
 // State tracking for error recovery
 typedef struct {
     uint32_t last_status_update;        // Timestamp of last successful status update
     uint32_t last_command_check;        // Timestamp of last command check
-    uint32_t last_env_heartbeat;        // Timestamp of last env_task loop iteration (see below)
     uint8_t status_poll_failures;       // Consecutive failures
     uint8_t network_disconnects;        // Count of connectivity drops
 } sync_state_t;
 
 static sync_state_t g_sync_state = {0};
 
-static int16_t normalize_tuya_setpoint(int16_t temp_c)
-{
-    // Delegates to the shared helper so this matches exactly what
-    // tuya_set_temperature() actually sends -- see its doc comment in
-    // tuya_client.h. sync_task's desired-setpoint reconciliation sends this
-    // return value to Tuya whenever it disagrees with Tuya's own poll.
-    return tuya_normalize_setpoint_c(temp_c);
-}
-
-// Sends at most a 1-degree-Fahrenheit step toward the desired setpoint,
-// using the most recently confirmed Tuya temp_set_f (g_last_device_status,
-// updated only by a real poll -- see cache_and_apply_status()) as "actual."
-// Added 2026-09-01 after two Thread mesh stalls the same night let desired
-// and Tuya's real state drift apart for 15+ minutes each: without this, the
-// first command sent once connectivity returned would have jumped the
-// physical unit's setpoint by the entire accumulated gap in one shot. No
-// pending/expectation state is kept, matching this file's existing
-// self-healing-by-construction approach (see sync_task's reconciliation
-// comment below) -- a gap bigger than 1F just takes proportionally more
-// calls to this function to close, each one still only ever moving 1F.
-static esp_err_t send_stepped_setpoint(int16_t desired_c_x100)
-{
-    int16_t desired_f = tuya_setpoint_c_to_f(desired_c_x100);
-
-    if (!g_last_device_status_valid) {
-        // No confirmed Tuya state yet to step from (e.g. very first boot,
-        // before sync_task's first poll has completed) -- nothing to step
-        // relative to, so send the full value once. sync_task's next poll
-        // establishes a real baseline for stepping to take over from there.
-        ESP_LOGW(TAG, "No confirmed Tuya state yet; sending desired setpoint (%dF) directly", desired_f);
-        return tuya_set_temperature(normalize_tuya_setpoint(desired_c_x100));
-    }
-
-    int16_t actual_f = g_last_device_status.temp_set_f;
-    if (desired_f == actual_f) {
-        return ESP_OK;
-    }
-
-    int16_t step = (desired_f > actual_f) ? 1 : -1;
-    int16_t target_f = actual_f + step;
-    // Don't overshoot past desired for gaps that are already <=1F.
-    if ((step > 0 && target_f > desired_f) || (step < 0 && target_f < desired_f)) {
-        target_f = desired_f;
-    }
-
-    ESP_LOGI(TAG, "Stepping Tuya setpoint %dF -> %dF (final target %dF)",
-             actual_f, target_f, desired_f);
-    return tuya_set_temperature(tuya_setpoint_f_to_c(target_f));
-}
+// PLAN.md Milestone 4: the Tuya command paths this used to step through
+// (tuya_set_temperature() et al.) are retired -- send_ir_frame() now sends
+// the exact desired value directly in one shot, every time, from every call
+// site (Desired Setpoint change, System Mode change, OnOff, and sync_task's
+// mismatch reconciliation below). No gradual per-cycle stepping is needed
+// for IR the way Tuya's own control loop needed it: a real remote press
+// just sets the target state directly, same as this driver now does.
 
 // The product spec claims compressor_frequency is x10-scaled (max 1500 = 150.0Hz),
 // but live readings show it reporting the same raw, unscaled Hz value as
@@ -217,8 +174,9 @@ static uint8_t map_tuya_mode_to_matter(const tuya_device_status_t *device_status
 }
 
 // Inverse of map_tuya_mode_to_matter. Returns -1 for Matter modes Tuya's "mode"
-// DP has no equivalent for (EmergencyHeat, Precooling, Sleep); kOff is handled
-// by the caller via tuya_set_power(), not this mapping.
+// DP has no equivalent for (EmergencyHeat, Precooling, Sleep); kOff is
+// special-cased by the caller (command_task's fan-idle proxy) before this
+// function is ever called, never routed through here.
 static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
 {
     switch (matter_mode) {
@@ -229,6 +187,267 @@ static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
         case 4: return 4; // kHeat -> heat
         default: return -1;
     }
+}
+
+// Matter SystemModeEnum -> the IR protocol's own mode value (see
+// ../IR_PROTOCOL_REFERENCE.md). NOT the same numeric mapping as
+// map_matter_mode_to_tuya() above -- the two protocols don't share an
+// encoding. Returns -1 for modes with no IR equivalent (same set
+// map_matter_mode_to_tuya() rejects); kOff is handled by the caller (maps
+// to IR_MODE_FAN, matching the existing Tuya-path fan-idle-proxy precedent
+// -- see command_task's System Mode block).
+static int8_t map_matter_mode_to_ir(uint8_t matter_mode)
+{
+    switch (matter_mode) {
+        case 1: return IR_MODE_AUTO;
+        case 3: return IR_MODE_COOL;
+        case 8: return IR_MODE_DRY;
+        case 7: return IR_MODE_FAN;
+        case 4: return IR_MODE_HEAT;
+        default: return -1;
+    }
+}
+
+// Builds and transmits one full TCL112AC IR frame reflecting the AC's
+// best-known current state, with exactly one field overridden (whichever
+// this specific command is actually changing -- mode or setpoint, never
+// both at once since that's not how the Matter attributes arrive). Callers
+// are responsible for refreshing `status` from a fresh, on-demand Tuya GET
+// immediately beforehand (see command_task) -- this function only builds
+// and sends, it doesn't fetch, so the pre-send-refresh timing described in
+// PLAN.md Milestone 2 stays visible at the call site rather than hidden in
+// here.
+//
+// KNOWN LIMITATION, deliberate for now: Fan speed, Light, Swing(V/H),
+// Health, and Fresh Air aren't preserved from the unit's actual live
+// state -- every frame sent from here carries the base template's fixed
+// captured values for those fields (see kBaseFrame-equivalent literal
+// below), which could revert real out-of-band changes (real remote, Tuya
+// app) back to that fixed snapshot rather than zeroing them outright as an
+// earlier version of this function did. Still needs each field's real
+// current value read (mostly from Tuya DPs, see PLAN.md Milestone 2's
+// "Preserve fields HA doesn't control" section) and written in here before
+// this is truly safe for anything beyond Mode/Setpoint/Power. This IS a
+// real-world risk: as of 2026-09-07 an IR emitter is mounted and confirmed
+// transmitting commands the unit actually accepts (test_apps/ir_live_test).
+// Builds the frame array only (no send) -- shared by send_ir_frame() below
+// and send_followme_frame() (Follow-Me heartbeat), since both need the same
+// base-template-plus-known-fields construction and only differ in which
+// extra bits/bytes they layer on afterward.
+static void build_ir_state_frame(const tuya_device_status_t *status, bool power_on,
+                                   bool override_mode, uint8_t override_ir_mode,
+                                   bool override_setpoint, int16_t override_setpoint_c_x100,
+                                   uint8_t out_frame[IR_TCL112_FRAME_LEN],
+                                   uint8_t *out_ir_mode, int16_t *out_setpoint_c)
+{
+    uint8_t ir_mode;
+    if (override_mode) {
+        ir_mode = override_ir_mode;
+    } else {
+        uint8_t matter_mode = map_tuya_mode_to_matter(status);
+        int8_t mapped = map_matter_mode_to_ir(matter_mode);
+        ir_mode = (mapped >= 0) ? (uint8_t)mapped : IR_MODE_AUTO;
+    }
+
+    int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100 : status->temp_set;
+    // Round to the nearest whole degree C, don't truncate -- plain integer
+    // division here silently biased every setpoint down by up to almost a
+    // full degree C (nearly 2F), found via live HA testing 2026-09-07:
+    // selecting 73F in HA (~22.78C) truncated to 22C (71.6F), which the
+    // unit's own display then rounded down to 72F. Setpoints here are
+    // always positive (16-31C range enforced below), so a simple +50
+    // half-up offset before truncating is exact -- no negative-number edge
+    // case to handle.
+    int16_t setpoint_c = (int16_t)((setpoint_c_x100 + 50) / 100);
+    if (setpoint_c < 16) {
+        setpoint_c = 16;
+    } else if (setpoint_c > 31) {
+        setpoint_c = 31;
+    }
+
+    // Base/template frame, verbatim from IR_PROTOCOL_REFERENCE.md's
+    // "Base/template frame for Milestone 2" section -- a real,
+    // checksum-verified capture of the user's own remote (Power: On, Mode:
+    // Fan, Temp: 20C, Fan: Auto, Swing/Econo/Health/Turbo/Light/Timers all
+    // off). Milestone 2's rule, now actually followed here instead of
+    // building from `{0}`: construct every outgoing command from this
+    // array, overwriting only the fields this project actually controls
+    // (Power, Mode, Setpoint below), so every field this project doesn't
+    // model yet (Light, Swing, Health, Turbo, Timers, the Quiet/Follow-Me
+    // toggle bit) rides along as the unit's own real captured default
+    // instead of a zeroed guess. Same array test_apps/ir_live_test uses,
+    // which is what actually got confirmed working against real hardware.
+    static const uint8_t kBaseFrame[IR_TCL112_FRAME_LEN] = {
+        0x23, 0xCB, 0x26, 0x01, 0x00, 0x64, 0x07, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x84, 0x0F,
+    };
+    memcpy(out_frame, kBaseFrame, IR_TCL112_FRAME_LEN);
+
+    // Power bit -- confirmed 2026-09-04 (see IR_PROTOCOL_REFERENCE.md's state
+    // byte map). Driven by the caller now that OnOff is wired to real IR
+    // (2026-09-07) instead of always forcing it on: the Desired Setpoint and
+    // System Mode call sites still always pass power_on=true (System Mode's
+    // kOff case idles in Fan mode rather than actually powering down -- see
+    // that call site's comment), but OnOff needs to actually turn the unit
+    // off. Getting this wrong the same way once already: leaving it clear
+    // unconditionally (when frame[5] came from `{0}`) silently sent "Power
+    // Off" as part of every command's full-state frame, found via live HA
+    // testing 2026-09-07 -- a Desired Setpoint change transmitted without
+    // error but the unit never visibly responded.
+    if (power_on) {
+        out_frame[5] |= 0x04;
+    } else {
+        out_frame[5] &= (uint8_t)~0x04;
+    }
+
+    // Light -- state[5] bit 0x40, sourced-but-unconfirmed polarity per
+    // IR_PROTOCOL_REFERENCE.md ("Inverted: ... bit clear = light on, bit set
+    // = light off"). Previously left at the base template's fixed captured
+    // value, which forced the unit's Light to that one snapshot on every
+    // single send regardless of its real current setting -- confirmed as a
+    // real, live regression via HA testing 2026-09-07 (Light reverted to
+    // off after an unrelated Desired Setpoint change). Now driven from the
+    // same pre-send Tuya refresh this function already receives, same as
+    // Mode/Setpoint above.
+    if (status->light) {
+        out_frame[5] &= (uint8_t)~0x40;
+    } else {
+        out_frame[5] |= 0x40;
+    }
+
+    out_frame[6] = (uint8_t)((out_frame[6] & ~0x0F) | (ir_mode & 0x0F));  // Mode nibble; bits 4-7 preserved from base
+    out_frame[7] = (uint8_t)(31 - setpoint_c);
+    // frame[12] (isTcl + toggle bit) and frame[13] (checksum, recomputed
+    // fresh by ir_tcl112_send()) are left as the base template's values.
+    //
+    // Fresh Air (Tuya's fresh_air_valve, already read into `status` below)
+    // is NOT preserved here despite being available -- its IR bit position
+    // is still genuinely unconfirmed (IR_PROTOCOL_REFERENCE.md's Known Gaps:
+    // "attempted 2026-09-07, abandoned, still unresolved... out of scope for
+    // Milestone 2"). Guessing a bit for it risks corrupting some other,
+    // currently-working field. Every send still reverts Fresh Air to the
+    // base template's captured value until that bit is actually found.
+
+    *out_ir_mode = ir_mode;
+    *out_setpoint_c = setpoint_c;
+}
+
+// Timestamp of the last successful IR transmission of any kind (regular
+// command or Follow-Me heartbeat) -- used by followme_task to delay its next
+// heartbeat tick by one full interval after a real command, per PLAN.md
+// Milestone 2's note, so a heartbeat doesn't immediately follow (and
+// potentially race/duplicate) a just-sent command.
+static TickType_t g_last_ir_send_tick = 0;
+
+// Sends the Type 2 companion frame + the given Type 1 frame (already built
+// by build_ir_state_frame() or send_followme_frame()), logging both. Shared
+// by send_ir_frame() and send_followme_frame() -- every full-state send
+// needs this same two-frame sequence (see IR_PROTOCOL_REFERENCE.md's "Type 2
+// frame" section: confirmed required, not optional, via test_apps/ir_live_test).
+static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN])
+{
+    // state[6] is a real capture-confirmed free-running step counter that
+    // doesn't gate acceptance (see ../MiniSplitIR/captures/protocol_capture.md),
+    // so this fixed, verbatim real capture is enough -- no need to reproduce
+    // its exact sequence.
+    static const uint8_t kType2CompanionFrame[IR_TCL112_FRAME_LEN] = {
+        0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x48,
+    };
+    uint8_t type2_frame[IR_TCL112_FRAME_LEN];
+    memcpy(type2_frame, kType2CompanionFrame, IR_TCL112_FRAME_LEN);
+
+    // Log the exact bytes about to go out, before ir_tcl112_send() mutates
+    // frame[13]/type2_frame[13] with the freshly computed checksum -- that's
+    // the only byte it ever touches, so this is still the real on-air
+    // content up to the checksum.
+    ESP_LOGI(TAG, "Type2 frame: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+             type2_frame[0], type2_frame[1], type2_frame[2], type2_frame[3], type2_frame[4],
+             type2_frame[5], type2_frame[6], type2_frame[7], type2_frame[8], type2_frame[9],
+             type2_frame[10], type2_frame[11], type2_frame[12], type2_frame[13]);
+    ESP_LOGI(TAG, "Type1 frame: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+             frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6], frame[7],
+             frame[8], frame[9], frame[10], frame[11], frame[12], frame[13]);
+
+    esp_err_t type2_err = ir_tcl112_send(type2_frame);
+    if (type2_err != ESP_OK) {
+        ESP_LOGE(TAG, "ir_tcl112_send (Type2 companion) failed: %s", esp_err_to_name(type2_err));
+        return type2_err;
+    }
+
+    esp_err_t err = ir_tcl112_send(frame);
+    if (err == ESP_OK) {
+        g_last_ir_send_tick = xTaskGetTickCount();
+    } else {
+        ESP_LOGE(TAG, "ir_tcl112_send failed: %s", esp_err_to_name(err));
+    }
+    return err;
+}
+
+// See build_ir_state_frame()'s doc comment for the base-template/known-
+// limitation notes that apply here too. Callers are responsible for
+// refreshing `status` from a fresh, on-demand Tuya GET immediately
+// beforehand (see command_task) -- this function only builds and sends.
+static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on,
+                           bool override_mode, uint8_t override_ir_mode,
+                           bool override_setpoint, int16_t override_setpoint_c_x100)
+{
+    uint8_t frame[IR_TCL112_FRAME_LEN];
+    uint8_t ir_mode;
+    int16_t setpoint_c;
+    build_ir_state_frame(status, power_on, override_mode, override_ir_mode,
+                          override_setpoint, override_setpoint_c_x100,
+                          frame, &ir_mode, &setpoint_c);
+
+    esp_err_t err = transmit_ir_state_frame(frame);
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "IR frame sent: power=%s mode=%u setpoint=%dC",
+                 power_on ? "on" : "off", ir_mode, setpoint_c);
+    }
+    return err;
+}
+
+// Follow-Me heartbeat/enable frame (PLAN.md Milestone 3). Reflects the same
+// Power/Mode/Setpoint/Light as a regular command (via build_ir_state_frame(),
+// no overrides -- Follow-Me doesn't change any of those, just layers its own
+// bits on top), plus:
+//   - state[4]/state[6] bit 0x80: Follow-Me enabled (state[6]'s copy is a
+//     real capture-confirmed mirror of state[4]'s, not independently
+//     meaningful on its own).
+//   - state[5] bit 0x20: set for the first frame after Follow-Me was last
+//     inactive ("enable" instance), clear for every subsequent periodic
+//     re-send ("heartbeat") -- see IR_PROTOCOL_REFERENCE.md's "Follow Me
+//     behavior" section.
+//   - state[11]: ambient sensor temp, whole degrees C.
+// g_followme_active tracks which of those two instance types this call is;
+// followme_task resets it to false whenever a tick is skipped (no sensor
+// reading, no confirmed Tuya state), so resuming after a gap is treated as a
+// fresh enable rather than a continued heartbeat.
+static bool g_followme_active = false;
+
+static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t ambient_temp_c)
+{
+    uint8_t frame[IR_TCL112_FRAME_LEN];
+    uint8_t ir_mode;
+    int16_t setpoint_c;
+    build_ir_state_frame(status, true, false, 0, false, 0, frame, &ir_mode, &setpoint_c);
+
+    bool is_enable_instance = !g_followme_active;
+
+    frame[4] |= 0x80;
+    frame[6] |= 0x80;
+    if (is_enable_instance) {
+        frame[5] |= 0x20;
+    } else {
+        frame[5] &= (uint8_t)~0x20;
+    }
+    frame[11] = (uint8_t)ambient_temp_c;
+
+    esp_err_t err = transmit_ir_state_frame(frame);
+    if (err == ESP_OK) {
+        g_followme_active = true;
+        ESP_LOGI(TAG, "Follow-Me %s sent: ambient=%dC mode=%u setpoint=%dC",
+                 is_enable_instance ? "enable" : "heartbeat", ambient_temp_c, ir_mode, setpoint_c);
+    }
+    return err;
 }
 
 // Small delay between each Matter attribute update below -- confirmed on
@@ -314,8 +533,6 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     matter_update_onoff(device_status->switch_state);
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     // Mini-split's own indoor reading -- the Thermostat's LocalTemperature.
-    // The BME280's independent indoor reading (if fitted) lives on its own
-    // Temperature Sensor endpoint instead; see env_task/matter_update_aux_temperature.
     matter_update_local_temperature(device_status->temp_current);
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     // Derived from temp_set_f (Fahrenheit-native), not the raw temp_set
@@ -323,9 +540,8 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     // disagree (temp_set_f is Tuya's/the unit's own trusted field per
     // tuya_setpoint_c_to_f()'s doc comment; temp_set is coarser 0.5C-quantized
     // and was found sitting a full degree off it one night). This keeps
-    // thermostat1's mirrored setpoint consistent with what
-    // send_stepped_setpoint()'s reconciliation above already treats as
-    // ground truth.
+    // thermostat1's mirrored setpoint consistent with what sync_task's
+    // setpoint-mismatch reconciliation above already treats as ground truth.
     int16_t confirmed_setpoint_c = tuya_setpoint_f_to_c(device_status->temp_set_f);
     matter_update_heating_setpoint(confirmed_setpoint_c);
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
@@ -350,9 +566,17 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     // loop and reconciliation block, the Thread state-change callback, and
     // the boot-time reset-reason check) are what actually decide when an
     // outage starts/ends.
+    //
+    // 2026-09-07: reason now comes from outage_log_active_reason(), not
+    // outage_log_last_reason() -- the latter can reflect an already-closed
+    // record (e.g. a brief resolved Tuya-unreachable blip) that was simply
+    // logged more recently than a still-open one (e.g. a long-running
+    // setpoint mismatch), which made this display disagree with what
+    // outage_log_any_active() just reported as still active. See
+    // outage_log_active_reason()'s doc comment.
     matter_update_outage_active(outage_log_any_active());
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
-    matter_update_outage_reason(outage_log_last_reason());
+    matter_update_outage_reason(outage_log_active_reason());
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
 
     // Thread parent RSSI -- piggybacks on this same 5-minute sync_task poll
@@ -513,41 +737,157 @@ static void sync_task(void *param)
 
         g_sync_state.last_status_update = xTaskGetTickCount();
 
-        // Desired-setpoint reconciliation: the standalone Desired Setpoint
-        // Matter endpoint (matter_get_desired_cooling_setpoint(), HA-writable,
-        // never touched by this task) is compared against what Tuya just
-        // reported, in whole-Fahrenheit-degree terms -- comparing raw Celsius
-        // is unreliable here since Tuya's temp_set only stores 0.5C steps, so
-        // a whole-Fahrenheit command doesn't generally round-trip back to an
-        // exact Celsius match even once genuinely applied (see
-        // tuya_setpoint_c_to_f()'s doc comment). If they disagree, step
-        // toward it by at most 1F (send_stepped_setpoint(), which reads
-        // g_last_device_status/temp_set_f -- already just refreshed by
-        // cache_and_apply_status() above). No pending/expectation state: if
-        // this attempt doesn't stick either, the next poll sees that plainly
-        // and this same check just tries again -- self-healing by
-        // construction rather than by retry bookkeeping.
-        // Outage log: tracks the same disagreement send_stepped_setpoint()
-        // is about to (partially) correct -- a separate concern from
-        // whether the step itself succeeds, so this is checked regardless
-        // of send_stepped_setpoint()'s result below.
-        int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(matter_get_desired_cooling_setpoint());
+        // Desired-setpoint mismatch detection: the standalone Desired
+        // Setpoint Matter endpoint (matter_get_desired_cooling_setpoint(),
+        // HA-writable, never touched by this task) is compared against what
+        // Tuya just reported, in whole-Fahrenheit-degree terms -- comparing
+        // raw Celsius is unreliable here since Tuya's temp_set only stores
+        // 0.5C steps, so a whole-Fahrenheit command doesn't generally
+        // round-trip back to an exact Celsius match even once genuinely
+        // applied (see tuya_setpoint_c_to_f()'s doc comment).
+        //
+        // Detection only -- does NOT send an IR correction. An earlier
+        // version of this block did, which meant every single boot sent a
+        // real IR command on sync_task's first poll: a persisted NVS
+        // "desired" value essentially never matches Tuya's independently-
+        // derived temp_set_f by exact coincidence, so this comparison was
+        // "mismatched" (and correcting) on every reboot regardless of
+        // whether the user had actually asked for anything to change (user
+        // report 2026-09-07: unwanted IR transmission on every boot). IR
+        // sends now only ever happen from command_task, in direct response
+        // to an actual HA-triggered control change. This block still flags
+        // a genuine, persistent mismatch as an outage for visibility.
+        int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
+        int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
         if (desired_f_for_outage_check != device_status.temp_set_f) {
             outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH, get_thread_link_rssi());
         } else {
             outage_log_end(OUTAGE_REASON_SETPOINT_MISMATCH);
         }
+    }
+}
 
-        esp_err_t set_result = send_stepped_setpoint(matter_get_desired_cooling_setpoint());
-        if (set_result != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to send desired setpoint step to Tuya; will retry next poll");
+// Post-send verification/retry-poll (PLAN.md Milestone 4's "post-send
+// retry-poll loop", not previously implemented). Real hardware needs time
+// to actually apply an IR-driven command and report it back up through its
+// own Tuya/WiFi module -- confirmed via live HA testing 2026-09-07: a
+// pre-send refresh (right before sending) or an immediate post-send GET
+// both still see the OLD value; only sync_task's next full
+// STATUS_POLL_INTERVAL_MS (5 minute) poll happened to be slow enough for
+// that round-trip to have finished by the time it asked again. This closes
+// that gap to roughly a minute instead of up to five, by re-checking a few
+// times and updating thermostat1 (EP1)'s Matter mirror via
+// cache_and_apply_status() as soon as Tuya's own reported state actually
+// reflects the change (or after giving up).
+//
+// Runs inline/blocking in command_task, same as the pre-send refresh
+// already does -- a command arriving during this window isn't lost, just
+// picked up on the next loop iteration once this one returns.
+#define POST_SEND_VERIFY_RETRY_DELAY_MS 15000
+#define POST_SEND_VERIFY_MAX_ATTEMPTS 6  // ~90s total
+
+static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
+                                        bool check_setpoint, int16_t expected_setpoint_c_x100,
+                                        bool check_mode, uint8_t expected_ac_mode)
+{
+    for (int attempt = 1; attempt <= POST_SEND_VERIFY_MAX_ATTEMPTS; attempt++) {
+        vTaskDelay(pdMS_TO_TICKS(POST_SEND_VERIFY_RETRY_DELAY_MS));
+
+        tuya_device_status_t status = g_last_device_status;
+        if (tuya_get_device_status(&status) != ESP_OK) {
+            ESP_LOGW(TAG, "Post-send verify poll %d/%d: Tuya GET failed, retrying",
+                     attempt, POST_SEND_VERIFY_MAX_ATTEMPTS);
+            continue;
+        }
+
+        cache_and_apply_status(&status);
+        g_sync_state.last_status_update = xTaskGetTickCount();
+
+        bool power_ok = !check_power || (status.switch_state == expected_power_on);
+        // Within half a degree -- temp_set_f-derived Celsius can legitimately
+        // disagree with the raw target by quantization, same tolerance
+        // reasoning as apply_status_to_matter()'s own comment.
+        bool setpoint_ok = !check_setpoint ||
+            (abs(tuya_setpoint_f_to_c(status.temp_set_f) - expected_setpoint_c_x100) <= 50);
+        bool mode_ok = !check_mode || (status.ac_mode == expected_ac_mode);
+
+        if (power_ok && setpoint_ok && mode_ok) {
+            ESP_LOGI(TAG, "Post-send verify: Tuya confirms the change after %d attempt(s)", attempt);
+            return;
+        }
+    }
+    ESP_LOGW(TAG, "Post-send verify: gave up after %d attempts, thermostat1 may still be stale "
+                  "until sync_task's next poll", POST_SEND_VERIFY_MAX_ATTEMPTS);
+}
+
+// Follow-Me heartbeat interval -- matches the real remote's observed 3-minute
+// re-send cadence (see IR_PROTOCOL_REFERENCE.md's "Follow Me behavior"
+// section), not derived from the unverified ~10-minute fallback-timeout
+// guess mentioned there.
+#define FOLLOWME_HEARTBEAT_INTERVAL_MS (3 * 60 * 1000)
+
+/**
+ * @brief Follow-Me task (PLAN.md Milestone 3): periodically sends the
+ *        ambient-temperature sensor reading to the unit over IR.
+ *
+ * The reading itself comes from HA (matter_get_followme_ambient_temp_c_x100()),
+ * which relays the real Zigbee2MQTT sensor value via an automation writing
+ * to the Follow-Me Matter endpoint -- this firmware has no MQTT client of
+ * its own (see that getter's doc comment for why). Always active whenever a
+ * value has been set and a confirmed Tuya state are both available -- no
+ * separate HA-exposed enable/disable control, matching this project's
+ * minimal-surface approach elsewhere. Waits for a full interval before its
+ * first send so early boot noise (before the first sync_task poll / before
+ * HA has pushed a reading yet) doesn't force a send off stale/default state.
+ */
+static void followme_task(void *param)
+{
+    ESP_LOGI(TAG, "Follow-Me task started (interval: %ums)", FOLLOWME_HEARTBEAT_INTERVAL_MS);
+
+    while (1) {
+        // Re-derive the remaining wait from g_last_ir_send_tick every time
+        // we wake, rather than a single fixed vTaskDelay -- this is what
+        // makes a command sent from command_task actually delay the next
+        // heartbeat by a full interval (PLAN.md Milestone 2's note), since
+        // transmit_ir_state_frame() bumps that same timestamp on every
+        // successful send, command or heartbeat alike.
+        TickType_t interval_ticks = pdMS_TO_TICKS(FOLLOWME_HEARTBEAT_INTERVAL_MS);
+        TickType_t elapsed = xTaskGetTickCount() - g_last_ir_send_tick;
+        if (elapsed < interval_ticks) {
+            vTaskDelay(interval_ticks - elapsed);
+            continue;
+        }
+
+        int16_t ambient_c_x100;
+        if (!matter_get_followme_ambient_temp_c_x100(&ambient_c_x100)) {
+            ESP_LOGW(TAG, "Follow-Me: no ambient sensor reading from HA yet, skipping this tick");
+            // Treat the next successful reading as a fresh enable, not a
+            // continued heartbeat -- see send_followme_frame()'s doc comment.
+            g_followme_active = false;
+            vTaskDelay(interval_ticks);
+            continue;
+        }
+        // Round to the nearest whole degree C -- state[11] only carries
+        // whole-degree values (see IR_PROTOCOL_REFERENCE.md's Follow Me
+        // section), same reasoning as build_ir_state_frame()'s setpoint
+        // rounding.
+        int8_t ambient_c = (int8_t)((ambient_c_x100 >= 0 ? ambient_c_x100 + 50 : ambient_c_x100 - 50) / 100);
+        if (!g_last_device_status_valid) {
+            ESP_LOGW(TAG, "Follow-Me: no confirmed Tuya state yet, skipping this tick");
+            vTaskDelay(interval_ticks);
+            continue;
+        }
+
+        esp_err_t err = send_followme_frame(&g_last_device_status, ambient_c);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Follow-Me send failed: %s", esp_err_to_name(err));
         }
     }
 }
 
 /**
  * @brief Command routing task: checks for Matter commands and sends to Tuya
- * 
+ *
  * Flow:
  * 1. Check if the controller sent any commands
  * 2. Route to appropriate Tuya API call
@@ -574,14 +914,28 @@ static void command_task(void *param)
             ESP_LOGI(TAG, "Processing OnOff command from controller: %s",
                      desired_onoff ? "ON" : "OFF");
 
-            esp_err_t result = tuya_set_power(desired_onoff);
-            if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send power command to Tuya");
+            // Wired to real IR as of 2026-09-07 -- the Power bit (state[5]
+            // bit 0x04) is confirmed (see IR_PROTOCOL_REFERENCE.md) and
+            // send_ir_frame() now takes it as an explicit parameter instead
+            // of always forcing power on. Same pre-send-refresh pattern as
+            // the Desired Setpoint/System Mode blocks below, so the mode/
+            // setpoint bytes this frame preserves reflect current reality.
+            tuya_device_status_t refreshed_status = g_last_device_status;
+            if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                cache_and_apply_status(&refreshed_status);
+                g_sync_state.last_status_update = xTaskGetTickCount();
             } else {
-                ESP_LOGI(TAG, "Power command sent successfully");
+                ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's mode/setpoint bytes");
+            }
+
+            esp_err_t result = send_ir_frame(&refreshed_status, desired_onoff, false, 0, false, 0);
+            if (result != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send power command via IR: %s", esp_err_to_name(result));
             }
 
             matter_clear_onoff_command();
+
+            post_send_verify_and_sync(true, desired_onoff, false, 0, false, 0);
         }
 
         // ===== Check for a Desired Setpoint change from Matter =====
@@ -591,8 +945,8 @@ static void command_task(void *param)
         // successful case doesn't have to wait for sync_task's next (up to
         // 5-minute) status poll. Deliberately handled here rather than
         // inline in the Matter attribute callback: that callback runs in the
-        // Matter/CHIP stack's own context, and tuya_set_temperature() is a
-        // blocking HTTPS call (now bounded at TUYA_HTTP_TIMEOUT_MS, but still
+        // Matter/CHIP stack's own context, and the pre-send Tuya status
+        // refresh below is a blocking HTTPS call (now bounded at TUYA_HTTP_TIMEOUT_MS, but still
         // multiple seconds in the normal case) -- blocking that callback
         // directly risks stalling Matter's own event processing. Routing
         // through command_task's existing 5-second poll keeps every real
@@ -600,34 +954,32 @@ static void command_task(void *param)
         // g_tuya_ctx's shared state (access token, etc.), avoiding any
         // concurrent-access race with sync_task's own calls.
         if (matter_get_desired_setpoint_command_pending()) {
-            ESP_LOGI(TAG, "Desired setpoint changed via Matter, stepping toward it now");
+            int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
+            ESP_LOGI(TAG, "Desired setpoint changed via Matter, sending via IR");
 
-            esp_err_t result = send_stepped_setpoint(matter_get_desired_cooling_setpoint());
-            if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send desired setpoint to Tuya; sync_task's next poll will retry");
+            // Pre-send refresh (PLAN.md Milestone 2): fetch Tuya's latest
+            // status right before building the IR frame, so the mode byte
+            // this frame preserves reflects any out-of-band change (real
+            // remote, Tuya app) instead of a value that could be stale by
+            // up to STATUS_POLL_INTERVAL_MS. This also keeps EP1's mirrored
+            // setpoint/temp (and the Tuya app view) fresh within seconds,
+            // same benefit the old post-send refresh below used to provide.
+            tuya_device_status_t refreshed_status = g_last_device_status;
+            if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                cache_and_apply_status(&refreshed_status);
+                g_sync_state.last_status_update = xTaskGetTickCount();
             } else {
-                ESP_LOGI(TAG, "Desired setpoint sent successfully");
+                ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's mode byte");
+            }
 
-                // Immediately re-fetch status so EP1's mirrored setpoint/temp
-                // (and the Tuya app) reflect the change within seconds rather
-                // than waiting for sync_task's next (up to 5-minute) poll --
-                // this was the recurring source of "Tuya app doesn't match"
-                // confusion. This is a GET triggered only on a real, already-
-                // rare setpoint change (not a blanket faster polling interval),
-                // so it doesn't meaningfully add to Tuya API quota usage.
-                // Tuya's backend may not have fully applied the SET yet, so a
-                // mismatch here is expected/benign -- sync_task's own
-                // reconciliation (above) is still what guarantees convergence.
-                tuya_device_status_t refreshed_status = {0};
-                if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
-                    cache_and_apply_status(&refreshed_status);
-                    g_sync_state.last_status_update = xTaskGetTickCount();
-                } else {
-                    ESP_LOGW(TAG, "Post-setpoint-change status refresh failed; sync_task's next poll will catch it");
-                }
+            esp_err_t send_err = send_ir_frame(&refreshed_status, true, false, 0, true, desired_c_x100);
+            if (send_err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send desired setpoint via IR: %s", esp_err_to_name(send_err));
             }
 
             matter_clear_desired_setpoint_command_pending();
+
+            post_send_verify_and_sync(false, false, true, desired_c_x100, false, 0);
         }
 
         // ===== Check for System Mode command =====
@@ -635,182 +987,67 @@ static void command_task(void *param)
         if (mode_cmd != 0xFF) {  // 0xFF = no command
             ESP_LOGI(TAG, "Processing mode command from controller: %u", mode_cmd);
 
-            esp_err_t result;
             uint8_t expected_tuya_mode;
+            uint8_t ir_mode;
             if (mode_cmd == 0) {
                 // kOff from HA/Matter: rather than powering the unit fully
-                // down (tuya_set_power(false)), which would also stop the
-                // fresh-air intake fan, switch to Tuya's "fan" mode instead.
-                // This keeps the indoor blower running and the fresh-air
-                // valve usable, just without active cooling -- matches how
-                // the BME280 thermostat cycles "off" during normal setpoint
-                // control, where a full power-down each cycle isn't wanted.
+                // down, idle in Fan mode instead -- keeps the indoor blower
+                // usable, just without active cooling/heating. Originally a
+                // Tuya-only workaround (tuya_set_power(false) would also stop
+                // the fresh-air fan); kept even now that the Power bit is
+                // confirmed and OnOff is wired to real IR, since a real
+                // "Power Off" via IR would still lose Fresh Air the same way
+                // -- Fresh Air's own IR bit is still unconfirmed (see
+                // send_ir_frame()'s doc comment), so there's no way yet to
+                // command "off but keep Fresh Air" other than staying in Fan
+                // mode with power on.
                 expected_tuya_mode = 3;
-                result = tuya_set_mode(expected_tuya_mode);
-                if (result == ESP_OK) {
-                    tuya_set_fresh_air(true);
-                }
+                ir_mode = IR_MODE_FAN;
             } else {
                 int8_t tuya_mode = map_matter_mode_to_tuya(mode_cmd);
-                if (tuya_mode < 0) {
-                    ESP_LOGW(TAG, "Matter mode %u has no Tuya equivalent, ignoring", mode_cmd);
+                int8_t mapped_ir_mode = map_matter_mode_to_ir(mode_cmd);
+                if (tuya_mode < 0 || mapped_ir_mode < 0) {
+                    ESP_LOGW(TAG, "Matter mode %u has no IR/Tuya equivalent, ignoring", mode_cmd);
                     matter_clear_mode_command();
                     continue;
                 }
                 expected_tuya_mode = (uint8_t)tuya_mode;
-
-                // Selecting a real operating mode implies the unit should be
-                // running -- without this, map_tuya_mode_to_matter always
-                // reports Off while switch_state is false regardless of
-                // ac_mode, so a mode command sent while the unit is off has
-                // no visible effect in the driver. Only fires when we last
-                // saw it off, to avoid a redundant Tuya call otherwise.
-                if (g_last_device_status_valid && !g_last_device_status.switch_state) {
-                    esp_err_t power_result = tuya_set_power(true);
-                    if (power_result == ESP_OK) {
-                        ESP_LOGI(TAG, "Powering on unit to apply mode command");
-                    } else {
-                        ESP_LOGW(TAG, "Failed to power on unit before mode command");
-                    }
-                }
-
-                result = tuya_set_mode(expected_tuya_mode);
+                ir_mode = (uint8_t)mapped_ir_mode;
             }
 
-            if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send mode command to Tuya");
+            // Pre-send refresh (PLAN.md Milestone 2), same reasoning as the
+            // Desired Setpoint block above: fetch Tuya's latest status right
+            // before building the IR frame, so the setpoint byte this frame
+            // preserves reflects any out-of-band change instead of a
+            // possibly-stale cached value.
+            tuya_device_status_t refreshed_status = g_last_device_status;
+            if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                cache_and_apply_status(&refreshed_status);
+                g_sync_state.last_status_update = xTaskGetTickCount();
             } else {
+                ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's setpoint byte");
+            }
+
+            // power_on=true unconditionally: even the kOff case idles in Fan
+            // mode rather than actually powering down (see above), and a
+            // genuine mode selection obviously wants the unit running.
+            esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
+
+            if (result == ESP_OK) {
                 // Any explicit mode command -- including a genuine Fan Only
                 // selection -- reflects the user's real intent from here on,
                 // so it always overrides the fan-idle-proxy latch.
                 g_mode_off_via_fan_proxy = (mode_cmd == 0);
-                ESP_LOGI(TAG, "Mode command sent (mode=%u)%s", expected_tuya_mode,
-                         g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "");
+            } else {
+                ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
             }
+            ESP_LOGI(TAG, "Mode command sent via IR (ir_mode=%u)%s", ir_mode,
+                     g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "");
 
             matter_clear_mode_command();
+
+            post_send_verify_and_sync(true, true, false, 0, true, expected_tuya_mode);
         }
-    }
-}
-
-// Confirmed on real hardware: an intermittent corrupted I2C read occasionally
-// reports a physically implausible single-sample value (isolated ~20-40F
-// spikes that revert the very next 30s poll). This is a bad byte in transit
-// during the burst-read transaction, downstream of the sensor's own
-// measurement/filtering -- no BME280 sampling config can fix it, so instead
-// every fresh reading is sanity-checked against absolute physical limits and
-// against the last known-good reading before it's ever published to
-// Matter/HA. The delta thresholds are picked well above normal sample-to-
-// sample noise but far below the corruption spikes actually observed.
-#define BME280_TEMP_MIN_C -40.0f
-#define BME280_TEMP_MAX_C 85.0f
-#define BME280_TEMP_MAX_DELTA_C 5.0f          // ~9F per ENV_POLL_INTERVAL_MS
-#define BME280_HUMIDITY_MAX_DELTA_PCT 20.0f
-
-// Confirmed on real hardware: rejecting against the last-good baseline alone
-// has no way to recover from a GENUINE environment change (device physically
-// relocated, or just a real swing bigger than one poll interval "should"
-// allow) -- since the baseline only ever updates on acceptance, a real
-// change that differs enough from the stale baseline gets rejected forever,
-// stuck for 7+ minutes or more until a reboot resets it. A corrupted I2C
-// read is isolated and reverts the very next 30s poll (see the comment on
-// bme280_reading_is_plausible() below); a real change stays consistent
-// across repeated polls. This threshold is how many consecutive rejections
-// have to agree with EACH OTHER (not the stale baseline) before treating it
-// as real and force-accepting it as the new baseline.
-#define BME280_CONSISTENT_REJECT_THRESHOLD 3
-
-static bool g_last_good_bme280_valid = false;
-static float g_last_good_bme280_temp_c = 0.0f;
-static float g_last_good_bme280_humidity_pct = 0.0f;
-
-static bool g_pending_bme280_valid = false;
-static float g_pending_bme280_temp_c = 0.0f;
-static float g_pending_bme280_humidity_pct = 0.0f;
-static uint8_t g_pending_bme280_streak = 0;
-
-static bool bme280_reading_is_plausible(const bme280_reading_t *reading)
-{
-    if (reading->temperature_c < BME280_TEMP_MIN_C || reading->temperature_c > BME280_TEMP_MAX_C ||
-        reading->humidity_pct < 0.0f || reading->humidity_pct > 100.0f) {
-        g_pending_bme280_streak = 0;
-        return false;
-    }
-    if (!g_last_good_bme280_valid) {
-        return true;
-    }
-    bool within_delta =
-        fabsf(reading->temperature_c - g_last_good_bme280_temp_c) <= BME280_TEMP_MAX_DELTA_C &&
-        fabsf(reading->humidity_pct - g_last_good_bme280_humidity_pct) <= BME280_HUMIDITY_MAX_DELTA_PCT;
-    if (within_delta) {
-        g_pending_bme280_streak = 0;
-        return true;
-    }
-
-    bool matches_pending = g_pending_bme280_valid &&
-        fabsf(reading->temperature_c - g_pending_bme280_temp_c) <= BME280_TEMP_MAX_DELTA_C &&
-        fabsf(reading->humidity_pct - g_pending_bme280_humidity_pct) <= BME280_HUMIDITY_MAX_DELTA_PCT;
-
-    g_pending_bme280_temp_c = reading->temperature_c;
-    g_pending_bme280_humidity_pct = reading->humidity_pct;
-    g_pending_bme280_valid = true;
-    g_pending_bme280_streak = matches_pending ? (uint8_t)(g_pending_bme280_streak + 1) : 1;
-
-    if (g_pending_bme280_streak >= BME280_CONSISTENT_REJECT_THRESHOLD) {
-        ESP_LOGW(TAG, "BME280 reading has repeated %u times despite differing from last known-good "
-                      "(temp=%.2fC hum=%.1f%%) -- accepting as a real environment change, not corruption",
-                 g_pending_bme280_streak, reading->temperature_c, reading->humidity_pct);
-        g_pending_bme280_streak = 0;
-        g_pending_bme280_valid = false;
-        return true;
-    }
-
-    return false;
-}
-
-/**
- * @brief Environment sensor task: reads BME280 and updates the standalone
- *        Matter temperature + humidity sensor endpoints.
- */
-static void env_task(void *param)
-{
-    ESP_LOGI(TAG, "Environment sensor task started (BME280, interval: %ums)",
-             ENV_POLL_INTERVAL_MS);
-
-    while (1) {
-        // Stamped at the top of every iteration, before the read attempt --
-        // not on success -- so a genuine hang inside bme280_read() itself
-        // (confirmed on real hardware: an 8.5-hour stall with zero log
-        // output, meaning the call never returned at all despite its own
-        // internal timeouts, silently bypassing bme280.c's own
-        // failure-counting/bus-recovery logic since that only runs once a
-        // call actually returns) leaves this timestamp frozen instead of
-        // advancing, which is exactly what health_task's stall check below
-        // needs to detect it.
-        g_sync_state.last_env_heartbeat = xTaskGetTickCount();
-
-        bme280_reading_t reading = {0};
-        if (bme280_read(&reading) == ESP_OK) {
-            if (bme280_reading_is_plausible(&reading)) {
-                g_last_good_bme280_valid = true;
-                g_last_good_bme280_temp_c = reading.temperature_c;
-                g_last_good_bme280_humidity_pct = reading.humidity_pct;
-
-                int16_t temp_centi = (int16_t)lroundf(reading.temperature_c * 100.0f);
-                uint16_t hum_centi = (uint16_t)lroundf(reading.humidity_pct * 100.0f);
-                matter_update_aux_temperature(temp_centi);
-                matter_update_aux_humidity(hum_centi);
-                ESP_LOGI(TAG, "BME280: %.2f\u00b0C  %.1f%%RH  %.1f hPa",
-                         reading.temperature_c, reading.humidity_pct, reading.pressure_hpa);
-            } else {
-                ESP_LOGW(TAG, "BME280 reading rejected as implausible (temp=%.2fC hum=%.1f%%) -- likely a corrupted I2C read, keeping last known-good value",
-                         reading.temperature_c, reading.humidity_pct);
-            }
-        } else {
-            ESP_LOGW(TAG, "BME280 read failed");
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(ENV_POLL_INTERVAL_MS));
     }
 }
 
@@ -853,23 +1090,6 @@ static void health_task(void *param)
         if (last_update_age_ms > SYNC_STALL_RESTART_MS) {
             ESP_LOGE(TAG, "sync_task appears stalled (%ums since last successful Tuya poll, "
                           "threshold %ums) -- restarting", last_update_age_ms, SYNC_STALL_RESTART_MS);
-            esp_restart();
-        }
-
-        uint32_t last_env_age_ms =
-            (xTaskGetTickCount() - g_sync_state.last_env_heartbeat) * portTICK_PERIOD_MS;
-        ESP_LOGI(TAG, "Last env_task Heartbeat: %ums ago", last_env_age_ms);
-
-        // See ENV_STALL_RESTART_MS -- confirmed on real hardware that
-        // bme280_read() can hang indefinitely in a way its own internal
-        // timeouts and bus-recovery logic don't catch, silently taking
-        // env_task down for hours while every other task (Thread, Matter,
-        // Tuya sync) kept working fine, which is exactly why this needs its
-        // own independent check rather than piggybacking on the sync_task
-        // one above.
-        if (last_env_age_ms > ENV_STALL_RESTART_MS) {
-            ESP_LOGE(TAG, "env_task appears stalled (%ums since last loop iteration, "
-                          "threshold %ums) -- restarting", last_env_age_ms, ENV_STALL_RESTART_MS);
             esp_restart();
         }
 
@@ -1043,26 +1263,18 @@ void app_main(void)
         TUYA_CLIENT_SECRET
     ));
 
-    // Initialize optional BME280 environment sensor (temperature + humidity).
-    // If absent, the aux temperature endpoint falls back to the Tuya indoor temp.
-    if (bme280_init() == ESP_OK) {
-        // Bumped alongside health_monitor's stack -- same reasoning: its
-        // ESP_LOGI calls (BME280 readings/warnings) now route through
-        // papertrail_vprintf's sendto() call chain too. Not confirmed
-        // crashing in practice like health_monitor was, but it's the
-        // second-tightest task in the app and shares the same exposure, so
-        // this is cheap, proactive margin rather than waiting for it to
-        // fail the same way.
-        xTaskCreate(env_task,
-                    "env_sensor",
-                    4096,
-                    NULL,
-                    2,
-                    NULL);
-    } else {
-        ESP_LOGW(TAG, "BME280 not detected; humidity endpoint inactive, aux temp mirrors Tuya");
-    }
-    
+    // Initialize the IR transmitter (PLAN.md Milestone 1/2). Confirmed
+    // 2026-09-07 against real hardware (test_apps/ir_live_test) -- an
+    // emitter is mounted and the unit responds correctly to transmitted
+    // commands.
+    ESP_ERROR_CHECK(ir_tcl112_init());
+
+    // Follow-Me's ambient sensor reading (PLAN.md Milestone 3) comes from HA
+    // now, via the Follow-Me Matter endpoint (matter_get_followme_ambient_temp_c_x100())
+    // -- this firmware's own attempt at a direct MQTT client to Mosquitto
+    // never got a working DNS/NAT64 path on this Thread-only device
+    // (2026-09-07 decision), so there's no separate client to initialize here.
+
     // ========== Phase 3: Create Integration Tasks ==========
     
     // Status synchronization task (Tuya → Matter)
@@ -1099,7 +1311,17 @@ void app_main(void)
                 NULL,
                 2,
                 NULL);
-    
+
+    // Follow-Me task (PLAN.md Milestone 3). Same priority tier as
+    // command_task -- it sends IR too, just on its own timer instead of in
+    // response to a Matter write.
+    xTaskCreate(followme_task,
+                "followme",
+                8192,
+                NULL,
+                3,
+                NULL);
+
     ESP_LOGI(TAG, "\n=== MiniSplit Matter Bridge Ready ===");
     ESP_LOGI(TAG, "Status Sync Interval: %ums (fixed)", STATUS_POLL_INTERVAL_MS);
     ESP_LOGI(TAG, "Command Poll Interval: %ums", COMMAND_POLL_INTERVAL_MS);
