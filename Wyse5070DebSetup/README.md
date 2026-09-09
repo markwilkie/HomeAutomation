@@ -19,9 +19,19 @@ this table exists specifically so that doesn't happen:
 | 1883 | Mosquitto (MQTT) | No — broker only | (none) | `mosquitto` |
 | 9001 | Mosquitto (MQTT over WebSockets) | No — broker only | (none) | `mosquitto` |
 | **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
+| **8085** | Dashboard | Yes — quick links to every service below + top-level repo docs | (none) | `dashboard` |
 | 8600 | MCP gateway: Microsoft To Do | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-todo` |
 | 8601 | MCP gateway: Trilium | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-trilium` |
 | 8602 | MCP gateway: Monarch Money | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-monarch` |
+
+## Quick-links dashboard
+
+**http://192.168.15.30:8085/** — a static "quick links" landing page
+(`setup-dashboard.sh`, source in `dashboard/index.html`) linking to every
+browsable service in the table above plus this repo's top-level
+README/CLAUDE.md docs on GitHub. LAN/Tailscale only, same as everything
+else in this table except the Caddy-fronted MCP gateways below — not in
+the Caddyfile, not reachable via `wilkiefamily.duckdns.org`.
 
 ## The three dongle admin UIs, side by side
 
@@ -141,5 +151,5 @@ directory (`setup-homeassistant.sh`, `setup-mg24.sh` for OTBR,
 `setup-zigbee2mqtt.sh`, `setup-zwave-js-ui.sh`, `setup-matter-server.sh`,
 `setup-mosquitto.sh`, `setup-trilium.sh`, `setup-mcp-gateway-todo.sh`,
 `setup-mcp-gateway-trilium.sh`, `setup-mcp-gateway-monarch.sh`,
-`setup-caddy.sh`). Re-running any of them is safe/idempotent and will
+`setup-caddy.sh`, `setup-dashboard.sh`). Re-running any of them is safe/idempotent and will
 recreate that one container with current settings.

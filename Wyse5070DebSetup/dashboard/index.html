@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wilkie-home-server</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card-bg: #ffffff;
+    --text: #1b1f24;
+    --text-dim: #5b6470;
+    --border: #dde1e6;
+    --accent: #2f6fed;
+    --accent-bg: #eaf0fe;
+    --ok: #1a7f4e;
+    --ok-bg: #e5f6ee;
+    --warn: #9a6700;
+    --warn-bg: #fdf2df;
+    --code-bg: #eef0f3;
+    --shadow: 0 1px 2px rgba(20,22,26,0.06), 0 1px 1px rgba(20,22,26,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161a;
+      --card-bg: #1c1f25;
+      --text: #e7e9ec;
+      --text-dim: #9aa2ad;
+      --border: #2b2f37;
+      --accent: #6d9bff;
+      --accent-bg: #202940;
+      --ok: #4fd393;
+      --ok-bg: #14261f;
+      --warn: #e3b04b;
+      --warn-bg: #2c2413;
+      --code-bg: #23262d;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a;
+    --card-bg: #1c1f25;
+    --text: #e7e9ec;
+    --text-dim: #9aa2ad;
+    --border: #2b2f37;
+    --accent: #6d9bff;
+    --accent-bg: #202940;
+    --ok: #4fd393;
+    --ok-bg: #14261f;
+    --warn: #e3b04b;
+    --warn-bg: #2c2413;
+    --code-bg: #23262d;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 20px 64px;
+  }
+  header {
+    margin-bottom: 32px;
+  }
+  header h1 {
+    font-size: 1.5rem;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  header code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  section {
+    margin-bottom: 36px;
+  }
+  section > h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    display: block;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+  a.card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .card .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card .name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .card .desc {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin-top: 4px;
+  }
+  .card .port {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    background: var(--code-bg);
+    border-radius: 5px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+  .badge.ok { color: var(--ok); background: var(--ok-bg); }
+  .badge.warn { color: var(--warn); background: var(--warn-bg); }
+
+  .card.disabled {
+    cursor: default;
+    opacity: 0.9;
+  }
+  .card.disabled:hover { transform: none; border-color: var(--border); }
+
+  .doc-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+  }
+  .doc-list a {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    border: 1px solid transparent;
+    font-size: 0.88rem;
+  }
+  .doc-list a:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+  }
+  .doc-list a .proj {
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 108px;
+    flex: none;
+  }
+  .doc-list a .file {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+  }
+  .doc-list a.deprecated .proj { color: var(--text-dim); text-decoration: line-through; }
+
+  footer {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>wilkie-home-server</h1>
+    <p>Quick links for <code>192.168.15.30</code> — LAN/Tailscale only, nothing on this page is exposed to the internet.</p>
+  </header>
+
+  <section>
+    <h2>Core</h2>
+    <div class="grid">
+      <a class="card" href="http://192.168.15.30:8123/" target="_blank" rel="noopener">
+        <div class="row"><span class="name">Home Assistant</span><span class="port">8123</span></div>
+        <div class="desc">Main dashboard &amp; automations</div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Radio dongles — admin UIs</h2>
+    <div class="grid">
+      <a class="card" href="http://192.168.15.30:8080/" target="_blank" rel="noopener">
+        <div class="row"><span class="name">OTBR (Thread)</span><span class="port">8080</span></div>
+        <div class="desc">Thread topology &amp; node roles — SONOFF Dongle Plus MG24</div>
+      </a>
+      <a class="card" href="http://192.168.15.30:8099/" target="_blank" rel="noopener">
+        <div class="row"><span class="name">Zigbee2MQTT</span><span class="port">8099</span></div>
+        <div class="desc">Zigbee pairing, devices, logs — SONOFF Zigbee 3.0 Dongle</div>
+      </a>
+      <a class="card" href="http://192.168.15.30:8091/" target="_blank" rel="noopener">
+        <div class="row"><span class="name">Z-Wave JS UI</span><span class="port">8091</span></div>
+        <div class="desc">Z-Wave pairing, devices, logs — Aeotec Z-Stick Gen5</div>
+      </a>
+      <div class="card disabled">
+        <div class="row"><span class="name">Matter Server</span><span class="port">5580</span></div>
+        <div class="desc">No web UI — WebSocket only (<code>ws://192.168.15.30:5580/ws</code>), used by HA's Matter integration</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Notes &amp; other apps</h2>
+    <div class="grid">
+      <a class="card" href="http://192.168.15.30:8090/" target="_blank" rel="noopener">
+        <div class="row"><span class="name">Trilium Notes</span><span class="port">8090</span></div>
+        <div class="desc">Notes, migrated from Evernote</div>
+      </a>
+      <a class="card" href="http://192.168.15.30:8000/" target="_blank" rel="noopener">
+        <div class="row"><span class="name">TripTracker</span><span class="port">8000</span></div>
+        <div class="desc">Trip tracking app</div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Documentation</h2>
+    <div class="doc-list" id="doc-list">
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/CLAUDE.md" target="_blank" rel="noopener">
+        <span class="proj">Repo root</span><span class="file">CLAUDE.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/README.md" target="_blank" rel="noopener">
+        <span class="proj">Wyse5070DebSetup</span><span class="file">README.md — full port/endpoint table</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/MiniSplit/README.md" target="_blank" rel="noopener">
+        <span class="proj">MiniSplit</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/MiniSplitIR/README.md" target="_blank" rel="noopener">
+        <span class="proj">MiniSplitIR</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/DormerWindowState/README.md" target="_blank" rel="noopener">
+        <span class="proj">DormerWindowState</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/GarageParker/README.md" target="_blank" rel="noopener">
+        <span class="proj">GarageParker</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/blind_controller/README.md" target="_blank" rel="noopener">
+        <span class="proj">blind_controller</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/SmartThings_based_solution/README.md" target="_blank" rel="noopener">
+        <span class="proj">SmartThings_based_solution</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/cam_copy/README.md" target="_blank" rel="noopener">
+        <span class="proj">cam_copy</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/lightroom/README.md" target="_blank" rel="noopener">
+        <span class="proj">lightroom</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/HomeAutomation/blob/master/used-car-scanner/README.md" target="_blank" rel="noopener">
+        <span class="proj">used-car-scanner</span><span class="file">README.md</span>
+      </a>
+      <a class="deprecated" href="https://github.com/markwilkie/HomeAutomation/blob/master/rf24_based_solution-deprecated/README.md" target="_blank" rel="noopener">
+        <span class="proj">rf24_based_solution</span><span class="file">README.md — deprecated</span>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    Static page, no backend. Edit <code>Wyse5070DebSetup/dashboard/index.html</code> in the repo and re-run
+    <code>setup-dashboard.sh</code> to update. Served by nginx on port 8085.
+  </footer>
+
+</div>
+</body>
+</html>
