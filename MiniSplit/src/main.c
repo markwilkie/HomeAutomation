@@ -37,6 +37,21 @@ static const char *TAG = "MAIN";
 #define IR_MODE_FAN  7
 #define IR_MODE_AUTO 8
 
+// TCL112AC protocol Fan values, state[8] bits 0-2 -- our own capture-
+// confirmed enum for this specific unit (IR_PROTOCOL_REFERENCE.md's "Fan
+// speed discrepancy" section), NOT the generic IRremoteESP8266 library's
+// model, which claims a 5th distinct "Quiet" value (1) this unit never
+// actually sends. `2` covers both Quiet and Low here -- the two are only
+// disambiguated by the Type 2 companion frame's Quiet bit, which this
+// project currently always sends as a fixed "everyday" frame (see
+// transmit_ir_state_frame()'s kType2CompanionFrame), so Quiet and Low are
+// indistinguishable at the IR level from this firmware today regardless of
+// which Tuya fan_speed_enum value maps to IR_FAN_LOW below.
+#define IR_FAN_AUTO 0
+#define IR_FAN_LOW  2
+#define IR_FAN_MED  3
+#define IR_FAN_HIGH 5
+
 // Set once Matter's network layer (Thread) reports connectivity -- see
 // matter_set_network_event_group() / app_chip_event_handler() in
 // matter_device.cpp. Network bring-up is owned by Matter's commissioning
@@ -208,6 +223,31 @@ static int8_t map_matter_mode_to_ir(uint8_t matter_mode)
     }
 }
 
+// Tuya's fan_speed_enum (0-7: Stop/Mute/Low/Med-Low/Med/Med-High/High/
+// Turbo, TUYA_DP_REFERENCE.md) -> the IR protocol's own 4-value Fan enum
+// (IR_FAN_* above). Not a 1:1 mapping -- Tuya exposes finer granularity
+// than this unit's IR protocol actually has, so this collapses each Tuya
+// step to the closest real IR level rather than inventing bit positions
+// that don't exist. HA/Matter can't select fan speed at all today (out of
+// scope per PLAN.md Milestone 2), so this only matters for *preserving*
+// whatever speed was last set via the physical remote or the Tuya app
+// across an unrelated IR command (see build_ir_state_frame()'s "Preserve
+// fields HA doesn't control" note) -- not for controlling it.
+static uint8_t map_tuya_fan_speed_to_ir(uint8_t tuya_fan_speed)
+{
+    switch (tuya_fan_speed) {
+        case 0: return IR_FAN_AUTO; // Stop
+        case 1: return IR_FAN_LOW;  // Mute
+        case 2: return IR_FAN_LOW;  // Low
+        case 3: return IR_FAN_LOW;  // Med-Low
+        case 4: return IR_FAN_MED;  // Med
+        case 5: return IR_FAN_MED;  // Med-High
+        case 6: return IR_FAN_HIGH; // High
+        case 7: return IR_FAN_HIGH; // Turbo
+        default: return IR_FAN_AUTO;
+    }
+}
+
 // Builds and transmits one full TCL112AC IR frame reflecting the AC's
 // best-known current state, with exactly one field overridden (whichever
 // this specific command is actually changing -- mode or setpoint, never
@@ -218,18 +258,20 @@ static int8_t map_matter_mode_to_ir(uint8_t matter_mode)
 // PLAN.md Milestone 2 stays visible at the call site rather than hidden in
 // here.
 //
-// KNOWN LIMITATION, deliberate for now: Fan speed, Light, Swing(V/H),
-// Health, and Fresh Air aren't preserved from the unit's actual live
-// state -- every frame sent from here carries the base template's fixed
-// captured values for those fields (see kBaseFrame-equivalent literal
-// below), which could revert real out-of-band changes (real remote, Tuya
-// app) back to that fixed snapshot rather than zeroing them outright as an
-// earlier version of this function did. Still needs each field's real
-// current value read (mostly from Tuya DPs, see PLAN.md Milestone 2's
-// "Preserve fields HA doesn't control" section) and written in here before
-// this is truly safe for anything beyond Mode/Setpoint/Power. This IS a
-// real-world risk: as of 2026-09-07 an IR emitter is mounted and confirmed
-// transmitting commands the unit actually accepts (test_apps/ir_live_test).
+// KNOWN LIMITATION, deliberate for now: Swing(V/H), Health, and Fresh Air
+// aren't preserved from the unit's actual live state -- every frame sent
+// from here carries the base template's fixed captured values for those
+// fields (see kBaseFrame-equivalent literal below), which could revert real
+// out-of-band changes (real remote, Tuya app) back to that fixed snapshot
+// rather than zeroing them outright as an earlier version of this function
+// did. Swing/Health are a deliberate user-call deferral (see
+// IR_PROTOCOL_REFERENCE.md's "Known gaps"); Fresh Air's IR bit position is
+// still genuinely unknown (capture attempted and abandoned). Fan speed and
+// Light are both preserved now (2026-09-09 and 2026-09-07 respectively) --
+// this comment previously listed them here too but that went stale. This
+// IS a real-world risk for the fields still unpreserved: as of 2026-09-07
+// an IR emitter is mounted and confirmed transmitting commands the unit
+// actually accepts (test_apps/ir_live_test).
 // Builds the frame array only (no send) -- shared by send_ir_frame() below
 // and send_followme_frame() (Follow-Me heartbeat), since both need the same
 // base-template-plus-known-fields construction and only differ in which
@@ -313,6 +355,12 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
     } else {
         out_frame[5] |= 0x40;
     }
+
+    // Fan -- state[8] bits 0-2, see map_tuya_fan_speed_to_ir() above. Bits
+    // 3-7 (SwingV, TimerIndicator, the unclaimed bit 7) are left as the
+    // base template's captured values, same "not preserved yet" limitation
+    // as Swing/Health/Fresh Air below.
+    out_frame[8] = (uint8_t)((out_frame[8] & ~0x07) | (map_tuya_fan_speed_to_ir(status->fan_speed) & 0x07));
 
     out_frame[6] = (uint8_t)((out_frame[6] & ~0x0F) | (ir_mode & 0x0F));  // Mode nibble; bits 4-7 preserved from base
     out_frame[7] = (uint8_t)(31 - setpoint_c);
@@ -928,14 +976,26 @@ static void command_task(void *param)
                 ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's mode/setpoint bytes");
             }
 
-            esp_err_t result = send_ir_frame(&refreshed_status, desired_onoff, false, 0, false, 0);
-            if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send power command via IR: %s", esp_err_to_name(result));
+            // Dedup against the freshly-refreshed shadow state (PLAN.md
+            // Milestone 2): if Tuya already reports the desired power state
+            // -- e.g. the physical remote or Tuya app already made this
+            // exact change -- skip the redundant IR send and its ~90s
+            // post-send verify loop entirely, rather than re-transmitting a
+            // command that wouldn't change anything.
+            if (refreshed_status.switch_state == desired_onoff) {
+                ESP_LOGI(TAG, "Power already %s per fresh Tuya status, skipping redundant IR send",
+                         desired_onoff ? "on" : "off");
+                matter_clear_onoff_command();
+            } else {
+                esp_err_t result = send_ir_frame(&refreshed_status, desired_onoff, false, 0, false, 0);
+                if (result != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send power command via IR: %s", esp_err_to_name(result));
+                }
+
+                matter_clear_onoff_command();
+
+                post_send_verify_and_sync(true, desired_onoff, false, 0, false, 0);
             }
-
-            matter_clear_onoff_command();
-
-            post_send_verify_and_sync(true, desired_onoff, false, 0, false, 0);
         }
 
         // ===== Check for a Desired Setpoint change from Matter =====
@@ -972,14 +1032,27 @@ static void command_task(void *param)
                 ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's mode byte");
             }
 
-            esp_err_t send_err = send_ir_frame(&refreshed_status, true, false, 0, true, desired_c_x100);
-            if (send_err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send desired setpoint via IR: %s", esp_err_to_name(send_err));
+            // Dedup against the freshly-refreshed shadow state (PLAN.md
+            // Milestone 2) -- same half-degree tolerance
+            // post_send_verify_and_sync() uses, since temp_set_f-derived
+            // Celsius can legitimately disagree with the raw target by
+            // quantization. Skips a redundant IR send (and its ~90s
+            // post-send verify loop) when Tuya already reports this exact
+            // setpoint, e.g. HA re-sending the same value or the physical
+            // remote already having made this change.
+            if (abs(tuya_setpoint_f_to_c(refreshed_status.temp_set_f) - desired_c_x100) <= 50) {
+                ESP_LOGI(TAG, "Setpoint already matches per fresh Tuya status, skipping redundant IR send");
+                matter_clear_desired_setpoint_command_pending();
+            } else {
+                esp_err_t send_err = send_ir_frame(&refreshed_status, true, false, 0, true, desired_c_x100);
+                if (send_err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send desired setpoint via IR: %s", esp_err_to_name(send_err));
+                }
+
+                matter_clear_desired_setpoint_command_pending();
+
+                post_send_verify_and_sync(false, false, true, desired_c_x100, false, 0);
             }
-
-            matter_clear_desired_setpoint_command_pending();
-
-            post_send_verify_and_sync(false, false, true, desired_c_x100, false, 0);
         }
 
         // ===== Check for System Mode command =====
@@ -1028,25 +1101,41 @@ static void command_task(void *param)
                 ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's setpoint byte");
             }
 
-            // power_on=true unconditionally: even the kOff case idles in Fan
-            // mode rather than actually powering down (see above), and a
-            // genuine mode selection obviously wants the unit running.
-            esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
-
-            if (result == ESP_OK) {
-                // Any explicit mode command -- including a genuine Fan Only
-                // selection -- reflects the user's real intent from here on,
-                // so it always overrides the fan-idle-proxy latch.
-                g_mode_off_via_fan_proxy = (mode_cmd == 0);
+            // Dedup against the freshly-refreshed shadow state (PLAN.md
+            // Milestone 2): if Tuya already reports the mode this command
+            // asks for, skip the redundant IR send and its ~90s post-send
+            // verify loop. Still apply the fan-idle-proxy latch update below
+            // either way -- that's tracking *why* the mode is what it is
+            // (an explicit HA request vs. this device's own Off-via-Fan
+            // workaround), which is true regardless of whether an IR frame
+            // actually needed to go out this time.
+            bool mode_already_matches = (refreshed_status.ac_mode == expected_tuya_mode);
+            if (mode_already_matches) {
+                ESP_LOGI(TAG, "Mode already matches per fresh Tuya status, skipping redundant IR send");
             } else {
-                ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
+                // power_on=true unconditionally: even the kOff case idles in
+                // Fan mode rather than actually powering down (see above),
+                // and a genuine mode selection obviously wants the unit
+                // running.
+                esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
+                if (result != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
+                }
             }
-            ESP_LOGI(TAG, "Mode command sent via IR (ir_mode=%u)%s", ir_mode,
-                     g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "");
+
+            // Any explicit mode command -- including a genuine Fan Only
+            // selection -- reflects the user's real intent from here on, so
+            // it always overrides the fan-idle-proxy latch.
+            g_mode_off_via_fan_proxy = (mode_cmd == 0);
+            ESP_LOGI(TAG, "Mode command processed (ir_mode=%u)%s%s", ir_mode,
+                     g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "",
+                     mode_already_matches ? " [already matched, no IR sent]" : "");
 
             matter_clear_mode_command();
 
-            post_send_verify_and_sync(true, true, false, 0, true, expected_tuya_mode);
+            if (!mode_already_matches) {
+                post_send_verify_and_sync(true, true, false, 0, true, expected_tuya_mode);
+            }
         }
     }
 }

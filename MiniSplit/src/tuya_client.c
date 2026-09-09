@@ -601,6 +601,11 @@ retry_status_request:
             status->fresh_air_valve = value_obj->valueint;
         } else if (strcmp(code, "light") == 0) {
             status->light = value_obj->valueint;
+        } else if (strcmp(code, "fan_speed_enum") == 0) {
+            // Enum DP, same string-not-number quirk as "mode" above.
+            if (cJSON_IsString(value_obj) && value_obj->valuestring) {
+                status->fan_speed = (uint8_t)atoi(value_obj->valuestring);
+            }
         } else if (strcmp(code, "compressor_frequency") == 0) {
             status->compressor_frequency = value_obj->valueint;
         } else if (strcmp(code, "ure") == 0) {

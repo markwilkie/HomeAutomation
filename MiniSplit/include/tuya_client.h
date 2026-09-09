@@ -26,6 +26,12 @@ typedef struct {
                                   // unit's real current Light setting instead of a fixed guess
                                   // (see main.c's send_ir_frame(), IR_PROTOCOL_REFERENCE.md state[5]
                                   // bit 0x40)
+    uint8_t fan_speed;           // "fan_speed_enum" DP, raw Tuya values 0-7: Stop/Mute/Low/
+                                  // Med-Low/Med/Med-High/High/Turbo (TUYA_DP_REFERENCE.md) -- read
+                                  // so IR frame construction can preserve the unit's real current
+                                  // fan speed instead of a fixed guess (see main.c's
+                                  // map_tuya_fan_speed_to_ir(), IR_PROTOCOL_REFERENCE.md state[8]
+                                  // bits 0-2)
     int16_t compressor_frequency; // Compressor running frequency, raw Hz (NOT x10 despite the
                                   // Tuya typeSpec's claim -- see TUYA_DP_REFERENCE.md's scale
                                   // correction note); 0 = idle/off

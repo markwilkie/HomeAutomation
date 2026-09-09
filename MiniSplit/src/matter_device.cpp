@@ -343,8 +343,11 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
             return ESP_OK;
         }
         if (attribute_id == Thermostat::Attributes::SystemMode::Id) {
-            // Same pending-command mechanism the main endpoint's SystemMode
-            // write uses below -- command_task's existing "System Mode
+            // The only surface that accepts SystemMode writes now -- the
+            // main endpoint's used to (see the "Rejecting SystemMode write"
+            // block below), but that got retired 2026-09-09 once this
+            // endpoint's climate card was confirmed as what's actually used
+            // for mode control. command_task's existing "System Mode
             // command" handling doesn't care which endpoint the write came
             // from, only the resulting mode value. Added 2026-09-07 so
             // selecting Heat (now available, see the Heat feature flag
@@ -392,9 +395,17 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
             return ESP_ERR_NOT_SUPPORTED;
         }
         if (attribute_id == Thermostat::Attributes::SystemMode::Id) {
-            g_matter_state.system_mode = val->val.u8;
-            g_matter_state.mode_command_pending = g_matter_state.system_mode;
-            ESP_LOGI(TAG, "System mode command: %u", g_matter_state.system_mode);
+            // Retired 2026-09-09 (PLAN.md Milestone 4, item 1): rejected the
+            // same way the setpoint attributes above already are, now that
+            // the Desired Setpoint endpoint's own SystemMode write (below)
+            // is confirmed as the entity actually used for mode control --
+            // user confirmed thermostat_6's climate card is what's really
+            // used, not this endpoint's. Two duplicate SystemMode-accepting
+            // surfaces feeding the same command_task path was the real risk
+            // this retires, not just tidiness.
+            ESP_LOGW(TAG, "Rejecting SystemMode write on main thermostat endpoint "
+                          "-- use the Desired Setpoint entity instead");
+            return ESP_ERR_NOT_SUPPORTED;
         }
     }
 
