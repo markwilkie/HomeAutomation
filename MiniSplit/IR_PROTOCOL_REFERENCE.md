@@ -206,11 +206,12 @@ to gate acceptance (see the capture log's Fan-speed session, presses 1-6),
 a single fixed real capture was enough; no need to reproduce the counter's
 exact sequence.
 
-**Production impact:** `src/main.c`'s `send_ir_frame()` — the actual
-Matter-triggered command path — still only sends Type 1, same as this
-driver did before the fix above. That means the deployed firmware has the
-same bug this test just found, not yet fixed there. See PLAN.md Milestone
-2.
+**Production impact — fixed 2026-09-09 correction: this section previously
+said `src/main.c`'s `send_ir_frame()` still only sent Type 1. That was
+stale by the time it was written — it already sent both.** `send_ir_frame()`
+calls `transmit_ir_state_frame()`, which sends the Type 2 companion frame
+before the Type 1 frame on every call, shared by both `send_ir_frame()` and
+`send_followme_frame()`. See PLAN.md Milestone 2.
 
 ## Follow Me behavior
 
@@ -244,10 +245,15 @@ same bug this test just found, not yet fixed there. See PLAN.md Milestone
   (user call) — the library's struct still accounts for every bit in the
   frame except `state[4]` bits 0-6 (bit 7 is our own Follow-Me flag), the
   most likely home if this gets revisited, but genuinely unconfirmed.
-- **Light, Swing(V), Swing(H), Health** have sourced, unconfirmed bit
-  positions (table above) — **deliberately not being captured/confirmed**
-  (user call, 2026-09-07); kept as the library's sourced hypothesis as-is.
-  Not a blocker for Milestone 2.
+- **Light** has a sourced, unconfirmed bit position (table above,
+  `state[5]` bit `0x40`, inverted) — **wired into `src/main.c`'s
+  `build_ir_state_frame()` anyway (2026-09-07)**, on the library's sourced
+  hypothesis as-is, after a real regression (Light silently reverting on
+  unrelated commands) made shipping it worth more than waiting for a
+  capture to confirm the polarity. Revisit if it turns out inverted.
+- **Swing(V), Swing(H), Health** have sourced, unconfirmed bit positions
+  (table above) — **deliberately not being captured/confirmed or preserved**
+  (user call, 2026-09-07); not a blocker for Milestone 2.
 - **On Timer / Off Timer:** now known with high confidence (sourced bit
   positions above, real getter/setter logic behind them in the library —
   not a placeholder/static value as an earlier draft of this file
