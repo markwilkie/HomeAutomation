@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+.pio/
+
+# ESP-IDF
+sdkconfig.old
+.idf_monitor_log
+*.log
+
+# Component manager-managed dependencies (auto-downloaded by idf.py).
+# Committing these caused two recurring problems on Windows: `idf.py
+# fullclean` refused to run because core.autocrlf rewrites line endings in
+# these files, which breaks the component manager's hash verification
+# ("Hash of the file ... does not match expected hash"), and every checkout
+# showed hundreds of spurious diffs in vendored third-party code.
+managed_components/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Credentials (NEVER COMMIT)
+config/CONFIG.local.md
+config/*.secret*
+secrets/
+.env
+.env.local
+include/secrets.h
+
+# Local development
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Matter/commissioning artifacts
+*.qr
+commissioning_code.txt

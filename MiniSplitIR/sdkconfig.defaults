@@ -1,0 +1,67 @@
+# Flash / partition table -- Matter + esp_matter's bundled diagnostics build
+# to well over ESP-IDF's default single-app partition (1MB). Reuses
+# ../MiniSplit's proven 3MB factory partition on a 4MB flash chip.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# mbedTLS (required by the Matter stack) -- Matter's crypto layer
+# (CHIPCryptoPALmbedTLS.cpp) calls mbedtls_hkdf directly; mbedTLS ships it
+# disabled by default.
+CONFIG_MBEDTLS_HKDF_C=y
+
+# Matter clusters: exclude Closure Control/Dimension (Matter 1.5, unused
+# here). Their bundled connectedhomeip code fails to build with missing
+# operator== on GenericOverallCurrentState/TargetState -- see
+# espressif/esp-matter#1604. Same workaround as ../MiniSplit.
+CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n
+CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n
+
+# Network transport: Thread, not WiFi. The Thread Operational Dataset is
+# handed to the device by the commissioner during BLE commissioning, the
+# standard way Matter's Network Commissioning cluster works for Thread
+# devices.
+CONFIG_OPENTHREAD_ENABLED=y
+CONFIG_ENABLE_MATTER_OVER_THREAD=y
+# CONFIG_ENABLE_WIFI_STATION is not set
+
+# Bluetooth (NimBLE only -- required for Matter/BLE commissioning; Bluedroid
+# causes esp-matter BLEManager link errors). See ../MiniSplit/BUILD.md
+# "Bluetooth: NimBLE only" for the fullclean-silently-drops-BT gotcha this
+# guards against.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+# CONFIG_BT_BLUEDROID_ENABLED is not set
+
+# BLE advertising must be told to autostart on power-up -- defaults to off in
+# connectedhomeip's Kconfig. Without this, esp_matter::start() prints
+# onboarding codes but the BLE radio never actually starts advertising.
+CONFIG_CHIPOBLE_ENABLE_ADVERTISING_AUTOSTART=1
+
+# DNS64 client -- without this the device can't resolve an IPv4 hostname
+# into a NAT64-synthesized address routable over Thread. Not exercised by
+# this skeleton (no HTTP calls yet), but needed once Milestone 3+ adds any
+# hostname-based networking.
+CONFIG_OPENTHREAD_DNS64_CLIENT=y
+
+# Operational service discovery: OpenThread's SRP client (registers with
+# OTBR, which bridges to real LAN mDNS) instead of CHIP's own "minimal mDNS"
+# advertiser (raw multicast over the Thread mesh interface that never
+# crosses the border router). Without this, commissioning's final
+# "operational discovery" step times out even though the device is fully up
+# -- see ../MiniSplit/sdkconfig.defaults for the full real-hardware story.
+CONFIG_OPENTHREAD_SRP_CLIENT=y
+# CONFIG_USE_MINIMAL_MDNS is not set
+
+# Message buffer pool -- MiniSplit needed 180 to survive real Tuya/HTTP
+# traffic on a marginal link; this skeleton has no such traffic yet, so the
+# Kconfig default should be fine. Revisit if "No available message buffer"
+# errors show up once real work (IR sends, Device A subscription) is added.
+
+# Device identity: VendorName/ProductName on the Basic Information cluster
+# are NOT backed by esp_matter's attribute store -- see
+# include/chip_project_config.h, wired in below.
+CONFIG_CHIP_PROJECT_CONFIG="include/chip_project_config.h"

@@ -1,0 +1,10 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: '>=4.1.0'
+  # Closure Control/Dimension clusters are excluded from the build in
+  # sdkconfig (CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER / _DIMENSION_CLUSTER)
+  # to work around a bundled connectedhomeip bug -- see ../../MiniSplit's
+  # main/idf_component.yml comment and espressif/esp-matter#1604.
+  espressif/esp_matter: ^1.5
