@@ -180,6 +180,70 @@ input_number:
     step: 1
     icon: mdi:swap-vertical
 
+  # --- State for the new "MiniSplit Auto Mode Shadow Decision" automation
+  # (automations.yaml) -- see PLAN_AUTO_MODE.md. Phase 0, shadow-only: this
+  # automation never writes to the real unit. Same "no initial:" reasoning
+  # as the pairs above (these need to survive restarts as whatever they last
+  # adapted to, not reset to a hardcoded seed) -- seeded once via a one-time
+  # input_number.set_value call right after this file is first loaded, same
+  # pattern the predictive automation's gain helpers above used.
+  minisplit_mode_cool_band:
+    name: "MiniSplit Mode Cool Band"
+    min: 0.5
+    max: 4
+    step: 0.1
+    unit_of_measurement: "°F"
+    icon: mdi:snowflake-thermometer
+    mode: box
+
+  minisplit_mode_heat_band:
+    name: "MiniSplit Mode Heat Band"
+    min: 0.5
+    max: 4
+    step: 0.1
+    unit_of_measurement: "°F"
+    icon: mdi:fire
+    mode: box
+
+  # Predictor weights for the hallway/outdoor trend terms (PLAN_AUTO_MODE.md's
+  # predictive layer) -- how much each leading indicator is trusted to
+  # justify an early Cool/Heat call. Seeded low (0.3) deliberately: the
+  # predictive layer should start conservative and only earn more influence
+  # once Phase 4 (predictor-weight learning) is live and has evidence it's
+  # usually right.
+  minisplit_mode_w_hallway:
+    name: "MiniSplit Mode Hallway Predictor Weight"
+    min: 0
+    max: 1
+    step: 0.01
+    icon: mdi:tune-variant
+    mode: box
+
+  minisplit_mode_w_outdoor:
+    name: "MiniSplit Mode Outdoor Predictor Weight"
+    min: 0
+    max: 1
+    step: 0.01
+    icon: mdi:tune-variant
+    mode: box
+
+# PLAN_AUTO_MODE.md Phase 0 -- shadow-only mode decision, written by the new
+# "MiniSplit Auto Mode Shadow Decision" automation (automations.yaml). Never
+# read by anything that controls the real unit. An input_select instead of a
+# stateless template sensor specifically because the hysteresis/dwell-floor
+# logic that makes "hold for hours" meaningful needs to know the *current*
+# decision to decide whether to change it -- a plain template sensor (no
+# memory of its own last value) can't provide that.
+input_select:
+  minisplit_shadow_mode:
+    name: "MiniSplit Shadow Mode Decision"
+    options:
+      - "off"
+      - "cool"
+      - "heat"
+    initial: "off"
+    icon: mdi:thermostat
+
 # Read-only, computed setpoint interpolated from minisplit_day_setpoint and
 # minisplit_night_setpoint above: flat at the night setpoint 22:00-07:00,
 # ramps linearly up to the day setpoint 07:00-11:00, flat at the day
@@ -406,6 +470,130 @@ template:
           {% set decayed = instant + (prev - instant) * (2.718281828459045 ** (-dt / tau)) %}
           {{ (decayed * 100) | round(2) }}
 
+  # PLAN_AUTO_MODE.md predictive layer -- passthrough of the AC unit's own
+  # outdoor sensor (sensor.mini_split_ac_bridge_outdoor_temperature,
+  # Tuya-reported) as the outdoor-temperature input for the mode-decision
+  # automation and its trend sensors below.
+  #
+  # 2026-09-10: was weather.forecast_home's `temperature` attribute (Met.no
+  # regional forecast) until found to disagree with this unit's own sensor
+  # by 11.6F at the same moment (60F forecast vs 71.6F local, ~10:02am) --
+  # too large to be normal sensor noise, and the AC's own sensor is
+  # physically at the house, not a regional grid estimate. Switched per
+  # direct instruction. Kept as its own passthrough entity (rather than
+  # pointing the derivative sensors/automation directly at the AC's sensor)
+  # so a future source change stays contained to this one definition.
+  #
+  # Confirmed live 2026-09-09 (with the old weather.forecast_home source,
+  # same underlying pattern applies here): without the homeassistant/start
+  # trigger, this sat at "unknown" through a full restart until the source
+  # entity's next state change -- same gotcha "MiniSplit Outage Status" and
+  # "MiniSplit Duty Cycle EWMA" above already had to add this same trigger for.
+  - trigger:
+      - trigger: state
+        entity_id: sensor.mini_split_ac_bridge_outdoor_temperature
+      - trigger: homeassistant
+        event: start
+    sensor:
+      - name: "MiniSplit Outdoor Temp"
+        unique_id: minisplit_outdoor_temp
+        unit_of_measurement: "°F"
+        icon: mdi:thermometer
+        state: >-
+          {{ states('sensor.mini_split_ac_bridge_outdoor_temperature') }}
+
+  # PLAN_AUTO_MODE.md Phase 0 -- records *why* the shadow decision
+  # automation (below) did what it did, at the moment it did it. Needed
+  # because the raw trend values feeding a decision aren't otherwise
+  # persisted anywhere, and reconstructing "what would the trend have read"
+  # after the fact isn't reliable once recorder history ages out. Purely
+  # derived/stateless (recomputes fresh from current entity states) --
+  # unlike the shadow decision itself, this doesn't need memory of its own
+  # past value, since it's not the thing enforcing hysteresis.
+  - trigger:
+      - trigger: state
+        entity_id:
+          - sensor.0x18690afffe5602f1_temperature
+          - sensor.minisplit_hallway_trend
+          - sensor.minisplit_outdoor_trend
+          - sensor.minisplit_outdoor_trend_3h
+          - sensor.minisplit_duty_cycle_ewma
+          - climate.bedroom_mini_split_ac_bridge_thermostat_6
+          - input_number.minisplit_mode_w_hallway
+          - input_number.minisplit_mode_w_outdoor
+          - input_select.minisplit_shadow_mode
+      - trigger: homeassistant
+        event: start
+    variables:
+      # 2026-09-10: inputs_ok gates every attribute below after a 2+ hour
+      # thermostat_6 outage (2026-09-09 15:12-17:19) was found to have
+      # corrupted this sensor's `error` to ~+70F for the whole outage -- the
+      # old per-attribute `| float(0)` fallback treated a missing setpoint
+      # attribute as "setpoint is 0F" instead of "no data," which is exactly
+      # the bug that also hit the shadow-decision automation itself (see its
+      # description in automations.yaml). This sensor exists specifically to
+      # be a trustworthy record of *why* a decision was made, so it needs to
+      # say "stale" rather than fabricate a reading when its inputs aren't real.
+      inputs_ok: >-
+        {{ states('sensor.0x18690afffe5602f1_temperature') not in ['unknown', 'unavailable'] and
+           state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') is not none }}
+      current_mode: "{{ states('input_select.minisplit_shadow_mode') }}"
+      error: >-
+        {{ (((states('sensor.0x18690afffe5602f1_temperature') | float(0))
+           - (state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') | float(0))) | round(2))
+           if inputs_ok else none }}
+      hallway_trend_per_hr: "{{ states('sensor.minisplit_hallway_trend') | float(0) }}"
+      outdoor_trend_per_hr: "{{ states('sensor.minisplit_outdoor_trend') | float(0) }}"
+      outdoor_trend_3h_per_hr: "{{ states('sensor.minisplit_outdoor_trend_3h') | float(0) }}"
+      duty_cycle_ewma: "{{ states('sensor.minisplit_duty_cycle_ewma') | float(100) }}"
+      # Mirrors the shadow-decision automation's own compressor_idle check
+      # (automations.yaml, 2026-09-10) so this log matches what actually
+      # drove (or would have driven) each decision.
+      compressor_idle: "{{ duty_cycle_ewma < 5 }}"
+      # Mirrors the shadow-decision automation's own large-outdoor-trend
+      # entry gate (automations.yaml, 2026-09-10).
+      outdoor_leaning: >-
+        {{ 'cool' if outdoor_trend_3h_per_hr > 0.5 else 'heat' if outdoor_trend_3h_per_hr < -0.5 else 'none' }}
+      predicted_error: >-
+        {% set w_h = states('input_number.minisplit_mode_w_hallway') | float(0) %}
+        {% set w_o = states('input_number.minisplit_mode_w_outdoor') | float(0) %}
+        {% set hallway_trend = states('sensor.minisplit_hallway_trend') | float(0) %}
+        {% set outdoor_trend = states('sensor.minisplit_outdoor_trend') | float(0) %}
+        {{ ((error + w_h * hallway_trend + w_o * outdoor_trend) | round(2)) if inputs_ok else none }}
+      cool_band: "{{ states('input_number.minisplit_mode_cool_band') | float(1.5) }}"
+      heat_band: "{{ states('input_number.minisplit_mode_heat_band') | float(1.5) }}"
+      # Same Schmitt-trigger shape as the real automation's reactive_zone,
+      # including the compressor-idle early exit -- kept in sync deliberately
+      # so this diagnostic log means the same thing the automation acted on.
+      reactive_zone: >-
+        {% if not inputs_ok %}
+          stale
+        {% elif current_mode == 'cool' %}
+          {{ 'off' if (error <= 0 or compressor_idle) else 'cool' }}
+        {% elif current_mode == 'heat' %}
+          {{ 'off' if (error >= 0 or compressor_idle) else 'heat' }}
+        {% else %}
+          {{ 'cool' if (error > cool_band and outdoor_leaning in ['cool', 'none']) else
+             'heat' if (error < -heat_band and outdoor_leaning in ['heat', 'none']) else 'off' }}
+        {% endif %}
+      predicted_zone: >-
+        {{ ('cool' if predicted_error > cool_band else 'heat' if predicted_error < -heat_band else 'off') if inputs_ok else 'stale' }}
+    sensor:
+      - name: "MiniSplit Auto Mode Decision Inputs"
+        unique_id: minisplit_auto_mode_decision_inputs
+        state: "{{ 'ok' if inputs_ok else 'stale' }}"
+        attributes:
+          error: "{{ error }}"
+          hallway_trend_per_hr: "{{ hallway_trend_per_hr }}"
+          outdoor_trend_per_hr: "{{ outdoor_trend_per_hr }}"
+          outdoor_trend_3h_per_hr: "{{ outdoor_trend_3h_per_hr }}"
+          outdoor_leaning: "{{ outdoor_leaning }}"
+          duty_cycle_ewma: "{{ duty_cycle_ewma }}"
+          compressor_idle: "{{ compressor_idle }}"
+          predicted_error: "{{ predicted_error }}"
+          reactive_zone: "{{ reactive_zone | trim }}"
+          predicted_zone: "{{ predicted_zone }}"
+
 # Timestamp state for the predictive automation's persistent-sign tracking
 # (see input_number.minisplit_trend_last_sign above -- 2026-09-06: now
 # tracks error-sign persistence, not BME280 trend, entity ID kept for
@@ -418,6 +606,16 @@ input_datetime:
     has_date: true
     has_time: true
 
+  # Companion to input_select.minisplit_shadow_mode above -- when the shadow
+  # decision last actually changed, so the shadow automation can enforce the
+  # same hour-scale dwell floor the real automation will eventually need
+  # (PLAN_AUTO_MODE.md). Starts unset ("unknown") until the automation's
+  # first run, same pattern as minisplit_trend_sign_since above.
+  minisplit_shadow_last_change:
+    name: "MiniSplit Shadow Mode Last Change"
+    has_date: true
+    has_time: true
+
 # sensor.minisplit_bme280_smoothed (filter platform) and
 # sensor.minisplit_bme280_trend (derivative platform) removed 2026-09-06:
 # both existed solely to filter BME280's own supply-airflow noise before
@@ -426,3 +624,51 @@ input_datetime:
 # (sensor.0x18690afffe5602f1_temperature), which automations.yaml now reads
 # directly with no smoothing or derivative -- see automations.yaml for the
 # corresponding removal of lag_minutes/trend_per_hour/projected_error.
+
+# PLAN_AUTO_MODE.md predictive layer -- ~60 minute slope of the Hallway and
+# (weather-forecast-derived) Outdoor temperature sensors, used as leading
+# indicators for which mode Follow-Me is likely to need soon, not just a
+# corroboration check. Neither signal is affected by this unit's own
+# compressor cycling, unlike Follow-Me's own trend -- see PLAN_AUTO_MODE.md's
+# "Hallway and outdoor temp are predictors" section for why that distinction
+# is what makes them safe to use here, where the predictive setpoint
+# automation's own abandoned lag estimator (see its description above)
+# wasn't. Reusing the exact `derivative` platform this file already used
+# for sensor.minisplit_bme280_trend before it was retired, not a new
+# mechanism. unit_time: h makes each sensor read directly in °F/hr, which
+# conveniently equals the 60-minute horizon's contribution to predicted_error
+# with no extra multiplication needed (see the shadow decision automation in
+# automations.yaml).
+sensor:
+  - platform: derivative
+    source: sensor.0x70d07efffea47190_temperature
+    name: "MiniSplit Hallway Trend"
+    unique_id: minisplit_hallway_trend
+    unit_time: h
+    time_window: "01:00:00"
+    round: 2
+
+  - platform: derivative
+    source: sensor.minisplit_outdoor_temp
+    name: "MiniSplit Outdoor Trend"
+    unique_id: minisplit_outdoor_trend
+    unit_time: h
+    time_window: "01:00:00"
+    round: 2
+
+  # 2026-09-10: separate from the 1-hour trend above, which only feeds the
+  # shadow-decision automation's early-trigger layer (anticipating a crossing
+  # the reactive rule would eventually hit anyway). This one is the "large,
+  # sustained, hours-scale trend" input for that same automation's new
+  # outdoor-trend gate on ENTERING Cool/Heat -- a 3-hour window averages out
+  # the compressor's own duty cycle and any single-hour noise (this morning's
+  # +3.05F/hr 1-hour reading was a real but short morning-warmup blip, not a
+  # multi-hour pattern), so a large value here means the outdoor swing is
+  # genuinely sustained, not transient.
+  - platform: derivative
+    source: sensor.minisplit_outdoor_temp
+    name: "MiniSplit Outdoor Trend 3h"
+    unique_id: minisplit_outdoor_trend_3h
+    unit_time: h
+    time_window: "03:00:00"
+    round: 2

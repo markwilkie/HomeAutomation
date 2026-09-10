@@ -383,10 +383,17 @@
   # on/off flip landing 1-2 minutes before the check), even though the
   # compressor was actively running at the time and there was no actual
   # short-cycle risk.
+  # 2026-09-09: was binary_sensor.mini_split_ac_bridge_occupancy (no
+  # "bedroom_" prefix) -- found dead (state=None) during a live investigation,
+  # causing a live template error every run ("as_timestamp got invalid input
+  # ''") logged at every automation trigger. Real live entity is
+  # binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4 (confirmed against
+  # configuration.yaml's own "Fixed to point at the real Compressor Running
+  # entity" note, which already uses this same entity_id elsewhere).
   - condition: template
     value_template: >-
-      {{ is_state('binary_sensor.mini_split_ac_bridge_occupancy', 'on')
-         or (as_timestamp(now()) - as_timestamp(states.binary_sensor.mini_split_ac_bridge_occupancy.last_changed)) > 300 }}
+      {{ is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'on')
+         or (as_timestamp(now()) - as_timestamp(states.binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4.last_changed)) > 300 }}
   actions:
   - variables:
       target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(66) }}"
@@ -422,11 +429,48 @@
       # actually reached, exactly the unbounded-gap failure mode the 1-degree
       # step cap was meant to prevent (it only bounds movement per cycle, not
       # cumulative drift when a correction doesn't confirm). actual_temp
-      # anchors the final clamp below to Tuya's own confirmed mirror
-      # (climate.mini_split_ac_bridge, read-only post-2026-08-30 flash) so
+      # anchors the final clamp below to Tuya's own confirmed mirror so
       # desired can never end up more than 1 degree from what's actually
       # confirmed, regardless of how many ticks pass without confirmation.
-      actual_temp: "{{ state_attr('climate.mini_split_ac_bridge', 'temperature') | float(current_setpoint) }}"
+      #
+      # 2026-09-09: was climate.mini_split_ac_bridge (read-only post-2026-08-30
+      # flash) -- found dead (state=None, empty attributes) during a live
+      # investigation, orphaned by a since-forgotten Matter re-interview/
+      # rename event, same pattern as this file's other documented endpoint
+      # renumberings. The `| float(current_setpoint)` fallback silently
+      # masked this: it always fell back to current_setpoint, quietly
+      # defeating the anchor-to-Tuya's-real-state protection this comment
+      # describes (though not necessarily the specific cause of any one
+      # observed stall -- the per-cycle step cap already bounds new_setpoint
+      # within +-1 of current_setpoint regardless, so this fallback may often
+      # be a no-op; not fully verified either way). climate.mini_split_ac_bridge_thermostat_1
+      # is the live entity carrying EP1's real data today, and stays the
+      # anchor -- it's the real device mirror as polled from Tuya, which is
+      # exactly what this clamp needs to be confirming against.
+      #
+      # 2026-09-10: found the actual mechanism of an 8-hour correction
+      # freeze (2026-09-09 22:00-2026-09-10 05:56, overnight, compressor
+      # idle): thermostat_1 stopped updating entirely at 21:49:56 (not just
+      # `temperature` -- the whole entity went silent, no polls landed while
+      # idle) and didn't fire again until the compressor woke up at 05:56.
+      # actual_temp stayed frozen at that last confirmed value (70F) the
+      # entire time, so the anchor clamp below pinned new_setpoint to
+      # current_setpoint every single tick regardless of what error/gain/
+      # correction computed -- the exact "silently neutralizes every write"
+      # failure this variable's `| float(current_setpoint)` fallback was
+      # already shown (2026-09-09, above) to risk, just triggered by a
+      # *stale* value instead of a *missing* one, which that fallback alone
+      # doesn't catch. stale_ok below only trusts thermostat_1's value if
+      # it's actually fresh (updated within the last hour -- well past one
+      # compressor cycle, ~25-35min, so a normal idle gap between cycles
+      # doesn't trip it, but an idle stretch long enough to matter does);
+      # otherwise falls back to current_setpoint, which makes the anchor
+      # clamp a no-op (matches what max_step_down/max_step_up already bound
+      # stepped_setpoint to) rather than an incorrect, stuck restriction.
+      actual_temp: >-
+        {% set ent = states.climate.mini_split_ac_bridge_thermostat_1 %}
+        {% set stale_ok = ent is not none and (as_timestamp(now()) - as_timestamp(ent.last_updated)) <= 3600 %}
+        {{ (state_attr('climate.mini_split_ac_bridge_thermostat_1', 'temperature') | float(current_setpoint)) if stale_ok else current_setpoint }}
       error: "{{ followme_now - target_temp }}"
       # 2026-09-06: was sensor.minisplit_bme280_trend's derivative sign until
       # BME280 was retired -- rebuilt on error's own sign instead, since the
@@ -603,10 +647,15 @@
   # Upward moves stay unconditional -- easing off mid-cycle is always safe.
   # Downward moves now also require the compressor to be off right now, on
   # top of the existing humidity-stability guard below.
+  # 2026-09-09: was binary_sensor.mini_split_ac_bridge_occupancy (no
+  # "bedroom_" prefix) -- same dead entity fixed above at this automation's
+  # top-level gate; real live entity is
+  # binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4 (Compressor
+  # Running).
   - condition: template
     value_template: >-
       {{ new_setpoint > current_setpoint
-         or (is_state('binary_sensor.mini_split_ac_bridge_occupancy', 'off')
+         or (is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'off')
              and (as_timestamp(now()) - as_timestamp(states.sensor.bedroom_mini_split_ac_bridge_humidity_3.last_changed)) > 180) }}
   - condition: template
     value_template: "{{ (new_setpoint - current_setpoint) | abs >= min_move }}"
@@ -691,4 +740,182 @@
         entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_10
       data:
         temperature: "{{ trigger.to_state.state | float }}"
+  mode: single
+- id: '1789600000000'
+  alias: MiniSplit Auto Mode Shadow Decision
+  description: >-
+    PLAN_AUTO_MODE.md Phase 0 -- shadow-only. Computes what Off/Cool/Heat
+    decision the planned self-learning mode-selection automation would make,
+    writing only to input_select.minisplit_shadow_mode (never
+    climate.set_hvac_mode -- this automation cannot touch the real unit).
+    Exists purely so the decision logic can be observed and evaluated
+    against what a human actually did, across a real range of conditions,
+    before any live control is ever attempted. Confirmed unit-consistent
+    2026-09-09 against live state (Follow-Me/Hallway/weather.forecast_home's
+    `temperature` attribute all read in °F) -- same no-conversion comparison
+    the "FollowMe temp relay to firmware" automation above already relies on
+    between this same Follow-Me sensor and thermostat_6/10's `temperature`
+    attribute.
+
+    Reactive rule (Schmitt-trigger hysteresis, needs to know the *current*
+    shadow mode, which is why this is an input_select and not a stateless
+    template sensor): error = Follow-Me - thermostat_6's setpoint. From Off,
+    enter Cool if error > cool_band, Heat if error < -heat_band. Once in
+    Cool, stay there until error <= 0 (not just back under cool_band) --
+    same for Heat vs error >= 0. This is the actual "hold a mode for
+    multiple hours" mechanism: the naive version (leave Cool the instant
+    error dips under cool_band) would chatter right at that boundary.
+
+    Predictive layer: predicted_error = error + w_hallway*hallway_trend_1hr +
+    w_outdoor*outdoor_trend_1hr (both trend sensors already read in °F/hr,
+    so the ~60-minute horizon needs no extra multiplication -- see
+    configuration.yaml's derivative sensors). Only allowed to fire from Off,
+    and only when it agrees with the direction error is already leaning (same
+    sign) -- e.g. error is a modest +0.6 (short of cool_band) but hallway/
+    outdoor trends project it past cool_band soon: switch to Cool now instead
+    of waiting. Deliberately does NOT use Follow-Me's own trend as a
+    predictor -- the predictive setpoint automation above already tried and
+    reverted exactly that, after finding it mostly measured the compressor's
+    own ~25-35 minute duty cycle rather than the room's real response;
+    hallway/outdoor trends aren't affected by this unit's own compressor.
+
+    Hard dwell floor: won't change minisplit_shadow_mode more than once per
+    2 hours, regardless of what the bands/predictor say -- holding a mode for
+    multiple hours is the actual design goal here, not just an anti-chatter
+    afterthought.
+
+    Sanity guard: won't target Heat when outdoor is above 80F, or Cool when
+    outdoor is below 40F -- either combination means a sensor fault or stale
+    reading given this unit's real operating range, not a genuine need.
+
+    2026-09-10: compressor-idle override added to the reactive rule's Cool/
+    Heat->Off exit, using sensor.minisplit_duty_cycle_ewma (already computed
+    for the predictive setpoint automation's gain, configuration.yaml).
+    Motivating incident: 2026-09-09 22:00-2026-09-10 05:56, the real
+    compressor (binary_sensor...occupancy_4) sat off for ~8 continuous
+    hours, but error stayed +3.9 to +4.6F (Follow-Me reading warmer than
+    thermostat_6's setpoint) the whole time -- a real Follow-Me/onboard-
+    sensor placement gap, not noise -- so the reactive rule alone would have
+    held (and did hold, in the unevaluated version of this logic) "cool"
+    for all 8 hours even though the unit's own onboard sensor had plainly
+    already decided it was satisfied. Exit early to Off when
+    duty_cycle_ewma < 5% regardless of what `error` says, on top of (not
+    instead of) the existing error<=0/error>=0 exit -- 5% is well below
+    what one normal ~25-35min off-cycle decays to (this EWMA's 20-minute
+    half-life means a real multi-hour idle stretch is required to reach it,
+    confirmed against the incident above: EWMA was still 15-70% during
+    normal evening cycling on 9/9, and only crossed under 1% after ~2.5
+    hours of continuous off). Deliberately NOT used to gate entry into
+    Cool/Heat from Off -- a currently-idle compressor says nothing about
+    whether a fresh need is starting, only whether an existing one is over.
+
+    2026-09-10: added an availability condition below after finding
+    thermostat_6 unavailable for 2+ hours (2026-09-09 15:12-17:19) turned
+    into ~2 hours of bogus ~70F `error` readings -- the variables block's
+    `| float(0)` fallback on a missing setpoint attribute silently treated
+    "no data" as "setpoint is 0F," not an error. That corrupted
+    minisplit_shadow_mode's afternoon history (spurious cool/off calls).
+    Same failure mode was possible via Follow-Me or outdoor going
+    unavailable. Skipping the tick entirely (holding the last shadow_mode)
+    when any of the three is unavailable is the same "don't act on missing
+    data" principle this repo already applies elsewhere (outage_log,
+    minisplit_duty_cycle_ewma's bootstrap guard).
+
+    2026-09-10: large-outdoor-trend gate added on ENTERING Cool/Heat from
+    Off (does not affect exits, which stay on error/compressor_idle only --
+    see above). Motivating incident: 2026-09-10 09:20, this automation
+    called Heat purely because Follow-Me sat ~2.6F below a setpoint that had
+    itself been ramped UP 70->71->72 over the prior 2.5 hours by the
+    separate "MiniSplit Day/Night Setpoint Ramp" automation -- Follow-Me
+    itself never actually moved (68.9-70.2F all morning, flat), so this was
+    the target moving, not the room, and outdoor was warming
+    (+3.05F/hr on the 1-hour trend) the entire time -- the opposite of what
+    a real heating need would look like. The reactive rule has no way to
+    tell "room got cold" apart from "target moved," and reacts to a single
+    10-minute reading either way -- explicit design decision (2026-09-10):
+    large, hours-scale outdoor trends should drive mode entry more than a
+    single noisy indoor delta reading. `sensor.minisplit_outdoor_trend_3h`
+    (configuration.yaml, 3-hour derivative window, separate from the
+    1-hour trend the predictive early-trigger layer below still uses) is
+    the "large/sustained" signal -- a 3-hour window averages out both the
+    compressor's own ~25-35min duty cycle and any single-hour blip like
+    today's morning warmup. outdoor_leaning is 'none' (no gate) unless that
+    3-hour trend exceeds +-0.5F/hr (a genuine ~1.5F+ drift over the window,
+    not noise); when it does have an opinion, entering Cool/Heat from Off
+    now requires it to agree, or not contradict, error's own direction --
+    when outdoor_leaning is 'none' (flat/no data), the reactive rule falls
+    back to indoor error alone exactly as before, so this can never
+    permanently deadlock the automation if the outdoor sensor goes stale or
+    genuinely has nothing to say.
+  triggers:
+    - trigger: time_pattern
+      minutes: "/10"
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ states('sensor.0x18690afffe5602f1_temperature') not in ['unknown', 'unavailable'] and
+           state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') is not none and
+           states('sensor.minisplit_outdoor_temp') not in ['unknown', 'unavailable'] }}
+  actions:
+    - variables:
+        current_mode: "{{ states('input_select.minisplit_shadow_mode') }}"
+        cool_band: "{{ states('input_number.minisplit_mode_cool_band') | float(1.5) }}"
+        heat_band: "{{ states('input_number.minisplit_mode_heat_band') | float(1.5) }}"
+        w_hallway: "{{ states('input_number.minisplit_mode_w_hallway') | float(0.3) }}"
+        w_outdoor: "{{ states('input_number.minisplit_mode_w_outdoor') | float(0.3) }}"
+        followme_now: "{{ states('sensor.0x18690afffe5602f1_temperature') | float(0) }}"
+        setpoint: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') | float(0) }}"
+        outdoor_now: "{{ states('sensor.minisplit_outdoor_temp') | float(0) }}"
+        hallway_trend: "{{ states('sensor.minisplit_hallway_trend') | float(0) }}"
+        outdoor_trend: "{{ states('sensor.minisplit_outdoor_trend') | float(0) }}"
+        outdoor_trend_3h: "{{ states('sensor.minisplit_outdoor_trend_3h') | float(0) }}"
+        duty_cycle_ewma: "{{ states('sensor.minisplit_duty_cycle_ewma') | float(100) }}"
+    - variables:
+        error: "{{ followme_now - setpoint }}"
+        predicted_error: "{{ (followme_now - setpoint) + w_hallway * hallway_trend + w_outdoor * outdoor_trend }}"
+        last_change: "{{ states('input_datetime.minisplit_shadow_last_change') }}"
+        # Missing/unavailable duty-cycle data defaults to 100 (never treated
+        # as idle) -- same "don't act on missing data" principle as the
+        # availability condition above, just inline since this sensor isn't
+        # critical enough to block the whole tick over.
+        compressor_idle: "{{ duty_cycle_ewma < 5 }}"
+        # 'none' (missing/flat data defaults here too) means no gate -- see
+        # the large-outdoor-trend-gate note above for why 0.5F/hr on the
+        # 3-hour window is the "genuinely sustained, not noise" cutoff.
+        outdoor_leaning: >-
+          {{ 'cool' if outdoor_trend_3h > 0.5 else 'heat' if outdoor_trend_3h < -0.5 else 'none' }}
+    - variables:
+        dwell_ok: >-
+          {{ last_change in ['unknown', 'unavailable', ''] or
+             (as_timestamp(now()) - as_timestamp(last_change)) > 7200 }}
+        reactive_zone: >-
+          {{ ('off' if (error <= 0 or compressor_idle) else 'cool') if current_mode == 'cool' else
+             ('off' if (error >= 0 or compressor_idle) else 'heat') if current_mode == 'heat' else
+             ('cool' if (error > cool_band and outdoor_leaning in ['cool', 'none']) else
+              'heat' if (error < -heat_band and outdoor_leaning in ['heat', 'none']) else 'off') }}
+        predicted_zone: >-
+          {{ 'cool' if predicted_error > cool_band else 'heat' if predicted_error < -heat_band else 'off' }}
+    - variables:
+        predictive_early_trigger: >-
+          {{ current_mode == 'off' and predicted_zone != 'off' and
+             ((predicted_zone == 'cool' and error > 0) or (predicted_zone == 'heat' and error < 0)) }}
+    - variables:
+        target_zone: "{{ predicted_zone if predictive_early_trigger else reactive_zone }}"
+        sane: >-
+          {{ not (target_zone == 'heat' and outdoor_now > 80) and
+             not (target_zone == 'cool' and outdoor_now < 40) }}
+    - if:
+        - condition: template
+          value_template: "{{ sane and dwell_ok and target_zone != current_mode }}"
+      then:
+        - action: input_select.select_option
+          target:
+            entity_id: input_select.minisplit_shadow_mode
+          data:
+            option: "{{ target_zone }}"
+        - action: input_datetime.set_datetime
+          target:
+            entity_id: input_datetime.minisplit_shadow_last_change
+          data:
+            datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
   mode: single
