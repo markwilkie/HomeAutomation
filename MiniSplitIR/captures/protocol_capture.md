@@ -412,3 +412,137 @@ need special handling; leave it as captured here, since nothing in this
 protocol appears to require it to actually alternate correctly (the AC
 accepted plenty of repeated/non-alternating values during today's session's
 back-to-back identical-state presses).
+
+## Re-capture session (2026-09-09) -- 21C reference frame, Follow Me on/off, heartbeat re-verification
+
+Captured with the same rig (ESP32-C6 + HX-M121, `IRrecvDumpV2`, IRremoteESP8266
+v2.9.0 -- library version bumped since the 2026-09-07 session's v2.8.6, no
+decode differences observed). Purpose: (1) get a real Cool/21C base-frame pair
+to evaluate against the "does the current template clobber Fresh Air" concern,
+(2) capture Follow Me **off** via a real button press (only **on** existed
+before today), (3) re-verify the Follow Me heartbeat's frame count -- the
+2026-09-07-era conclusion ("no separate frame, Type-1-only") turned out to be
+wrong, corrected below.
+
+### 21C reference pair -- and a correction to the Fresh Air hypothesis
+
+AC set to Cool/21C, **Fresh Air confirmed on by the user at the moment of
+capture** (asked directly, not assumed):
+
+```
+Type 2 (pre-frame):
+uint8_t state[14] = {0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x49};
+
+Type 1 (state frame):
+Protocol  : TCL112AC
+Code      : 0x23CB26010024030A0000000080C6 (112 Bits)
+Mesg Desc.: Model: 1 (TAC09CHSD), Type: 1, Power: On, Mode: 3 (Cool), Temp: 21C,
+            Fan: 0 (Auto), Swing(V): 0 (Auto), Swing(H): Off, Econo: Off,
+            Health: Off, Turbo: Off, Light: On, On Timer: Off, Off Timer: Off
+uint8_t state[14] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC6};
+```
+
+**`state[4] = 0x00` with Fresh Air confirmed ON.** This is byte-for-byte
+identical (`state[12]`/checksum toggle aside) to the original Milestone-1
+"Power On (Cool, 21C)" capture at the top of this file, where Fresh Air's
+state was never confirmed either way. Since the same `state[4]` value shows
+up regardless of Fresh Air's real on/off state, **`state[4]` is not Fresh
+Air's bit** -- this disproves `IR_PROTOCOL_REFERENCE.md`'s standing hypothesis
+("state[4] bits 0-6 unaccounted for, Fresh Air's most likely home"). Combined
+with the 2026-09-07 "Fresh Air capture attempt" (button presses produced
+byte-identical Type 1 frames), this now looks less like "the receiver missed
+a changed bit" and more like: **Fresh Air genuinely isn't carried in the
+everyday Type 1/Type 2 pair at all.** If the AC really does drop out of Fresh
+Air mode whenever it receives a new command (the behavior that prompted this
+whole re-capture), that's most likely the unit's own internal firmware
+reacting to *receiving any new command frame*, not something encoded as a
+bit this project's template can preserve or clobber. Swapping this cleaner
+Cool/21C pair in as the new Milestone 2 base/template frame (replacing the
+Fan/20C one above) is still worth doing for other reasons -- it's a more
+representative everyday state -- but **it does not fix a Fresh-Air-dropping
+problem**, since there's no evidence such a bit exists to preserve. Fresh Air
+stays an open gap; if it matters enough to chase further, the next step
+would be the close-range/high-signal capture method from the abandoned
+2026-09-07 attempt, not a template swap.
+
+### Follow Me off -- captured for the first time
+
+Prior sessions only had Follow Me **on**. AC was Cool/21C/Fan-Auto with
+Follow Me already enabled (ambient sensor reading 23C); pressed the "I feel"
+button once to disable it:
+
+```
+Type 2 (pre-frame -- identical to the everyday one above):
+uint8_t state[14] = {0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x49};
+
+Type 1 (state frame):
+Protocol  : TCL112AC
+Code      : 0x23CB26010024030A0000000080C6 (112 Bits)
+Mesg Desc.: Model: 1 (TAC09CHSD), Type: 1, Power: On, Mode: 3 (Cool), Temp: 21C,
+            Fan: 0 (Auto), Swing(V): 0 (Auto), Swing(H): Off, Econo: Off,
+            Health: Off, Turbo: Off, Light: On, On Timer: Off, Off Timer: Off
+uint8_t state[14] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC6};
+```
+
+**Byte-for-byte identical to this session's 21C reference Type 1 frame above**
+(same `state[12]`/checksum too, `0x80C6` both times -- coincidence of the
+toggle landing on the same value, not a decode error, confirmed by comparing
+raw capture timestamps). Confirms Follow Me off is exactly "the everyday
+full-state frame with `state[4]`/`state[6]` bit `0x80` cleared and
+`state[11]` zeroed," matching the encoding already documented for the
+enable/heartbeat frames, just in reverse -- no separate "disable" frame
+shape, same full-frame-every-time model as everything else in this protocol.
+
+### Follow Me heartbeat -- frame-count correction
+
+**The 2026-09-07-era conclusion that the heartbeat is a lone Type 1 frame
+with "no separate short/temp-only frame" was wrong.** Re-verified today
+across three consecutive heartbeats after a fresh Follow Me enable
+(23:17:59 enable, ambient 23C):
+
+```
+Enable (23:17:59):
+Type 2: {0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x49}
+Type 1: {0x23, 0xCB, 0x26, 0x01, 0x80, 0x24, 0x83, 0x0A, 0x00, 0x00, 0x00, 0x17, 0x80, 0xDD}
+
+Heartbeat 1 (23:20:59, +3:00): Type 2 decoded via IRrecvDumpV2 as `Protocol: UNKNOWN`
+(114 bits) -- bucket-decoded manually (same method as the 2026-07-xx session:
+classify each bit on total mark+space period, >1200us -> 1 else -> 0) to:
+Type 2: {0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x49}  -- everyday pre-frame, exact match
+Type 1 (decoded cleanly by the library this time): {0x23, 0xCB, 0x26, 0x01, 0x80, 0x04, 0x83, 0x0A, 0x00, 0x00, 0x00, 0x17, 0x80, 0xBD}
+
+Heartbeat 2 (23:24:00, +3:01): roles reversed -- Type 2 decoded cleanly by
+the library this time, Type 1 came through as `Protocol: UNKNOWN` (114 bits)
+and needed the same manual bucket-decode:
+Type 2 (clean): {0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x49}
+Type 1 (bucket-decoded from UNKNOWN): {0x23, 0xCB, 0x26, 0x01, 0x80, 0x04, 0x83, 0x0A, 0x00, 0x00, 0x00, 0x17, 0x80, 0xBD}  -- exact match to heartbeat 1's Type 1
+
+Heartbeat 3 (23:27:00, +3:00): both frames decoded cleanly by the library,
+no manual decoding needed at all:
+Type 2: {0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x49}
+Type 1: {0x23, 0xCB, 0x26, 0x01, 0x80, 0x04, 0x83, 0x0A, 0x00, 0x00, 0x00, 0x18, 0x80, 0xBE}  -- state[11] now 0x18=24C, ambient ticked up one degree
+```
+
+**Corrected conclusion: the heartbeat is a normal Type 2 + Type 1 pair, same
+shape as every other command in this protocol, not a lone Type 1 frame.**
+What the 2026-07-xx session actually saw was one half of this same pair
+failing to decode (reported as `UNKNOWN`, 114 bits) while assuming the
+*other, already-visible* Type 1 capture was the missing half re-transmitted
+-- an easy mistake since both frame types produce 112-114 "bits" of raw
+timing data at a glance, and that session didn't have a second, independently
+clean capture of the *other* frame type to compare against. Today's session
+had the luxury of three consecutive cycles, and the pattern (which half fails
+to decode varies capture-to-capture, but bucket-decoding the failure always
+recovers the everyday Type 2 payload, never a second copy of Type 1) makes
+the real shape unambiguous. **Heartbeat interval reconfirmed at a clean 3:00**
+across all three gaps (23:20:59, 23:24:00, 23:27:00 -- one gap ran 3:01 due to
+serial-log timestamp rounding, not a real cadence change).
+
+`IR_PROTOCOL_REFERENCE.md`'s Follow Me section and PLAN.md's Milestone
+1/3/4 heartbeat notes need updating to match -- Device B's heartbeat sender
+must send the Type 2 pre-frame before every heartbeat Type 1, exactly like
+`transmit_ir_state_frame()` already does for ordinary commands (confirmed
+already true as of the 2026-09-09 correction in `IR_PROTOCOL_REFERENCE.md`'s
+Type 2 section -- `send_followme_frame()` shares that same function, so this
+was likely already correct in practice; this session's finding just corrects
+the *documentation*, not a firmware gap).

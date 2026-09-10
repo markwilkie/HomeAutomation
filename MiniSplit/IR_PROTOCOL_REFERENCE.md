@@ -83,19 +83,32 @@ bytes can legitimately change between sends.
 
 ## Base/template frame for Milestone 2
 
-A real, checksum-verified capture of the user's own everyday remote
-settings, captured 2026-09-07 specifically to serve as Milestone 2's
-starting point — full writeup in
-`../MiniSplitIR/captures/protocol_capture.md`'s "Base/template frame"
-section:
+**Updated 2026-09-09** — `main.c`'s `kBaseFrame` now uses a fresher real
+capture (Power: On, Mode: Cool, Temp: 21C, Fan: Auto, Light: On,
+Swing/Econo/Health/Turbo/Timers off), replacing the original 2026-09-07
+Fan/20C capture kept below for history. Full writeup in
+`../MiniSplitIR/captures/protocol_capture.md`'s "Re-capture session
+(2026-09-09)" section.
 
+```
+uint8_t state[14] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x84, 0xCA};
+// Power: On, Mode: Cool, Temp: 21C, Fan: Auto, Swing(V): Off, Swing(H): Off,
+// Econo: Off, Health: Off, Turbo: Off, Light: On, On/Off Timer: Off.
+```
+
+**Byte-for-byte equivalent to the old Fan/20C template for every field
+`build_ir_state_frame()` doesn't overwrite** (Timers, Econo, Health, Turbo,
+SwingV, the Follow-Me flag, isTcl/toggle) — verified by direct comparison.
+Mode/Temp/Fan/Light differ between the two captures but are all
+unconditionally overwritten by that function regardless of which template
+they start from, so this swap does not change on-wire behavior — confirmed
+via live testing against the real unit 2026-09-09 (see below).
+
+Original 2026-09-07 capture, kept for history:
 ```
 uint8_t state[14] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x64, 0x07, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x84, 0x0F};
 // Power: On, Mode: Fan, Temp: 20C, Fan: Auto, Swing(V): Off, Swing(H): Off,
 // Econo: Off, Health: Off, Turbo: Off, Light: Off, On/Off Timer: Off.
-// (The decoder's own printout labels Swing(V) "Auto" here -- that's a
-// generic-AC-family display quirk; the actual bits are kTcl112AcSwingVOff,
-// confirmed against the library's source. See the SwingV row below.)
 ```
 
 **Milestone 2 should build every outgoing command from this array**,
@@ -221,6 +234,24 @@ before the Type 1 frame on every call, shared by both `send_ir_frame()` and
   `state[11]` updated to the latest ambient reading. Real remote re-sends
   every **3 minutes** — match this cadence, don't derive it from the
   (unverified, placeholder) 10-minute fallback-timeout guess below.
+- **Disable:** captured for the first time 2026-09-09 (previously only
+  enable had been captured) — a real "I feel" off button-press produces the
+  everyday Type 2 pre-frame plus a Type 1 frame that's byte-for-byte
+  identical to the plain (no-Follow-Me) baseline: `state[4]`/`state[6]` bit 7
+  cleared, `state[11]` zeroed. No separate "disable" shape — same
+  full-frame-every-time model as everything else in this protocol.
+- **Frame count — corrected 2026-09-09:** the heartbeat is a **Type 2 +
+  Type 1 pair**, exactly like every other command, not a lone Type 1 frame.
+  An earlier capture session concluded otherwise (mistook one half of the
+  pair failing to decode — reported by the receiver as `Protocol: UNKNOWN`,
+  114 bits — for the whole story); re-verified across three consecutive
+  heartbeat cycles on 2026-09-09, each one a full pair (see
+  `../MiniSplitIR/captures/protocol_capture.md`'s "Re-capture session
+  (2026-09-09)" for the raw decode). **No firmware change needed** — `main.c`'s
+  `transmit_ir_state_frame()` already sends the Type 2 companion frame ahead
+  of every Type 1 send, shared by both `send_ir_frame()` and
+  `send_followme_frame()`, so this was already correct in practice; only the
+  documentation was wrong.
 - **Fallback timeout:** not measured (battery-pull test was skipped) — 10
   minutes was used as an unverified placeholder in earlier planning. Doesn't
   actually gate this project's own heartbeat interval (see above), so it's
@@ -243,8 +274,24 @@ before the Type 1 frame on every call, shared by both `send_ir_frame()` and
   `../MiniSplitIR/captures/protocol_capture.md`'s "Fresh Air capture
   attempt" section. **Decision: out of scope for Milestone 2 for now**
   (user call) — the library's struct still accounts for every bit in the
-  frame except `state[4]` bits 0-6 (bit 7 is our own Follow-Me flag), the
-  most likely home if this gets revisited, but genuinely unconfirmed.
+  frame except `state[4]` bits 0-6 (bit 7 is our own Follow-Me flag).
+  **2026-09-09 update: `state[4]` is now ruled out as Fresh Air's home** — a
+  fresh capture with Fresh Air confirmed ON by the user at the moment of
+  capture still showed `state[4] = 0x00`, byte-for-byte identical to every
+  Fresh-Air-state-unconfirmed capture before it. Combined with the original
+  abandoned attempt (button presses producing byte-identical Type 1 frames),
+  Fresh Air increasingly looks like it isn't carried in the everyday Type
+  1/Type 2 pair at all — possibly a separate wire format entirely (see the
+  abandoned attempt's inconclusive close-range capture), or a unit-side
+  behavior not driven by any bit in this frame family. Still fully
+  unresolved; no new bit position hypothesis to replace the ruled-out one.
+  **This also means swapping `main.c`'s base/template frame to a
+  Fresh-Air-on capture would not fix Fresh Air reverting on every send** —
+  see `build_ir_state_frame()`'s existing comment: Fresh Air isn't wired
+  into that function at all regardless of which template array it starts
+  from, so every send reverts it to whatever the template happened to
+  capture. The real fix needs both the bit position (still unknown) and
+  wiring `status->fresh_air_valve` into that function, not a template swap.
 - **Light** has a sourced, unconfirmed bit position (table above,
   `state[5]` bit `0x40`, inverted) — **wired into `src/main.c`'s
   `build_ir_state_frame()` anyway (2026-09-07)**, on the library's sourced

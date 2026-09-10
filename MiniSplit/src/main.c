@@ -307,20 +307,23 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
         setpoint_c = 31;
     }
 
-    // Base/template frame, verbatim from IR_PROTOCOL_REFERENCE.md's
-    // "Base/template frame for Milestone 2" section -- a real,
-    // checksum-verified capture of the user's own remote (Power: On, Mode:
-    // Fan, Temp: 20C, Fan: Auto, Swing/Econo/Health/Turbo/Light/Timers all
-    // off). Milestone 2's rule, now actually followed here instead of
-    // building from `{0}`: construct every outgoing command from this
+    // Base/template frame -- updated 2026-09-09 to a fresher real capture
+    // (Power: On, Mode: Cool, Temp: 21C, Fan: Auto, Light: On,
+    // Swing/Econo/Health/Turbo/Timers all off), replacing the original
+    // 2026-09-07 Fan/20C capture. See IR_PROTOCOL_REFERENCE.md's "Base/
+    // template frame" section and
+    // ../MiniSplitIR/captures/protocol_capture.md's 2026-09-09 re-capture
+    // session for the full writeup. Byte-for-byte equivalent to the old
+    // template for every field this function doesn't overwrite (Timers,
+    // Econo, Health, Turbo, SwingV, Follow-Me flag, isTcl/toggle) --
+    // swapping it is not expected to change on-wire behavior, only the
+    // documentation trail; kept as a real capture rather than `{0}` for the
+    // same reason as before. Construct every outgoing command from this
     // array, overwriting only the fields this project actually controls
-    // (Power, Mode, Setpoint below), so every field this project doesn't
-    // model yet (Light, Swing, Health, Turbo, Timers, the Quiet/Follow-Me
-    // toggle bit) rides along as the unit's own real captured default
-    // instead of a zeroed guess. Same array test_apps/ir_live_test uses,
-    // which is what actually got confirmed working against real hardware.
+    // (Power, Mode, Setpoint below) -- every field this project doesn't
+    // model yet rides along as a real captured default instead of a guess.
     static const uint8_t kBaseFrame[IR_TCL112_FRAME_LEN] = {
-        0x23, 0xCB, 0x26, 0x01, 0x00, 0x64, 0x07, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x84, 0x0F,
+        0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x84, 0xCA,
     };
     memcpy(out_frame, kBaseFrame, IR_TCL112_FRAME_LEN);
 
@@ -794,21 +797,32 @@ static void sync_task(void *param)
         // round-trip back to an exact Celsius match even once genuinely
         // applied (see tuya_setpoint_c_to_f()'s doc comment).
         //
-        // Detection only -- does NOT send an IR correction. An earlier
-        // version of this block did, which meant every single boot sent a
-        // real IR command on sync_task's first poll: a persisted NVS
-        // "desired" value essentially never matches Tuya's independently-
-        // derived temp_set_f by exact coincidence, so this comparison was
-        // "mismatched" (and correcting) on every reboot regardless of
-        // whether the user had actually asked for anything to change (user
-        // report 2026-09-07: unwanted IR transmission on every boot). IR
-        // sends now only ever happen from command_task, in direct response
-        // to an actual HA-triggered control change. This block still flags
-        // a genuine, persistent mismatch as an outage for visibility.
+        // Re-added 2026-09-09: does send an IR correction on a genuine
+        // mismatch, gated by a >1F tolerance rather than exact equality.
+        // An earlier version corrected on any exact mismatch and was
+        // removed 2026-09-07 because it fired a real IR command on every
+        // single boot: a persisted NVS "desired" value essentially never
+        // matches Tuya's independently-derived temp_set_f by exact
+        // coincidence (their C->F rounding conventions can legitimately
+        // disagree by a degree even when the AC is genuinely at the
+        // requested temperature), so exact-match "correction" would have
+        // kept firing every 5-minute poll indefinitely, not just once per
+        // boot. The >1F tolerance absorbs that class of rounding-convention
+        // noise while still catching and correcting a real, larger
+        // divergence (e.g. a command that silently failed to land, or an
+        // out-of-band change back toward a stale setpoint).
         int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
         int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
-        if (desired_f_for_outage_check != device_status.temp_set_f) {
+        int16_t setpoint_mismatch_f = (int16_t)abs(desired_f_for_outage_check - device_status.temp_set_f);
+        if (setpoint_mismatch_f > 1) {
             outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH, get_thread_link_rssi());
+
+            ESP_LOGW(TAG, "Setpoint mismatch %dF beyond tolerance (desired %dF, Tuya reports %dF) -- sending IR correction",
+                     setpoint_mismatch_f, desired_f_for_outage_check, device_status.temp_set_f);
+            esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
+            if (send_err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send setpoint correction via IR: %s", esp_err_to_name(send_err));
+            }
         } else {
             outage_log_end(OUTAGE_REASON_SETPOINT_MISMATCH);
         }
