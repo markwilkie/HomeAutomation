@@ -113,10 +113,14 @@ typedef struct {
     bool desired_setpoint_command_pending;
     // Follow-Me ambient sensor temperature (PLAN.md Milestone 3), pushed by
     // an HA automation rather than read by this firmware directly -- see
-    // g_followme_endpoint below. No hardcoded default is meaningful here
-    // (unlike desired_cooling_setpoint above), so followme_ambient_valid
-    // tracks whether HA has ever actually written a real value; main.c's
+    // g_followme_endpoint below. No hardcoded default is meaningful here, so
+    // followme_ambient_valid tracks whether a real value is known; main.c's
     // followme_task won't send a Follow-Me frame until this is true.
+    // NVS-persisted (2026-09-09, same pattern as desired_cooling_setpoint)
+    // so a reboot doesn't lose the last-known reading and silently skip the
+    // boot-time enable beep -- HA's relay automation only fires on the
+    // sensor's state *change*, not on every Device B boot, so without this
+    // there was no guarantee anything would re-arrive promptly.
     int16_t followme_ambient_temp_c_x100;
     bool followme_ambient_valid;
 } matter_device_state_t;
@@ -190,6 +194,7 @@ static bool g_started = false;
 #define NVS_KEY_ONOFF "onoff"
 #define NVS_KEY_SYSTEM_MODE "sys_mode"
 #define NVS_KEY_DESIRED_SETPOINT "desired_sp"
+#define NVS_KEY_FOLLOWME_AMBIENT "fm_ambient_c"
 
 static nvs_handle_t g_nvs_handle = 0;
 static bool g_nvs_ready = false;
@@ -229,8 +234,24 @@ static void nvs_load_persisted_state(matter_device_state_t *state)
     if (nvs_get_i16(g_nvs_handle, NVS_KEY_DESIRED_SETPOINT, &desired_setpoint) == ESP_OK) {
         state->desired_cooling_setpoint = desired_setpoint;
     }
-    ESP_LOGI(TAG, "Loaded persisted state: onoff=%d system_mode=%u desired_cooling_setpoint=%d",
-             state->onoff, state->system_mode, state->desired_cooling_setpoint);
+    // Follow-Me ambient temp -- added 2026-09-09. Without this, a reboot
+    // always resets followme_ambient_valid to false, and since the HA relay
+    // automation only fires on the sensor's *state change* (not on every
+    // Device B boot), there's no guarantee anything re-arrives promptly --
+    // observed live as a boot with no Follow-Me enable beep at all, silently,
+    // until the ambient sensor happened to tick again on its own. Restoring
+    // the last-known value here lets followme_task re-engage (and beep) on
+    // the first tick after boot, same as before any reboot ever happened,
+    // rather than waiting on an external event this firmware doesn't control.
+    int16_t followme_ambient = 0;
+    if (nvs_get_i16(g_nvs_handle, NVS_KEY_FOLLOWME_AMBIENT, &followme_ambient) == ESP_OK) {
+        state->followme_ambient_temp_c_x100 = followme_ambient;
+        state->followme_ambient_valid = true;
+    }
+    ESP_LOGI(TAG, "Loaded persisted state: onoff=%d system_mode=%u desired_cooling_setpoint=%d "
+                  "followme_ambient_valid=%d followme_ambient_temp_c_x100=%d",
+             state->onoff, state->system_mode, state->desired_cooling_setpoint,
+             state->followme_ambient_valid, state->followme_ambient_temp_c_x100);
 }
 
 static void nvs_persist_u8(const char *key, uint8_t value)
@@ -370,6 +391,7 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
         // HA automation calling climate.set_temperature on this endpoint).
         g_matter_state.followme_ambient_temp_c_x100 = val->val.i16;
         g_matter_state.followme_ambient_valid = true;
+        nvs_persist_i16(NVS_KEY_FOLLOWME_AMBIENT, g_matter_state.followme_ambient_temp_c_x100);
         ESP_LOGI(TAG, "Follow-Me ambient temp set to %d (0.01C)", g_matter_state.followme_ambient_temp_c_x100);
         return ESP_OK;
     }

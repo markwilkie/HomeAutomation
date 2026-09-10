@@ -129,6 +129,23 @@ typedef struct {
 
 static sync_state_t g_sync_state = {0};
 
+// Shared by every tuya_get_device_status() call site (sync_task's own poll,
+// post_send_verify_and_sync(), and command_task's three pre-send refreshes)
+// -- added 2026-09-09. Before this, only sync_task's own poll ever cleared
+// OUTAGE_REASON_TUYA_UNREACHABLE or reset status_poll_failures, so a real
+// command's pre-send refresh (or post-send verify) could succeed --
+// definitive proof Tuya is reachable, and HA would show fresh values -- while
+// the outage stayed "active" until sync_task's own next scheduled poll
+// happened to succeed too, up to 5 minutes later. Any successful poll from
+// anywhere should count.
+static void note_tuya_poll_success(void)
+{
+    if (g_sync_state.status_poll_failures > 0) {
+        outage_log_end(OUTAGE_REASON_TUYA_UNREACHABLE);
+    }
+    g_sync_state.status_poll_failures = 0;
+}
+
 // PLAN.md Milestone 4: the Tuya command paths this used to step through
 // (tuya_set_temperature() et al.) are retired -- send_ir_frame() now sends
 // the exact desired value directly in one shot, every time, from every call
@@ -292,20 +309,39 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
     }
 
     int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100 : status->temp_set;
-    // Round to the nearest whole degree C, don't truncate -- plain integer
-    // division here silently biased every setpoint down by up to almost a
-    // full degree C (nearly 2F), found via live HA testing 2026-09-07:
-    // selecting 73F in HA (~22.78C) truncated to 22C (71.6F), which the
-    // unit's own display then rounded down to 72F. Setpoints here are
-    // always positive (16-31C range enforced below), so a simple +50
-    // half-up offset before truncating is exact -- no negative-number edge
-    // case to handle.
-    int16_t setpoint_c = (int16_t)((setpoint_c_x100 + 50) / 100);
-    if (setpoint_c < 16) {
-        setpoint_c = 16;
-    } else if (setpoint_c > 31) {
-        setpoint_c = 31;
+    // Round to the nearest HALF degree C, not whole degree -- 2026-09-09.
+    // Whole-degree-only rounding here was never a real hardware limit: it
+    // was found (live, real remote vs. Device B comparison) that sending
+    // 71F from the real remote makes the unit report back exactly 71F,
+    // which whole-degree Celsius cannot represent (21C=69.8F, 22C=71.6F --
+    // both round to something other than 71F, the "tie" IR_PROTOCOL_REFERENCE.md
+    // and the 2026-09-09 capture session attributed to AC hardware
+    // resolution). IRremoteESP8266's own ir_Tcl.cpp resolves this:
+    // `state[12]` bit `0x20` (HalfDegree -- "sourced, unconfirmed... not
+    // used by this project" per this project's own prior notes) adds +0.5C
+    // on top of the Temp field's whole-degree value (setTemp(): nrHalfDegrees
+    // = round(C*2), HalfDegree = nrHalfDegrees & 1, Temp = 31 -
+    // nrHalfDegrees/2). 21.5C (Temp=10, HalfDegree set) converts to exactly
+    // 71F via tuya_setpoint_c_to_f(), matching the real remote's observed
+    // behavior -- this was a real, fixable firmware gap, not an AC limit.
+    //
+    // half_steps counts 0.5C increments, rounded to nearest (round-half-up;
+    // setpoints are always positive, 16-31C range enforced below via
+    // half_steps' own 32-62 clamp, so the +25-before-truncate offset is
+    // exact -- same reasoning as the whole-degree rounding this replaces).
+    int16_t half_steps = (int16_t)((setpoint_c_x100 + 25) / 50);
+    if (half_steps < 32) {        // 16.0C
+        half_steps = 32;
+    } else if (half_steps > 62) { // 31.0C
+        half_steps = 62;
     }
+    bool half_degree = (half_steps & 1) != 0;
+    // Whole-degree floor (e.g. 21 for both 21.0C and 21.5C) -- state[7]'s
+    // own value per setTemp()'s formula; the actual transmitted temperature
+    // is this plus 0.5 whenever half_degree is set below. Logging elsewhere
+    // in this function reports this floor, not the true half-degree value --
+    // acceptable, logging was never precise here to begin with.
+    int16_t setpoint_c = (int16_t)(31 - half_steps / 2);
 
     // Base/template frame -- updated 2026-09-09 to a fresher real capture
     // (Power: On, Mode: Cool, Temp: 21C, Fan: Auto, Light: On,
@@ -366,17 +402,25 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
     out_frame[8] = (uint8_t)((out_frame[8] & ~0x07) | (map_tuya_fan_speed_to_ir(status->fan_speed) & 0x07));
 
     out_frame[6] = (uint8_t)((out_frame[6] & ~0x0F) | (ir_mode & 0x0F));  // Mode nibble; bits 4-7 preserved from base
-    out_frame[7] = (uint8_t)(31 - setpoint_c);
-    // frame[12] (isTcl + toggle bit) and frame[13] (checksum, recomputed
-    // fresh by ir_tcl112_send()) are left as the base template's values.
+    out_frame[7] = (uint8_t)setpoint_c;
+    // HalfDegree -- state[12] bit 0x20, see half_steps' doc comment above.
+    // isTcl (bit 0x80) and the anti-repeat toggle (bit 0x04) are left as
+    // the base template's values; frame[13] (checksum) is recomputed fresh
+    // by ir_tcl112_send().
+    if (half_degree) {
+        out_frame[12] |= 0x20;
+    } else {
+        out_frame[12] &= (uint8_t)~0x20;
+    }
     //
-    // Fresh Air (Tuya's fresh_air_valve, already read into `status` below)
-    // is NOT preserved here despite being available -- its IR bit position
-    // is still genuinely unconfirmed (IR_PROTOCOL_REFERENCE.md's Known Gaps:
-    // "attempted 2026-09-07, abandoned, still unresolved... out of scope for
-    // Milestone 2"). Guessing a bit for it risks corrupting some other,
-    // currently-working field. Every send still reverts Fresh Air to the
-    // base template's captured value until that bit is actually found.
+    // Fresh Air is NOT set anywhere in this Type 1 frame -- bit-level capture
+    // comparison (2026-09-10, MiniSplitIR/capture_tools' microsecond-resolution
+    // RawPinTest) found Type 1's state[12] byte-for-byte identical (0x84)
+    // regardless of Fresh Air state across 6 captures (3 on, 3 off). The real
+    // remote instead mirrors current Fresh Air state into the Type 2
+    // companion frame's state[12] bit 0x01 -- see transmit_ir_state_frame()'s
+    // kType2CompanionFrame handling below, where it's now wired from
+    // `status->fresh_air_valve`.
 
     *out_ir_mode = ir_mode;
     *out_setpoint_c = setpoint_c;
@@ -394,17 +438,32 @@ static TickType_t g_last_ir_send_tick = 0;
 // by send_ir_frame() and send_followme_frame() -- every full-state send
 // needs this same two-frame sequence (see IR_PROTOCOL_REFERENCE.md's "Type 2
 // frame" section: confirmed required, not optional, via test_apps/ir_live_test).
-static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN])
+//
+// `fresh_air_on` drives the Type 2 frame's state[12] bit 0x01 -- found via
+// bit-level capture comparison (2026-09-10): the real remote's Type 2 frame
+// carries state[12]=0x01 while Fresh Air is on, 0x00 while off (6 captures,
+// 3 each, all checksum-valid, Type 1 unaffected). Before this fix, this
+// frame was a fixed template with that bit always 0, so every command this
+// firmware sent silently told the unit Fresh Air was off -- the root cause
+// of Fresh Air reverting on any Device B command. See
+// IR_PROTOCOL_REFERENCE.md's "Known gaps" for the full writeup.
+static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], bool fresh_air_on)
 {
     // state[6] is a real capture-confirmed free-running step counter that
     // doesn't gate acceptance (see ../MiniSplitIR/captures/protocol_capture.md),
     // so this fixed, verbatim real capture is enough -- no need to reproduce
-    // its exact sequence.
+    // its exact sequence. state[12] (Fresh Air) is the one byte overwritten
+    // below rather than left as part of this captured template.
     static const uint8_t kType2CompanionFrame[IR_TCL112_FRAME_LEN] = {
         0x23, 0xCB, 0x26, 0x02, 0x00, 0x40, 0x20, 0x00, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x48,
     };
     uint8_t type2_frame[IR_TCL112_FRAME_LEN];
     memcpy(type2_frame, kType2CompanionFrame, IR_TCL112_FRAME_LEN);
+    if (fresh_air_on) {
+        type2_frame[12] |= 0x01;
+    } else {
+        type2_frame[12] &= (uint8_t)~0x01;
+    }
 
     // Log the exact bytes about to go out, before ir_tcl112_send() mutates
     // frame[13]/type2_frame[13] with the freshly computed checksum -- that's
@@ -448,7 +507,7 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
                           override_setpoint, override_setpoint_c_x100,
                           frame, &ir_mode, &setpoint_c);
 
-    esp_err_t err = transmit_ir_state_frame(frame);
+    esp_err_t err = transmit_ir_state_frame(frame, status->fresh_air_valve);
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "IR frame sent: power=%s mode=%u setpoint=%dC",
                  power_on ? "on" : "off", ir_mode, setpoint_c);
@@ -505,7 +564,7 @@ static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t 
     }
     frame[11] = (uint8_t)ambient_temp_c;
 
-    esp_err_t err = transmit_ir_state_frame(frame);
+    esp_err_t err = transmit_ir_state_frame(frame, status->fresh_air_valve);
     if (err == ESP_OK) {
         g_followme_active = true;
         ESP_LOGI(TAG, "Follow-Me %s sent: ambient=%dC mode=%u setpoint=%dC",
@@ -654,10 +713,41 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     matter_update_thread_rssi(get_thread_link_rssi());
 }
 
+// Opens/closes OUTAGE_REASON_SETPOINT_MISMATCH based on whether the
+// Desired Setpoint (Matter, HA-writable) currently agrees with Tuya's
+// reported temp_set_f within the same >1F tolerance sync_task's
+// correction-sending logic uses. Shared by every call site that receives a
+// fresh Tuya status via cache_and_apply_status() below -- added 2026-09-10,
+// same reasoning as note_tuya_poll_success(): before this, only sync_task's
+// own 5-minute reconciliation loop ever cleared this outage, so a real
+// command that fixed the mismatch via command_task/post_send_verify_and_sync
+// (which can confirm within ~15-90s) still left the outage showing "active"
+// in HA for up to a full STATUS_POLL_INTERVAL_MS until sync_task's own next
+// poll happened to notice. Bookkeeping only -- does NOT send an IR
+// correction; that stays exclusively in sync_task's own loop (see there),
+// so this can safely run from command_task's pre-send refreshes too without
+// triggering a redundant extra send.
+static void check_setpoint_mismatch_outage(const tuya_device_status_t *status)
+{
+    int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
+    int16_t desired_f = tuya_setpoint_c_to_f(desired_c_x100);
+    int16_t mismatch_f = (int16_t)abs(desired_f - status->temp_set_f);
+    if (mismatch_f > 1) {
+        outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH, get_thread_link_rssi());
+    } else {
+        outage_log_end(OUTAGE_REASON_SETPOINT_MISMATCH);
+    }
+}
+
 static void cache_and_apply_status(const tuya_device_status_t *device_status)
 {
     g_last_device_status = *device_status;
     g_last_device_status_valid = true;
+    // Must run before apply_status_to_matter() -- that's what pushes
+    // outage_log_any_active()/outage_log_active_reason() to HA, so the
+    // bookkeeping above needs to be current before that push happens (same
+    // ordering lesson as note_tuya_poll_success()'s call sites).
+    check_setpoint_mismatch_outage(device_status);
     apply_status_to_matter(device_status);
 }
 
@@ -756,11 +846,7 @@ static void sync_task(void *param)
             result = tuya_get_device_status(&device_status);
 
             if (result == ESP_OK) {
-                if (g_sync_state.status_poll_failures > 0) {
-                    // Was failing, now succeeded -- outage over.
-                    outage_log_end(OUTAGE_REASON_TUYA_UNREACHABLE);
-                }
-                g_sync_state.status_poll_failures = 0;  // Reset failure counter
+                note_tuya_poll_success();
                 break;
             }
 
@@ -810,7 +896,7 @@ static void sync_task(void *param)
 
         g_sync_state.last_status_update = xTaskGetTickCount();
 
-        // Desired-setpoint mismatch detection: the standalone Desired
+        // Desired-setpoint mismatch correction: the standalone Desired
         // Setpoint Matter endpoint (matter_get_desired_cooling_setpoint(),
         // HA-writable, never touched by this task) is compared against what
         // Tuya just reported, in whole-Fahrenheit-degree terms -- comparing
@@ -819,34 +905,40 @@ static void sync_task(void *param)
         // round-trip back to an exact Celsius match even once genuinely
         // applied (see tuya_setpoint_c_to_f()'s doc comment).
         //
-        // Re-added 2026-09-09: does send an IR correction on a genuine
-        // mismatch, gated by a >1F tolerance rather than exact equality.
-        // An earlier version corrected on any exact mismatch and was
-        // removed 2026-09-07 because it fired a real IR command on every
-        // single boot: a persisted NVS "desired" value essentially never
-        // matches Tuya's independently-derived temp_set_f by exact
-        // coincidence (their C->F rounding conventions can legitimately
-        // disagree by a degree even when the AC is genuinely at the
-        // requested temperature), so exact-match "correction" would have
-        // kept firing every 5-minute poll indefinitely, not just once per
-        // boot. The >1F tolerance absorbs that class of rounding-convention
-        // noise while still catching and correcting a real, larger
-        // divergence (e.g. a command that silently failed to land, or an
-        // out-of-band change back toward a stale setpoint).
+        // OUTAGE_REASON_SETPOINT_MISMATCH's open/close bookkeeping itself
+        // now lives in check_setpoint_mismatch_outage() (called from
+        // cache_and_apply_status() above, same >1F tolerance) -- moved
+        // there 2026-09-10 so every call site that gets a fresh Tuya status
+        // clears it, not just this once-per-5-minutes loop (see that
+        // function's doc comment). This block only decides whether to
+        // actually *send an IR correction*, which stays exclusive to this
+        // task -- command_task's own pre-send refreshes must NOT also
+        // trigger a correction send here.
+        //
+        // Re-added 2026-09-09: sends a correction on a genuine mismatch,
+        // gated by a >1F tolerance rather than exact equality. An earlier
+        // version corrected on any exact mismatch and was removed
+        // 2026-09-07 because it fired a real IR command on every single
+        // boot: a persisted NVS "desired" value essentially never matches
+        // Tuya's independently-derived temp_set_f by exact coincidence
+        // (their C->F rounding conventions can legitimately disagree by a
+        // degree even when the AC is genuinely at the requested
+        // temperature), so exact-match "correction" would have kept firing
+        // every 5-minute poll indefinitely, not just once per boot. The >1F
+        // tolerance absorbs that class of rounding-convention noise while
+        // still catching and correcting a real, larger divergence (e.g. a
+        // command that silently failed to land, or an out-of-band change
+        // back toward a stale setpoint).
         int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
         int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
         int16_t setpoint_mismatch_f = (int16_t)abs(desired_f_for_outage_check - device_status.temp_set_f);
         if (setpoint_mismatch_f > 1) {
-            outage_log_start(OUTAGE_REASON_SETPOINT_MISMATCH, get_thread_link_rssi());
-
             ESP_LOGW(TAG, "Setpoint mismatch %dF beyond tolerance (desired %dF, Tuya reports %dF) -- sending IR correction",
                      setpoint_mismatch_f, desired_f_for_outage_check, device_status.temp_set_f);
             esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
             if (send_err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send setpoint correction via IR: %s", esp_err_to_name(send_err));
             }
-        } else {
-            outage_log_end(OUTAGE_REASON_SETPOINT_MISMATCH);
         }
     }
 }
@@ -884,6 +976,7 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
             continue;
         }
 
+        note_tuya_poll_success();
         cache_and_apply_status(&status);
         g_sync_state.last_status_update = xTaskGetTickCount();
 
@@ -927,14 +1020,28 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
  * gap (reactive, via g_followme_active), and additionally once per Pacific
  * calendar day around noon regardless of whether g_followme_active already
  * thinks it's active (belt-and-suspenders, see g_followme_last_forced_yday's
- * doc comment) -- every other send is a silent heartbeat. Waits for a full
- * interval before its first send so early boot noise (before the first
- * sync_task poll / before HA has pushed a reading yet) doesn't force a send
- * off stale/default state.
+ * doc comment) -- every other send is a silent heartbeat.
+ *
+ * The very first loop iteration after boot skips the interval wait below
+ * (see first_pass) -- fixed 2026-09-10 after finding this task always slept
+ * a full FOLLOWME_HEARTBEAT_INTERVAL_MS (3 minutes) before its very first
+ * check on every boot, regardless of data availability, contradicting this
+ * comment's own "once on the first successful tick after boot" claim: with
+ * g_last_ir_send_tick starting at 0, the very first elapsed/interval_ticks
+ * comparison a few seconds into boot was always < the interval, so the
+ * "first tick" never actually landed until ~3 minutes in. The data-validity
+ * checks just below (ambient reading available, confirmed Tuya state
+ * available) already guard against acting on stale/default state on their
+ * own -- NVS-persisted ambient temp and sync_task's own no-initial-wait
+ * first poll mean both are normally available within seconds of boot, not
+ * 3 minutes -- so the extra interval-based wait was redundant and was the
+ * actual cause of "no beep on boot."
  */
 static void followme_task(void *param)
 {
     ESP_LOGI(TAG, "Follow-Me task started (interval: %ums)", FOLLOWME_HEARTBEAT_INTERVAL_MS);
+
+    bool first_pass = true;
 
     while (1) {
         // Re-derive the remaining wait from g_last_ir_send_tick every time
@@ -942,13 +1049,15 @@ static void followme_task(void *param)
         // makes a command sent from command_task actually delay the next
         // heartbeat by a full interval (PLAN.md Milestone 2's note), since
         // transmit_ir_state_frame() bumps that same timestamp on every
-        // successful send, command or heartbeat alike.
+        // successful send, command or heartbeat alike. Skipped on the very
+        // first iteration (first_pass) -- see this function's doc comment.
         TickType_t interval_ticks = pdMS_TO_TICKS(FOLLOWME_HEARTBEAT_INTERVAL_MS);
         TickType_t elapsed = xTaskGetTickCount() - g_last_ir_send_tick;
-        if (elapsed < interval_ticks) {
+        if (!first_pass && elapsed < interval_ticks) {
             vTaskDelay(interval_ticks - elapsed);
             continue;
         }
+        first_pass = false;
 
         int16_t ambient_c_x100;
         if (!matter_get_followme_ambient_temp_c_x100(&ambient_c_x100)) {
@@ -1032,6 +1141,7 @@ static void command_task(void *param)
             // setpoint bytes this frame preserves reflect current reality.
             tuya_device_status_t refreshed_status = g_last_device_status;
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);
                 g_sync_state.last_status_update = xTaskGetTickCount();
             } else {
@@ -1088,6 +1198,7 @@ static void command_task(void *param)
             // same benefit the old post-send refresh below used to provide.
             tuya_device_status_t refreshed_status = g_last_device_status;
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);
                 g_sync_state.last_status_update = xTaskGetTickCount();
             } else {
@@ -1157,6 +1268,7 @@ static void command_task(void *param)
             // possibly-stale cached value.
             tuya_device_status_t refreshed_status = g_last_device_status;
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);
                 g_sync_state.last_status_update = xTaskGetTickCount();
             } else {

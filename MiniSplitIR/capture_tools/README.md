@@ -7,10 +7,24 @@ wired to GPIO2 (`VCC`→3.3V, `GND`→GND, `DAT`→GPIO2).
 - `IRrecvDumpV2/` — the actual capture sketch (IRremoteESP8266 library example,
   copied here with `kRecvPin` set to 2). This is what's flashed during the real
   capture sessions.
-- `RawPinTest/` — a minimal diagnostic sketch that bypasses the IRremoteESP8266
-  library entirely and just prints GPIO2's raw digital level on change. Used to
-  isolate a receiver/wiring problem from a library/RMT-driver problem when
-  IRrecvDumpV2 wasn't decoding anything.
+- `RawPinTest/` — bypasses the IRremoteESP8266 library entirely and captures
+  GPIO2's raw digital level transitions via interrupt, with microsecond
+  timestamps (`micros()`, not `millis()` — needed to actually resolve
+  325/500/1050us IR bit pulses; an earlier ms-resolution version of this
+  sketch could only capture rough burst shape, not real bit timing). The
+  interrupt just buffers `(level, micros())` pairs into a 20000-entry array
+  — nothing is printed during capture, since `Serial.printf` alone takes
+  longer than a single bit period and would drop edges. Device owns the
+  start/stop protocol itself (see comment header in the `.ino`): prints a
+  prompt, waits for `'s'` over serial, captures into the buffer until `'e'`,
+  then dumps the whole buffer as `pin2=<0|1> t=<micros>` lines followed by
+  `CAPTURE_END`, and loops back to ready for another capture.
+- `capture_serial.ps1` — host-side companion for `RawPinTest`. Forwards your
+  `s`/`e` keypresses to the device over serial (the device drives the actual
+  capture), echoes everything the device sends back live, and once it sees
+  `CAPTURE_END` prompts for a filename and saves the full transcript
+  verbatim — no decoding/framing on the host side either. Run with
+  `.\capture_serial.ps1 -Port COM3`.
 
 ## Build gotcha found the hard way
 

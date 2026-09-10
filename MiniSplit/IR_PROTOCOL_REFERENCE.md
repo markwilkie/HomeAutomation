@@ -132,7 +132,7 @@ file.
 |---|---|---|
 | `state[0..2]` | — | Fixed header: `0x23 0xCB 0x26` |
 | `state[3]` | 0-1 | `MsgType`: `0b01`=Type 1 (normal/full-state), `0b10`=Type 2 (special/quiet) |
-| `state[4]` | 7 | Follow Me enabled (`0x80` set) / disabled (`0x00`). **Not in the library's model at all** — byte 4 is entirely unclaimed/padding there, meaning the real firmware repurposes it for a feature this library doesn't implement. Bits 0-6 unaccounted for; **Fresh Air's most likely home**, still needs a real capture to confirm. |
+| `state[4]` | 7 | Follow Me enabled (`0x80` set) / disabled (`0x00`). **Not in the library's model at all** — byte 4 is entirely unclaimed/padding there, meaning the real firmware repurposes it for a feature this library doesn't implement. Bits 0-6 unaccounted for and ruled out as Fresh Air's home (2026-09-09) — see `state[12]` bit 0 below for where Fresh Air actually lives (in the Type 2 frame only). |
 | `state[5]` | 2 | `Power` on/off **(confirmed)** — `0x04`, clear = off / set = on. Confirmed 2026-09-07: a real capture pair differing in exactly this one bit (`0x24`→`0x20`, both checksum-valid) — see `../MiniSplitIR/captures/protocol_capture.md`'s "Power / Setpoint / Fresh Air capture session". No longer blocks `SystemMode`'s `Off` case in Milestone 2. |
 | `state[5]` | 3 | `OffTimerEnabled` **(sourced, unconfirmed)** — `0x08` |
 | `state[5]` | 4 | `OnTimerEnabled` **(sourced, unconfirmed)** — `0x10` |
@@ -150,6 +150,7 @@ file.
 | `state[9]` | 1-6 | `OffTimer` **(sourced, unconfirmed)** — mask `0x7E`, minutes ÷ 20 (0-720min range, 0=off) |
 | `state[10]` | 1-6 | `OnTimer` **(sourced, unconfirmed)** — mask `0x7E`, same units as `OffTimer` |
 | `state[11]` | — | Follow Me sensor temp, whole degrees C — only meaningful when the Follow Me bit is set; `0x00` otherwise. **This is the field this project's Follow-Me feature writes.** Fully unclaimed in the library's model (all 8 bits "00000000"), same situation as `state[4]` — another feature this library doesn't implement, that our own captures found the real firmware using. |
+| `state[12]` | 0 | **Fresh Air** — `0x01`. **Type 2 frame only** (Type 1's `state[12]` byte 12 doesn't carry it — see "Known gaps" below for the full writeup). Set = on, clear = off. Found 2026-09-10 via bit-level capture comparison (6 captures, 3 each state, all checksum-valid). |
 | `state[12]` | 2 | Unnamed toggle bit that flips per remote button-press even when no field actually changed (our own capture-confirmed finding, e.g. `0x80`↔`0x84`) — anti-repeat/session toggle, not decoded further. Now pinned to a specific bit rather than "somewhere in this byte." |
 | `state[12]` | 3 | `SwingH` **(sourced, unconfirmed)** — `0x08` |
 | `state[12]` | 5 | `HalfDegree` **(sourced, unconfirmed)** — `0x20`. Not used by this project (whole-degree setpoints only). |
@@ -259,39 +260,40 @@ before the Type 1 frame on every call, shared by both `send_ir_frame()` and
 
 ## Known gaps
 
-- **Fresh Air — attempted 2026-09-07, abandoned, still unresolved.** Has a
-  real, dedicated remote button (confirmed by the user; an earlier draft of
-  this file wrongly assumed otherwise from the library not naming it — that
-  reasoning was flawed, since the library doesn't model Follow-Me or
-  several other real fields either). Several presses at normal range
-  produced a byte-for-byte identical frame to the pre-press baseline
-  (real transmission failure, not just a receiver miss — ruled out because
-  the repeats were clean rather than inconsistent). At very close range the
-  receiver did pick up two frames, but neither was usable: one decoded to a
-  perfectly ordinary, already-known Type 2 frame with no Fresh Air
-  information in it, and the other (the Type 1 half, where Fresh Air should
-  show up) arrived corrupted partway through. Full writeup in
-  `../MiniSplitIR/captures/protocol_capture.md`'s "Fresh Air capture
-  attempt" section. **Decision: out of scope for Milestone 2 for now**
-  (user call) — the library's struct still accounts for every bit in the
-  frame except `state[4]` bits 0-6 (bit 7 is our own Follow-Me flag).
-  **2026-09-09 update: `state[4]` is now ruled out as Fresh Air's home** — a
-  fresh capture with Fresh Air confirmed ON by the user at the moment of
-  capture still showed `state[4] = 0x00`, byte-for-byte identical to every
-  Fresh-Air-state-unconfirmed capture before it. Combined with the original
-  abandoned attempt (button presses producing byte-identical Type 1 frames),
-  Fresh Air increasingly looks like it isn't carried in the everyday Type
-  1/Type 2 pair at all — possibly a separate wire format entirely (see the
-  abandoned attempt's inconclusive close-range capture), or a unit-side
-  behavior not driven by any bit in this frame family. Still fully
-  unresolved; no new bit position hypothesis to replace the ruled-out one.
-  **This also means swapping `main.c`'s base/template frame to a
-  Fresh-Air-on capture would not fix Fresh Air reverting on every send** —
-  see `build_ir_state_frame()`'s existing comment: Fresh Air isn't wired
-  into that function at all regardless of which template array it starts
-  from, so every send reverts it to whatever the template happened to
-  capture. The real fix needs both the bit position (still unknown) and
-  wiring `status->fresh_air_valve` into that function, not a template swap.
+- **Fresh Air — resolved 2026-09-10.** `state[12]` bit `0x01` **of the Type 2
+  frame** (not Type 1 — every earlier attempt focused on Type 1, which is why
+  this took so long to find). Found via `MiniSplitIR/capture_tools`'
+  microsecond-resolution `RawPinTest` (interrupt-buffered, `micros()`
+  timestamps — the project's original ms-resolution raw-pin captures and the
+  2026-09-07/09-09 attempts below were structurally incapable of seeing this:
+  every IR bit, 0 or 1, produces the same *number* of edges, so a bit-value
+  difference only shows up in space *duration*, not edge pattern/count).
+  6 bit-level-decoded captures (3 with Fresh Air on, 3 off; user-confirmed via
+  the remote's own display each time), all checksum-valid: Type 2
+  `state[12]` = `0x01` when on, `0x00` when off, consistently; Type 1's
+  `state[12]` was byte-identical (`0x84`) across all 6 — Fresh Air isn't
+  carried there at all. Wired into `src/main.c`'s `transmit_ir_state_frame()`
+  (which builds the Type 2 companion frame) from `status->fresh_air_valve`,
+  2026-09-10 — this was the actual root cause of Fresh Air reverting on every
+  Device B command: the Type 2 template had this bit hardcoded to `0x00`.
+  **Not yet confirmed against the real unit** (compiled, not yet flashed to
+  Device B / tested end-to-end) — do that before considering this fully
+  closed.
+
+  <details><summary>Earlier attempts (superseded, kept for history)</summary>
+
+  Attempted 2026-09-07: had a real, dedicated remote button (confirmed by the
+  user). Several presses at normal range produced a byte-for-byte identical
+  frame to the pre-press baseline; at very close range the receiver picked up
+  two frames but neither was usable (one an ordinary already-known Type 2
+  frame, the other — the Type 1 half — corrupted partway through). Full
+  writeup in `../MiniSplitIR/captures/protocol_capture.md`'s "Fresh Air
+  capture attempt" section. 2026-09-09: `state[4]` was ruled out (a
+  Fresh-Air-on capture still showed `state[4] = 0x00`). Both attempts only
+  ever inspected Type 1 / used ms-resolution captures, which is why they
+  missed the Type 2 `state[12]` bit found above.
+
+  </details>
 - **Light** has a sourced, unconfirmed bit position (table above,
   `state[5]` bit `0x40`, inverted) — **wired into `src/main.c`'s
   `build_ir_state_frame()` anyway (2026-09-07)**, on the library's sourced
