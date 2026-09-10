@@ -474,6 +474,19 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
 // fresh enable rather than a continued heartbeat.
 static bool g_followme_active = false;
 
+// Day-of-year (tm_yday, Pacific) of the last daily forced Follow-Me
+// re-enable -- see followme_task's noon check below. -1 = never forced yet
+// this boot. This is a *belt-and-suspenders* re-enable, distinct from the
+// reactive one above: IR is one-way and unacknowledged, so this firmware has
+// no way to know whether the AC actually received recent heartbeats -- a
+// run of silently-dropped heartbeats (blocked line of sight, interference)
+// could let the AC's own internal Follow-Me fallback timeout lapse without
+// g_followme_active ever noticing, since that flag only reflects whether
+// *this firmware* has valid upstream data, not whether the unit received
+// what was sent. Forcing one real enable-instance send per day bounds how
+// long that undetectable failure mode could persist to at most a day.
+static int g_followme_last_forced_yday = -1;
+
 static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t ambient_temp_c)
 {
     uint8_t frame[IR_TCL112_FRAME_LEN];
@@ -673,6 +686,15 @@ static esp_err_t wait_for_time_sync(void)
         time(&now);
         localtime_r(&now, &timeinfo);
         if (timeinfo.tm_year >= (2024 - 1900)) {
+            // Pacific time, DST-aware (PST8PDT with US DST rules) -- matches
+            // the rest of the home automation stack (HA, wyse). Nothing
+            // before this point should call localtime_r()/asctime() and
+            // expect local time; everything after (e.g. followme_task's
+            // daily noon check) can. No effect on time(), only on the
+            // libc calls that consult TZ.
+            setenv("TZ", "PST8PDT,M3.2.0,M11.1.0", 1);
+            tzset();
+            localtime_r(&now, &timeinfo);
             ESP_LOGI(TAG, "Time synchronized: %s", asctime(&timeinfo));
             return ESP_OK;
         }
@@ -898,9 +920,17 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
  * its own (see that getter's doc comment for why). Always active whenever a
  * value has been set and a confirmed Tuya state are both available -- no
  * separate HA-exposed enable/disable control, matching this project's
- * minimal-surface approach elsewhere. Waits for a full interval before its
- * first send so early boot noise (before the first sync_task poll / before
- * HA has pushed a reading yet) doesn't force a send off stale/default state.
+ * minimal-surface approach elsewhere.
+ *
+ * Sends a real enable-instance frame (audible beep on the unit, confirmed
+ * 2026-09-09) once on the first successful tick after boot or after any data
+ * gap (reactive, via g_followme_active), and additionally once per Pacific
+ * calendar day around noon regardless of whether g_followme_active already
+ * thinks it's active (belt-and-suspenders, see g_followme_last_forced_yday's
+ * doc comment) -- every other send is a silent heartbeat. Waits for a full
+ * interval before its first send so early boot noise (before the first
+ * sync_task poll / before HA has pushed a reading yet) doesn't force a send
+ * off stale/default state.
  */
 static void followme_task(void *param)
 {
@@ -938,6 +968,24 @@ static void followme_task(void *param)
             ESP_LOGW(TAG, "Follow-Me: no confirmed Tuya state yet, skipping this tick");
             vTaskDelay(interval_ticks);
             continue;
+        }
+
+        // Daily forced re-enable (see g_followme_last_forced_yday's doc
+        // comment) -- once per Pacific calendar day, during the noon hour,
+        // upgrade whatever tick happens to land then into a real enable
+        // instance instead of a heartbeat, even though g_followme_active
+        // already thinks it's active. Checking tm_hour==12 (not an exact
+        // minute) against this task's ~3-minute cadence means it fires on
+        // whichever tick first lands in that hour; if the whole noon hour is
+        // missed (e.g. no ambient reading that entire hour), it just retries
+        // at the same time the next day rather than catching up.
+        time_t now = time(NULL);
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        if (timeinfo.tm_hour == 12 && timeinfo.tm_yday != g_followme_last_forced_yday) {
+            ESP_LOGI(TAG, "Follow-Me: daily noon re-enable (day %d)", timeinfo.tm_yday);
+            g_followme_active = false;
+            g_followme_last_forced_yday = timeinfo.tm_yday;
         }
 
         esp_err_t err = send_followme_frame(&g_last_device_status, ambient_c);
