@@ -134,35 +134,36 @@ def load_config(path):
     return config
 
 
-def rating_for(boat, race):
-    """Return the certificate number this boat races under in this race.
+def rating_for(boat, race, band_override=None):
+    """The certificate number this boat races under in this race.
 
-    ToD races look up race['band'] in boat['tod']; ToT races look it up in
-    boat['tot']. A band of None (or a bare number instead of a dict) means the
-    boat has a single allowance for every race.
+    Returns (rating, None) or, when the boat cannot be rated for this race,
+    (None, reason). A boat missing one band is dropped from that one table
+    rather than killing the whole run: real scratch sheets routinely publish
+    a single number for a boat whose full triple is not out yet.
+
+    ToD races look up the band in boat['tod'], ToT races in boat['tot'].
+    A bare number instead of a dict means one allowance for every race.
     """
     scoring = race.get("scoring", TOD)
     key = "tod" if scoring == TOD else "tot"
     ratings = boat.get(key)
-    if ratings is None:
-        raise ConfigError("%s has no %r ratings, needed by %s"
-                          % (boat["name"], key, race["name"]))
+    if not ratings:
+        return None, "no %s rating published" % key
     if isinstance(ratings, (int, float)):
-        return float(ratings)
+        return float(ratings), None
 
-    band = race.get("band")
+    band = band_override or race.get("band")
     if band is None:
         if len(ratings) == 1:
-            return float(next(iter(ratings.values())))
+            return float(next(iter(ratings.values()))), None
         raise ConfigError("%s scores %s but does not say which band; %s "
                           "publishes %s" % (race["name"], scoring,
                                             boat["name"],
                                             ", ".join(sorted(ratings))))
-    if band not in ratings:
-        raise ConfigError("%s has no %r band for %s (has %s)"
-                          % (boat["name"], band, race["name"],
-                             ", ".join(sorted(ratings))))
-    return float(ratings[band])
+    if band not in ratings or ratings[band] in (None, "", "-"):
+        return None, "no %s rating published" % band
+    return float(ratings[band]), None
 
 
 # --------------------------------------------------------------------------
@@ -193,10 +194,20 @@ def reference_elapsed_for(race):
     return 3600.0, "1:00:00 (per hour of elapsed time)"
 
 
-def build_race_table(boats, race):
+def build_race_table(boats, race, band_override=None):
     """Compute one race's ratings, ordering and pairwise owe matrix."""
     reference, reference_label = reference_elapsed_for(race)
-    ratings = {boat["name"]: rating_for(boat, race) for boat in boats}
+    ratings, unrated = {}, []
+    for boat in boats:
+        rating, reason = rating_for(boat, race, band_override)
+        if rating is None:
+            unrated.append((boat["name"], reason))
+        else:
+            ratings[boat["name"]] = rating
+    if len(ratings) < 2:
+        raise ConfigError("%s: fewer than two boats can be rated (%s)"
+                          % (race["name"],
+                             "; ".join("%s: %s" % pair for pair in unrated)))
 
     # Fastest boat first: lowest s/mile under ToD, highest multiplier under ToT.
     reverse = race.get("scoring", TOD) == TOT
@@ -218,6 +229,8 @@ def build_race_table(boats, race):
         "matrix": matrix,
         "reference_elapsed": reference,
         "reference_label": reference_label,
+        "band": band_override or race.get("band"),
+        "unrated": unrated,
     }
 
 
@@ -271,11 +284,11 @@ def race_heading(race, table):
     if race.get("course"):
         bits.append(race["course"])
     bits.append(race.get("scoring", TOD))
-    if race.get("band"):
-        bits.append(str(race["band"]))
-    if race.get("scoring", TOD) == TOD:
-        bits.append("%.2f nm" % float(race["distance_nm"]))
-    else:
+    if table.get("band"):
+        bits.append(str(table["band"]))
+    if race.get("distance_nm"):
+        bits.append("%.0f nm" % float(race["distance_nm"]))
+    if race.get("scoring", TOD) == TOT:
         bits.append("reference elapsed %s" % table["reference_label"])
     return "%s - %s" % (race["name"], ", ".join(bits))
 
@@ -315,10 +328,22 @@ def render_markdown(config, tables, highlight=None, scored=None):
             lines.append("| " + " | ".join(row) + " |")
         lines.append("")
 
-        if race.get("scoring", TOD) == TOT and not race.get("reference_elapsed"):
-            lines.append("_No reference elapsed time given, so this race's "
-                         "figures are per hour of elapsed time: multiply by "
-                         "the hours the race actually takes._")
+        for name, reason in table["unrated"]:
+            lines.append("_Not in this table: **%s** - %s._" % (name, reason))
+        if table["unrated"]:
+            lines.append("")
+
+        if race.get("scoring", TOD) == TOT:
+            if race.get("reference_elapsed"):
+                lines.append("_Time on time scales with elapsed time. These "
+                             "figures assume the owed boat sails %s; at an "
+                             "actual elapsed time T, multiply by T / %s._"
+                             % (table["reference_label"],
+                                table["reference_label"]))
+            else:
+                lines.append("_No reference elapsed time given, so this "
+                             "race's figures are per hour of elapsed time: "
+                             "multiply by the hours the race actually takes._")
             lines.append("")
 
         if scored:
@@ -342,7 +367,11 @@ def render_markdown(config, tables, highlight=None, scored=None):
 
 def render_highlight_markdown(tables, highlight):
     lines = ["## %s: time owed, all races" % highlight, ""]
-    others = [name for name in tables[0]["order"] if name != highlight]
+    others = []
+    for table in tables:
+        for name in table["order"]:
+            if name != highlight and name not in others:
+                others.append(name)
     lines.append("| Boat | " + " | ".join(t["race"]["name"] for t in tables)
                  + " |")
     lines.append("|" + "|".join(["---"] * (len(tables) + 1)) + "|")
@@ -389,6 +418,8 @@ def render_text(config, tables, highlight=None, scored=None):
                 text = "-" if value is None else fmt_hms(value, signed=True)
                 row += " %*s" % (cell, text)
             lines.append(row)
+        for name, reason in table["unrated"]:
+            lines.append("  not in this table: %s - %s" % (name, reason))
         lines.append("")
 
         if scored:
@@ -435,6 +466,9 @@ def main(argv=None):
                         default="md", help="output format (default: md)")
     parser.add_argument("--out", metavar="DIR",
                         help="directory for --format csv (default: ./tables)")
+    parser.add_argument("--band", metavar="BAND",
+                        help="score every race under this rating band "
+                             "(overrides the band in the data file)")
     parser.add_argument("--highlight", metavar="BOAT",
                         help="add a summary of what this boat owes every "
                              "other boat across all races")
@@ -445,12 +479,13 @@ def main(argv=None):
     try:
         config = load_config(args.config)
         boats = config["boats"]
-        tables = [build_race_table(boats, race) for race in config["races"]]
+        tables = [build_race_table(boats, race, args.band)
+                  for race in config["races"]]
 
-        if args.highlight and args.highlight not in tables[0]["ratings"]:
+        known = {boat["name"] for boat in boats}
+        if args.highlight and args.highlight not in known:
             raise ConfigError("no boat named %r; entries are: %s"
-                              % (args.highlight,
-                                 ", ".join(sorted(tables[0]["ratings"]))))
+                              % (args.highlight, ", ".join(sorted(known))))
 
         scored = None
         if args.score:

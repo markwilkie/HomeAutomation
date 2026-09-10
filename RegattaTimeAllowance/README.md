@@ -13,10 +13,13 @@ means the row boat has to cross the line 3:40 ahead to tie on corrected time,
 
 ## Filling in the data file
 
-`salish-2026-orc0.json` is a template and **every rating in it is a
-placeholder** — the tool prints a warning banner until you delete
-`"placeholder": true`. Replace the numbers with the class scratch sheet or the
-boats' ORC certificates.
+`salish-2026-orc0.json` holds the Salish Sea 2026 ORC 0 fleet. Set
+`"placeholder": true` in a data file you are still filling in and the tool
+prints a warning banner over the output until you remove it.
+
+A boat missing the band a race is scored under is dropped from that one table
+with a note, rather than failing the run — scratch sheets routinely publish a
+single number for a boat whose full Triple Number is not out yet.
 
 Each boat carries whichever ratings its certificate publishes:
 
@@ -60,6 +63,14 @@ Add finish times to a race and pass `--score`:
 - `--format text` — fixed-width, readable on a phone at the dock.
 - `--format csv --out DIR` — one CSV per race, raw seconds.
 - `--highlight BOAT` — adds a one-boat summary across all races.
+- `--band BAND` — score every race under one band, overriding the data file.
+  Use it to see how much the answer depends on the band: `--band low`,
+  `--band medium`, `--band high`.
+
+Only the *ratios* between coefficients matter to an allowance, so a set of
+coefficients on a different normalisation (ORC's APH single number against the
+Triple Number bands, say) still gives correct times — but the two are not
+comparable boat-for-boat, and the running order can differ between them.
 
 ## What this does not do
 

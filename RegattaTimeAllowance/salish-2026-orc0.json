@@ -1,101 +1,84 @@
 {
   "regatta": "RVYC Salish Sea Regatta 2026 (6th Annual)",
-  "class": "ORC Class 0",
-  "placeholder": true,
+  "class": "ORC 0",
   "_comment": [
-    "Event confirmed via web search: RVYC Salish Sea Regatta, Sept 11-13 2026, three stages totalling ~85 nm. royalvan.com/salish-sea is blocked by this environment's network egress policy, so the entry list, per-stage distances and scoring method below are still UNCONFIRMED.",
-    "EVERY NUMBER BELOW IS A PLACEHOLDER so the tool runs out of the box.",
-    "Replace with the class scratch sheet / ORC certificates before racing:",
-    "  tod  = allowance in seconds per nautical mile (lower = faster boat),",
-    "         keyed by the band the RC scores under.",
-    "  tot  = time-on-time multiplier (higher = faster boat); ORC publishes",
-    "         675/GPH as the single number plus Triple Number low/med/high.",
-    "Each race needs: scoring (ToD or ToT), the band to use, and either",
-    "distance_nm (ToD) or reference_elapsed (ToT, the assumed elapsed time",
-    "of the boat being owed; omit it for a per-hour table)."
+    "Ratings and course distances supplied by Mark from the Sailing",
+    "Instructions and 2026 ORC data. ORC 0 is defined by APH ToT > 1.2999;",
+    "all six rated entries clear that.",
+    "Time-on-time allowances scale with elapsed time, so each race carries a",
+    "reference_elapsed = distance / 7 kt assumed average. Rescale linearly",
+    "if the fleet sails faster or slower than that.",
+    "UNCONFIRMED: which coefficient the RC actually scores under. The SIs",
+    "quote APH for the division split; run --band low|medium|high to see the",
+    "Triple Number tables instead."
   ],
   "boats": [
     {
+      "name": "Scatteraction",
+      "design": "RP55",
+      "tot": {"low": 0.9156, "medium": 1.2454, "high": 1.4715, "aph": 1.5607}
+    },
+    {
+      "name": "All Of It",
+      "design": "Santa Cruz 70",
+      "tot": {"low": 0.8585, "medium": 1.1913, "high": 1.3812, "aph": 1.5030}
+    },
+    {
       "name": "Mayhem",
-      "tod": {
-        "windward_leeward": 500.0,
-        "circular_random": 508.0,
-        "long_distance": 512.0
-      },
-      "tot": {
-        "single": 1.35,
-        "low": 1.29,
-        "medium": 1.35,
-        "high": 1.4
-      }
+      "design": "TP52",
+      "tot": {"low": 0.8723, "medium": 1.1935, "high": 1.4044, "aph": 1.4826}
     },
     {
-      "name": "Boat 2",
-      "tod": {
-        "windward_leeward": 512.0,
-        "circular_random": 519.0,
-        "long_distance": 523.0
-      },
-      "tot": {
-        "single": 1.318,
-        "low": 1.265,
-        "medium": 1.318,
-        "high": 1.362
-      }
+      "name": "Shadow II",
+      "design": "TP52",
+      "tot": {"low": 0.8721, "medium": 1.1797, "high": 1.3804, "aph": 1.4717}
     },
     {
-      "name": "Boat 3",
-      "tod": {
-        "windward_leeward": 527.5,
-        "circular_random": 533.0,
-        "long_distance": 536.0
-      },
-      "tot": {
-        "single": 1.28,
-        "low": 1.238,
-        "medium": 1.28,
-        "high": 1.315
-      }
+      "name": "Strum",
+      "design": "Riptide 50",
+      "certificate": "BC2608",
+      "_note": "Only the APH coefficient was available; no Triple Number bands.",
+      "tot": {"aph": 1.4461}
     },
     {
-      "name": "Boat 4",
-      "tod": {
-        "windward_leeward": 544.0,
-        "circular_random": 549.0,
-        "long_distance": 551.0
-      },
-      "tot": {
-        "single": 1.241,
-        "low": 1.208,
-        "medium": 1.241,
-        "high": 1.268
-      }
+      "name": "Zulu 5",
+      "design": "GP42/IRC42",
+      "tot": {"low": 0.8080, "medium": 1.0934, "high": 1.2793, "aph": 1.3722}
+    },
+    {
+      "name": "Mach II",
+      "design": "Andrews 77",
+      "_note": "No ORC ratings available - not an ORC entry.",
+      "tot": {}
     }
   ],
   "races": [
     {
-      "name": "Stage 1",
+      "name": "Race 1",
       "date": "2026-09-11",
-      "course": "distance stage (leg split is a GUESS totalling ~85 nm)",
-      "scoring": "ToD",
-      "band": "long_distance",
-      "distance_nm": 28.0
+      "course": "Point Grey to Francis Point / Garden Bay",
+      "scoring": "ToT",
+      "band": "aph",
+      "distance_nm": 37,
+      "reference_elapsed": "5:17:00"
     },
     {
-      "name": "Stage 2",
+      "name": "Race 2",
       "date": "2026-09-12",
-      "course": "distance stage (leg split is a GUESS totalling ~85 nm)",
-      "scoring": "ToD",
-      "band": "long_distance",
-      "distance_nm": 32.0
+      "course": "North Thormanby to east of Silva Bay",
+      "scoring": "ToT",
+      "band": "aph",
+      "distance_nm": 26,
+      "reference_elapsed": "3:43:00"
     },
     {
-      "name": "Stage 3",
+      "name": "Race 3",
       "date": "2026-09-13",
-      "course": "distance stage (leg split is a GUESS totalling ~85 nm)",
-      "scoring": "ToD",
-      "band": "long_distance",
-      "distance_nm": 25.0
+      "course": "east of Silva Bay to RVYC Jericho",
+      "scoring": "ToT",
+      "band": "aph",
+      "distance_nm": 22,
+      "reference_elapsed": "3:09:00"
     }
   ]
 }
