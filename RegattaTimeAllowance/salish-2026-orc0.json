@@ -1,8 +1,9 @@
 {
-  "regatta": "RVYC Salish Regatta 2026",
+  "regatta": "RVYC Salish Sea Regatta 2026 (6th Annual)",
   "class": "ORC Class 0",
   "placeholder": true,
   "_comment": [
+    "Event confirmed via web search: RVYC Salish Sea Regatta, Sept 11-13 2026, three stages totalling ~85 nm. royalvan.com/salish-sea is blocked by this environment's network egress policy, so the entry list, per-stage distances and scoring method below are still UNCONFIRMED.",
     "EVERY NUMBER BELOW IS A PLACEHOLDER so the tool runs out of the box.",
     "Replace with the class scratch sheet / ORC certificates before racing:",
     "  tod  = allowance in seconds per nautical mile (lower = faster boat),",
@@ -16,49 +17,85 @@
   "boats": [
     {
       "name": "Mayhem",
-      "tod": {"windward_leeward": 500.0, "circular_random": 508.0, "long_distance": 512.0},
-      "tot": {"single": 1.350, "low": 1.290, "medium": 1.350, "high": 1.400}
+      "tod": {
+        "windward_leeward": 500.0,
+        "circular_random": 508.0,
+        "long_distance": 512.0
+      },
+      "tot": {
+        "single": 1.35,
+        "low": 1.29,
+        "medium": 1.35,
+        "high": 1.4
+      }
     },
     {
       "name": "Boat 2",
-      "tod": {"windward_leeward": 512.0, "circular_random": 519.0, "long_distance": 523.0},
-      "tot": {"single": 1.318, "low": 1.265, "medium": 1.318, "high": 1.362}
+      "tod": {
+        "windward_leeward": 512.0,
+        "circular_random": 519.0,
+        "long_distance": 523.0
+      },
+      "tot": {
+        "single": 1.318,
+        "low": 1.265,
+        "medium": 1.318,
+        "high": 1.362
+      }
     },
     {
       "name": "Boat 3",
-      "tod": {"windward_leeward": 527.5, "circular_random": 533.0, "long_distance": 536.0},
-      "tot": {"single": 1.280, "low": 1.238, "medium": 1.280, "high": 1.315}
+      "tod": {
+        "windward_leeward": 527.5,
+        "circular_random": 533.0,
+        "long_distance": 536.0
+      },
+      "tot": {
+        "single": 1.28,
+        "low": 1.238,
+        "medium": 1.28,
+        "high": 1.315
+      }
     },
     {
       "name": "Boat 4",
-      "tod": {"windward_leeward": 544.0, "circular_random": 549.0, "long_distance": 551.0},
-      "tot": {"single": 1.241, "low": 1.208, "medium": 1.241, "high": 1.268}
+      "tod": {
+        "windward_leeward": 544.0,
+        "circular_random": 549.0,
+        "long_distance": 551.0
+      },
+      "tot": {
+        "single": 1.241,
+        "low": 1.208,
+        "medium": 1.241,
+        "high": 1.268
+      }
     }
   ],
   "races": [
     {
-      "name": "Race 1",
-      "date": "2026-09-12",
-      "course": "windward/leeward, 2 laps",
+      "name": "Stage 1",
+      "date": "2026-09-11",
+      "course": "distance stage (leg split is a GUESS totalling ~85 nm)",
       "scoring": "ToD",
-      "band": "windward_leeward",
-      "distance_nm": 8.0
+      "band": "long_distance",
+      "distance_nm": 28.0
     },
     {
-      "name": "Race 2",
+      "name": "Stage 2",
       "date": "2026-09-12",
-      "course": "windward/leeward, 3 laps",
+      "course": "distance stage (leg split is a GUESS totalling ~85 nm)",
       "scoring": "ToD",
-      "band": "windward_leeward",
-      "distance_nm": 12.0
+      "band": "long_distance",
+      "distance_nm": 32.0
     },
     {
-      "name": "Race 3",
+      "name": "Stage 3",
       "date": "2026-09-13",
-      "course": "distance race",
-      "scoring": "ToT",
-      "band": "medium",
-      "reference_elapsed": "4:30:00"
+      "course": "distance stage (leg split is a GUESS totalling ~85 nm)",
+      "scoring": "ToD",
+      "band": "long_distance",
+      "distance_nm": 25.0
     }
   ]
 }
