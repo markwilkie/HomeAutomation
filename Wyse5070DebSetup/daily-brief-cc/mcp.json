@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "todo": {
+      "type": "http",
+      "url": "http://127.0.0.1:8600/mcp"
+    },
+    "trilium": {
+      "type": "http",
+      "url": "http://127.0.0.1:8601/mcp"
+    },
+    "monarch": {
+      "type": "http",
+      "url": "http://127.0.0.1:8602/mcp"
+    }
+  }
+}

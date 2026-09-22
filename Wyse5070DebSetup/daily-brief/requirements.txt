@@ -1,0 +1,5 @@
+anthropic==1.8.0
+mcp==2.2.0
+python-dotenv==1.2.3
+msal==1.39.0
+markdown==3.10.3
