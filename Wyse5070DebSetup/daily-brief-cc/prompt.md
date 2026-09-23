@@ -29,8 +29,15 @@ Render all of the following sections, in this order:
 3. **Market snapshot** — via web search, as bullets: major US indices
    (S&P 500, Dow, Nasdaq), MSFT stock, and gold price, each with the
    current level/price and day change.
-4. **Local Events & Headlines** — top local news and events for the Seattle
-   area, via web search.
+4. **Local Events & Headlines** — via web search: broader Seattle-area news
+   and events, PLUS hyperlocal events specifically in Lake Forest Park,
+   Edmonds, Woodinville, Shoreline, and Lynnwood. These smaller
+   towns/suburbs don't reliably show up in a single generic "Seattle
+   events" search, so run at least one dedicated search per named town
+   (e.g. "Edmonds WA events this week", "Lake Forest Park events") rather
+   than relying on one broad query. Include hyperlocal finds even if minor
+   (farmers markets, community meetings, small festivals) — don't limit
+   this to only major/citywide events.
 5. **News Wrap-up** — top national/world headlines, via web search.
 6. **Concerts** — only on Fridays (check today's day of week in the user
    message; on any other day, omit this section entirely). On Fridays: call
