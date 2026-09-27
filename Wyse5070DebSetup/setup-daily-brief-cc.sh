@@ -62,8 +62,8 @@ if [ ! -f "${CONFIG_DIR}/.env" ]; then
   exit 1
 fi
 
-echo "==> Copying run.sh + monarch_refresh.sh + send_mail.py + graph_login.py + mcp.json + prompt.md + requirements.txt into ${APP_DIR}"
-cp "${LOCAL_APP_SRC}/run.sh" "${LOCAL_APP_SRC}/monarch_refresh.sh" "${LOCAL_APP_SRC}/send_mail.py" "${LOCAL_APP_SRC}/graph_login.py" \
+echo "==> Copying run.sh + monarch_refresh.sh + parse_claude_result.py + send_mail.py + graph_login.py + mcp.json + prompt.md + requirements.txt into ${APP_DIR}"
+cp "${LOCAL_APP_SRC}/run.sh" "${LOCAL_APP_SRC}/monarch_refresh.sh" "${LOCAL_APP_SRC}/parse_claude_result.py" "${LOCAL_APP_SRC}/send_mail.py" "${LOCAL_APP_SRC}/graph_login.py" \
    "${LOCAL_APP_SRC}/mcp.json" "${LOCAL_APP_SRC}/prompt.md" "${LOCAL_APP_SRC}/requirements.txt" "${APP_DIR}/"
 chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/monarch_refresh.sh"
 

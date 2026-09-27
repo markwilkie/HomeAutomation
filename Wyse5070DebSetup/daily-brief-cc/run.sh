@@ -2,10 +2,17 @@
 #
 # run.sh
 # Generates the brief via Claude Code CLI (subscription auth, not a metered
-# API key -- see CLAUDE_CODE_OAUTH_TOKEN in ../config/.env, created with
-# `claude setup-token`), then emails it via send_mail.py (Microsoft Graph,
-# same as the API-key-based daily-brief project, but its own independent
-# OAuth grant -- see graph_login.py).
+# API key), then emails it via send_mail.py (Microsoft Graph, same as the
+# API-key-based daily-brief project, but its own independent OAuth grant --
+# see graph_login.py).
+#
+# Auth: a persisted `claude login` session (~/.claude/.credentials.json on
+# this host), NOT the CLAUDE_CODE_OAUTH_TOKEN env var (still in ../config/.env
+# as a backup/rollback value, but deliberately unset below) -- confirmed by
+# testing that CLAUDE_CODE_OAUTH_TOKEN auth cannot see claude.ai Connectors
+# (Google Calendar, Microsoft 365) at all ("it can't ... fetch claude.ai
+# connectors" per `claude`'s own docs), which section 8 of prompt.md needs.
+# `claude login` was completed once, interactively, directly on this host.
 #
 # Runs entirely on this host, same reasoning as the other daily-brief
 # project: Claude's own cloud-scheduled jobs can't reach these gateways'
@@ -27,6 +34,9 @@ export NVM_DIR="$HOME/.nvm"
 set -a
 source ../config/.env
 set +a
+# See header comment: unset so the persisted `claude login` session (with
+# claude.ai Connectors) is used instead of token auth (which hides them).
+unset CLAUDE_CODE_OAUTH_TOKEN
 
 TODAY="$(date +%Y-%m-%d)"
 WEEKDAY="$(date +%A)"
@@ -39,6 +49,12 @@ echo "[$(date -Iseconds)] Generating brief via Claude Code CLI..."
 # exists to use. Safe to omit here since this directory has no stray
 # CLAUDE.md/hooks/skills for --bare to have protected us from anyway.
 #
+# --output-format json, not text: `text` runs the response through a
+# terminal-oriented renderer that was observed reflowing long bullet lists
+# (Concerts, To Do) into run-on lines joined by " - " instead of real
+# newlines, breaking markdown list rendering in the email. JSON's `result`
+# field carries the model's raw text untouched -- see parse_claude_result.py.
+#
 # set +e/-e around this call: the CLAUDE_CODE_OAUTH_TOKEN is a one-year
 # token with no auto-renewal (see setup-daily-brief-cc.sh's prerequisites).
 # When it expires, `claude` fails before the model ever runs, so prompt.md's
@@ -46,22 +62,27 @@ echo "[$(date -Iseconds)] Generating brief via Claude Code CLI..."
 # email a fix directly, or a silent cron-log failure could go unnoticed for
 # a long time.
 set +e
-BRIEF="$(claude -p "Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}." \
+CLAUDE_OUTPUT="$(claude -p "Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}." \
   --append-system-prompt-file prompt.md \
   --mcp-config mcp.json \
-  --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,WebSearch" \
+  --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,mcp__claude_ai_Google_Calendar__list_calendars,mcp__claude_ai_Google_Calendar__list_events,mcp__claude_ai_Google_Calendar__search_events,mcp__claude_ai_Microsoft_365__outlook_email_search,mcp__claude_ai_Microsoft_365__get_me,WebSearch" \
   --permission-mode dontAsk \
-  --output-format text)"
+  --output-format json)"
 CLAUDE_EXIT=$?
+BRIEF="$(printf '%s' "${CLAUDE_OUTPUT}" | python3 parse_claude_result.py 2>/tmp/daily-brief-cc-parse-error.log)"
+PARSE_EXIT=$?
 set -e
 
-if [ "${CLAUDE_EXIT}" -ne 0 ] || [ -z "${BRIEF}" ] || printf '%s' "${BRIEF}" | grep -qi "not logged in\|please run.*login"; then
-  echo "[$(date -Iseconds)] Claude Code CLI failed (exit=${CLAUDE_EXIT}): ${BRIEF}" >&2
-  FALLBACK="Today's brief could not be generated -- Claude Code CLI failed, likely an expired subscription token.
+if [ "${CLAUDE_EXIT}" -ne 0 ] || [ "${PARSE_EXIT}" -ne 0 ]; then
+  PARSE_ERROR="$(cat /tmp/daily-brief-cc-parse-error.log 2>/dev/null || true)"
+  BRIEF="${PARSE_ERROR:-${CLAUDE_OUTPUT}}"
+  echo "[$(date -Iseconds)] Claude Code CLI failed (exit=${CLAUDE_EXIT}, parse_exit=${PARSE_EXIT}): ${BRIEF}" >&2
+  FALLBACK="Today's brief could not be generated -- Claude Code CLI failed, likely an expired login session.
 
 To fix:
-1. On any machine with Claude Code CLI and a browser, run: claude setup-token
-2. Update CLAUDE_CODE_OAUTH_TOKEN in /mnt/data/appdata/daily-brief-cc/config/.env on wyse with the new token.
+1. SSH to wyse: ssh -t mwilkie@192.168.15.30
+2. Run: export NVM_DIR=\$HOME/.nvm && . \"\$NVM_DIR/nvm.sh\" && claude login
+3. Follow the URL/code prompt to re-authenticate.
 
 Raw output from claude (exit code ${CLAUDE_EXIT}):
 ${BRIEF}"
