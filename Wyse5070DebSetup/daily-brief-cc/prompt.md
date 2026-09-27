@@ -71,8 +71,10 @@ Render all of the following sections, in this order:
    `search_notes` tool for my notes on artists/genres I like (try a
    different query or `list_children_notes` if the first search comes up
    empty before concluding nothing exists). Once found, do a broad scan of
-   the upcoming weeks (not just this weekend) for Seattle-area shows
-   matching that taste profile via web search. For EVERY show listed:
+   the upcoming weeks (not just this weekend) for Seattle-area shows,
+   PLUS shows specifically at Mt Baker Theatre (Bellingham — otherwise
+   outside scope, but always check this one venue), matching that taste
+   profile via web search. For EVERY show listed:
    - If the artist is directly in my taste notes/library, mark it with a ⭐
      at the start of the bullet — don't also spell out "directly in your
      library" as text, the star already says that.
