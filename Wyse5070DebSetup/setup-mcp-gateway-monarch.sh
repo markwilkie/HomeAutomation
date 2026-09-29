@@ -85,6 +85,10 @@ touch "${CONFIG_DIR}/.keep"
 
 if [ -d "${APP_DIR}/.git" ]; then
   echo "==> ${APP_DIR} already cloned, pulling latest"
+  # Upstream added its own Dockerfile (as of 5cc0057); this script always
+  # overwrites it with our own pinned version below regardless, so drop the
+  # untracked copy first -- otherwise git pull aborts rather than clobber it.
+  rm -f "${APP_DIR}/Dockerfile"
   git -C "${APP_DIR}" pull
 else
   echo "==> Cloning ${REPO_URL}"
@@ -101,7 +105,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
-RUN npm install -g supergateway
+# Pinned: 3.4.3 (unpinned floating install) had an unhandled-rejection bug
+# in the stateful Streamable HTTP transport ("No connection established for
+# request ID") that crashed the whole process on certain client reconnects --
+# fixed upstream in 4.0.0 (supercorp-ai/supergateway#171).
+RUN npm install -g supergateway@4.0.0
 COPY . .
 # monarch-mcp-server's pyproject.toml declares mcp[cli]>=1.10.0 with no
 # upper bound. mcp 2.0.0 (a breaking rewrite -- drops mcp.server.fastmcp,

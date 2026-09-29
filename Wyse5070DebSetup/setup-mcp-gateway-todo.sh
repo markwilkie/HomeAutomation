@@ -56,6 +56,11 @@ mkdir -p "${CONFIG_DIR}"
 
 if [ -d "${APP_DIR}/.git" ]; then
   echo "==> ${APP_DIR} already cloned, pulling latest"
+  # This script always overwrites Dockerfile with our own pinned version
+  # below regardless of what upstream ships; drop the untracked copy first
+  # so a future upstream Dockerfile addition can't abort the pull (see the
+  # same fix in setup-mcp-gateway-monarch.sh, which hit this for real).
+  rm -f "${APP_DIR}/Dockerfile"
   git -C "${APP_DIR}" pull
 else
   echo "==> Cloning ${REPO_URL}"
@@ -76,7 +81,10 @@ echo "==> Writing ${APP_DIR}/Dockerfile"
 tee "${APP_DIR}/Dockerfile" > /dev/null <<'EOF'
 FROM node:22-alpine
 WORKDIR /app
-RUN npm install -g pnpm supergateway
+# supergateway pinned to 4.0.0: 3.4.3 crash-looped on an unhandled-rejection
+# bug in the stateful Streamable HTTP transport, fixed upstream in 4.0.0
+# (supercorp-ai/supergateway#171) -- see setup-mcp-gateway-monarch.sh.
+RUN npm install -g pnpm supergateway@4.0.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .

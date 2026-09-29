@@ -65,7 +65,10 @@ fi
 echo "==> Writing ${BUILD_DIR}/Dockerfile"
 tee "${BUILD_DIR}/Dockerfile" > /dev/null <<'EOF'
 FROM node:22-alpine
-RUN npm install -g triliumnext-mcp supergateway
+# supergateway pinned to 4.0.0: 3.4.3 crash-looped on an unhandled-rejection
+# bug in the stateful Streamable HTTP transport, fixed upstream in 4.0.0
+# (supercorp-ai/supergateway#171) -- see setup-mcp-gateway-monarch.sh.
+RUN npm install -g triliumnext-mcp supergateway@4.0.0
 ENTRYPOINT ["npx", "supergateway", \
   "--stdio", "triliumnext-mcp", \
   "--outputTransport", "streamableHttp", \
