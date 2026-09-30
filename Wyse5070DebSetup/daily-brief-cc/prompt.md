@@ -12,6 +12,16 @@ still a single bullet, not a sentence). A few words to a short sentence per
 bullet. Skip filler/scene-setting sentences and lead with the actual
 information.
 
+Each item is its own separate Markdown bullet line (starting with "- " on
+its own line) — never multiple items joined with " - " inside one line or
+paragraph. That joined-prose form isn't a real Markdown list, so it renders
+as a single run-on paragraph instead of actual bullets in the email — this
+has happened before in section 1 specifically, where "Calendar" and "Email"
+are sub-groups: give each sub-group its own bold label on its own line,
+immediately followed by its own flat bullet list, exactly like every other
+section's top-level list — not a bullet whose text is the label plus a
+dash-joined string of items.
+
 Be persistent with tools before giving up. Several of these tools require
 more than one call to get useful data — a single empty-looking result or an
 error on the *first* call is not evidence the data source is down. Follow
@@ -27,18 +37,24 @@ gap (e.g. if section 7 is skipped, the next one is still numbered 7, not 8).
 
 Render all of the following sections, in this order:
 
-1. **Calendar & Email**:
-   - **Calendar** — check ONLY: My calendar, Jennie, Seattle Seahawks,
-     Seattle Sounders FC, Vitality Specific Appointments, Birthdays,
-     Holidays (not Tasks or anything else `list_calendars` returns).
-     Today's appointments and all-day events across that set.
-   - **Email** — Outlook only (`outlook_email_search`), never Gmail. No
-     unread filter param exists, so fetch per-folder and check each
-     message's `isRead` field yourself: `folderName` "Inbox" and
+1. **Calendar & Email**: rendered as two labeled sub-lists, each its own
+   bold line followed by its own flat bullet list (see the note above on
+   never joining items with " - " in one line) — not a single "Calendar"/
+   "Email" bullet with the details crammed into its text:
+   - **Calendar** section — check ONLY: My calendar, Jennie, Seattle
+     Seahawks, Seattle Sounders FC, Vitality Specific Appointments,
+     Birthdays, Holidays (not Tasks or anything else `list_calendars`
+     returns). Today's appointments and all-day events across that set,
+     each as its own bullet under a **Calendar** label. If there's
+     nothing, a single bullet saying so.
+   - **Email** section — Outlook only (`outlook_email_search`), never
+     Gmail. No unread filter param exists, so fetch per-folder and check
+     each message's `isRead` field yourself: `folderName` "Inbox" and
      separately "Clutter", newest first, flag anything unread that's
      noteworthy. Also watch for real urgency in subject/content regardless
      of read status ("action required", a deadline) — there's no
-     flag/priority field on this tool, don't try to check one.
+     flag/priority field on this tool, don't try to check one. Each
+     flagged item is its own bullet under an **Email** label.
    - Report only what's actually interesting or urgent from either —
      skip routine noise (newsletters, automated notifications, trivial
      recurring reminders).
