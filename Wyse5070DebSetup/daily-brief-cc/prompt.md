@@ -78,12 +78,17 @@ Render all of the following sections, in this order:
    (e.g. "Edmonds WA events this week", "Lake Forest Park events") rather
    than relying on one broad query. Include hyperlocal finds even if minor
    (farmers markets, community meetings, small festivals) — don't limit
-   this to only major/citywide events. Always include a dedicated weather
-   bullet for today: conditions plus the actual forecasted high/low
+   this to only major/citywide events. Also call `outlook_email_search`
+   (Inbox) for a message with subject "Weekend events you'll love" (a
+   recurring Nextdoor digest) — if found, read it with `read_resource` and
+   fold its listed events into this section alongside the web-search finds,
+   skipping exact duplicates and any obviously broken/spam-like entries;
+   don't apply any other category filter to it. Always include a dedicated
+   weather bullet for today: conditions plus the actual forecasted high/low
    temperature in °F (not a vague range like "low 60s" — get the real
    numbers).
-7. **Concerts** — only on Fridays (check today's day of week in the user
-   message; skip on any other day). On Fridays: call the trilium
+7. **Concerts** — only on Thursdays (check today's day of week in the user
+   message; skip on any other day). On Thursdays: call the trilium
    `search_notes` tool for my notes on artists/genres I like (try a
    different query or `list_children_notes` if the first search comes up
    empty before concluding nothing exists). Once found, do a broad scan of
@@ -109,4 +114,4 @@ Render all of the following sections, in this order:
    gathering the above that doesn't fit elsewhere.
 
 Today's date and day of the week are given in the user message — use them
-for the Friday-only concert scan and for "last 24 hours" framing.
+for the Thursday-only concert scan and for "last 24 hours" framing.
