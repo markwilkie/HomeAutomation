@@ -89,7 +89,24 @@ esp_err_t ir_tcl112_init(void) {
         .gpio_num = IR_TCL112_GPIO,
         .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = IR_TCL112_RMT_RESOLUTION_HZ,
-        .mem_block_symbols = 64,
+        // Sized to hold the entire 114-symbol frame (IR_TCL112_NUM_SYMBOLS)
+        // in one hardware allocation -- was 64 (less than one full frame),
+        // which forced the driver's interrupt-driven ping-pong refill mid-
+        // transmission. 2026-10-01: raw-pin capture comparison against the
+        // real remote (MiniSplitIR/capture_tools/esp_capture vs
+        // remote_capture) found ESP sends intermittently missing their last
+        // ~12-13 bits + footer on the wire (confirmed via edge count, not
+        // just decode failure -- the capture's own CAPTURE_END came through
+        // clean, meaning fewer edges genuinely went out, not a capture
+        // artifact) while rmt_tx_wait_all_done() still returned ESP_OK. This
+        // chip's RMT symbol memory is shared across channels (48 words per
+        // channel per SOC_RMT_MEM_WORDS_PER_CHANNEL, see test_apps/
+        // ir_loopback's RX-side note) and this file only ever configures one
+        // TX channel with no competing RX channel, so the full pool should
+        // be available -- if IR_TCL112_NUM_SYMBOLS ever exceeds what's
+        // actually free, rmt_new_tx_channel() below fails loudly at init
+        // rather than silently truncating on the wire.
+        .mem_block_symbols = IR_TCL112_NUM_SYMBOLS,
         .trans_queue_depth = 4,
         .flags = {
             .invert_out = false,

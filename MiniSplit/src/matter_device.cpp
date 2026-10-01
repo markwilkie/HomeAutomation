@@ -324,10 +324,10 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
     // mirrors Tuya's confirmed setpoint (read-only from HA's side now -- see
     // the rejection below). g_power_endpoint is the dedicated true-power
     // On/Off Plug-in Unit added alongside it -- see matter_device_init() --
-    // distinct from the Thermostat's own Cool/Off cycling, which (per
-    // main.c's command_task()) means "idle in fan mode", not a real
-    // power-down. g_desired_setpoint_endpoint is the standalone entity HA
-    // actually writes a target temperature to now -- see below.
+    // now functionally redundant since SystemMode "Off" also sends a real
+    // power-off, but kept to avoid shifting commissioned endpoint IDs (see
+    // its own doc comment). g_desired_setpoint_endpoint is the standalone
+    // entity HA actually writes a target temperature to now -- see below.
     bool is_relevant_endpoint = (endpoint_id == g_endpoint_id || endpoint_id == g_power_endpoint_id ||
                                   endpoint_id == g_desired_setpoint_endpoint_id ||
                                   endpoint_id == g_followme_endpoint_id);
@@ -564,15 +564,25 @@ extern "C" esp_err_t matter_device_init(void)
     }
 
     // Dedicated true-power endpoint (On/Off Plug-in Unit), separate from the
-    // Thermostat's own Cool/Off cycling. The Thermostat's SystemMode "Off"
-    // (see main.c's command_task()) now means "idle in fan mode" -- NOT a
-    // real power-down -- so this endpoint's OnOff cluster is the only
-    // Matter/HA-reachable control that genuinely powers the physical unit
-    // off/on. Wired to real IR (send_ir_frame()'s power_on parameter) as of
-    // 2026-09-07, replacing the old always-disabled tuya_set_power() no-op.
-    // Renders in Home Assistant as its own switch entity; rename it
-    // something unambiguous (e.g. "MiniSplit Main Power") once commissioned,
-    // to keep it clearly distinct from the thermostat's Cool/Off control.
+    // Thermostat's own Cool/Off cycling. Wired to real IR (send_ir_frame()'s
+    // power_on parameter) as of 2026-09-07. Renders in Home Assistant as its
+    // own switch entity.
+    //
+    // RE-ADDED 2026-10-01: briefly removed earlier today on the theory that
+    // it was now redundant (SystemMode "Off" sends a real power-off via IR
+    // as of this same day -- see main.c's command_task()), but that broke
+    // live HA control with a "behavior 'thermostat' not present at endpoint"
+    // error. Root cause: esp-matter assigns endpoint IDs sequentially by
+    // creation order, not by any fixed/hardcoded number -- removing this
+    // endpoint from the middle of the creation sequence shifted the IDs of
+    // every endpoint created after it (g_desired_setpoint_endpoint,
+    // g_followme_endpoint, etc.), so HA's already-commissioned cache of
+    // "thermostat is at endpoint N" pointed at the wrong endpoint, or
+    // nothing. Restoring this endpoint in its original position restores the
+    // original ID sequence HA already has cached -- functionally redundant
+    // now (mode="Off" on the Desired Setpoint endpoint already does a real
+    // power-off), but removing a commissioned endpoint safely would require
+    // re-commissioning the device, not just deleting a few lines of C.
     endpoint::on_off_plug_in_unit::config_t power_cfg;
     power_cfg.on_off.on_off = g_matter_state.onoff;
     // esp-matter's on_off_with_lighting_config defaults start_up_on_off to 0
@@ -877,15 +887,20 @@ extern "C" void matter_update_system_mode(uint8_t mode)
         nvs_persist_u8(NVS_KEY_SYSTEM_MODE, mode);
     }
     update_attr(Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
-    // Mirror onto the Desired Setpoint endpoint too, as of 2026-09-07 (Heat
-    // mode added there) -- so its climate card reflects the unit's real
-    // current mode from Tuya's GET, not just whatever was last selected
-    // there. Setpoint attributes on that endpoint are deliberately NOT
-    // mirrored this way (see its own config comment) -- only mode, since
-    // the whole point of that endpoint is that its setpoint stays exactly
-    // what HA asked for, never overwritten by sync_task/Tuya's own reading.
-    update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
-                            Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
+    // Mirroring onto the Desired Setpoint endpoint's SystemMode -- removed
+    // 2026-10-01. Added 2026-09-07 so that endpoint's climate card reflected
+    // the unit's real current mode from Tuya's GET rather than whatever was
+    // last selected there -- inconsistent with its own setpoint attribute,
+    // which was deliberately never mirrored this way (see its config
+    // comment) specifically so the whole endpoint holds what HA asked for,
+    // not current confirmed state. That inconsistency became actively
+    // user-visible today: mode="Off" now sends a real power-off (previously
+    // a Fan-idle proxy Tuya confirmed quickly), and Tuya's post-send verify
+    // has been slow/unreliable to confirm it all session -- so this mirror
+    // kept snapping the Desired Setpoint card's mode back to the unit's
+    // stale prior mode (e.g. "Heat") right after the user selected "Off".
+    // Removed so mode behaves like setpoint already does on this endpoint:
+    // sticky, changed only by an explicit write.
 }
 
 extern "C" void matter_update_compressor_demand(uint8_t percent)

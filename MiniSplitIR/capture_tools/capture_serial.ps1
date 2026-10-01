@@ -81,6 +81,24 @@ try {
     Write-Host ""
     Write-Host "Capture complete." -ForegroundColor Yellow
 
+    # The device's own "CAPTURE_DONE count=<n> overflow=<0|1>" line scrolls
+    # past with the raw pin2=/t= dump, easy to miss -- surface it again here
+    # as a standalone summary so it's obvious whether anything was captured.
+    $doneMatch = [regex]::Match($buffer.ToString(), "CAPTURE_DONE count=(\d+) overflow=([01])")
+    if ($doneMatch.Success) {
+        $edgeCount = [int]$doneMatch.Groups[1].Value
+        $overflowed = $doneMatch.Groups[2].Value -eq "1"
+        if ($edgeCount -eq 0) {
+            Write-Host "Captured 0 edges -- nothing seen on the pin. Check wiring/power before saving." -ForegroundColor Red
+        } elseif ($overflowed) {
+            Write-Host "Captured $edgeCount edges, but the buffer OVERFLOWED -- capture is truncated, re-run with a shorter window." -ForegroundColor Red
+        } else {
+            Write-Host "Captured $edgeCount edges." -ForegroundColor Green
+        }
+    } else {
+        Write-Host "Warning: no CAPTURE_DONE line found in the transcript -- device may not have responded as expected." -ForegroundColor Red
+    }
+
     $fileName = Read-Host "Enter filename to save capture as (e.g. fresh_air_test1.log)"
     if (-not $fileName) {
         $fileName = "capture_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"

@@ -1,6 +1,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "freertos/semphr.h"
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -64,14 +65,10 @@ static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
 static bool g_last_device_status_valid = false;
 
-// True when the Thermostat's SystemMode was last set to kOff, which we
-// implement as Tuya "fan" mode + fresh air open (see command_task) rather
-// than a real power-down -- kept running so the blower/fresh-air stays on.
-// Tuya's "mode" DP can't distinguish that from a genuine user-selected Fan
-// Only, so this locally remembers which reason we're in fan mode for and
-// lets map_tuya_mode_to_matter report kOff instead of kFanOnly while it's
-// set. Cleared the moment any other explicit mode command is processed.
-static bool g_mode_off_via_fan_proxy = false;
+// Serializes every call into transmit_ir_state_frame() across
+// command_task/sync_task/followme_task -- see that function's doc comment.
+// Created in app_main() before any of those tasks start.
+static SemaphoreHandle_t g_ir_send_mutex = NULL;
 
 // Timing configuration
 //
@@ -99,6 +96,13 @@ static bool g_mode_off_via_fan_proxy = false;
 
 #define STATUS_POLL_INTERVAL_MS 300000    // Poll Tuya every 5 minutes, fixed
 #define COMMAND_POLL_INTERVAL_MS 5000     // Check Matter commands every 5 seconds
+
+// Gap between the Type2 companion send and the Type1 send in
+// transmit_ir_state_frame() -- matches the real remote's observed spacing
+// (measured ~69841-69855us across multiple raw-pin captures, 2026-10-01;
+// see MiniSplitIR/capture_tools/remote_capture vs esp_capture). Previously
+// 0 (no delay at all between the two sends).
+#define IR_TCL112_INTER_FRAME_GAP_MS 70
 #define RETRY_DELAY_MS 2000               // Base delay before retry on error (doubles per attempt)
 #define MAX_RETRIES 3                     // Retry up to 3 times before giving up
 
@@ -191,9 +195,6 @@ static uint8_t map_tuya_mode_to_matter(const tuya_device_status_t *device_status
 {
     if (!device_status->switch_state) {
         return 0; // kOff
-    }
-    if (device_status->ac_mode == 3 && g_mode_off_via_fan_proxy) {
-        return 0; // kOff -- idling in the fan-mode proxy, see g_mode_off_via_fan_proxy above
     }
     switch (device_status->ac_mode) {
         case 0: return 1; // kAuto
@@ -308,7 +309,21 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
         ir_mode = (mapped >= 0) ? (uint8_t)mapped : IR_MODE_AUTO;
     }
 
-    int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100 : status->temp_set;
+    // status->temp_set (raw Celsius DP) was the no-override source here until
+    // 2026-10-01 -- every other reader of Tuya's setpoint in this file
+    // switched to temp_set_f-derived tuya_setpoint_f_to_c() back on
+    // 2026-09-01 (see apply_status_to_matter()'s comment) after finding
+    // temp_set is "coarser 0.5C-quantized... sitting a full degree off"
+    // temp_set_f; this function was the one place still reading the
+    // untrusted field directly. Root-caused via raw-pin capture comparison
+    // against the real remote (MiniSplitIR/capture_tools/esp_capture vs
+    // remote_capture): Follow-Me/mode-change frames consistently set the
+    // HalfDegree bit (state[12] 0x20) that the real remote's equivalent
+    // frames leave clear, for the same whole-degree Temp byte -- status->
+    // temp_set's own imprecision was producing an odd half_steps count that
+    // temp_set_f-derived values don't.
+    int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100
+                                                 : tuya_setpoint_f_to_c(status->temp_set_f);
     // Round to the nearest HALF degree C, not whole degree -- 2026-09-09.
     // Whole-degree-only rounding here was never a real hardware limit: it
     // was found (live, real remote vs. Device B comparison) that sending
@@ -426,13 +441,6 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
     *out_setpoint_c = setpoint_c;
 }
 
-// Timestamp of the last successful IR transmission of any kind (regular
-// command or Follow-Me heartbeat) -- used by followme_task to delay its next
-// heartbeat tick by one full interval after a real command, per PLAN.md
-// Milestone 2's note, so a heartbeat doesn't immediately follow (and
-// potentially race/duplicate) a just-sent command.
-static TickType_t g_last_ir_send_tick = 0;
-
 // Sends the Type 2 companion frame + the given Type 1 frame (already built
 // by build_ir_state_frame() or send_followme_frame()), logging both. Shared
 // by send_ir_frame() and send_followme_frame() -- every full-state send
@@ -449,6 +457,23 @@ static TickType_t g_last_ir_send_tick = 0;
 // IR_PROTOCOL_REFERENCE.md's "Known gaps" for the full writeup.
 static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], bool fresh_air_on)
 {
+    // Serializes every IR send across command_task, sync_task, and
+    // followme_task -- 2026-10-01, found via user question while reviewing
+    // the IR_TCL112_INTER_FRAME_GAP_MS change above: nothing previously
+    // prevented two of those tasks from calling this function concurrently
+    // on the same shared RMT TX channel. Before the inter-frame gap existed
+    // (~1-2ms between the Type2 and Type1 sends), the collision window was
+    // narrow; the 70ms gap widens it enough that a second task's Type2+Type1
+    // pair could plausibly interleave with the first's mid-transmission,
+    // corrupting both. portMAX_DELAY is safe here: every call site already
+    // expects this function to block for the real transmission time anyway
+    // (rmt_tx_wait_all_done() below), so waiting for another task's turn is
+    // the same category of wait, not a new failure mode.
+    if (xSemaphoreTake(g_ir_send_mutex, portMAX_DELAY) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire IR send mutex");
+        return ESP_FAIL;
+    }
+
     // state[6] is a real capture-confirmed free-running step counter that
     // doesn't gate acceptance (see ../MiniSplitIR/captures/protocol_capture.md),
     // so this fixed, verbatim real capture is enough -- no need to reproduce
@@ -480,15 +505,30 @@ static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], boo
     esp_err_t type2_err = ir_tcl112_send(type2_frame);
     if (type2_err != ESP_OK) {
         ESP_LOGE(TAG, "ir_tcl112_send (Type2 companion) failed: %s", esp_err_to_name(type2_err));
+        xSemaphoreGive(g_ir_send_mutex);
         return type2_err;
     }
 
+    // Inter-frame gap -- 2026-10-01: raw-pin capture comparison against the
+    // real remote (MiniSplitIR/capture_tools/esp_capture vs remote_capture)
+    // found the real remote leaves ~70ms of silence between the Type2 and
+    // Type1 sends (measured ~69841-69855us across multiple captures,
+    // consistently); this function previously had nothing here at all, so
+    // the two sends went out back-to-back (~1-2ms apart, just incidental
+    // call overhead). IR_TCL112_GAP_US in ir_tcl112.c is a *trailing footer*
+    // gap after a single frame's last bit, never wired up as an inter-frame
+    // gap -- this is a separate, new delay. NOT yet confirmed whether this
+    // gap is what the real unit's receiver actually needs to treat the two
+    // frames as distinct rather than one run-on transmission -- re-verify
+    // against real hardware behavior, not just remote-timing matching, once
+    // flashed.
+    vTaskDelay(pdMS_TO_TICKS(IR_TCL112_INTER_FRAME_GAP_MS));
+
     esp_err_t err = ir_tcl112_send(frame);
-    if (err == ESP_OK) {
-        g_last_ir_send_tick = xTaskGetTickCount();
-    } else {
+    if (err != ESP_OK) {
         ESP_LOGE(TAG, "ir_tcl112_send failed: %s", esp_err_to_name(err));
     }
+    xSemaphoreGive(g_ir_send_mutex);
     return err;
 }
 
@@ -533,18 +573,36 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
 // fresh enable rather than a continued heartbeat.
 static bool g_followme_active = false;
 
-// Day-of-year (tm_yday, Pacific) of the last daily forced Follow-Me
-// re-enable -- see followme_task's noon check below. -1 = never forced yet
-// this boot. This is a *belt-and-suspenders* re-enable, distinct from the
-// reactive one above: IR is one-way and unacknowledged, so this firmware has
-// no way to know whether the AC actually received recent heartbeats -- a
-// run of silently-dropped heartbeats (blocked line of sight, interference)
-// could let the AC's own internal Follow-Me fallback timeout lapse without
-// g_followme_active ever noticing, since that flag only reflects whether
-// *this firmware* has valid upstream data, not whether the unit received
-// what was sent. Forcing one real enable-instance send per day bounds how
-// long that undetectable failure mode could persist to at most a day.
-static int g_followme_last_forced_yday = -1;
+// Tick of the last forced Follow-Me re-enable -- see followme_task's
+// interval check below. 0 = never forced yet this boot. This is a
+// *belt-and-suspenders* re-enable, distinct from the reactive one above: IR
+// is one-way and unacknowledged, so this firmware has no way to know whether
+// the AC actually received recent heartbeats -- a run of silently-dropped
+// heartbeats (blocked line of sight, interference) could let the AC's own
+// internal Follow-Me fallback timeout lapse without g_followme_active ever
+// noticing, since that flag only reflects whether *this firmware* has valid
+// upstream data, not whether the unit received what was sent. Forcing one
+// real enable-instance send on a fixed interval bounds how long that
+// undetectable failure mode could persist. Changed 2026-10-01 from "once per
+// Pacific calendar day around noon" to a flat interval (FOLLOWME_FORCED_
+// REENABLE_INTERVAL_MS) at the user's request -- also drops the tm_yday/
+// localtime_r dependency on wall-clock time being synced at all.
+static TickType_t g_followme_last_forced_tick = 0;
+
+// Timestamp of the last successful Follow-Me send specifically (enable or
+// heartbeat) -- 2026-10-01: previously shared with every IR send of any
+// kind (command or heartbeat) via a single g_last_ir_send_tick, which meant
+// an unrelated command sent from command_task reset followme_task's 3-minute
+// clock, delaying the next heartbeat by a full interval every time one fired
+// (originally intentional, PLAN.md Milestone 2's "don't immediately follow a
+// just-sent command" note). Changed on request: a real heartbeat needs to go
+// out every 3 minutes regardless of other traffic -- repeatedly pushing it
+// back risks the AC's own internal Follow-Me fallback timeout lapsing if
+// commands happen to arrive more often than every 3 minutes (the exact
+// failure mode g_followme_last_forced_tick's periodic re-enable already
+// exists to bound, so letting the heartbeat itself get starved the same way was
+// working against that safeguard, not just a minor scheduling nicety).
+static TickType_t g_last_followme_send_tick = 0;
 
 static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t ambient_temp_c)
 {
@@ -567,6 +625,7 @@ static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t 
     esp_err_t err = transmit_ir_state_frame(frame, status->fresh_air_valve);
     if (err == ESP_OK) {
         g_followme_active = true;
+        g_last_followme_send_tick = xTaskGetTickCount();
         ESP_LOGI(TAG, "Follow-Me %s sent: ambient=%dC mode=%u setpoint=%dC",
                  is_enable_instance ? "enable" : "heartbeat", ambient_temp_c, ir_mode, setpoint_c);
     }
@@ -779,9 +838,12 @@ static esp_err_t wait_for_time_sync(void)
             // Pacific time, DST-aware (PST8PDT with US DST rules) -- matches
             // the rest of the home automation stack (HA, wyse). Nothing
             // before this point should call localtime_r()/asctime() and
-            // expect local time; everything after (e.g. followme_task's
-            // daily noon check) can. No effect on time(), only on the
-            // libc calls that consult TZ.
+            // expect local time; everything after can (followme_task's old
+            // daily-noon re-enable used to be the one example of this --
+            // replaced 2026-10-01 with a flat tick-based interval that no
+            // longer depends on wall-clock time at all, see
+            // FOLLOWME_FORCED_REENABLE_INTERVAL_MS). No effect on time(),
+            // only on the libc calls that consult TZ.
             setenv("TZ", "PST8PDT,M3.2.0,M11.1.0", 1);
             tzset();
             localtime_r(&now, &timeinfo);
@@ -1003,6 +1065,11 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
 // guess mentioned there.
 #define FOLLOWME_HEARTBEAT_INTERVAL_MS (3 * 60 * 1000)
 
+// Forced re-enable interval -- see g_followme_last_forced_tick's doc
+// comment. Changed 2026-10-01 from "once per Pacific calendar day around
+// noon" to a flat 8 hours at the user's request.
+#define FOLLOWME_FORCED_REENABLE_INTERVAL_MS (8 * 60 * 60 * 1000)
+
 /**
  * @brief Follow-Me task (PLAN.md Milestone 3): periodically sends the
  *        ambient-temperature sensor reading to the unit over IR.
@@ -1017,17 +1084,18 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
  *
  * Sends a real enable-instance frame (audible beep on the unit, confirmed
  * 2026-09-09) once on the first successful tick after boot or after any data
- * gap (reactive, via g_followme_active), and additionally once per Pacific
- * calendar day around noon regardless of whether g_followme_active already
- * thinks it's active (belt-and-suspenders, see g_followme_last_forced_yday's
- * doc comment) -- every other send is a silent heartbeat.
+ * gap (reactive, via g_followme_active), and additionally every
+ * FOLLOWME_FORCED_REENABLE_INTERVAL_MS (8 hours) regardless of whether
+ * g_followme_active already thinks it's active (belt-and-suspenders, see
+ * g_followme_last_forced_tick's doc comment) -- every other send is a
+ * silent heartbeat.
  *
  * The very first loop iteration after boot skips the interval wait below
  * (see first_pass) -- fixed 2026-09-10 after finding this task always slept
  * a full FOLLOWME_HEARTBEAT_INTERVAL_MS (3 minutes) before its very first
  * check on every boot, regardless of data availability, contradicting this
  * comment's own "once on the first successful tick after boot" claim: with
- * g_last_ir_send_tick starting at 0, the very first elapsed/interval_ticks
+ * g_last_followme_send_tick starting at 0, the very first elapsed/interval_ticks
  * comparison a few seconds into boot was always < the interval, so the
  * "first tick" never actually landed until ~3 minutes in. The data-validity
  * checks just below (ambient reading available, confirmed Tuya state
@@ -1036,6 +1104,10 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
  * first poll mean both are normally available within seconds of boot, not
  * 3 minutes -- so the extra interval-based wait was redundant and was the
  * actual cause of "no beep on boot."
+ *
+ * Schedules strictly off its own last send (g_last_followme_send_tick), not
+ * off any command send -- see that variable's doc comment (2026-10-01): a
+ * command arriving between heartbeats no longer pushes the next one back.
  */
 static void followme_task(void *param)
 {
@@ -1044,15 +1116,15 @@ static void followme_task(void *param)
     bool first_pass = true;
 
     while (1) {
-        // Re-derive the remaining wait from g_last_ir_send_tick every time
-        // we wake, rather than a single fixed vTaskDelay -- this is what
-        // makes a command sent from command_task actually delay the next
-        // heartbeat by a full interval (PLAN.md Milestone 2's note), since
-        // transmit_ir_state_frame() bumps that same timestamp on every
-        // successful send, command or heartbeat alike. Skipped on the very
-        // first iteration (first_pass) -- see this function's doc comment.
+        // Re-derive the remaining wait from g_last_followme_send_tick every
+        // time we wake, rather than a single fixed vTaskDelay -- this is what
+        // keeps the heartbeat on a strict 3-minute cadence even across a
+        // skipped tick (see the skip branches below, which don't advance this
+        // tick, so a retry still targets the original schedule, not a fresh
+        // 3 minutes from the retry). Skipped on the very first iteration
+        // (first_pass) -- see this function's doc comment.
         TickType_t interval_ticks = pdMS_TO_TICKS(FOLLOWME_HEARTBEAT_INTERVAL_MS);
-        TickType_t elapsed = xTaskGetTickCount() - g_last_ir_send_tick;
+        TickType_t elapsed = xTaskGetTickCount() - g_last_followme_send_tick;
         if (!first_pass && elapsed < interval_ticks) {
             vTaskDelay(interval_ticks - elapsed);
             continue;
@@ -1079,22 +1151,19 @@ static void followme_task(void *param)
             continue;
         }
 
-        // Daily forced re-enable (see g_followme_last_forced_yday's doc
-        // comment) -- once per Pacific calendar day, during the noon hour,
-        // upgrade whatever tick happens to land then into a real enable
-        // instance instead of a heartbeat, even though g_followme_active
-        // already thinks it's active. Checking tm_hour==12 (not an exact
-        // minute) against this task's ~3-minute cadence means it fires on
-        // whichever tick first lands in that hour; if the whole noon hour is
-        // missed (e.g. no ambient reading that entire hour), it just retries
-        // at the same time the next day rather than catching up.
-        time_t now = time(NULL);
-        struct tm timeinfo;
-        localtime_r(&now, &timeinfo);
-        if (timeinfo.tm_hour == 12 && timeinfo.tm_yday != g_followme_last_forced_yday) {
-            ESP_LOGI(TAG, "Follow-Me: daily noon re-enable (day %d)", timeinfo.tm_yday);
+        // Forced re-enable (see g_followme_last_forced_tick's doc comment)
+        // -- every FOLLOWME_FORCED_REENABLE_INTERVAL_MS, upgrade whatever
+        // tick happens to land then into a real enable instance instead of
+        // a heartbeat, even though g_followme_active already thinks it's
+        // active. g_followme_last_forced_tick starts at 0, so this can't
+        // fire until real uptime has actually passed the interval -- no
+        // special-case needed for "never forced yet this boot".
+        TickType_t now_tick = xTaskGetTickCount();
+        if ((now_tick - g_followme_last_forced_tick) >= pdMS_TO_TICKS(FOLLOWME_FORCED_REENABLE_INTERVAL_MS)) {
+            ESP_LOGI(TAG, "Follow-Me: periodic forced re-enable (%u h interval)",
+                     (unsigned)(FOLLOWME_FORCED_REENABLE_INTERVAL_MS / 3600000));
             g_followme_active = false;
-            g_followme_last_forced_yday = timeinfo.tm_yday;
+            g_followme_last_forced_tick = now_tick;
         }
 
         esp_err_t err = send_followme_frame(&g_last_device_status, ambient_c);
@@ -1233,38 +1302,10 @@ static void command_task(void *param)
         if (mode_cmd != 0xFF) {  // 0xFF = no command
             ESP_LOGI(TAG, "Processing mode command from controller: %u", mode_cmd);
 
-            uint8_t expected_tuya_mode;
-            uint8_t ir_mode;
-            if (mode_cmd == 0) {
-                // kOff from HA/Matter: rather than powering the unit fully
-                // down, idle in Fan mode instead -- keeps the indoor blower
-                // usable, just without active cooling/heating. Originally a
-                // Tuya-only workaround (tuya_set_power(false) would also stop
-                // the fresh-air fan); kept even now that the Power bit is
-                // confirmed and OnOff is wired to real IR, since a real
-                // "Power Off" via IR would still lose Fresh Air the same way
-                // -- Fresh Air's own IR bit is still unconfirmed (see
-                // send_ir_frame()'s doc comment), so there's no way yet to
-                // command "off but keep Fresh Air" other than staying in Fan
-                // mode with power on.
-                expected_tuya_mode = 3;
-                ir_mode = IR_MODE_FAN;
-            } else {
-                int8_t tuya_mode = map_matter_mode_to_tuya(mode_cmd);
-                int8_t mapped_ir_mode = map_matter_mode_to_ir(mode_cmd);
-                if (tuya_mode < 0 || mapped_ir_mode < 0) {
-                    ESP_LOGW(TAG, "Matter mode %u has no IR/Tuya equivalent, ignoring", mode_cmd);
-                    matter_clear_mode_command();
-                    continue;
-                }
-                expected_tuya_mode = (uint8_t)tuya_mode;
-                ir_mode = (uint8_t)mapped_ir_mode;
-            }
-
             // Pre-send refresh (PLAN.md Milestone 2), same reasoning as the
-            // Desired Setpoint block above: fetch Tuya's latest status right
-            // before building the IR frame, so the setpoint byte this frame
-            // preserves reflects any out-of-band change instead of a
+            // Desired Setpoint/OnOff blocks above: fetch Tuya's latest status
+            // right before building the IR frame, so the setpoint byte this
+            // frame preserves reflects any out-of-band change instead of a
             // possibly-stale cached value.
             tuya_device_status_t refreshed_status = g_last_device_status;
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
@@ -1275,40 +1316,62 @@ static void command_task(void *param)
                 ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the IR frame's setpoint byte");
             }
 
-            // Dedup against the freshly-refreshed shadow state (PLAN.md
-            // Milestone 2): if Tuya already reports the mode this command
-            // asks for, skip the redundant IR send and its ~90s post-send
-            // verify loop. Still apply the fan-idle-proxy latch update below
-            // either way -- that's tracking *why* the mode is what it is
-            // (an explicit HA request vs. this device's own Off-via-Fan
-            // workaround), which is true regardless of whether an IR frame
-            // actually needed to go out this time.
-            bool mode_already_matches = (refreshed_status.ac_mode == expected_tuya_mode);
-            if (mode_already_matches) {
-                ESP_LOGI(TAG, "Mode already matches per fresh Tuya status, skipping redundant IR send");
-            } else {
-                // power_on=true unconditionally: even the kOff case idles in
-                // Fan mode rather than actually powering down (see above),
-                // and a genuine mode selection obviously wants the unit
-                // running.
-                esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
-                if (result != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
+            if (mode_cmd == 0) {
+                // kOff -- 2026-10-01: sends a real power-off via IR now,
+                // same path the "true power" OnOff endpoint already used.
+                // Previously idled in Fan mode instead (see git history),
+                // kept running rather than actually powering down; changed
+                // on request -- selecting Off should turn the unit off for
+                // real. map_tuya_mode_to_matter() already reports kOff
+                // whenever switch_state is false (its own first check,
+                // above), so no separate proxy-tracking flag is needed to
+                // report this back to HA correctly anymore -- removed
+                // alongside this (see g_mode_off_via_fan_proxy's old doc
+                // comment, now gone).
+                if (!refreshed_status.switch_state) {
+                    ESP_LOGI(TAG, "Power already off per fresh Tuya status, skipping redundant IR send");
+                    matter_clear_mode_command();
+                } else {
+                    esp_err_t result = send_ir_frame(&refreshed_status, false, false, 0, false, 0);
+                    if (result != ESP_OK) {
+                        ESP_LOGE(TAG, "Failed to send power-off via IR: %s", esp_err_to_name(result));
+                    }
+                    matter_clear_mode_command();
+                    post_send_verify_and_sync(true, false, false, 0, false, 0);
                 }
-            }
+            } else {
+                int8_t tuya_mode = map_matter_mode_to_tuya(mode_cmd);
+                int8_t mapped_ir_mode = map_matter_mode_to_ir(mode_cmd);
+                if (tuya_mode < 0 || mapped_ir_mode < 0) {
+                    ESP_LOGW(TAG, "Matter mode %u has no IR/Tuya equivalent, ignoring", mode_cmd);
+                    matter_clear_mode_command();
+                } else {
+                    uint8_t expected_tuya_mode = (uint8_t)tuya_mode;
+                    uint8_t ir_mode = (uint8_t)mapped_ir_mode;
 
-            // Any explicit mode command -- including a genuine Fan Only
-            // selection -- reflects the user's real intent from here on, so
-            // it always overrides the fan-idle-proxy latch.
-            g_mode_off_via_fan_proxy = (mode_cmd == 0);
-            ESP_LOGI(TAG, "Mode command processed (ir_mode=%u)%s%s", ir_mode,
-                     g_mode_off_via_fan_proxy ? " [Off via fan-idle proxy]" : "",
-                     mode_already_matches ? " [already matched, no IR sent]" : "");
+                    // Dedup against the freshly-refreshed shadow state (PLAN.md
+                    // Milestone 2): if Tuya already reports the mode this
+                    // command asks for, skip the redundant IR send and its
+                    // ~90s post-send verify loop.
+                    bool mode_already_matches = (refreshed_status.ac_mode == expected_tuya_mode);
+                    if (mode_already_matches) {
+                        ESP_LOGI(TAG, "Mode already matches per fresh Tuya status, skipping redundant IR send");
+                    } else {
+                        esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
+                        if (result != ESP_OK) {
+                            ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
+                        }
+                    }
 
-            matter_clear_mode_command();
+                    ESP_LOGI(TAG, "Mode command processed (ir_mode=%u)%s", ir_mode,
+                             mode_already_matches ? " [already matched, no IR sent]" : "");
 
-            if (!mode_already_matches) {
-                post_send_verify_and_sync(true, true, false, 0, true, expected_tuya_mode);
+                    matter_clear_mode_command();
+
+                    if (!mode_already_matches) {
+                        post_send_verify_and_sync(true, true, false, 0, true, expected_tuya_mode);
+                    }
+                }
             }
         }
     }
@@ -1531,6 +1594,14 @@ void app_main(void)
     // emitter is mounted and the unit responds correctly to transmitted
     // commands.
     ESP_ERROR_CHECK(ir_tcl112_init());
+
+    // Must exist before any of Phase 3's tasks (sync_task/command_task/
+    // followme_task) start, since all three can call transmit_ir_state_frame().
+    g_ir_send_mutex = xSemaphoreCreateMutex();
+    if (!g_ir_send_mutex) {
+        ESP_LOGE(TAG, "Failed to create IR send mutex");
+        return;
+    }
 
     // Follow-Me's ambient sensor reading (PLAN.md Milestone 3) comes from HA
     // now, via the Follow-Me Matter endpoint (matter_get_followme_ambient_temp_c_x100())

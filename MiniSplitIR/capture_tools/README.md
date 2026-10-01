@@ -25,6 +25,14 @@ wired to GPIO2 (`VCC`→3.3V, `GND`→GND, `DAT`→GPIO2).
   `CAPTURE_END` prompts for a filename and saves the full transcript
   verbatim — no decoding/framing on the host side either. Run with
   `.\capture_serial.ps1 -Port COM3`.
+- `decode_raw_capture.py` — separate decode pass over a transcript
+  `capture_serial.ps1` saved. Pure stdlib, runs on any host (not the ESP32),
+  deliberately decoupled from capture so the raw edge/timestamp data stays
+  available for a direct low-level timing comparison against `src/ir_tcl112.c`'s
+  TX encoding (`--dump-raw` prints every mark/space interval). With no flag it
+  finds TCL112 headers (mark~3000us/space~1650us), decodes each to 14 bytes,
+  and validates the checksum. Run with
+  `python decode_raw_capture.py <capture>.log [--dump-raw]`.
 
 ## Build gotcha found the hard way
 
