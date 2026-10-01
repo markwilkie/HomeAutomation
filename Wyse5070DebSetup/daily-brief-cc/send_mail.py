@@ -9,6 +9,7 @@ something to delegate to the model, it's a deterministic last step.
 
 import argparse
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -71,8 +72,53 @@ def get_graph_access_token() -> str:
     return result["access_token"]
 
 
+# Despite prompt.md repeatedly asking for real Markdown bullets, the model
+# intermittently emits a multi-item section as one line like
+# "**Calendar** - item - item - item" instead -- seen across several
+# different sections on different days (Calendar & Email on 9/29 and 9/30,
+# then Market Snapshot too on 10/1, after the 9/30 prompt.md fix targeted
+# at Calendar & Email specifically did nothing for either). Prompt wording
+# alone isn't reliably fixing this, so this is a deterministic backstop:
+# normalize that pattern into real bullets before rendering, regardless of
+# what the model outputs. Only the literal ASCII " - " triggers it -- the
+# model consistently uses em/en dashes ("—"/"–") and a true minus sign
+# ("−") within normal prose (times, stat deltas), never this exact
+# sequence, so real sentences are untouched. Requires 2+ occurrences (3+
+# items) to avoid misfiring on a single incidental hyphenated phrase --
+# this doesn't fully eliminate false positives (a genuine sentence with
+# two incidental " - " uses would also get split) but prompt.md already
+# asks for every section to be bullets, never prose, so a real multi-dash
+# sentence essentially shouldn't occur in this pipeline's actual output.
+_LIST_MARKER_RE = re.compile(r"^(-|\*|\+)\s")  # a real bullet marker, NOT "**bold**"
+_RUN_ON_LABEL_RE = re.compile(r"^(\*{1,2}[^*]+\*{1,2}|[A-Za-z][A-Za-z0-9 /]{0,40}:)$")
+
+
+def _fix_run_on_bullets(line: str) -> list[str]:
+    parts = line.split(" - ")
+    if len(parts) < 3:
+        return [line]
+    rest = parts
+    out = []
+    if _RUN_ON_LABEL_RE.match(parts[0].strip()):
+        out.append(parts[0].strip())
+        rest = parts[1:]
+    out.extend(f"- {p.strip()}" for p in rest)
+    return out
+
+
+def normalize_markdown(body_markdown: str) -> str:
+    out_lines = []
+    for line in body_markdown.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or _LIST_MARKER_RE.match(stripped):
+            out_lines.append(line)
+            continue
+        out_lines.extend(_fix_run_on_bullets(line))
+    return "\n".join(out_lines)
+
+
 def render_brief_html(body_markdown: str) -> str:
-    body_html = markdown.markdown(body_markdown, extensions=["extra", "sane_lists"])
+    body_html = markdown.markdown(normalize_markdown(body_markdown), extensions=["extra", "sane_lists"])
     return EMAIL_HTML_TEMPLATE.format(body=body_html)
 
 
