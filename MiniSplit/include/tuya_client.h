@@ -39,13 +39,31 @@ typedef struct {
 } tuya_device_status_t;
 
 /**
- * @brief Clamp a Celsius (×100) setpoint and round it to the nearest whole
- *        Fahrenheit degree -- the single source of truth for the C->F step,
- *        shared by tuya_normalize_setpoint_c(), tuya_set_temperature() (what
- *        actually gets sent as both temp_set and temp_set_f), and main.c's
- *        desired-setpoint reconciliation (what gets compared against Tuya's
- *        polled temp_set_f to decide whether to resend), so all three always
+ * @brief Clamp a Celsius (×100) setpoint and round it UP (ceiling) to the
+ *        nearest whole Fahrenheit degree -- the single source of truth for
+ *        the C->F step, shared by tuya_normalize_setpoint_c(),
+ *        tuya_set_temperature() (retired direct-API path), and main.c's
+ *        desired-setpoint reconciliation/outage-mismatch checks (what gets
+ *        compared against Tuya's polled temp_set_f), so all of them always
  *        agree on the same value.
+ *
+ * 2026-09-10: was round-to-nearest until a real 73F command was traced
+ * end-to-end: HA sent exactly 22.78C (matter-server logs confirmed, no HA-
+ * side rounding issue), the IR encoder correctly rounded that to the
+ * nearest 0.5C step (23.0C, no half-degree bit -- 22.78 is genuinely closer
+ * to 23.0 than 22.5), and the real unit reported back 74F, not the 73F this
+ * function predicted for 23.0C under round-to-nearest (23.0C is exactly
+ * 73.4F on the linear C->F line, which round-to-nearest correctly rounds
+ * down to 73). Cross-checked against the one other value this session had
+ * already confirmed live (21.5C + half-degree bit -> confirmed 71F on the
+ * real remote, 2026-09-09): 21.5C is 70.7F linearly, which rounds to 71
+ * under EITHER round-to-nearest or ceiling (can't distinguish the two rules
+ * from that data point alone) -- but 23.0C's 73.4F only becomes 74F under
+ * ceiling. Two data points, both consistent with ceiling and only one
+ * consistent with round-to-nearest, is why this changed; not exhaustively
+ * re-validated against every setpoint in range, so treat as a strong,
+ * evidence-based correction rather than a fully proven one if a future
+ * capture ever contradicts it.
  * @param temp_c_x100 Setpoint in Celsius (×100), any range
  * @return Whole-degree Fahrenheit, clamped to the device's 16-30C range
  */
@@ -56,7 +74,7 @@ static inline int16_t tuya_setpoint_c_to_f(int16_t temp_c_x100)
     } else if (temp_c_x100 > 3000) {
         temp_c_x100 = 3000;
     }
-    return (int16_t)(((int32_t)temp_c_x100 * 9 + 250) / 500 + 32);
+    return (int16_t)(((int32_t)temp_c_x100 * 9 + 499) / 500 + 32);
 }
 
 /**

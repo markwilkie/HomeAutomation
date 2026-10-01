@@ -96,6 +96,15 @@
     letting it through mid-ramp doesn't fight the compressor the way
     another downward move would.
 
+    2026-09-10: added a room-relative safety clamp on top of the max_step
+    cap above -- regardless of what the gain/error math computes, the
+    written setpoint can never end up more than 2 degrees F past Follow-Me's
+    current reading in the direction that calls for more conditioning
+    (Cool: setpoint capped to Follow-Me + 2; Heat: floored to Follow-Me - 2).
+    Reads mode off thermostat_6 rather than this automation's own target
+    entity, which has been read-only/dead since the 2026-08-30 firmware
+    flash.
+
     Gain is adaptive, not the fixed 1.0 it used to be -- persisted across
     runs in input_number.minisplit_adaptive_gain (configuration.yaml) since
     templates carry no state between triggers. After every cycle that
@@ -172,7 +181,23 @@
       raw_setpoint: "{{ min(max(current_setpoint - correction, 60), 75) }}"
       max_step_down: 1
       max_step_up: 1
-      new_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
+      stepped_setpoint: "{{ (current_setpoint + min(max(raw_setpoint - current_setpoint, -max_step_down), max_step_up)) | round(0) }}"
+      # Room-relative safety clamp (2026-09-10, mirrors the predictive
+      # automation's same-day change below): regardless of what the
+      # correction above computes, never let the written setpoint call for
+      # more than 2 degrees F of conditioning past what Follow-Me is
+      # actually reading -- a Cool setpoint more than 2F above the room, or
+      # a Heat setpoint more than 2F below it, asks the unit to do
+      # meaningfully more work than the room's real state justifies. Reads
+      # mode off thermostat_6 rather than this automation's own target
+      # entity (climate.mini_split_ac_bridge), which has been read-only/dead
+      # since the 2026-08-30 firmware flash -- see the predictive
+      # automation's current_setpoint note.
+      hvac_mode_now: "{{ states('climate.bedroom_mini_split_ac_bridge_thermostat_6') }}"
+      new_setpoint: >-
+        {{ min(stepped_setpoint, followme_now + 2) if hvac_mode_now == 'cool'
+           else max(stepped_setpoint, followme_now - 2) if hvac_mode_now == 'heat'
+           else stepped_setpoint }}
   - condition: template
     value_template: >-
       {{ new_setpoint > current_setpoint
@@ -366,6 +391,14 @@
     rather than the occupancy/demand-ramp proxy above, which stays in place
     alongside it. 29 (not 30) to line up with the compressor's own
     ~25-35 minute duty cycle.
+
+    2026-09-10: added the same room-relative safety clamp as the cascade
+    automation above, applied after the actual_temp anchor -- Cool setpoints
+    capped to Follow-Me + 2, Heat setpoints floored to Follow-Me - 2, read
+    off thermostat_6's own hvac_mode state. Off/other modes are left
+    unclamped since this is still a cooling-only live deployment
+    (PLAN_AUTO_MODE.md's mode-selection automation is shadow-only, not yet
+    driving the real unit).
   initial_state: true
   triggers:
   - trigger: time_pattern
@@ -573,7 +606,22 @@
       # last confirmed actual, no matter how many uncorrected cycles have
       # passed. A no-op whenever actual is already caught up (the normal
       # case) or hasn't fallen more than 1 degree behind yet.
-      new_setpoint: "{{ min(max(stepped_setpoint, actual_temp - 1), actual_temp + 1) }}"
+      anchored_setpoint: "{{ min(max(stepped_setpoint, actual_temp - 1), actual_temp + 1) }}"
+      # Room-relative safety clamp (2026-09-10): on top of the actual_temp
+      # anchor above, never let the written setpoint call for more than 2
+      # degrees F of conditioning past what Follow-Me is actually reading --
+      # a Cool setpoint more than 2F above the room, or a Heat setpoint more
+      # than 2F below it, asks the unit to do meaningfully more work than
+      # the room's real state justifies, regardless of how the gain/error
+      # math above got there. hvac_mode read straight off thermostat_6's own
+      # state (Matter climate entities carry hvac_mode as their state, not
+      # an attribute) -- the same entity this automation already reads
+      # current_setpoint from.
+      hvac_mode_now: "{{ states('climate.bedroom_mini_split_ac_bridge_thermostat_6') }}"
+      new_setpoint: >-
+        {{ min(anchored_setpoint, followme_now + 2) if hvac_mode_now == 'cool'
+           else max(anchored_setpoint, followme_now - 2) if hvac_mode_now == 'heat'
+           else anchored_setpoint }}
       # The threshold this incident actually got stuck on: a sustained
       # (>=40min, no reversal) sign can act on a half-degree move instead of
       # needing a full degree, since persistence has already ruled out noise.
