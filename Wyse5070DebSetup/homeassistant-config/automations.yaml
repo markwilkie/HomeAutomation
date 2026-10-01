@@ -1,5 +1,5 @@
 - id: '1783728204972'
-  alias: MiniSplit
+  alias: MiniSplit_legacy
   description: ''
   triggers:
   - trigger: temperature.crossed_threshold
@@ -25,7 +25,7 @@
       temperature: 70
   mode: single
 - id: '1783985529104'
-  alias: MiniSplit FollowMe setpoint nudge
+  alias: MiniSplit FollowMe setpoint nudge_legacy
   description: >-
     Re-sends the current Tuya setpoint when the indoor sensor reads more than
     2 degrees above setpoint for 10 minutes, to force the AC to re-evaluate

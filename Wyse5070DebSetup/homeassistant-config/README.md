@@ -71,11 +71,22 @@ got to its current form, in order:
    both sides cancels out completely and the offset ended up with zero effect on the setpoint actually
    written to Tuya, only on what the display-facing sensors showed. Reverted the same day: `bme280_now` reads
    `sensor.minisplit_bme280_corrected` (offset-adjusted), `target_temp` reads the un-offset computed setpoint.
+7. **Heat/cool setpoint split** — `minisplit_day_setpoint`/`minisplit_night_setpoint` (from item 5) were a
+   single pair regardless of `hvac_mode`, so the same number had to serve as both "heat is satisfied" and
+   "cool is needed," with no deadband between the two — part of why the separate MiniSplit Auto Mode Shadow
+   Decision automation's `error` term stayed ambiguous against live heat-mode behavior. Split 2026-10-01 into
+   `minisplit_day_setpoint_heat`/`_night_setpoint_heat` (67°F/66°F, carried over unchanged) and
+   `minisplit_day_setpoint_cool`/`_night_setpoint_cool` (74°F/71°F, new). `sensor.minisplit_computed_setpoint`
+   now picks a pair based on `climate.bedroom_mini_split_ac_bridge_thermostat_6`'s current mode (same
+   `hvac_mode_now` read pattern the cascade/predictive automations already use for their Follow-Me safety
+   clamp), and gained a `state: trigger` on that same entity (alongside its existing `time_pattern: /5`) so a
+   mode flip picks the right pair immediately instead of up to 5 minutes late.
 
 New `input_number`/template-sensor entities added via YAML don't get an `area_id` or (for `input_number`) a
 real starting value from config alone — both need a one-time `docker stop` / edit `.storage/core.entity_registry`
 + `.storage/core.restore_state` / `docker start` cycle after deploying. Done for `minisplit_day_setpoint`,
-`minisplit_night_setpoint` (2026-08-07), and `minisplit_temp_offset` (2026-08-08).
+`minisplit_night_setpoint` (2026-08-07), `minisplit_temp_offset` (2026-08-08), and the four heat/cool split
+setpoints above (2026-10-01).
 
 This history — the *why* behind each change — lives in this repo's git log for this directory, not in the
 live HA instance itself.

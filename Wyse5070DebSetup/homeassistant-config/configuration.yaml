@@ -96,11 +96,15 @@ input_number:
     mode: box
 
   # Day/night setpoints that sensor.minisplit_computed_setpoint (below)
-  # interpolates between. These two are the only MiniSplit values meant to
-  # be hand-set now -- the computed setpoint itself is read-only.
-  # Same "no initial:" reasoning as the other MiniSplit input_numbers.
-  minisplit_day_setpoint:
-    name: "MiniSplit Day Temp"
+  # interpolates between. These are the only MiniSplit values meant to be
+  # hand-set now -- the computed setpoint itself is read-only. Split into
+  # heat/cool pairs 2026-10-01 (was a single mode-blind pair): the computed
+  # setpoint sensor picks a pair based on thermostat_6's current hvac_mode,
+  # same as minisplit_mode_cool_band/minisplit_mode_heat_band's existing
+  # suffix convention. Same "no initial:" reasoning as the other MiniSplit
+  # input_numbers.
+  minisplit_day_setpoint_heat:
+    name: "MiniSplit Day Temp (Heat)"
     min: 65
     max: 80
     step: 0.5
@@ -108,8 +112,26 @@ input_number:
     icon: mdi:weather-sunny
     mode: slider
 
-  minisplit_night_setpoint:
-    name: "MiniSplit Night Temp"
+  minisplit_night_setpoint_heat:
+    name: "MiniSplit Night Temp (Heat)"
+    min: 65
+    max: 80
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:weather-night
+    mode: slider
+
+  minisplit_day_setpoint_cool:
+    name: "MiniSplit Day Temp (Cool)"
+    min: 65
+    max: 80
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:weather-sunny
+    mode: slider
+
+  minisplit_night_setpoint_cool:
+    name: "MiniSplit Night Temp (Cool)"
     min: 65
     max: 80
     step: 0.5
@@ -244,12 +266,13 @@ input_select:
     initial: "off"
     icon: mdi:thermostat
 
-# Read-only, computed setpoint interpolated from minisplit_day_setpoint and
-# minisplit_night_setpoint above: flat at the night setpoint 22:00-07:00,
-# ramps linearly up to the day setpoint 07:00-11:00, flat at the day
-# setpoint 11:00-19:00, ramps back down to the night setpoint 19:00-22:00.
-# Read by the "MiniSplit FollowMe cascade setpoint correction" automation
-# (automations.yaml) as its target temperature every 10-minute run.
+# Read-only, computed setpoint interpolated from the heat or cool day/night
+# pair above (picked by thermostat_6's current hvac_mode): flat at the night
+# setpoint 22:00-07:00, ramps linearly up to the day setpoint 07:00-11:00,
+# flat at the day setpoint 11:00-19:00, ramps back down to the night
+# setpoint 19:00-22:00. Read by the "MiniSplit FollowMe cascade setpoint
+# correction" and "...predictive setpoint correction" automations
+# (automations.yaml) as their target temperature every run.
 #
 # Deliberately a `template:` sensor, not an input_number -- unlike the
 # input_numbers above, this value should never be hand-editable: it's fully
@@ -268,10 +291,26 @@ input_select:
 # when you actually touch a day/night setpoint slider, not as the ramp
 # windows come and go. The time_pattern trigger below re-evaluates it every
 # 5 minutes regardless of whether anything else changed.
+#
+# 2026-10-01: split the single mode-blind day/night pair into heat/cool
+# pairs (minisplit_day_setpoint_heat/_cool, _night_ likewise) -- the same
+# number was being asked to serve as both "heat is satisfied" and "cool is
+# needed," leaving no real deadband between the two, which is also why the
+# shadow-mode decision automation's `error` term stayed ambiguous against
+# live heat-mode behavior. Added thermostat_6 as a second (state) trigger
+# alongside the time_pattern one so a mode flip picks the right pair
+# immediately rather than waiting up to 5 minutes -- same "needs an
+# explicit trigger or it goes stale" lesson as the time_pattern trigger
+# above, just for the mode input instead of the clock. Reads mode via the
+# same `hvac_mode_now` pattern the cascade/predictive automations already
+# use for their own Follow-Me safety clamp; defaults to the heat pair when
+# mode is off/unavailable, matching this sensor's pre-split behavior.
 template:
   - trigger:
       - trigger: time_pattern
         minutes: "/5"
+      - trigger: state
+        entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
     sensor:
       - name: "MiniSplit Target Temp"
         unique_id: minisplit_computed_setpoint
@@ -285,8 +324,9 @@ template:
              cascade/predictive automations' `followme_now - target_temp` comparison to
              cancel. Day/night setpoints also dropped 5F this same day (75/75 -> 70/70
              live), hence the lowered fallback defaults below. #}
-          {% set day_setpoint = states('input_number.minisplit_day_setpoint') | float(69) %}
-          {% set night_setpoint = states('input_number.minisplit_night_setpoint') | float(63) %}
+          {% set hvac_mode_now = states('climate.bedroom_mini_split_ac_bridge_thermostat_6') %}
+          {% set day_setpoint = states('input_number.minisplit_day_setpoint_cool') | float(74) if hvac_mode_now == 'cool' else states('input_number.minisplit_day_setpoint_heat') | float(69) %}
+          {% set night_setpoint = states('input_number.minisplit_night_setpoint_cool') | float(71) if hvac_mode_now == 'cool' else states('input_number.minisplit_night_setpoint_heat') | float(63) %}
           {% set now_minutes = now().hour * 60 + now().minute %}
           {% set ramp_up_start = 420 %}
           {% set ramp_up_end = 660 %}
