@@ -61,10 +61,22 @@ Render all of the following sections, in this order:
 2. **BECU balances** — call the monarch `get_accounts` tool to list all
    accounts. Report ONLY Checking, Savings, and Line of Credit balances —
    do not include the Auto Loan or any other account, even if the tool
-   returns them.
+   returns them. If this tool call fails with a 401/auth error, the
+   Monarch MCP gateway's session token has expired. Don't just say
+   "needs to be re-authenticated" — include this exact fix as the bullet,
+   since the token can't be refreshed any other way (Monarch's Cloudflare
+   CAPTCHA blocks programmatic email/password login, so this has to be
+   done interactively on the host):
+   1. SSH to wyse: `ssh -t mwilkie@192.168.15.30`
+   2. Run: `cd /mnt/data/appdata/mcp-gateway-monarch && docker compose run --rm --entrypoint python mcp-gateway-monarch login_setup.py`
+   3. Pick the browser-cookie method: log into app.monarch.com in any
+      browser, DevTools → Network, copy the `Cookie:` header off any XHR
+      request to app.monarch.com, paste it when prompted.
 3. **Notable charges** — call the monarch `get_transactions` (or
    `search_transactions`) tool for roughly the last 24 hours, and flag
-   anything unusually large or otherwise notable.
+   anything unusually large or otherwise notable. If this also fails with
+   the same 401/auth error as section 2, don't repeat the fix steps —
+   just note it's the same cause as the BECU balances section above.
 4. **News Wrap-up** — top national/world headlines, via web search.
 5. **Market snapshot** — via web search, as bullets: major US indices
    (S&P 500, Dow, Nasdaq), MSFT stock, and gold price. For each one, give
