@@ -70,15 +70,24 @@ Render all of the following sections, in this order:
    (S&P 500, Dow, Nasdaq), MSFT stock, and gold price. For each one, give
    BOTH the day change AND the weekly change (i.e. vs. this time last
    week/past 5 trading days) — not day change alone.
-6. **Local Events & Headlines** — via web search: broader Seattle-area news
-   and events, PLUS hyperlocal events specifically in Lake Forest Park,
-   Edmonds, Woodinville, Shoreline, and Lynnwood. These smaller
-   towns/suburbs don't reliably show up in a single generic "Seattle
-   events" search, so run at least one dedicated search per named town
-   (e.g. "Edmonds WA events this week", "Lake Forest Park events") rather
-   than relying on one broad query. Include hyperlocal finds even if minor
-   (farmers markets, community meetings, small festivals) — don't limit
-   this to only major/citywide events. Also call `outlook_email_search`
+6. **Local Events & Headlines** — this section has a fixed list of required
+   web searches below; run EVERY one of them every time, not just a subset
+   that feels sufficient (an incomplete subset has previously caused this
+   section's content to vary wildly run-to-run for no reason other than
+   which searches happened to get run):
+   - Seattle-area general news (separate from events)
+   - Seattle-area weekend/upcoming events (its own dedicated search, even
+     though Seattle news was just searched above — these are two different
+     queries and both are required, never collapse them into one)
+   - One dedicated search each for Lake Forest Park, Edmonds, Woodinville,
+     Shoreline, and Lynnwood events. These smaller towns/suburbs don't
+     reliably show up in a single generic "Seattle events" search, so each
+     one needs its own query (e.g. "Edmonds WA events this week", "Lake
+     Forest Park events") — never fold two towns into one query or skip a
+     town because the Seattle search happened to mention it in passing.
+   Include hyperlocal finds even if minor (farmers markets, community
+   meetings, small festivals) — don't limit this to only major/citywide
+   events. Also call `outlook_email_search`
    (Inbox) for a message with subject "Weekend events you'll love" (a
    recurring Nextdoor digest) — if found, read it with `read_resource` and
    fold its listed events into this section alongside the web-search finds,
