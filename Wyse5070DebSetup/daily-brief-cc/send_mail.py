@@ -101,6 +101,12 @@ def _fix_run_on_bullets(line: str) -> list[str]:
     out = []
     if _RUN_ON_LABEL_RE.match(parts[0].strip()):
         out.append(parts[0].strip())
+        # Markdown only recognizes the following lines as a list if a blank
+        # line separates them from this label -- without it, these "- "
+        # lines are lazy continuation of the same paragraph, and get
+        # rejoined with spaces at render time, recreating the exact run-on
+        # text this function exists to fix.
+        out.append("")
         rest = parts[1:]
     out.extend(f"- {p.strip()}" for p in rest)
     return out
