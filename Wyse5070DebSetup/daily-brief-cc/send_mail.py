@@ -112,6 +112,29 @@ def _fix_run_on_bullets(line: str) -> list[str]:
     return out
 
 
+def _ensure_blank_before_lists(lines: list[str]) -> list[str]:
+    # Markdown (this project uses classic python-markdown, not CommonMark)
+    # only starts a new list where a blank line precedes it; a "- " line
+    # immediately after non-list prose is lazy continuation of that same
+    # paragraph instead, and gets rejoined into one run-on block at render
+    # time regardless of how well-formed the list itself is. This has bitten
+    # us even when the model emits genuinely correct multi-line bullets --
+    # e.g. a one-line intro ("Thursday's closes:") directly followed by real
+    # "- **S&P 500:** ..." lines with no blank line between them -- which
+    # _fix_run_on_bullets can't catch because no single line of that input
+    # ever contains the " - " join pattern it looks for. This pass is a
+    # second, independent backstop that looks at line transitions instead.
+    out = []
+    prev_stripped = ""
+    for line in lines:
+        stripped = line.strip()
+        if _LIST_MARKER_RE.match(stripped) and prev_stripped and not _LIST_MARKER_RE.match(prev_stripped):
+            out.append("")
+        out.append(line)
+        prev_stripped = stripped
+    return out
+
+
 def normalize_markdown(body_markdown: str) -> str:
     out_lines = []
     for line in body_markdown.splitlines():
@@ -120,7 +143,7 @@ def normalize_markdown(body_markdown: str) -> str:
             out_lines.append(line)
             continue
         out_lines.extend(_fix_run_on_bullets(line))
-    return "\n".join(out_lines)
+    return "\n".join(_ensure_blank_before_lists(out_lines))
 
 
 def render_brief_html(body_markdown: str) -> str:
