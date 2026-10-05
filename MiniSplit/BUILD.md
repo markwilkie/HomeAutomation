@@ -35,10 +35,11 @@ idf.py set-target esp32c6
 # 5. Build
 idf.py build
 
-# 6. Flash -- verify the port against Device Manager / the VID/PID check below every
-#    time, don't assume a fixed COM number; it's moved before (was COM4, is COM3 as of
-#    2026-09-09).
-idf.py -p COM3 flash
+# 6. Flash -- use flash.ps1 (2026-10-05), which only flashes the board whose MAC
+#    is the bridge's (58:8C:81:5D:89:04). VID/PID and COM number are NOT enough:
+#    ../ThreadRouter is the same chip with the same VID/PID, and on 2026-10-04 it
+#    got overwritten with this firmware because COM4 "looked right".
+.\flash.ps1                  # or .\flash.ps1 -Port COM3
 
 # 7. Monitor: idf.py monitor requires an interactive TTY and will fail in any
 #    non-interactive/automated shell ("Monitor requires standard input to be
@@ -47,6 +48,11 @@ idf.py -p COM3 flash
 #    From automation (no TTY), read the port directly instead -- see
 #    "Reading serial output without a TTY" below.
 ```
+
+**Unit tests** (2026-10-05): the pure logic in `src/control_logic.c` (mode
+mapping, IR frame building, Follow-Me bits, Fresh Air hold, mode-reconcile
+decision) has host tests in `test/host/`. Run `sh test/host/run.sh` anywhere
+with gcc or Docker (this Windows box has neither natively — wyse has both).
 
 **Confirming which port is the real board, not an assumption:** its native
 USB-Serial-JTAG shows up as VID 303A / PID 1001 (Espressif's own VID) --
@@ -217,7 +223,7 @@ idf.py -p COM4 flash monitor
   after a reflash without needing to be re-paired at the BLE/commissioning level. However, if
   the firmware's *endpoint composition* changed (endpoints added/removed/changed device type),
   Home Assistant's Matter integration won't pick that up on its own — see
-  [SENSORS.md](SENSORS.md)'s re-commissioning note. You'll need to remove and re-add the device
+  [SENSORS.md](docs/archive/SENSORS.md)'s re-commissioning note. You'll need to remove and re-add the device
   in Home Assistant to see the new/changed entities.
 
 ## Reading serial output without a TTY
