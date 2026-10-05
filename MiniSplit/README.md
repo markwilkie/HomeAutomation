@@ -78,7 +78,10 @@ unique IDs — only ever add endpoints at the end):
 - Health, swing, eco, turbo, quiet and remote timers are reset by any
   bridge-sent frame (by design — see IR_PROTOCOL_REFERENCE.md).
 - Tuya client credentials are compiled into the firmware (`include/secrets.h`,
-  git-ignored).
+  git-ignored) and readable from the board's flash. ESP32 flash encryption
+  was deliberately **not** enabled (2026-10-05): it burns one-time eFuses,
+  makes every reflash harder and risks bricking the board, to protect a
+  secret on a device inside the house.
 
 ## Docs
 
