@@ -96,8 +96,11 @@ turn it back on promptly after any test.
 
 ## OTBR TX power (2026-10-02)
 Found at 0 dBm (Sonoff Dongle Plus MG24 supports ~20 dBm) -- raised to 19 dBm
-via `ot-ctl txpower 19`. **Runtime setting, not confirmed persistent** across
-an OTBR container restart -- recheck `ot-ctl txpower` after any restart.
+via `ot-ctl txpower 19`. That's runtime-only state that any otbr-agent
+restart resets, so since 2026-10-04 `otbr-watchdog` re-checks it every 30s
+and resets it (`TARGET_TXPOWER_DBM` in
+`../Wyse5070DebSetup/setup-otbr-watchdog.sh`; "Radio TX power drifted"
+lines in `watchdog.log` when it does).
 Mini-Split's RSSI (`sensor.minisplit_thread_rssi`) went from a sustained -97
 to -106 dBm to -65 to -72 dBm over the following hours.
 

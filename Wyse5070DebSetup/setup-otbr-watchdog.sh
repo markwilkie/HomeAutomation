@@ -28,6 +28,12 @@
 #      restart this loop just caused, or one that happened some other way --
 #      e.g. someone ran a plain `docker restart otbr` by hand) and reapplies
 #      setup-nat64-jool.sh's full config if so.
+#   3. Checks the radio's TX power is still TARGET_TXPOWER_DBM and resets it
+#      if not. Same problem as NAT64: "ot-ctl txpower" is runtime-only, so
+#      any otbr-agent restart (including the image's own s6 supervisor
+#      restarting it, which this loop never sees) drops it back to 0 dBm.
+#      Raised 0 -> 19 dBm on 2026-10-02 (Sonoff Dongle Plus MG24 supports
+#      ~20); MiniSplit's Thread RSSI went from -97..-106 to -65..-72 dBm.
 #
 # Diagnostics before restarting: confirmed live (2026-07-16) that the
 # original RCP/radio-timeout crash this was built for stopped recurring
@@ -57,6 +63,7 @@ set -euo pipefail
 CONTAINER_NAME="otbr"
 POLL_INTERVAL_SECONDS=30
 RESTART_WAIT_TIMEOUT_SECONDS=60
+TARGET_TXPOWER_DBM=19
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename "${BASH_SOURCE[0]}")"
 NAT64_JOOL_SCRIPT="${SCRIPT_DIR}/setup-nat64-jool.sh"
@@ -83,6 +90,23 @@ otbr_nat64_drifted() {
     # fighting Jool for the same synthesized addresses -- see setup-mg24.sh
     # for why that combination doesn't work.
     docker exec "${CONTAINER_NAME}" sh -c "ot-ctl nat64 state" 2>/dev/null | grep -q "Active"
+}
+
+otbr_txpower_drifted() {
+    # ot-ctl prints e.g. "19 dBm" then "Done". An unreadable value counts as
+    # not drifted -- an unresponsive agent is the check above's job.
+    local current
+    current="$(docker exec "${CONTAINER_NAME}" timeout 5 ot-ctl txpower 2>/dev/null | grep -oE '^-?[0-9]+ dBm' | cut -d' ' -f1)" || true
+    [ -n "${current}" ] && [ "${current}" != "${TARGET_TXPOWER_DBM}" ]
+}
+
+reapply_txpower() {
+    log "Radio TX power drifted from ${TARGET_TXPOWER_DBM} dBm -- resetting"
+    if docker exec "${CONTAINER_NAME}" timeout 5 ot-ctl txpower "${TARGET_TXPOWER_DBM}" 2>/dev/null | grep -q "Done"; then
+        log "TX power set to ${TARGET_TXPOWER_DBM} dBm"
+    else
+        log "!! Failed to set TX power -- will retry next loop iteration"
+    fi
 }
 
 wait_for_otbr_responsive() {
@@ -172,6 +196,9 @@ watch_loop() {
         elif otbr_nat64_drifted; then
             log "OTBR's own NAT64 translator is Active (drifted back on since the last check)"
             reapply_jool
+        fi
+        if otbr_txpower_drifted; then
+            reapply_txpower
         fi
         sleep "${POLL_INTERVAL_SECONDS}"
     done
