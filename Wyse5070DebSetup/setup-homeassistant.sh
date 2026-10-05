@@ -47,6 +47,18 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     network_mode: host
+    # Docker's default 10s SIGTERM->SIGKILL grace period isn't always enough
+    # for HA to finish its own clean-shutdown save of restore_state to disk.
+    # Confirmed on real hardware (2026-08-07): input_number values changed
+    # ~6 minutes before a `docker restart` were lost (reset back to their
+    # config-file floor) even though input_numbers with no "initial:" are
+    # specifically meant to survive restarts via restore_state -- a
+    # longer-unchanged input_number on the same restart persisted correctly,
+    # pointing at the periodic/on-shutdown restore_state save simply not
+    # having finished (or not having been given the chance to run) before
+    # the container was killed. Raised well above the ~10s default seen in
+    # practice for a clean HA shutdown.
+    stop_grace_period: 60s
     # Explicit DNS: even in host network mode, Docker generates its own
     # resolv.conf for the container rather than bind-mounting the host's.
     # It doesn't reliably carry through Tailscale's 100.100.100.100

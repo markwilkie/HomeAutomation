@@ -1,0 +1,70 @@
+# Flash / partition table. Reuses MiniSplit's 3MB-factory-partition layout
+# (MiniSplit/partitions.csv) even though this app is much smaller -- known
+# to fit Matter + esp_matter's bundled diagnostics on a 4MB C6 module, no
+# need to re-derive a tighter size for a one-off device.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# mbedTLS (required by the Matter stack): CHIPCryptoPALmbedTLS.cpp calls
+# mbedtls_hkdf directly; mbedTLS ships it disabled by default.
+CONFIG_MBEDTLS_HKDF_C=y
+
+# Matter clusters: exclude Closure Control/Dimension (Matter 1.5, unused
+# here). Their bundled connectedhomeip code fails to build with a missing
+# operator== on GenericOverallCurrentState/TargetState in esp_matter
+# 1.4.2 and 1.5.0 alike -- see espressif/esp-matter#1604.
+CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n
+CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n
+
+# Network transport: Thread, not WiFi. The Operational Dataset is handed to
+# the device by the commissioner (Home Assistant, via OTBR) during BLE
+# commissioning, same as MiniSplit's board.
+CONFIG_OPENTHREAD_ENABLED=y
+CONFIG_ENABLE_MATTER_OVER_THREAD=y
+# CONFIG_ENABLE_WIFI_STATION is not set
+
+# Full Thread Device (router-capable), NOT Minimal/sleepy end device. This
+# is the entire point of this board -- an MTD never relays traffic for other
+# nodes, so it would do nothing to improve mesh coverage. MiniSplit's own
+# sdkconfig.defaults left this to menuconfig's default (which happened to
+# resolve to FTD); pinned explicitly here since getting it wrong would make
+# the device a no-op for its one job.
+CONFIG_OPENTHREAD_FTD=y
+# CONFIG_OPENTHREAD_MTD is not set
+
+# Bluetooth (NimBLE only -- required for Matter/BLE commissioning).
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+# CONFIG_BT_BLUEDROID_ENABLED is not set
+
+# BLE advertising must be told to autostart on power-up -- it defaults to 0
+# (off) in connectedhomeip's Kconfig. Without this, esp_matter::start() opens
+# the commissioning window but never starts the BLE radio advertising, so
+# the device is invisible to a BLE scan (found the hard way on MiniSplit's
+# board -- see its sdkconfig.defaults).
+CONFIG_CHIPOBLE_ENABLE_ADVERTISING_AUTOSTART=1
+
+# DNS64 client: without this the device can't resolve an IPv4 hostname into
+# a NAT64-synthesized address over Thread. Not actually needed by this app
+# (no outbound hostname connections), but kept for parity with MiniSplit's
+# proven-working config -- cheap to carry, and this device's whole purpose
+# is Thread connectivity, not minimizing its footprint.
+CONFIG_OPENTHREAD_DNS64_CLIENT=y
+
+# Operational service discovery: use OpenThread's SRP client (registers with
+# OTBR, which bridges to real LAN mDNS) instead of CHIP's own "minimal mDNS"
+# advertiser (default on), which sends raw mDNS multicast directly over the
+# Thread mesh interface -- traffic that never crosses the border router, so
+# a commissioner on the LAN can never find the device via operational
+# discovery. Both settings below must change together (confirmed the hard
+# way on MiniSplit's board -- see its sdkconfig.defaults).
+CONFIG_OPENTHREAD_SRP_CLIENT=y
+# CONFIG_USE_MINIMAL_MDNS is not set
+
+# Device identity: VendorName/ProductName on the Basic Information cluster
+# are NOT backed by esp_matter's attribute store -- see include/chip_project_config.h.
+CONFIG_CHIP_PROJECT_CONFIG="include/chip_project_config.h"

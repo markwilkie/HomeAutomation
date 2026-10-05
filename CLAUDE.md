@@ -4,6 +4,7 @@
 - `wyse` — Docker host for MCP gateways, Caddy reverse proxy, TripTracker. Secrets live in gitignored `.env` files on the host, NOT in this repo.
 - Home Assistant — Tuya + BME280 climate control, Thread border router.
 - Network — pfSense (DMZ + port forwarding), DuckDNS for dynamic DNS, Tailscale for private access.
+- Thread/Matter — two separate Thread networks exist (OTBR's `WilkieMatterNet`, which HA uses, and the SmartThings Hub's `ST-3011356111`). Commission new Thread devices from wyse with `Wyse5070DebSetup/commission-thread-device.sh`, not the phone — steps in `Wyse5070DebSetup/README.md` "Adding a new Matter-over-Thread device".
 
 Before proposing a networking or deployment change, state which host it runs on and check whether an existing pattern (Caddy site block, docker-compose service) already covers it.
 

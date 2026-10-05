@@ -112,6 +112,59 @@ silently reverts it to the 1.0°C default with nothing in git to catch the
 drift, so re-check `configured_reportings` in `zigbee2mqtt/bridge/devices`
 after any re-pairing.
 
+## Adding a new Matter-over-Thread device
+
+**Don't commission Thread devices from the phone.** There are two separate
+Thread networks in the house, OTBR's `WilkieMatterNet` (the one Home
+Assistant uses) and the SmartThings Hub's `ST-3011356111`. The HA Companion
+app hands the Bluetooth step to Google Play Services, which gives the device
+whichever network *Google* prefers. On 2026-10-02 that was the SmartThings
+one, and after clearing Play Services' data the phone stopped commissioning
+at all ("Failed to generate credentials"). Full investigation:
+`../ThreadRouter/CLAUDE.md`.
+
+Instead, commission from wyse itself. `matter-server` has its own Bluetooth
+radio and joins the device straight to OTBR's network and into HA.
+
+1. **Power the device and put it in pairing mode.** A brand-new device is
+   already in pairing mode. For a previously-paired one, factory-reset it
+   (for one of our own ESP32 boards: `idf.py -p <COMx> erase-flash` then
+   `idf.py -p <COMx> flash`). It needs to be within Bluetooth range of
+   wyse; the same room works.
+2. **Get its pairing code.** Use the 11-digit "manual pairing code" on the
+   label or box, or the `MT:...` string encoded in its QR code. Our own
+   ESP32 boards print both on the serial console at boot (`Manual pairing
+   code: [...]`). ThreadRouter's is `34970112332`.
+3. **Copy the script to wyse** (wyse's own repo checkout is stale, so
+   don't rely on it), from this folder on your PC:
+   ```
+   scp commission-thread-device.sh mwilkie@192.168.15.30:~/
+   ```
+4. **Check prerequisites** (OTBR up, matter-server Bluetooth enabled,
+   OTBR's network loaded into matter-server):
+   ```
+   ssh mwilkie@192.168.15.30 ./commission-thread-device.sh --check
+   ```
+   Expect `Prerequisites OK.`
+5. **Commission:**
+   ```
+   ssh mwilkie@192.168.15.30 ./commission-thread-device.sh 34970112332
+   ```
+   This takes 1-2 minutes. On success it prints the Matter node ID, the
+   device's name once HA has added it, and OTBR's router/child tables.
+6. **Verify it's on the right network.** The device should show up in
+   OTBR's child table, or its router table after about 2 minutes if it's
+   router-capable. The script prints OTBR's partition as e.g. `758061476
+   (0x2d2f19a4)`. If you can see the device's own logs, they must show
+   `Partition ID 0x2d2f19a4`. `0x4d6f48d3` means it joined the SmartThings
+   network.
+7. **Rename/assign an area in HA** under Settings -> Devices & services ->
+   Matter, same as any other device.
+
+If step 5 fails partway, the device's pairing window may have closed; power
+cycle it and rerun. The script exits non-zero with matter-server's error
+code on failure.
+
 ## Non-browsable endpoints
 
 `ws://192.168.15.30:5580/ws` (Matter Server) and

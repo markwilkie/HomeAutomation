@@ -1,0 +1,28 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+
+# ESP-IDF
+sdkconfig.old
+.idf_monitor_log
+*.log
+
+# Component manager-managed dependencies (auto-downloaded by idf.py) --
+# committing these caused line-ending/hash-verification issues on Windows
+# in MiniSplit; same reasoning applies here.
+managed_components/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Matter/commissioning artifacts
+*.qr
+commissioning_code.txt

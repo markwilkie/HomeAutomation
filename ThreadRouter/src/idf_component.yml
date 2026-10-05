@@ -1,0 +1,10 @@
+## IDF Component Manager Manifest File
+
+dependencies:
+  # Pinned to exactly match MiniSplit's resolved version (MiniSplit/dependencies.lock),
+  # not the floating "^1.5" this project originally used -- that range let the
+  # component registry resolve to 1.6.0 here vs MiniSplit's 1.5.0, and 1.6.0 is the
+  # leading suspect for the BLE-commissioning Thread-attach bug documented in
+  # ../CLAUDE.md. Testing whether pinning to the known-good version fixes real
+  # commissioning without the otDatasetSetActive() bypass.
+  espressif/esp_matter: "1.5.0"
