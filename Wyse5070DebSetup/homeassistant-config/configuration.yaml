@@ -72,28 +72,9 @@ homeassistant:
 # file is revisited, and there was never a reason to keep an unused,
 # identically-purposed input_number lying around once the sensor replaced it.
 input_number:
-  # Adaptive gain state for the cascade automation (automations.yaml): the
-  # multiplier itself, and the direction (+1/-1) of the last correction it
-  # actually wrote, so the next run can tell whether it's oscillating (this
-  # cycle's direction flips the last one -> cut gain 15%) or trending
-  # consistently (same direction twice -> ease gain back up 5%). Same
-  # "no initial:" reasoning as minisplit_target_temp above -- these need to
-  # survive HA restarts, not reset to a hardcoded starting point every time.
-  minisplit_adaptive_gain:
-    name: "MiniSplit Adaptive Gain"
-    min: 0.3
-    max: 1.2
-    step: 0.01
-    icon: mdi:tune-variant
-    mode: box
-
-  minisplit_last_correction_sign:
-    name: "MiniSplit Last Correction Sign"
-    min: -1
-    max: 1
-    step: 1
-    icon: mdi:swap-vertical
-    mode: box
+  # minisplit_adaptive_gain / minisplit_last_correction_sign (the cascade
+  # automation's gain state) removed 2026-10-05 along with that automation
+  # -- see git history.
 
   # Day/night setpoints that sensor.minisplit_computed_setpoint (below)
   # interpolates between. These are the only MiniSplit values meant to be
@@ -147,13 +128,9 @@ input_number:
   # same reason.
 
   # --- State for the "MiniSplit FollowMe predictive setpoint correction"
-  # automation (automations.yaml). Kept entirely separate from the
-  # minisplit_adaptive_gain / minisplit_last_correction_sign pair above
-  # (used by the older cascade automation) so the two controllers -- which
-  # may be enabled one at a time while comparing them -- never share
-  # learned state. Only ever one of the two automations should be enabled
-  # at a time; both write to climate.mini_split_ac_bridge's setpoint and
-  # will fight each other otherwise.
+  # automation (automations.yaml). (Originally kept separate from the
+  # cascade automation's own gain state; that automation and its helpers
+  # were removed 2026-10-05.)
   #
   # No `initial:` on any of these, same reasoning as the pair above: these
   # need to survive HA restarts as whatever they last adapted to. Since
@@ -227,51 +204,10 @@ input_number:
     icon: mdi:fire
     mode: box
 
-  # Predictor weights for the hallway/outdoor trend terms (PLAN_AUTO_MODE.md's
-  # predictive layer) -- how much each leading indicator is trusted to
-  # justify an early Cool/Heat call. Seeded low (0.3) deliberately: the
-  # predictive layer should start conservative and only earn more influence
-  # once Phase 4 (predictor-weight learning) is live and has evidence it's
-  # usually right.
-  minisplit_mode_w_hallway:
-    name: "MiniSplit Mode Hallway Predictor Weight"
-    min: 0
-    max: 1
-    step: 0.01
-    icon: mdi:tune-variant
-    mode: box
-
-  minisplit_mode_w_outdoor:
-    name: "MiniSplit Mode Outdoor Predictor Weight"
-    min: 0
-    max: 1
-    step: 0.01
-    icon: mdi:tune-variant
-    mode: box
-
-  # 2026-10-04: outdoor gates on ENTERING Cool/Heat, replacing the old 40F/80F
-  # "sanity guard" (far too loose -- it let the shadow decision call Cool at
-  # 2:40am with 52F outside). Below cool_outdoor_min the house sheds heat on
-  # its own, so a warm room isn't a reason to run the compressor; above
-  # heat_outdoor_max the same holds for heating. Seeded 65/60; replaying
-  # 2026-09-24..10-04 gave the same result anywhere in 62-68 / 58-62.
-  minisplit_mode_cool_outdoor_min:
-    name: "MiniSplit Mode Cool Min Outdoor"
-    min: 50
-    max: 90
-    step: 1
-    unit_of_measurement: "°F"
-    icon: mdi:sun-thermometer
-    mode: box
-
-  minisplit_mode_heat_outdoor_max:
-    name: "MiniSplit Mode Heat Max Outdoor"
-    min: 30
-    max: 75
-    step: 1
-    unit_of_measurement: "°F"
-    icon: mdi:snowflake-thermometer
-    mode: box
+  # minisplit_mode_w_hallway / _w_outdoor (predictor weights) and
+  # minisplit_mode_cool_outdoor_min / _heat_outdoor_max (fixed outdoor
+  # gates) removed 2026-10-05 with the shadow-rule simplification -- see the
+  # Shadow Wanted/Satisfied binary sensors below.
 
 # PLAN_AUTO_MODE.md Phase 0 -- shadow-only mode decision, written by the new
 # "MiniSplit Auto Mode Shadow Decision" automation (automations.yaml). Never
@@ -287,6 +223,21 @@ input_number:
 # restart produced a spurious cool->off this way. Without `initial:` it
 # restores its last state like the input_numbers above.
 input_select:
+  # How the setpoint automation picks Desired (2026-10-05). "direct": Desired
+  # = the target, written only when it changes -- the unit regulates on the
+  # real room temperature itself as long as Follow-Me is engaged.
+  # "predictive": the original offset controller, which exists to
+  # compensate for the unit judging the room by its own (3-4F warm) sensor.
+  # "direct" automatically falls back to "predictive" while
+  # binary_sensor.minisplit_followme_engaged is off. No initial: -- restores
+  # across restarts; first boot lands on "direct".
+  minisplit_setpoint_strategy:
+    name: "MiniSplit Setpoint Strategy"
+    options:
+      - "direct"
+      - "predictive"
+    icon: mdi:target
+
   minisplit_shadow_mode:
     name: "MiniSplit Shadow Mode Decision"
     options:
@@ -402,26 +353,44 @@ template:
         icon: mdi:snowflake
         state: "{{ cool_target }}"
 
-  # 2026-10-04: the shadow-mode decision's "is this mode warranted / is it
-  # done" conditions, each held for 30 minutes (delay_on) before reading on,
-  # so a single 10-minute reading can't flip the decision. The automation
-  # (automations.yaml) only reads these four plus its own dwell/reversal
-  # bookkeeping. Replayed against 2026-09-24..10-04 (86-90F afternoons,
-  # 42-50F nights): 0 mode changes, vs. 28 for the rules they replace.
+  # The shadow-mode decision's "is this mode warranted / is it done"
+  # conditions, each held for 30 minutes (delay_on) before reading on, so a
+  # single reading can't flip the decision. The automation (automations.yaml)
+  # only reads these four plus its own dwell/reversal bookkeeping.
   #
-  # Wanted: room more than the band past the target (or more than half the
-  # band, if the hallway/outdoor 1h trends project it past the full band --
-  # the half-band floor stops trend noise alone, e.g. a 30-minute sun spike
-  # on the outdoor unit, from triggering a call 0.1F from target), AND the
-  # weather agrees (outdoor past the configured gate, 3h outdoor trend not
-  # moving the other way).
-  #
-  # Satisfied: room 1F past the target in the other direction, or the
-  # weather 5F past the gate. Deliberately NOT "room reached the target" --
-  # with the unit running, the room sitting at target means the mode is
-  # doing its job, not that it's no longer needed; exiting there made a
-  # heat->off->heat cycle on the 2026-09-25 cold afternoon in replay.
+  # Simplified 2026-10-05:
+  #   Cool wanted: room > cool target + band, AND outdoor > cool target.
+  #   Heat wanted: room < heat target - band, AND outdoor < heat target.
+  #   Cool done:   room <= cool target - 1.   Heat done: room >= heat target + 1.
+  # The outdoor check is relative to the mode's own target: if it's already
+  # past the target outside, the house gets there by itself. That replaced
+  # fixed 65F/60F gates, which wrongly blocked e.g. heating a cold room on a
+  # 62F morning (the house can't warm itself to 69 when it's 62 out). Also
+  # removed: the trend-based early trigger and its weights, the 3h outdoor
+  # trend gate, and outdoor-based exits (which could abandon a mode with the
+  # room still far off). Replay 2026-09-25..10-05: 0 changes for both the
+  # old and simplified rules, i.e. the removed parts never changed an
+  # outcome. "Done" is deliberately 1F PAST the target, not at it: with the
+  # unit running, the room sitting at target means the mode is doing its
+  # job, not that it's no longer needed.
   - binary_sensor:
+      # Whether the unit is actually using Follow-Me (2026-10-05): with it
+      # engaged, the unit reports the relayed Follow-Me value as its own
+      # indoor temp (verified by injection 2026-10-05 -- see
+      # IR_PROTOCOL_REFERENCE.md); disengaged, it reports its onboard sensor,
+      # ~3-4F warm. 2F tolerance covers the whole-C rounding; off only
+      # after 30 min of disagreement so a brief lapse doesn't flip the
+      # setpoint strategy.
+      - name: "MiniSplit Follow-Me Engaged"
+        unique_id: minisplit_followme_engaged
+        icon: mdi:thermometer-check
+        delay_off: "00:30:00"
+        availability: >-
+          {{ has_value('sensor.0x18690afffe5602f1_temperature')
+             and state_attr('climate.mini_split_ac_bridge_thermostat_1', 'current_temperature') is not none }}
+        state: >-
+          {{ ((state_attr('climate.mini_split_ac_bridge_thermostat_1', 'current_temperature') | float(0))
+              - (states('sensor.0x18690afffe5602f1_temperature') | float(0))) | abs <= 2 }}
       - name: "MiniSplit Shadow Cool Wanted"
         unique_id: minisplit_shadow_cool_wanted
         icon: mdi:snowflake-alert
@@ -430,13 +399,9 @@ template:
           {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_cool_target')
              and has_value('sensor.minisplit_outdoor_temp') }}
         state: >-
-          {% set err = states('sensor.0x18690afffe5602f1_temperature') | float(0)- states('sensor.minisplit_cool_target') | float(0)%}
-          {% set band = states('input_number.minisplit_mode_cool_band') | float(1.5) %}
-          {% set predicted = err + states('input_number.minisplit_mode_w_hallway') | float(0) * states('sensor.minisplit_hallway_trend') | float(0)
-                                 + states('input_number.minisplit_mode_w_outdoor') | float(0) * states('sensor.minisplit_outdoor_trend') | float(0) %}
-          {{ (err > band or (err > band / 2 and predicted > band))
-             and states('sensor.minisplit_outdoor_temp') | float(0)>= states('input_number.minisplit_mode_cool_outdoor_min') | float(65)
-             and states('sensor.minisplit_outdoor_trend_3h') | float(0) > -0.5 }}
+          {% set target = states('sensor.minisplit_cool_target') | float(0) %}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) > target + states('input_number.minisplit_mode_cool_band') | float(1.5)
+             and states('sensor.minisplit_outdoor_temp') | float(0) > target }}
       - name: "MiniSplit Shadow Heat Wanted"
         unique_id: minisplit_shadow_heat_wanted
         icon: mdi:fire-alert
@@ -445,33 +410,25 @@ template:
           {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_heat_target')
              and has_value('sensor.minisplit_outdoor_temp') }}
         state: >-
-          {% set err = states('sensor.minisplit_heat_target') | float(0)- states('sensor.0x18690afffe5602f1_temperature') | float(0)%}
-          {% set band = states('input_number.minisplit_mode_heat_band') | float(1.5) %}
-          {% set predicted = err - states('input_number.minisplit_mode_w_hallway') | float(0) * states('sensor.minisplit_hallway_trend') | float(0)
-                                 - states('input_number.minisplit_mode_w_outdoor') | float(0) * states('sensor.minisplit_outdoor_trend') | float(0) %}
-          {{ (err > band or (err > band / 2 and predicted > band))
-             and states('sensor.minisplit_outdoor_temp') | float(0)<= states('input_number.minisplit_mode_heat_outdoor_max') | float(60)
-             and states('sensor.minisplit_outdoor_trend_3h') | float(0) < 0.5 }}
+          {% set target = states('sensor.minisplit_heat_target') | float(0) %}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) < target - states('input_number.minisplit_mode_heat_band') | float(1.5)
+             and states('sensor.minisplit_outdoor_temp') | float(0) < target }}
       - name: "MiniSplit Shadow Cool Satisfied"
         unique_id: minisplit_shadow_cool_satisfied
         icon: mdi:snowflake-check
         delay_on: "00:30:00"
         availability: >-
-          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_cool_target')
-             and has_value('sensor.minisplit_outdoor_temp') }}
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_cool_target') }}
         state: >-
-          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0)<= states('sensor.minisplit_cool_target') | float(0)- 1
-             or states('sensor.minisplit_outdoor_temp') | float(0)< states('input_number.minisplit_mode_cool_outdoor_min') | float(65) - 5 }}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) <= states('sensor.minisplit_cool_target') | float(0) - 1 }}
       - name: "MiniSplit Shadow Heat Satisfied"
         unique_id: minisplit_shadow_heat_satisfied
         icon: mdi:fire-off
         delay_on: "00:30:00"
         availability: >-
-          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_heat_target')
-             and has_value('sensor.minisplit_outdoor_temp') }}
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_heat_target') }}
         state: >-
-          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0)>= states('sensor.minisplit_heat_target') | float(0)+ 1
-             or states('sensor.minisplit_outdoor_temp') | float(0)> states('input_number.minisplit_mode_heat_outdoor_max') | float(60) + 5 }}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) >= states('sensor.minisplit_heat_target') | float(0) + 1 }}
 
   # sensor.minisplit_bme280_corrected removed 2026-09-06: BME280 (and its
   # smoothing sensor, sensor.minisplit_bme280_smoothed) retired in favor of
@@ -698,9 +655,6 @@ template:
           - sensor.minisplit_heat_target
           - sensor.minisplit_cool_target
           - sensor.minisplit_outdoor_temp
-          - sensor.minisplit_hallway_trend
-          - sensor.minisplit_outdoor_trend
-          - sensor.minisplit_outdoor_trend_3h
           - binary_sensor.minisplit_shadow_cool_wanted
           - binary_sensor.minisplit_shadow_heat_wanted
           - binary_sensor.minisplit_shadow_cool_satisfied
@@ -726,11 +680,6 @@ template:
           above_cool_target: "{{ (room - cool_target) | round(2) if inputs_ok else none }}"
           below_heat_target: "{{ (heat_target - room) | round(2) if inputs_ok else none }}"
           outdoor: "{{ states('sensor.minisplit_outdoor_temp') }}"
-          cool_outdoor_min: "{{ states('input_number.minisplit_mode_cool_outdoor_min') }}"
-          heat_outdoor_max: "{{ states('input_number.minisplit_mode_heat_outdoor_max') }}"
-          hallway_trend_per_hr: "{{ states('sensor.minisplit_hallway_trend') | float(0) }}"
-          outdoor_trend_per_hr: "{{ states('sensor.minisplit_outdoor_trend') | float(0) }}"
-          outdoor_trend_3h_per_hr: "{{ states('sensor.minisplit_outdoor_trend_3h') | float(0) }}"
           cool_wanted: "{{ states('binary_sensor.minisplit_shadow_cool_wanted') }}"
           heat_wanted: "{{ states('binary_sensor.minisplit_shadow_heat_wanted') }}"
           cool_satisfied: "{{ states('binary_sensor.minisplit_shadow_cool_satisfied') }}"
@@ -759,6 +708,16 @@ input_datetime:
     has_date: true
     has_time: true
 
+  # When the predictive setpoint automation last wrote the Desired
+  # setpoint -- its 29-minute cooldown (2026-10-05). It used to key off
+  # thermostat_6's last_updated, which HA restarts, manual edits, mode
+  # changes, and the firmware's mode sync all bump too. Unset ("unknown")
+  # until the first write, which the cooldown treats as elapsed.
+  minisplit_predictive_last_write:
+    name: "MiniSplit Predictive Last Write"
+    has_date: true
+    has_time: true
+
 # sensor.minisplit_bme280_smoothed (filter platform) and
 # sensor.minisplit_bme280_trend (derivative platform) removed 2026-09-06:
 # both existed solely to filter BME280's own supply-airflow noise before
@@ -768,50 +727,7 @@ input_datetime:
 # directly with no smoothing or derivative -- see automations.yaml for the
 # corresponding removal of lag_minutes/trend_per_hour/projected_error.
 
-# PLAN_AUTO_MODE.md predictive layer -- ~60 minute slope of the Hallway and
-# (weather-forecast-derived) Outdoor temperature sensors, used as leading
-# indicators for which mode Follow-Me is likely to need soon, not just a
-# corroboration check. Neither signal is affected by this unit's own
-# compressor cycling, unlike Follow-Me's own trend -- see PLAN_AUTO_MODE.md's
-# "Hallway and outdoor temp are predictors" section for why that distinction
-# is what makes them safe to use here, where the predictive setpoint
-# automation's own abandoned lag estimator (see its description above)
-# wasn't. Reusing the exact `derivative` platform this file already used
-# for sensor.minisplit_bme280_trend before it was retired, not a new
-# mechanism. unit_time: h makes each sensor read directly in °F/hr, which
-# conveniently equals the 60-minute horizon's contribution to predicted_error
-# with no extra multiplication needed (see the shadow decision automation in
-# automations.yaml).
-sensor:
-  - platform: derivative
-    source: sensor.0x70d07efffea47190_temperature
-    name: "MiniSplit Hallway Trend"
-    unique_id: minisplit_hallway_trend
-    unit_time: h
-    time_window: "01:00:00"
-    round: 2
-
-  - platform: derivative
-    source: sensor.minisplit_outdoor_temp
-    name: "MiniSplit Outdoor Trend"
-    unique_id: minisplit_outdoor_trend
-    unit_time: h
-    time_window: "01:00:00"
-    round: 2
-
-  # 2026-09-10: separate from the 1-hour trend above, which only feeds the
-  # shadow-decision automation's early-trigger layer (anticipating a crossing
-  # the reactive rule would eventually hit anyway). This one is the "large,
-  # sustained, hours-scale trend" input for that same automation's new
-  # outdoor-trend gate on ENTERING Cool/Heat -- a 3-hour window averages out
-  # the compressor's own duty cycle and any single-hour noise (this morning's
-  # +3.05F/hr 1-hour reading was a real but short morning-warmup blip, not a
-  # multi-hour pattern), so a large value here means the outdoor swing is
-  # genuinely sustained, not transient.
-  - platform: derivative
-    source: sensor.minisplit_outdoor_temp
-    name: "MiniSplit Outdoor Trend 3h"
-    unique_id: minisplit_outdoor_trend_3h
-    unit_time: h
-    time_window: "03:00:00"
-    round: 2
+# sensor.minisplit_hallway_trend / _outdoor_trend / _outdoor_trend_3h
+# (derivative platform) removed 2026-10-05 -- they only fed the shadow
+# decision's early-trigger and 3h-trend gate, both dropped in the
+# simplification (see the Shadow Wanted/Satisfied binary sensors above).

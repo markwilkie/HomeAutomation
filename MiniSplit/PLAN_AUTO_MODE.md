@@ -28,6 +28,13 @@ hours. Replay over 2026-09-24..10-04: 0 changes vs. 28. Caveat: that window
 never had a day that genuinely warranted Cool or Heat, so the rules are
 proven quiet but not yet proven to fire when they should — watch the first
 real hot afternoon / cold snap before Phase 1.
+**2026-10-05: simplified further** — Wanted = room past the mode's target by
+the band AND outdoor past that same target (house can't get there on its
+own); Done = room 1°F past target the other way. The predictive/trend layer
+(hallway + outdoor derivative sensors, predictor weights), the 3h trend gate,
+and fixed outdoor thresholds are gone — so this plan's "Hallway and outdoor
+temp are predictors" and Phase 4 (predictor-weight learning) sections no
+longer describe anything built. Replay 09-25..10-05: 0 changes either way.
 
 **Two real implementation findings from the Phase 0 deploy, worth keeping
 for Phase 2+:**
