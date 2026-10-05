@@ -620,16 +620,30 @@ template:
   # "MiniSplit Duty Cycle EWMA" above already had to add this same trigger for.
   - trigger:
       - trigger: state
-        entity_id: sensor.mini_split_ac_bridge_outdoor_temperature
+        entity_id:
+          - sensor.roof_weather_device_temperature
+          - sensor.mini_split_ac_bridge_outdoor_temperature
       - trigger: homeassistant
         event: start
+      - trigger: event
+        event_type: event_template_reloaded
     sensor:
       - name: "MiniSplit Outdoor Temp"
         unique_id: minisplit_outdoor_temp
         unit_of_measurement: "°F"
         icon: mdi:thermometer
+        # Roof weather station (SmartThings, added 2026-10-05) -- more accurate
+        # than the unit's own outdoor reading; falls back to that when the
+        # station is unavailable.
         state: >-
-          {{ states('sensor.mini_split_ac_bridge_outdoor_temperature') }}
+          {% if has_value('sensor.roof_weather_device_temperature') %}
+            {{ states('sensor.roof_weather_device_temperature') }}
+          {% else %}
+            {{ states('sensor.mini_split_ac_bridge_outdoor_temperature') }}
+          {% endif %}
+        attributes:
+          source: >-
+            {{ 'weather station' if has_value('sensor.roof_weather_device_temperature') else 'mini-split unit' }}
 
   # PLAN_AUTO_MODE.md Phase 0 -- records *why* the shadow decision
   # automation (below) did what it did, at the moment it did it. Needed
