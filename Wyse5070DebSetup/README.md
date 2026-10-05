@@ -135,20 +135,19 @@ radio and joins the device straight to OTBR's network and into HA.
    label or box, or the `MT:...` string encoded in its QR code. Our own
    ESP32 boards print both on the serial console at boot (`Manual pairing
    code: [...]`). ThreadRouter's is `34970112332`.
-3. **Copy the script to wyse** (wyse's own repo checkout is stale, so
-   don't rely on it), from this folder on your PC:
+3. **Update wyse's repo checkout** so it has the current script:
    ```
-   scp commission-thread-device.sh mwilkie@192.168.15.30:~/
+   ssh mwilkie@192.168.15.30 git -C github/HomeAutomation pull
    ```
 4. **Check prerequisites** (OTBR up, matter-server Bluetooth enabled,
    OTBR's network loaded into matter-server):
    ```
-   ssh mwilkie@192.168.15.30 ./commission-thread-device.sh --check
+   ssh mwilkie@192.168.15.30 github/HomeAutomation/Wyse5070DebSetup/commission-thread-device.sh --check
    ```
    Expect `Prerequisites OK.`
 5. **Commission:**
    ```
-   ssh mwilkie@192.168.15.30 ./commission-thread-device.sh 34970112332
+   ssh mwilkie@192.168.15.30 github/HomeAutomation/Wyse5070DebSetup/commission-thread-device.sh 34970112332
    ```
    This takes 1-2 minutes. On success it prints the Matter node ID, the
    device's name once HA has added it, and OTBR's router/child tables.

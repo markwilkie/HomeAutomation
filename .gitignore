@@ -71,3 +71,5 @@ Sprinter/Arduino/ArduinoOutput/
 /Sprinter/Arduino/SprinterDash/CANCapture/.vscode
 /Sprinter/Arduino/SprinterDash/TripDisplay/.vs
 /Sprinter/Arduino/SprinterDash/TripDisplay/.vscode
+#Editor settings at the repo root (e.g. VS Code Remote-SSH on wyse)
+/.vscode/
