@@ -20,6 +20,7 @@
 #include "log_server.h"
 #include "outage_log.h"
 #include "ir_tcl112.h"
+#include "control_logic.h"
 #include "secrets.h"
 #include "esp_openthread.h"
 #include "esp_openthread_lock.h"
@@ -28,30 +29,6 @@
 
 static const char *TAG = "MAIN";
 
-// TCL112AC protocol mode values (see ../IR_PROTOCOL_REFERENCE.md's "State
-// byte map") -- deliberately a separate encoding from Tuya's own "mode" DP
-// (0=auto,1=cool,2=dry,3=fan,4=heat, see map_matter_mode_to_tuya() below).
-// Don't conflate the two.
-#define IR_MODE_HEAT 1
-#define IR_MODE_DRY  2
-#define IR_MODE_COOL 3
-#define IR_MODE_FAN  7
-#define IR_MODE_AUTO 8
-
-// TCL112AC protocol Fan values, state[8] bits 0-2 -- our own capture-
-// confirmed enum for this specific unit (IR_PROTOCOL_REFERENCE.md's "Fan
-// speed discrepancy" section), NOT the generic IRremoteESP8266 library's
-// model, which claims a 5th distinct "Quiet" value (1) this unit never
-// actually sends. `2` covers both Quiet and Low here -- the two are only
-// disambiguated by the Type 2 companion frame's Quiet bit, which this
-// project currently always sends as a fixed "everyday" frame (see
-// transmit_ir_state_frame()'s kType2CompanionFrame), so Quiet and Low are
-// indistinguishable at the IR level from this firmware today regardless of
-// which Tuya fan_speed_enum value maps to IR_FAN_LOW below.
-#define IR_FAN_AUTO 0
-#define IR_FAN_LOW  2
-#define IR_FAN_MED  3
-#define IR_FAN_HIGH 5
 
 // Set once Matter's network layer (Thread) reports connectivity -- see
 // matter_set_network_event_group() / app_chip_event_handler() in
@@ -64,6 +41,20 @@ static const char *TAG = "MAIN";
 static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
 static bool g_last_device_status_valid = false;
+
+// Written by sync_task and command_task, read by those plus followme_task --
+// copy in/out under this lock so a reader never sees a half-written struct
+// (2026-10-05). Readers work on their own copy (status_cache_get()).
+static portMUX_TYPE g_status_cache_lock = portMUX_INITIALIZER_UNLOCKED;
+
+static bool status_cache_get(tuya_device_status_t *out)
+{
+    taskENTER_CRITICAL(&g_status_cache_lock);
+    *out = g_last_device_status;
+    bool valid = g_last_device_status_valid;
+    taskEXIT_CRITICAL(&g_status_cache_lock);
+    return valid;
+}
 
 // Serializes every call into transmit_ir_state_frame() across
 // command_task/sync_task/followme_task -- see that function's doc comment.
@@ -189,57 +180,6 @@ static const char *ac_mode_name(uint8_t ac_mode)
     return (ac_mode < (sizeof(names) / sizeof(names[0]))) ? names[ac_mode] : "Unknown";
 }
 
-// Tuya "mode" DP: 0=auto, 1=cool, 2=dry, 3=fan, 4=heat.
-// Matter Thermostat SystemModeEnum: kOff=0, kAuto=1, kCool=3, kFanOnly=7, kDry=8, kHeat=4.
-static uint8_t map_tuya_mode_to_matter(const tuya_device_status_t *device_status)
-{
-    if (!device_status->switch_state) {
-        return 0; // kOff
-    }
-    switch (device_status->ac_mode) {
-        case 0: return 1; // kAuto
-        case 1: return 3; // kCool
-        case 2: return 8; // kDry
-        case 3: return 7; // kFanOnly
-        case 4: return 4; // kHeat
-        default: return 1; // Unknown Tuya mode value -> Auto
-    }
-}
-
-// Inverse of map_tuya_mode_to_matter. Returns -1 for Matter modes Tuya's "mode"
-// DP has no equivalent for (EmergencyHeat, Precooling, Sleep); kOff is
-// special-cased by the caller (command_task's fan-idle proxy) before this
-// function is ever called, never routed through here.
-static int8_t map_matter_mode_to_tuya(uint8_t matter_mode)
-{
-    switch (matter_mode) {
-        case 1: return 0; // kAuto -> auto
-        case 3: return 1; // kCool -> cool
-        case 8: return 2; // kDry -> dry
-        case 7: return 3; // kFanOnly -> fan
-        case 4: return 4; // kHeat -> heat
-        default: return -1;
-    }
-}
-
-// Matter SystemModeEnum -> the IR protocol's own mode value (see
-// ../IR_PROTOCOL_REFERENCE.md). NOT the same numeric mapping as
-// map_matter_mode_to_tuya() above -- the two protocols don't share an
-// encoding. Returns -1 for modes with no IR equivalent (same set
-// map_matter_mode_to_tuya() rejects); kOff is handled by the caller (maps
-// to IR_MODE_FAN, matching the existing Tuya-path fan-idle-proxy precedent
-// -- see command_task's System Mode block).
-static int8_t map_matter_mode_to_ir(uint8_t matter_mode)
-{
-    switch (matter_mode) {
-        case 1: return IR_MODE_AUTO;
-        case 3: return IR_MODE_COOL;
-        case 8: return IR_MODE_DRY;
-        case 7: return IR_MODE_FAN;
-        case 4: return IR_MODE_HEAT;
-        default: return -1;
-    }
-}
 
 // Mode reconciliation (2026-10-04) -- sync_task compares the Desired
 // Setpoint endpoint's mode (matter_get_desired_system_mode()) against the
@@ -259,7 +199,6 @@ static int8_t map_matter_mode_to_ir(uint8_t matter_mode)
 // for MODE_MISMATCH_POLLS consecutive polls, and won't resend a mode it
 // already sent within MODE_RESEND_HOLDOFF_MS, so Tuya's reporting lag
 // doesn't cause duplicate sends.
-#define MODE_MISMATCH_POLLS 2
 #define MODE_ECHO_WINDOW_MS (30 * 60 * 1000)
 #define MODE_RESEND_HOLDOFF_MS (15 * 60 * 1000)
 #define MODE_CMD_HISTORY_LEN 4
@@ -277,23 +216,33 @@ static uint8_t g_last_actual_mode = MATTER_DESIRED_MODE_UNKNOWN;
 static TickType_t g_actual_mode_changed_tick = 0;
 static uint8_t g_mode_mismatch_polls = 0;
 
+// command_task writes the history, sync_task reads it.
+static portMUX_TYPE g_mode_cmd_history_lock = portMUX_INITIALIZER_UNLOCKED;
+
 static void record_mode_command(uint8_t matter_mode)
 {
+    TickType_t now = xTaskGetTickCount();
+    taskENTER_CRITICAL(&g_mode_cmd_history_lock);
     g_mode_cmd_history[g_mode_cmd_history_next] = (mode_cmd_record_t){
-        .matter_mode = matter_mode, .tick = xTaskGetTickCount(), .valid = true};
+        .matter_mode = matter_mode, .tick = now, .valid = true};
     g_mode_cmd_history_next = (uint8_t)((g_mode_cmd_history_next + 1) % MODE_CMD_HISTORY_LEN);
+    taskEXIT_CRITICAL(&g_mode_cmd_history_lock);
 }
 
 static bool mode_commanded_within(uint8_t matter_mode, uint32_t window_ms)
 {
     TickType_t now = xTaskGetTickCount();
+    bool found = false;
+    taskENTER_CRITICAL(&g_mode_cmd_history_lock);
     for (int i = 0; i < MODE_CMD_HISTORY_LEN; i++) {
         const mode_cmd_record_t *r = &g_mode_cmd_history[i];
         if (r->valid && r->matter_mode == matter_mode && (now - r->tick) < pdMS_TO_TICKS(window_ms)) {
-            return true;
+            found = true;
+            break;
         }
     }
-    return false;
+    taskEXIT_CRITICAL(&g_mode_cmd_history_lock);
+    return found;
 }
 
 // First observation after boot is not treated as a change (tick stays 0), so
@@ -312,205 +261,7 @@ static void note_desired_mode_changed(void)
     g_mode_mismatch_polls = 0;
 }
 
-// Tuya's fan_speed_enum (0-7: Stop/Mute/Low/Med-Low/Med/Med-High/High/
-// Turbo, TUYA_DP_REFERENCE.md) -> the IR protocol's own 4-value Fan enum
-// (IR_FAN_* above). Not a 1:1 mapping -- Tuya exposes finer granularity
-// than this unit's IR protocol actually has, so this collapses each Tuya
-// step to the closest real IR level rather than inventing bit positions
-// that don't exist. HA/Matter can't select fan speed at all today (out of
-// scope per PLAN.md Milestone 2), so this only matters for *preserving*
-// whatever speed was last set via the physical remote or the Tuya app
-// across an unrelated IR command (see build_ir_state_frame()'s "Preserve
-// fields HA doesn't control" note) -- not for controlling it.
-static uint8_t map_tuya_fan_speed_to_ir(uint8_t tuya_fan_speed)
-{
-    switch (tuya_fan_speed) {
-        case 0: return IR_FAN_AUTO; // Stop
-        case 1: return IR_FAN_LOW;  // Mute
-        case 2: return IR_FAN_LOW;  // Low
-        case 3: return IR_FAN_LOW;  // Med-Low
-        case 4: return IR_FAN_MED;  // Med
-        case 5: return IR_FAN_MED;  // Med-High
-        case 6: return IR_FAN_HIGH; // High
-        case 7: return IR_FAN_HIGH; // Turbo
-        default: return IR_FAN_AUTO;
-    }
-}
 
-// Builds and transmits one full TCL112AC IR frame reflecting the AC's
-// best-known current state, with exactly one field overridden (whichever
-// this specific command is actually changing -- mode or setpoint, never
-// both at once since that's not how the Matter attributes arrive). Callers
-// are responsible for refreshing `status` from a fresh, on-demand Tuya GET
-// immediately beforehand (see command_task) -- this function only builds
-// and sends, it doesn't fetch, so the pre-send-refresh timing described in
-// PLAN.md Milestone 2 stays visible at the call site rather than hidden in
-// here.
-//
-// KNOWN LIMITATION, deliberate for now: Swing(V/H), Health, and Fresh Air
-// aren't preserved from the unit's actual live state -- every frame sent
-// from here carries the base template's fixed captured values for those
-// fields (see kBaseFrame-equivalent literal below), which could revert real
-// out-of-band changes (real remote, Tuya app) back to that fixed snapshot
-// rather than zeroing them outright as an earlier version of this function
-// did. Swing/Health are a deliberate user-call deferral (see
-// IR_PROTOCOL_REFERENCE.md's "Known gaps"); Fresh Air's IR bit position is
-// still genuinely unknown (capture attempted and abandoned). Fan speed and
-// Light are both preserved now (2026-09-09 and 2026-09-07 respectively) --
-// this comment previously listed them here too but that went stale. This
-// IS a real-world risk for the fields still unpreserved: as of 2026-09-07
-// an IR emitter is mounted and confirmed transmitting commands the unit
-// actually accepts (test_apps/ir_live_test).
-// Builds the frame array only (no send) -- shared by send_ir_frame() below
-// and send_followme_frame() (Follow-Me heartbeat), since both need the same
-// base-template-plus-known-fields construction and only differ in which
-// extra bits/bytes they layer on afterward.
-static void build_ir_state_frame(const tuya_device_status_t *status, bool power_on,
-                                   bool override_mode, uint8_t override_ir_mode,
-                                   bool override_setpoint, int16_t override_setpoint_c_x100,
-                                   uint8_t out_frame[IR_TCL112_FRAME_LEN],
-                                   uint8_t *out_ir_mode, int16_t *out_setpoint_c)
-{
-    uint8_t ir_mode;
-    if (override_mode) {
-        ir_mode = override_ir_mode;
-    } else {
-        uint8_t matter_mode = map_tuya_mode_to_matter(status);
-        int8_t mapped = map_matter_mode_to_ir(matter_mode);
-        ir_mode = (mapped >= 0) ? (uint8_t)mapped : IR_MODE_AUTO;
-    }
-
-    // status->temp_set (raw Celsius DP) was the no-override source here until
-    // 2026-10-01 -- every other reader of Tuya's setpoint in this file
-    // switched to temp_set_f-derived tuya_setpoint_f_to_c() back on
-    // 2026-09-01 (see apply_status_to_matter()'s comment) after finding
-    // temp_set is "coarser 0.5C-quantized... sitting a full degree off"
-    // temp_set_f; this function was the one place still reading the
-    // untrusted field directly. Root-caused via raw-pin capture comparison
-    // against the real remote (MiniSplitIR/capture_tools/esp_capture vs
-    // remote_capture): Follow-Me/mode-change frames consistently set the
-    // HalfDegree bit (state[12] 0x20) that the real remote's equivalent
-    // frames leave clear, for the same whole-degree Temp byte -- status->
-    // temp_set's own imprecision was producing an odd half_steps count that
-    // temp_set_f-derived values don't.
-    int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100
-                                                 : tuya_setpoint_f_to_c(status->temp_set_f);
-    // Round to the nearest HALF degree C, not whole degree -- 2026-09-09.
-    // Whole-degree-only rounding here was never a real hardware limit: it
-    // was found (live, real remote vs. Device B comparison) that sending
-    // 71F from the real remote makes the unit report back exactly 71F,
-    // which whole-degree Celsius cannot represent (21C=69.8F, 22C=71.6F --
-    // both round to something other than 71F, the "tie" IR_PROTOCOL_REFERENCE.md
-    // and the 2026-09-09 capture session attributed to AC hardware
-    // resolution). IRremoteESP8266's own ir_Tcl.cpp resolves this:
-    // `state[12]` bit `0x20` (HalfDegree -- "sourced, unconfirmed... not
-    // used by this project" per this project's own prior notes) adds +0.5C
-    // on top of the Temp field's whole-degree value (setTemp(): nrHalfDegrees
-    // = round(C*2), HalfDegree = nrHalfDegrees & 1, Temp = 31 -
-    // nrHalfDegrees/2). 21.5C (Temp=10, HalfDegree set) converts to exactly
-    // 71F via tuya_setpoint_c_to_f(), matching the real remote's observed
-    // behavior -- this was a real, fixable firmware gap, not an AC limit.
-    //
-    // half_steps counts 0.5C increments, rounded to nearest (round-half-up;
-    // setpoints are always positive, 16-31C range enforced below via
-    // half_steps' own 32-62 clamp, so the +25-before-truncate offset is
-    // exact -- same reasoning as the whole-degree rounding this replaces).
-    int16_t half_steps = (int16_t)((setpoint_c_x100 + 25) / 50);
-    if (half_steps < 32) {        // 16.0C
-        half_steps = 32;
-    } else if (half_steps > 62) { // 31.0C
-        half_steps = 62;
-    }
-    bool half_degree = (half_steps & 1) != 0;
-    // Whole-degree floor (e.g. 21 for both 21.0C and 21.5C) -- state[7]'s
-    // own value per setTemp()'s formula; the actual transmitted temperature
-    // is this plus 0.5 whenever half_degree is set below. Logging elsewhere
-    // in this function reports this floor, not the true half-degree value --
-    // acceptable, logging was never precise here to begin with.
-    int16_t setpoint_c = (int16_t)(31 - half_steps / 2);
-
-    // Base/template frame -- updated 2026-09-09 to a fresher real capture
-    // (Power: On, Mode: Cool, Temp: 21C, Fan: Auto, Light: On,
-    // Swing/Econo/Health/Turbo/Timers all off), replacing the original
-    // 2026-09-07 Fan/20C capture. See IR_PROTOCOL_REFERENCE.md's "Base/
-    // template frame" section and
-    // ../MiniSplitIR/captures/protocol_capture.md's 2026-09-09 re-capture
-    // session for the full writeup. Byte-for-byte equivalent to the old
-    // template for every field this function doesn't overwrite (Timers,
-    // Econo, Health, Turbo, SwingV, Follow-Me flag, isTcl/toggle) --
-    // swapping it is not expected to change on-wire behavior, only the
-    // documentation trail; kept as a real capture rather than `{0}` for the
-    // same reason as before. Construct every outgoing command from this
-    // array, overwriting only the fields this project actually controls
-    // (Power, Mode, Setpoint below) -- every field this project doesn't
-    // model yet rides along as a real captured default instead of a guess.
-    static const uint8_t kBaseFrame[IR_TCL112_FRAME_LEN] = {
-        0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x84, 0xCA,
-    };
-    memcpy(out_frame, kBaseFrame, IR_TCL112_FRAME_LEN);
-
-    // Power bit -- confirmed 2026-09-04 (see IR_PROTOCOL_REFERENCE.md's state
-    // byte map). Driven by the caller now that OnOff is wired to real IR
-    // (2026-09-07) instead of always forcing it on: the Desired Setpoint and
-    // System Mode call sites still always pass power_on=true (System Mode's
-    // kOff case idles in Fan mode rather than actually powering down -- see
-    // that call site's comment), but OnOff needs to actually turn the unit
-    // off. Getting this wrong the same way once already: leaving it clear
-    // unconditionally (when frame[5] came from `{0}`) silently sent "Power
-    // Off" as part of every command's full-state frame, found via live HA
-    // testing 2026-09-07 -- a Desired Setpoint change transmitted without
-    // error but the unit never visibly responded.
-    if (power_on) {
-        out_frame[5] |= 0x04;
-    } else {
-        out_frame[5] &= (uint8_t)~0x04;
-    }
-
-    // Light -- state[5] bit 0x40, sourced-but-unconfirmed polarity per
-    // IR_PROTOCOL_REFERENCE.md ("Inverted: ... bit clear = light on, bit set
-    // = light off"). Previously left at the base template's fixed captured
-    // value, which forced the unit's Light to that one snapshot on every
-    // single send regardless of its real current setting -- confirmed as a
-    // real, live regression via HA testing 2026-09-07 (Light reverted to
-    // off after an unrelated Desired Setpoint change). Now driven from the
-    // same pre-send Tuya refresh this function already receives, same as
-    // Mode/Setpoint above.
-    if (status->light) {
-        out_frame[5] &= (uint8_t)~0x40;
-    } else {
-        out_frame[5] |= 0x40;
-    }
-
-    // Fan -- state[8] bits 0-2, see map_tuya_fan_speed_to_ir() above. Bits
-    // 3-7 (SwingV, TimerIndicator, the unclaimed bit 7) are left as the
-    // base template's captured values, same "not preserved yet" limitation
-    // as Swing/Health/Fresh Air below.
-    out_frame[8] = (uint8_t)((out_frame[8] & ~0x07) | (map_tuya_fan_speed_to_ir(status->fan_speed) & 0x07));
-
-    out_frame[6] = (uint8_t)((out_frame[6] & ~0x0F) | (ir_mode & 0x0F));  // Mode nibble; bits 4-7 preserved from base
-    out_frame[7] = (uint8_t)setpoint_c;
-    // HalfDegree -- state[12] bit 0x20, see half_steps' doc comment above.
-    // isTcl (bit 0x80) and the anti-repeat toggle (bit 0x04) are left as
-    // the base template's values; frame[13] (checksum) is recomputed fresh
-    // by ir_tcl112_send().
-    if (half_degree) {
-        out_frame[12] |= 0x20;
-    } else {
-        out_frame[12] &= (uint8_t)~0x20;
-    }
-    //
-    // Fresh Air is NOT set anywhere in this Type 1 frame -- bit-level capture
-    // comparison (2026-09-10, MiniSplitIR/capture_tools' microsecond-resolution
-    // RawPinTest) found Type 1's state[12] byte-for-byte identical (0x84)
-    // regardless of Fresh Air state across 6 captures (3 on, 3 off). The real
-    // remote instead mirrors current Fresh Air state into the Type 2
-    // companion frame's state[12] bit 0x01 -- see transmit_ir_state_frame()'s
-    // kType2CompanionFrame handling below, where it's now wired from
-    // `status->fresh_air_valve`.
-
-    *out_ir_mode = ir_mode;
-    *out_setpoint_c = setpoint_c;
-}
 
 // Sends the Type 2 companion frame + the given Type 1 frame (already built
 // by build_ir_state_frame() or send_followme_frame()), logging both. Shared
@@ -532,18 +283,14 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
 // instead of the stale reported one -- otherwise the next Follow-Me
 // heartbeat would revert the change. After the window, Tuya's reported
 // state is trusted again (so a remote/app change sticks).
-#define FRESH_AIR_CONFIRM_WINDOW_MS (15 * 60 * 1000)
 static bool g_fresh_air_cmd_valid = false;
 static bool g_fresh_air_cmd_value = false;
 static TickType_t g_fresh_air_cmd_tick = 0;
 
 static bool effective_fresh_air(const tuya_device_status_t *status)
 {
-    if (g_fresh_air_cmd_valid &&
-        (xTaskGetTickCount() - g_fresh_air_cmd_tick) < pdMS_TO_TICKS(FRESH_AIR_CONFIRM_WINDOW_MS)) {
-        return g_fresh_air_cmd_value;
-    }
-    return status->fresh_air_valve;
+    uint32_t ms_since_cmd = pdTICKS_TO_MS(xTaskGetTickCount() - g_fresh_air_cmd_tick);
+    return fresh_air_effective(g_fresh_air_cmd_valid, g_fresh_air_cmd_value, ms_since_cmd, status->fresh_air_valve);
 }
 
 static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], bool fresh_air_on)
@@ -623,10 +370,34 @@ static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], boo
     return err;
 }
 
+static bool g_followme_active;
+
+// Ambient reading HA last relayed, rounded to the whole degrees C state[11]
+// carries (see IR_PROTOCOL_REFERENCE.md's Follow Me section).
+static bool followme_ambient_whole_c(int8_t *out_c)
+{
+    int16_t ambient_c_x100;
+    if (!matter_get_followme_ambient_temp_c_x100(&ambient_c_x100)) {
+        return false;
+    }
+    *out_c = (int8_t)((ambient_c_x100 >= 0 ? ambient_c_x100 + 50 : ambient_c_x100 - 50) / 100);
+    return true;
+}
+
 // See build_ir_state_frame()'s doc comment for the base-template/known-
 // limitation notes that apply here too. Callers are responsible for
 // refreshing `status` from a fresh, on-demand Tuya GET immediately
 // beforehand (see command_task) -- this function only builds and sends.
+//
+// 2026-10-04: while Follow-Me is active, command frames carry its bits and
+// the current ambient reading too (heartbeat-style, state[5] 0x20 clear).
+// A frame without them is byte-for-byte the real remote's Follow-Me
+// *disable* frame (IR_PROTOCOL_REFERENCE.md's "Follow Me behavior"), so every
+// setpoint/mode/Fresh Air command and sync_task correction used to switch
+// the unit back to its own onboard sensor -- which read ~73F against
+// Follow-Me's ~73F room on 2026-10-04 (75-77F reported) -- until the next
+// heartbeat re-engaged it, up to 3 minutes later.
+// Power-off frames are left plain (the unit is turning off anyway).
 static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on,
                            bool override_mode, uint8_t override_ir_mode,
                            bool override_setpoint, int16_t override_setpoint_c_x100)
@@ -638,50 +409,44 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
                           override_setpoint, override_setpoint_c_x100,
                           frame, &ir_mode, &setpoint_c);
 
+    int8_t ambient_c = 0;
+    bool with_followme = power_on && g_followme_active && followme_ambient_whole_c(&ambient_c);
+    if (with_followme) {
+        ir_frame_set_followme(frame, ambient_c);
+    }
+
     esp_err_t err = transmit_ir_state_frame(frame, effective_fresh_air(status));
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "IR frame sent: power=%s mode=%u setpoint=%dC",
-                 power_on ? "on" : "off", ir_mode, setpoint_c);
+        ESP_LOGI(TAG, "IR frame sent: power=%s mode=%u setpoint=%dC follow_me=%s",
+                 power_on ? "on" : "off", ir_mode, setpoint_c, with_followme ? "kept" : "off");
     }
     return err;
 }
 
-// Follow-Me heartbeat/enable frame (PLAN.md Milestone 3). Reflects the same
+// Follow-Me heartbeat frame (PLAN.md Milestone 3). Reflects the same
 // Power/Mode/Setpoint/Light as a regular command (via build_ir_state_frame(),
 // no overrides -- Follow-Me doesn't change any of those, just layers its own
 // bits on top), plus:
 //   - state[4]/state[6] bit 0x80: Follow-Me enabled (state[6]'s copy is a
 //     real capture-confirmed mirror of state[4]'s, not independently
 //     meaningful on its own).
-//   - state[5] bit 0x20: set for the first frame after Follow-Me was last
-//     inactive ("enable" instance), clear for every subsequent periodic
-//     re-send ("heartbeat") -- see IR_PROTOCOL_REFERENCE.md's "Follow Me
-//     behavior" section.
+//   - state[5] bit 0x20 clear: heartbeat, not the remote's beeping "enable"
+//     instance -- see IR_PROTOCOL_REFERENCE.md's "Follow Me behavior".
 //   - state[11]: ambient sensor temp, whole degrees C.
-// g_followme_active tracks which of those two instance types this call is;
-// followme_task resets it to false whenever a tick is skipped (no sensor
-// reading, no confirmed Tuya state), so resuming after a gap is treated as a
-// fresh enable rather than a continued heartbeat.
+// 2026-10-05: always a heartbeat. The enable instance (on boot, after any
+// data gap, and a forced one every 8 hours) was removed after confirming a
+// plain heartbeat turns Follow-Me on by itself (2026-10-04, three times after
+// disable-shaped frames; IR_PROTOCOL_REFERENCE.md) -- so the 3-minute
+// heartbeat already re-asserts it continuously, and the enable instance only
+// added beeps.
+//
+// g_followme_active: a heartbeat has gone out since the last gap (no
+// sensor reading, unit off). send_ir_frame() only carries Follow-Me bits in
+// command frames while this is set.
 static bool g_followme_active = false;
 
-// Tick of the last forced Follow-Me re-enable -- see followme_task's
-// interval check below. 0 = never forced yet this boot. This is a
-// *belt-and-suspenders* re-enable, distinct from the reactive one above: IR
-// is one-way and unacknowledged, so this firmware has no way to know whether
-// the AC actually received recent heartbeats -- a run of silently-dropped
-// heartbeats (blocked line of sight, interference) could let the AC's own
-// internal Follow-Me fallback timeout lapse without g_followme_active ever
-// noticing, since that flag only reflects whether *this firmware* has valid
-// upstream data, not whether the unit received what was sent. Forcing one
-// real enable-instance send on a fixed interval bounds how long that
-// undetectable failure mode could persist. Changed 2026-10-01 from "once per
-// Pacific calendar day around noon" to a flat interval (FOLLOWME_FORCED_
-// REENABLE_INTERVAL_MS) at the user's request -- also drops the tm_yday/
-// localtime_r dependency on wall-clock time being synced at all.
-static TickType_t g_followme_last_forced_tick = 0;
-
-// Timestamp of the last successful Follow-Me send specifically (enable or
-// heartbeat) -- 2026-10-01: previously shared with every IR send of any
+// Timestamp of the last successful Follow-Me send specifically -- 2026-10-01:
+// previously shared with every IR send of any
 // kind (command or heartbeat) via a single g_last_ir_send_tick, which meant
 // an unrelated command sent from command_task reset followme_task's 3-minute
 // clock, delaying the next heartbeat by a full interval every time one fired
@@ -689,10 +454,7 @@ static TickType_t g_followme_last_forced_tick = 0;
 // just-sent command" note). Changed on request: a real heartbeat needs to go
 // out every 3 minutes regardless of other traffic -- repeatedly pushing it
 // back risks the AC's own internal Follow-Me fallback timeout lapsing if
-// commands happen to arrive more often than every 3 minutes (the exact
-// failure mode g_followme_last_forced_tick's periodic re-enable already
-// exists to bound, so letting the heartbeat itself get starved the same way was
-// working against that safeguard, not just a minor scheduling nicety).
+// commands happen to arrive more often than every 3 minutes.
 static TickType_t g_last_followme_send_tick = 0;
 
 static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t ambient_temp_c)
@@ -701,24 +463,14 @@ static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t 
     uint8_t ir_mode;
     int16_t setpoint_c;
     build_ir_state_frame(status, true, false, 0, false, 0, frame, &ir_mode, &setpoint_c);
-
-    bool is_enable_instance = !g_followme_active;
-
-    frame[4] |= 0x80;
-    frame[6] |= 0x80;
-    if (is_enable_instance) {
-        frame[5] |= 0x20;
-    } else {
-        frame[5] &= (uint8_t)~0x20;
-    }
-    frame[11] = (uint8_t)ambient_temp_c;
+    ir_frame_set_followme(frame, ambient_temp_c);
 
     esp_err_t err = transmit_ir_state_frame(frame, effective_fresh_air(status));
     if (err == ESP_OK) {
         g_followme_active = true;
         g_last_followme_send_tick = xTaskGetTickCount();
-        ESP_LOGI(TAG, "Follow-Me %s sent: ambient=%dC mode=%u setpoint=%dC",
-                 is_enable_instance ? "enable" : "heartbeat", ambient_temp_c, ir_mode, setpoint_c);
+        ESP_LOGI(TAG, "Follow-Me heartbeat sent: ambient=%dC mode=%u setpoint=%dC",
+                 ambient_temp_c, ir_mode, setpoint_c);
     }
     return err;
 }
@@ -895,8 +647,10 @@ static void check_setpoint_mismatch_outage(const tuya_device_status_t *status)
 
 static void cache_and_apply_status(const tuya_device_status_t *device_status)
 {
+    taskENTER_CRITICAL(&g_status_cache_lock);
     g_last_device_status = *device_status;
     g_last_device_status_valid = true;
+    taskEXIT_CRITICAL(&g_status_cache_lock);
     // Must run before apply_status_to_matter() -- that's what pushes
     // outage_log_any_active()/outage_log_active_reason() to HA, so the
     // bookkeeping above needs to be current before that push happens (same
@@ -908,57 +662,55 @@ static void cache_and_apply_status(const tuya_device_status_t *device_status)
 
 static void reconcile_system_mode(const tuya_device_status_t *status)
 {
-    uint8_t actual = map_tuya_mode_to_matter(status);
-    uint8_t desired = matter_get_desired_system_mode();
-
-    if (desired == MATTER_DESIRED_MODE_UNKNOWN) {
-        ESP_LOGI(TAG, "Mode reconcile: no desired mode recorded yet, adopting unit's mode %u", actual);
-        matter_set_desired_system_mode(actual);
-        note_desired_mode_changed();
-        return;
-    }
-    if (actual == desired || matter_get_system_mode_command() != 0xFF || matter_get_onoff_command()) {
-        g_mode_mismatch_polls = 0;
-        return;
-    }
-    if (++g_mode_mismatch_polls < MODE_MISMATCH_POLLS) {
-        ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u (poll %u/%u), waiting",
-                 actual, desired, g_mode_mismatch_polls, MODE_MISMATCH_POLLS);
-        return;
-    }
-
     TickType_t now = xTaskGetTickCount();
-    bool unit_moved_last = (now - g_actual_mode_changed_tick) < (now - g_desired_mode_changed_tick);
-    if (unit_moved_last && !mode_commanded_within(actual, MODE_ECHO_WINDOW_MS)) {
-        ESP_LOGW(TAG, "Mode reconcile: unit changed to %u on its own (remote/app), Desired adopts it (was %u)",
-                 actual, desired);
-        matter_set_desired_system_mode(actual);
-        note_desired_mode_changed();
-        return;
-    }
+    mode_reconcile_input_t in = {
+        .actual = map_tuya_mode_to_matter(status),
+        .desired = matter_get_desired_system_mode(),
+        .command_pending = matter_get_system_mode_command() != 0xFF || matter_get_onoff_command(),
+        .unit_moved_last = (now - g_actual_mode_changed_tick) < (now - g_desired_mode_changed_tick),
+    };
+    in.actual_recently_commanded = mode_commanded_within(in.actual, MODE_ECHO_WINDOW_MS);
+    in.desired_recently_commanded = mode_commanded_within(in.desired, MODE_RESEND_HOLDOFF_MS);
 
-    int8_t ir_mode = map_matter_mode_to_ir(desired);
-    if (desired != 0 && ir_mode < 0) {
-        ESP_LOGW(TAG, "Mode reconcile: desired mode %u has no IR equivalent, adopting unit's %u", desired, actual);
-        matter_set_desired_system_mode(actual);
-        note_desired_mode_changed();
-        return;
+    switch (mode_reconcile_decide(&in, &g_mode_mismatch_polls)) {
+        case MODE_RECONCILE_IN_SYNC:
+            return;
+        case MODE_RECONCILE_ADOPT_UNKNOWN:
+            ESP_LOGI(TAG, "Mode reconcile: no desired mode recorded yet, adopting unit's mode %u", in.actual);
+            break;
+        case MODE_RECONCILE_WAIT_POLLS:
+            ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u (poll %u/%u), waiting",
+                     in.actual, in.desired, g_mode_mismatch_polls, MODE_MISMATCH_POLLS);
+            return;
+        case MODE_RECONCILE_ADOPT:
+            ESP_LOGW(TAG, "Mode reconcile: unit changed to %u on its own (remote/app), Desired adopts it (was %u)",
+                     in.actual, in.desired);
+            break;
+        case MODE_RECONCILE_ADOPT_UNMAPPABLE:
+            ESP_LOGW(TAG, "Mode reconcile: desired mode %u has no IR equivalent, adopting unit's %u",
+                     in.desired, in.actual);
+            break;
+        case MODE_RECONCILE_WAIT_ECHO:
+            ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u, waiting for the recent send to show up in Tuya",
+                     in.actual, in.desired);
+            return;
+        case MODE_RECONCILE_RESEND: {
+            ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u -- resending desired mode via IR", in.actual, in.desired);
+            esp_err_t err = (in.desired == 0)
+                ? send_ir_frame(status, false, false, 0, false, 0)
+                : send_ir_frame(status, true, true, (uint8_t)map_matter_mode_to_ir(in.desired), false, 0);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Mode reconcile: IR send failed: %s", esp_err_to_name(err));
+                return;
+            }
+            record_mode_command(in.desired);
+            g_mode_mismatch_polls = 0;
+            return;
+        }
     }
-    if (mode_commanded_within(desired, MODE_RESEND_HOLDOFF_MS)) {
-        ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u, waiting for the recent send to show up in Tuya",
-                 actual, desired);
-        return;
-    }
-
-    ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u -- resending desired mode via IR", actual, desired);
-    esp_err_t err = (desired == 0) ? send_ir_frame(status, false, false, 0, false, 0)
-                                   : send_ir_frame(status, true, true, (uint8_t)ir_mode, false, 0);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Mode reconcile: IR send failed: %s", esp_err_to_name(err));
-        return;
-    }
-    record_mode_command(desired);
-    g_mode_mismatch_polls = 0;
+    // The three ADOPT outcomes.
+    matter_set_desired_system_mode(in.actual);
+    note_desired_mode_changed();
 }
 
 /**
@@ -989,11 +741,7 @@ static esp_err_t wait_for_time_sync(void)
             // Pacific time, DST-aware (PST8PDT with US DST rules) -- matches
             // the rest of the home automation stack (HA, wyse). Nothing
             // before this point should call localtime_r()/asctime() and
-            // expect local time; everything after can (followme_task's old
-            // daily-noon re-enable used to be the one example of this --
-            // replaced 2026-10-01 with a flat tick-based interval that no
-            // longer depends on wall-clock time at all, see
-            // FOLLOWME_FORCED_REENABLE_INTERVAL_MS). No effect on time(),
+            // expect local time; everything after can. No effect on time(),
             // only on the libc calls that consult TZ.
             setenv("TZ", "PST8PDT,M3.2.0,M11.1.0", 1);
             tzset();
@@ -1189,7 +937,8 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
     for (int attempt = 1; attempt <= POST_SEND_VERIFY_MAX_ATTEMPTS; attempt++) {
         vTaskDelay(pdMS_TO_TICKS(POST_SEND_VERIFY_RETRY_DELAY_MS));
 
-        tuya_device_status_t status = g_last_device_status;
+        tuya_device_status_t status;
+        status_cache_get(&status);
         if (tuya_get_device_status(&status) != ESP_OK) {
             ESP_LOGW(TAG, "Post-send verify poll %d/%d: Tuya GET failed, retrying",
                      attempt, POST_SEND_VERIFY_MAX_ATTEMPTS);
@@ -1223,11 +972,6 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
 // guess mentioned there.
 #define FOLLOWME_HEARTBEAT_INTERVAL_MS (3 * 60 * 1000)
 
-// Forced re-enable interval -- see g_followme_last_forced_tick's doc
-// comment. Changed 2026-10-01 from "once per Pacific calendar day around
-// noon" to a flat 8 hours at the user's request.
-#define FOLLOWME_FORCED_REENABLE_INTERVAL_MS (8 * 60 * 60 * 1000)
-
 /**
  * @brief Follow-Me task (PLAN.md Milestone 3): periodically sends the
  *        ambient-temperature sensor reading to the unit over IR.
@@ -1240,28 +984,16 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
  * separate HA-exposed enable/disable control, matching this project's
  * minimal-surface approach elsewhere.
  *
- * Sends a real enable-instance frame (audible beep on the unit, confirmed
- * 2026-09-09) once on the first successful tick after boot or after any data
- * gap (reactive, via g_followme_active), and additionally every
- * FOLLOWME_FORCED_REENABLE_INTERVAL_MS (8 hours) regardless of whether
- * g_followme_active already thinks it's active (belt-and-suspenders, see
- * g_followme_last_forced_tick's doc comment) -- every other send is a
- * silent heartbeat.
+ * Every send is a silent heartbeat (2026-10-05 -- see send_followme_frame()'s
+ * comment for why the beeping enable instance was dropped).
  *
  * The very first loop iteration after boot skips the interval wait below
  * (see first_pass) -- fixed 2026-09-10 after finding this task always slept
  * a full FOLLOWME_HEARTBEAT_INTERVAL_MS (3 minutes) before its very first
- * check on every boot, regardless of data availability, contradicting this
- * comment's own "once on the first successful tick after boot" claim: with
- * g_last_followme_send_tick starting at 0, the very first elapsed/interval_ticks
- * comparison a few seconds into boot was always < the interval, so the
- * "first tick" never actually landed until ~3 minutes in. The data-validity
- * checks just below (ambient reading available, confirmed Tuya state
- * available) already guard against acting on stale/default state on their
- * own -- NVS-persisted ambient temp and sync_task's own no-initial-wait
- * first poll mean both are normally available within seconds of boot, not
- * 3 minutes -- so the extra interval-based wait was redundant and was the
- * actual cause of "no beep on boot."
+ * check on every boot. The data-validity checks just below (ambient reading
+ * available, confirmed Tuya state available) already guard against acting
+ * on stale/default state, and both are normally available within seconds of
+ * boot.
  *
  * Schedules strictly off its own last send (g_last_followme_send_tick), not
  * off any command send -- see that variable's doc comment (2026-10-01): a
@@ -1289,21 +1021,15 @@ static void followme_task(void *param)
         }
         first_pass = false;
 
-        int16_t ambient_c_x100;
-        if (!matter_get_followme_ambient_temp_c_x100(&ambient_c_x100)) {
+        int8_t ambient_c;
+        if (!followme_ambient_whole_c(&ambient_c)) {
             ESP_LOGW(TAG, "Follow-Me: no ambient sensor reading from HA yet, skipping this tick");
-            // Treat the next successful reading as a fresh enable, not a
-            // continued heartbeat -- see send_followme_frame()'s doc comment.
             g_followme_active = false;
             vTaskDelay(interval_ticks);
             continue;
         }
-        // Round to the nearest whole degree C -- state[11] only carries
-        // whole-degree values (see IR_PROTOCOL_REFERENCE.md's Follow Me
-        // section), same reasoning as build_ir_state_frame()'s setpoint
-        // rounding.
-        int8_t ambient_c = (int8_t)((ambient_c_x100 >= 0 ? ambient_c_x100 + 50 : ambient_c_x100 - 50) / 100);
-        if (!g_last_device_status_valid) {
+        tuya_device_status_t cached_status;
+        if (!status_cache_get(&cached_status)) {
             ESP_LOGW(TAG, "Follow-Me: no confirmed Tuya state yet, skipping this tick");
             vTaskDelay(interval_ticks);
             continue;
@@ -1312,30 +1038,15 @@ static void followme_task(void *param)
         // off its mode byte falls back to Auto (kOff has no IR mode) -- so
         // this heartbeat was turning an off unit back on in Auto. Matches
         // the unit going off->auto with no command from HA on 2026-10-01
-        // and 2026-10-03. Skip while off; the next tick after it turns back
-        // on re-enables Follow-Me (with its beep) via g_followme_active.
-        if (!g_last_device_status.switch_state) {
+        // and 2026-10-03. Skip while off; the first heartbeat after it turns
+        // back on re-engages Follow-Me.
+        if (!cached_status.switch_state) {
             g_followme_active = false;
             vTaskDelay(interval_ticks);
             continue;
         }
 
-        // Forced re-enable (see g_followme_last_forced_tick's doc comment)
-        // -- every FOLLOWME_FORCED_REENABLE_INTERVAL_MS, upgrade whatever
-        // tick happens to land then into a real enable instance instead of
-        // a heartbeat, even though g_followme_active already thinks it's
-        // active. g_followme_last_forced_tick starts at 0, so this can't
-        // fire until real uptime has actually passed the interval -- no
-        // special-case needed for "never forced yet this boot".
-        TickType_t now_tick = xTaskGetTickCount();
-        if ((now_tick - g_followme_last_forced_tick) >= pdMS_TO_TICKS(FOLLOWME_FORCED_REENABLE_INTERVAL_MS)) {
-            ESP_LOGI(TAG, "Follow-Me: periodic forced re-enable (%u h interval)",
-                     (unsigned)(FOLLOWME_FORCED_REENABLE_INTERVAL_MS / 3600000));
-            g_followme_active = false;
-            g_followme_last_forced_tick = now_tick;
-        }
-
-        esp_err_t err = send_followme_frame(&g_last_device_status, ambient_c);
+        esp_err_t err = send_followme_frame(&cached_status, ambient_c);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Follow-Me send failed: %s", esp_err_to_name(err));
         }
@@ -1377,7 +1088,8 @@ static void command_task(void *param)
             // of always forcing power on. Same pre-send-refresh pattern as
             // the Desired Setpoint/System Mode blocks below, so the mode/
             // setpoint bytes this frame preserves reflect current reality.
-            tuya_device_status_t refreshed_status = g_last_device_status;
+            tuya_device_status_t refreshed_status;
+            status_cache_get(&refreshed_status);
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
                 note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);
@@ -1453,7 +1165,8 @@ static void command_task(void *param)
             // up to STATUS_POLL_INTERVAL_MS. This also keeps EP1's mirrored
             // setpoint/temp (and the Tuya app view) fresh within seconds,
             // same benefit the old post-send refresh below used to provide.
-            tuya_device_status_t refreshed_status = g_last_device_status;
+            tuya_device_status_t refreshed_status;
+            status_cache_get(&refreshed_status);
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
                 note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);
@@ -1503,7 +1216,8 @@ static void command_task(void *param)
             // right before building the IR frame, so the setpoint byte this
             // frame preserves reflects any out-of-band change instead of a
             // possibly-stale cached value.
-            tuya_device_status_t refreshed_status = g_last_device_status;
+            tuya_device_status_t refreshed_status;
+            status_cache_get(&refreshed_status);
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
                 note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);
@@ -1589,7 +1303,8 @@ static void command_task(void *param)
         if (matter_get_fresh_air_command(&fresh_air_desired)) {
             ESP_LOGI(TAG, "Processing Fresh Air command: %s", fresh_air_desired ? "ON" : "OFF");
 
-            tuya_device_status_t refreshed_status = g_last_device_status;
+            tuya_device_status_t refreshed_status;
+            status_cache_get(&refreshed_status);
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
                 note_tuya_poll_success();
                 cache_and_apply_status(&refreshed_status);

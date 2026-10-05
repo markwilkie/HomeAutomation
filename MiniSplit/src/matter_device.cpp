@@ -117,8 +117,8 @@ typedef struct {
     // followme_ambient_valid tracks whether a real value is known; main.c's
     // followme_task won't send a Follow-Me frame until this is true.
     // NVS-persisted (2026-09-09, same pattern as desired_cooling_setpoint)
-    // so a reboot doesn't lose the last-known reading and silently skip the
-    // boot-time enable beep -- HA's relay automation only fires on the
+    // so a reboot doesn't lose the last-known reading and silently skip
+    // Follow-Me until the sensor next changes -- HA's relay automation only fires on the
     // sensor's state *change*, not on every Device B boot, so without this
     // there was no guarantee anything would re-arrive promptly.
     int16_t followme_ambient_temp_c_x100;
@@ -253,9 +253,9 @@ static void nvs_load_persisted_state(matter_device_state_t *state)
     // always resets followme_ambient_valid to false, and since the HA relay
     // automation only fires on the sensor's *state change* (not on every
     // Device B boot), there's no guarantee anything re-arrives promptly --
-    // observed live as a boot with no Follow-Me enable beep at all, silently,
+    // observed live as a boot with no Follow-Me at all, silently,
     // until the ambient sensor happened to tick again on its own. Restoring
-    // the last-known value here lets followme_task re-engage (and beep) on
+    // the last-known value here lets followme_task re-engage on
     // the first tick after boot, same as before any reboot ever happened,
     // rather than waiting on an external event this firmware doesn't control.
     int16_t followme_ambient = 0;

@@ -9,6 +9,8 @@
 #include "cJSON.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/md.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
@@ -61,6 +63,14 @@ typedef struct {
 } http_response_accumulator_t;
 
 static tuya_client_context_t g_tuya_ctx = {0};
+
+// Serializes every Tuya HTTPS request and token refresh (2026-10-05).
+// sync_task and command_task both call into this client concurrently, and
+// they share g_tuya_ctx's access token: a refresh in one could rewrite the
+// token mid-way through the other building/signing a request, and two TLS
+// sessions at once (~40KB each) is a lot of heap on this chip. Recursive
+// because a request can trigger a refresh, which issues its own request.
+static SemaphoreHandle_t g_tuya_lock = NULL;
 
 /**
  * @brief Calculate current time in milliseconds since epoch
@@ -227,7 +237,7 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
 /**
  * @brief Make signed HTTP request to Tuya API
  */
-static esp_err_t tuya_api_request(
+static esp_err_t tuya_api_request_unlocked(
     const char *method,
     const char *endpoint,
     const char *request_body,
@@ -366,6 +376,23 @@ static esp_err_t tuya_api_request(
 /**
  * @brief Validate common Tuya response payload and detect token invalid errors
  */
+static esp_err_t tuya_api_request(
+    const char *method,
+    const char *endpoint,
+    const char *request_body,
+    char *response_buffer,
+    size_t response_buffer_len)
+{
+    if (g_tuya_lock) {
+        xSemaphoreTakeRecursive(g_tuya_lock, portMAX_DELAY);
+    }
+    esp_err_t err = tuya_api_request_unlocked(method, endpoint, request_body, response_buffer, response_buffer_len);
+    if (g_tuya_lock) {
+        xSemaphoreGiveRecursive(g_tuya_lock);
+    }
+    return err;
+}
+
 static esp_err_t tuya_validate_success_response(const char *response_json, bool *token_invalid)
 {
     if (!response_json) {
@@ -495,6 +522,12 @@ esp_err_t tuya_client_init(const char *device_id, const char *client_id, const c
     strncpy(g_tuya_ctx.client_id, client_id, sizeof(g_tuya_ctx.client_id) - 1);
     strncpy(g_tuya_ctx.client_secret, client_secret, sizeof(g_tuya_ctx.client_secret) - 1);
     g_tuya_ctx.token_expiry_ms = 0;
+    if (!g_tuya_lock) {
+        g_tuya_lock = xSemaphoreCreateRecursiveMutex();
+        if (!g_tuya_lock) {
+            return ESP_ERR_NO_MEM;
+        }
+    }
 
     ESP_LOGI(TAG, "Tuya client initialized for device: %s", device_id);
     
@@ -747,7 +780,21 @@ esp_err_t tuya_set_fresh_air(bool on)
     return result;
 }
 
+static esp_err_t tuya_refresh_token_unlocked(void);
+
 esp_err_t tuya_refresh_token(void)
+{
+    if (g_tuya_lock) {
+        xSemaphoreTakeRecursive(g_tuya_lock, portMAX_DELAY);
+    }
+    esp_err_t err = tuya_refresh_token_unlocked();
+    if (g_tuya_lock) {
+        xSemaphoreGiveRecursive(g_tuya_lock);
+    }
+    return err;
+}
+
+static esp_err_t tuya_refresh_token_unlocked(void)
 {
     char *response_buffer = calloc(1, HTTP_BUFFER_SIZE);
     if (!response_buffer) {

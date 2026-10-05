@@ -43,3 +43,6 @@ __pycache__/
 # Matter/commissioning artifacts
 *.qr
 commissioning_code.txt
+
+# Host unit-test binary (test/host/run.sh)
+test/host/test_control_logic

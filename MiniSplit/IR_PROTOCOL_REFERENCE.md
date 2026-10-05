@@ -257,6 +257,68 @@ before the Type 1 frame on every call, shared by both `send_ir_frame()` and
   minutes was used as an unverified placeholder in earlier planning. Doesn't
   actually gate this project's own heartbeat interval (see above), so it's
   low-priority to re-measure unless something else starts depending on it.
+- **Observable effect — the unit's reported indoor temp (confirmed
+  2026-10-04 from HA history):** while Follow-Me is active the unit reports
+  the Follow-Me reading as its own current temperature — Tuya's
+  `temp_current` (HA: "Indoor Temp (from Tuya)", `sensor.mini_split_ac_
+  bridge_temperature_1` / `climate.mini_split_ac_bridge_thermostat_1`'s
+  `current_temperature`) tracks the Follow-Me sensor within ~1°F, in whole-°C
+  steps (68/70/72/73°F), for hours at a time. When Follow-Me is off it falls
+  back to the onboard sensor, which reads ~3-4°F warm (75-77°F against a
+  ~73°F room). This is the practical way to tell whether Follow-Me is
+  engaged. (The beep on an enable instance used to be the other signal;
+  this firmware no longer sends enable instances — see below.)
+  **Verified by injection 2026-10-05**, not just correlation (the unit also
+  fan-samples its own sensor, which could produce similar-looking data): a
+  fake 26.7°C reading published on `zigbee2mqtt/minisplit_followme_temp`
+  was relayed to the bridge at 08:12, and the unit reported **81°F (27°C)**
+  at 08:16 in a ~69°F room — then 70°F again by 08:27 after the real
+  reading was restored.
+- **A heartbeat re-enables after a disable (confirmed 2026-10-04):** after a
+  plain (disable-shaped) frame, the unit's reported temp jumped to its
+  onboard reading and returned to the Follow-Me value at the next heartbeat
+  — no enable instance needed. Observed three times: 18:51 command → 77°F
+  at 18:52 → 73°F at 18:57; 19:30 → 77°F → 73°F at 19:33; 21:10 → 75°F →
+  73°F at 21:12. So a lapse lasts at most one heartbeat interval (3 min).
+  On that basis, since 2026-10-05 the firmware sends **only heartbeats** —
+  no enable instance on boot, after a data gap, or every 8 hours (all
+  removed). The unit no longer beeps for Follow-Me; check it via the
+  reported indoor temp above.
+- **Command frames keep Follow-Me on (2026-10-04):** while Follow-Me is
+  active, `send_ir_frame()` adds the same bits as a heartbeat (`state[4]`/
+  `state[6]` bit 7, `state[11]` = ambient, `state[5]` `0x20` clear). Before
+  this, every setpoint/mode/Fresh Air command was the plain baseline frame —
+  i.e. exactly the disable frame above — so each one switched the unit back
+  to its onboard sensor. What the real remote sends for an ordinary button
+  press while Follow-Me is on hasn't been captured; this follows the
+  full-state-every-frame model.
+
+## Fields not preserved across bridge-sent frames (by design)
+
+Every frame this firmware sends is a full state, and these fields are taken
+from the base template (or a lossy mapping), not from the unit's current
+state. Decided 2026-10-04 (owner's call) to leave them this way: they
+aren't needed here, several of the bit positions are sourced-but-unconfirmed (preserving
+them via an unconfirmed bit risks a different unintended change), and the
+Follow-Me heartbeat re-sends every 3 minutes, so any of them changed from
+the remote or Tuya app will be reset within ~3 minutes.
+
+| Field | What every frame sends | Tuya DP that could feed it |
+|---|---|---|
+| Health | off (`state[6]` `0x10` clear) | `health` (already parsed into `tuya_device_status_t`, unused) |
+| Vertical / horizontal swing | off (`state[8]` bits 3-5 = 0, `state[12]` `0x08` clear) | `vertical_wind` / `horizontal_wind` (not parsed) |
+| Eco | off (`state[5]` `0x80` clear) | `eco` (not parsed) |
+| Turbo | off (`state[6]` `0x20` clear) | `fan_speed_enum` = 7 |
+| Quiet | off (Type 2 template) | `fan_speed_enum` = 1 (Mute) |
+| Fan speed | Tuya's 8 levels collapsed to IR's 4: Stop→Auto, Mute/Low/Med-Low→Low, Med/Med-High→Med, High/Turbo→High (`map_tuya_fan_speed_to_ir()`) | `fan_speed_enum` |
+| On/Off timers | cleared (`state[5]` bits 3-4, `state[8]` bit 6, `state[9]`/`state[10]` = 0) | `weektimer*` / `specialtimer` (cloud-side, not IR) |
+| Light | copied from Tuya `light`, but the inverted polarity (`state[5]` `0x40`) is sourced-unconfirmed | `light` |
+
+Preserved correctly: Power (explicit per caller), Mode, Setpoint (0.5°C
+resolution via HalfDegree), Fan within the 4 IR levels, Fresh Air (Type 2
+`state[12]` bit 0), Follow-Me (above). If any of the table's features start
+being used, the fix is reading the DP and writing the (capture-confirmed)
+bit in `build_ir_state_frame()` — confirm the bit first.
 
 ## Known gaps
 
