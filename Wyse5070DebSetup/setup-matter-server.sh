@@ -16,7 +16,7 @@
 # same-WebSocket-API drop-in, specifically for "greater stability... fewer
 # bugs, and faster start-up and recovery" -- directly targeting the same
 # multi-hour secondary-endpoint staleness this project hit after otbr blips
-# (see ARCHITECTURE.md / MiniSplit's HA-presentation notes). Migrated here on
+# (see MiniSplit/docs/archive/ARCHITECTURE.md / MiniSplit's HA-presentation notes). Migrated here on
 # 2026-07-12; existing /data is reused and auto-migrated on first start.
 #
 # PREREQUISITE: Home Assistant must already be running (see

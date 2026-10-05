@@ -23,7 +23,7 @@ Before attempting commissioning:
       `setup-nat64-jool.sh` automatically, but if you're troubleshooting, confirm with
       `docker exec otbr sh -c "ot-ctl nat64 state"` (should show `Disabled` for both — OTBR's own
       translator is deliberately turned off in favor of Jool, see
-      [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
+      [ARCHITECTURE.md](docs/archive/ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
 - [ ] BlueZ running on whatever host runs `matterjs-server` — see
       `../Wyse5070DebSetup/setup-bluetooth.sh`. Needed to hand the Thread dataset to the device
       during BLE commissioning; `matterjs-server`'s own websocket server-info message should
@@ -350,7 +350,7 @@ full session.
   sync...` in the serial log is followed by repeated `Still waiting for SNTP time sync` warnings
   rather than `Time synchronized` within a few seconds, NAT64 (Jool) isn't working; check
   `docker exec otbr sh -c "ot-ctl nat64 state"` (should be `Disabled` for both — Jool handles it
-  externally now, see [ARCHITECTURE.md](ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
+  externally now, see [ARCHITECTURE.md](docs/archive/ARCHITECTURE.md#nat64-jool-not-otbrs-built-in-translator))
   and `jool -i nat64 session display --udp` (via the chroot pattern in `setup-nat64-jool.sh`) for
   active sessions
 - Tuya API credentials incorrect
@@ -458,7 +458,7 @@ After commissioning:
 4. Confirm Tuya API calls succeed reliably over several sync cycles (exercises OTBR's border
    routing to the internet, which this app hasn't relied on before)
 
-See [PHASE2_MATTER.md](PHASE2_MATTER.md) for the underlying Matter cluster/endpoint details (note:
+See [PHASE2_MATTER.md](docs/archive/PHASE2_MATTER.md) for the underlying Matter cluster/endpoint details (note:
 written against the original WiFi build, but the cluster/endpoint content itself is unaffected by
 the transport change).
 
@@ -474,7 +474,7 @@ the transport change).
 
 If you encounter issues during commissioning:
 
-1. Check logs in [PHASE2_MATTER.md](PHASE2_MATTER.md#troubleshooting)
+1. Check logs in [PHASE2_MATTER.md](docs/archive/PHASE2_MATTER.md#troubleshooting)
 2. Review [MATTER_SDK_SETUP.md](MATTER_SDK_SETUP.md#troubleshooting)
 3. Enable debug logging (see "Advanced Troubleshooting" above)
 4. Check OTBR's web UI and `matterjs-server` container logs for Thread-side issues
@@ -855,7 +855,7 @@ If you need to manually enter a code:
 4. ⏳ Implement command routing
 5. ⏳ Test full end-to-end automation
 
-See [PHASE2_MATTER.md](PHASE2_MATTER.md) for Matter details.
+See [PHASE2_MATTER.md](docs/archive/PHASE2_MATTER.md) for Matter details.
 
 ### Reference Links
 
@@ -868,7 +868,7 @@ See [PHASE2_MATTER.md](PHASE2_MATTER.md) for Matter details.
 
 If you encounter issues during commissioning:
 
-1. Check logs in [PHASE2_MATTER.md](PHASE2_MATTER.md#troubleshooting)
+1. Check logs in [PHASE2_MATTER.md](docs/archive/PHASE2_MATTER.md#troubleshooting)
 2. Review [MATTER_SDK_SETUP.md](MATTER_SDK_SETUP.md#troubleshooting)
 3. Enable debug logging (see "Advanced Troubleshooting" above)
 4. Check Matter SDK logs for specific errors

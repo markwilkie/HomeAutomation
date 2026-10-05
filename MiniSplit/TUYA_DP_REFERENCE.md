@@ -225,7 +225,7 @@ verified against a live serial capture (attribute writes logged by `esp_matter_a
 | 4 | Temperature Sensor | TemperatureMeasurement (0x0402) | MeasuredValue (0x0000) | Tuya `ure` — **mini-split's own outdoor reading** | `sensor.*` "Outside Temp" |
 | 5 | Humidity Sensor *(repurposed)* | RelativeHumidityMeasurement (0x0405) | MeasuredValue (0x0000) | `compressor_frequency` → 0–100%, encoded as %RH×100 | Shows as "Humidity" — **rename to "Compressor Load"** |
 | 6 | Occupancy Sensor *(repurposed)* | OccupancySensing (0x0406) | Occupancy (0x0000, bit 0) | `compressor_frequency` > 0 | Shows as "Occupancy" — **rename to "Compressor Running"** |
-| 7 *(added 2026-08-30)* | On/Off Plug-in Unit | OnOff (0x0006) | OnOff (0x0000) | Tuya `switch`, same source as EP1's OnOff — but this is the one `tuya_set_power()` actually listens to now | `switch.*` — genuine power on/off (see `CONTROL_LOOP_SCENARIOS.md` Scenario 6 for why EP1's Thermostat on/off and this one aren't the same control) |
+| 7 *(added 2026-08-30)* | On/Off Plug-in Unit | OnOff (0x0006) | OnOff (0x0000) | Tuya `switch`, same source as EP1's OnOff — but this is the one `tuya_set_power()` actually listens to now | `switch.*` — genuine power on/off (see `docs/archive/CONTROL_LOOP_SCENARIOS.md` Scenario 6 for why EP1's Thermostat on/off and this one aren't the same control) |
 | 8 *(added 2026-08-30)* | Thermostat (cooling-only feature) | Thermostat (0x0201) | OccupiedCoolingSetpoint (0x0011) | **Not Tuya at all** — a standalone HA-writable register (`g_matter_state.desired_cooling_setpoint`), reconciled against Tuya by `sync_task` every poll, never overwritten by it | `climate.*` "Desired Setpoint" — this is the one setpoint HA/automations should write to now |
 | 8 | | | LocalTemperature (0x0000) | Permanently `null` — this endpoint has no real sensor, `current_temperature` will always read unknown | (none — don't expect a reading here) |
 
@@ -261,7 +261,7 @@ toggling or dimming it does nothing. Instead:
 
 Both need a manual rename in Home Assistant (they'll show up labeled "Humidity" and
 "Occupancy"/Detected-Clear respectively) -- same workaround already used elsewhere in this project
-for repurposed clusters (see `ARCHITECTURE.md`).
+for repurposed clusters (see `docs/archive/ARCHITECTURE.md`).
 
 ### Legacy: SmartThings requires the custom Edge Driver
 

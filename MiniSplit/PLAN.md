@@ -1,5 +1,11 @@
 # Local IR Control + Real-Sensor Follow-Me — Implementation Plan
 
+> **Status (2026-10-05): implemented — kept as history.** Code comments
+> throughout `src/` cite this plan's milestones ("PLAN.md Milestone 2"), so
+> it stays here rather than in `docs/archive/`. For how things work today see
+> [README.md](README.md); later changes (mode reconciliation, Fresh Air
+> switch, heartbeat-only Follow-Me) are not reflected below.
+
 **Supersedes [../MiniSplitIR/PLAN.md](../MiniSplitIR/PLAN.md) as of 2026-09-04.**
 That project was originally scoped as a second physical device ("Device B")
 so Home Assistant would talk to the AC over local IR/Matter instead of the
@@ -51,7 +57,7 @@ Home Assistant
 MiniSplit ESP32-C6
    |-- Thermostat cluster (Power/Mode/Setpoint only) -> IR transmitter (RMT, GPIO) -> AC unit
    |-- Tuya cloud client -> read-only status mirror (pre-send refresh source + post-send verification, no writes)
-   |-- BME280 (existing, I2C) -> unrelated room-temp endpoint, untouched -- see SENSORS.md
+   |-- BME280 (existing, I2C) -> unrelated room-temp endpoint, untouched -- see docs/archive/SENSORS.md
    `-- MQTT client (new) -> Zigbee2MQTT/Mosquitto on wyse -> SNZB-02P reading -> Follow-Me state[11]
 ```
 

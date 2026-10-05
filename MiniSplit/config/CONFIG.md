@@ -56,7 +56,7 @@ The following commands are available via Tuya API:
 
 ## Matter Attributes
 
-See ARCHITECTURE.md for full cluster documentation.
+See ../docs/archive/ARCHITECTURE.md (historical) for the original cluster documentation.
 
 ### Primary Controls in Home Assistant
 - Power (OnOff)
