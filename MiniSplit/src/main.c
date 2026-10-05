@@ -698,7 +698,8 @@ static void reconcile_system_mode(const tuya_device_status_t *status)
             ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u -- resending desired mode via IR", in.actual, in.desired);
             esp_err_t err = (in.desired == 0)
                 ? send_ir_frame(status, false, false, 0, false, 0)
-                : send_ir_frame(status, true, true, (uint8_t)map_matter_mode_to_ir(in.desired), false, 0);
+                : send_ir_frame(status, true, true, (uint8_t)map_matter_mode_to_ir(in.desired),
+                                true, matter_get_desired_cooling_setpoint());
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Mode reconcile: IR send failed: %s", esp_err_to_name(err));
                 return;
@@ -895,10 +896,16 @@ static void sync_task(void *param)
         // Power On, and with the unit off its mode byte falls back to Auto
         // (kOff has no IR mode) -- so a correction sent while off would turn
         // the unit back on in Auto. Mode reconciliation below owns power.
+        //
+        // 2026-10-05: also skipped while the unit is in Auto (Tuya mode 0) --
+        // it ignores the setpoint byte in Auto (IR_PROTOCOL_REFERENCE.md),
+        // so this resent IR every 5 min to no effect (seen live: remote set
+        // Auto/80F, Desired 69F stayed unapplied). Leaving Auto via a mode
+        // command now carries Desired's setpoint (see command_task).
         int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
         int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
         int16_t setpoint_mismatch_f = (int16_t)abs(desired_f_for_outage_check - device_status.temp_set_f);
-        if (setpoint_mismatch_f > 1 && device_status.switch_state) {
+        if (setpoint_mismatch_f > 1 && device_status.switch_state && device_status.ac_mode != 0) {
             ESP_LOGW(TAG, "Setpoint mismatch %dF beyond tolerance (desired %dF, Tuya reports %dF) -- sending IR correction",
                      setpoint_mismatch_f, desired_f_for_outage_check, device_status.temp_set_f);
             esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
@@ -1273,7 +1280,13 @@ static void command_task(void *param)
                     if (mode_already_matches) {
                         ESP_LOGI(TAG, "Mode already matches per fresh Tuya status, skipping redundant IR send");
                     } else {
-                        esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
+                        // Carries Desired's setpoint, not the unit's current
+                        // one (2026-10-05): leaving Auto -- where the unit
+                        // ignores setpoints -- otherwise kept whatever the
+                        // remote last set (80F in testing) until sync_task's
+                        // next correction.
+                        esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode,
+                                                           true, matter_get_desired_cooling_setpoint());
                         if (result != ESP_OK) {
                             ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
                         } else {
@@ -1303,6 +1316,14 @@ static void command_task(void *param)
         if (matter_get_fresh_air_command(&fresh_air_desired)) {
             ESP_LOGI(TAG, "Processing Fresh Air command: %s", fresh_air_desired ? "ON" : "OFF");
 
+            // Recorded BEFORE the pre-send refresh below: that refresh
+            // re-mirrors the switch from effective_fresh_air(), and with the
+            // command not yet recorded it snapped the switch back to Tuya's
+            // stale value for ~5 min (2026-10-05).
+            g_fresh_air_cmd_value = fresh_air_desired;
+            g_fresh_air_cmd_tick = xTaskGetTickCount();
+            g_fresh_air_cmd_valid = true;
+
             tuya_device_status_t refreshed_status;
             status_cache_get(&refreshed_status);
             if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
@@ -1312,10 +1333,6 @@ static void command_task(void *param)
             } else {
                 ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the Fresh Air frame");
             }
-
-            g_fresh_air_cmd_value = fresh_air_desired;
-            g_fresh_air_cmd_tick = xTaskGetTickCount();
-            g_fresh_air_cmd_valid = true;
 
             if (refreshed_status.fresh_air_valve == fresh_air_desired) {
                 ESP_LOGI(TAG, "Fresh Air already %s per fresh Tuya status, skipping redundant IR send",
