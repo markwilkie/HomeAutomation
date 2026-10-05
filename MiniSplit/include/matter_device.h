@@ -233,6 +233,40 @@ bool matter_get_desired_setpoint_command_pending(void);
  */
 uint8_t matter_get_system_mode_command(void);
 
+/** No desired mode known yet (fresh NVS) -- sync_task adopts the unit's own. */
+#define MATTER_DESIRED_MODE_UNKNOWN 0xFF
+
+/**
+ * @brief The mode HA last asked for on the Desired Setpoint endpoint (or that
+ *        sync_task's mode reconciliation adopted from the unit), as a Matter
+ *        SystemModeEnum value -- kept separately from the main endpoint's
+ *        mirror of Tuya's reported mode, and NVS-persisted.
+ * @return Matter SystemModeEnum value, or MATTER_DESIRED_MODE_UNKNOWN
+ */
+uint8_t matter_get_desired_system_mode(void);
+
+/**
+ * @brief Set the desired mode from the firmware side (adopting a mode the
+ *        unit changed to on its own, or a power change from an OnOff
+ *        endpoint) -- updates the Desired Setpoint endpoint's SystemMode
+ *        without queuing a command. MATTER_DESIRED_MODE_UNKNOWN clears it so
+ *        the next sync_task poll adopts the unit's mode.
+ */
+void matter_set_desired_system_mode(uint8_t mode);
+
+/**
+ * @brief Check for a pending Fresh Air switch command from Matter
+ * @param out_desired Set to the requested state when a command is pending
+ * @return true if a command is pending
+ */
+bool matter_get_fresh_air_command(bool *out_desired);
+
+/** @brief Clear the pending Fresh Air command flag */
+void matter_clear_fresh_air_command(void);
+
+/** @brief Mirror the Fresh Air state onto its Matter switch */
+void matter_update_fresh_air(bool on);
+
 /**
  * @brief Clear the pending OnOff command flag
  * Call after processing the command to avoid re-processing

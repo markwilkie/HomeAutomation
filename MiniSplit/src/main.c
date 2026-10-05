@@ -241,6 +241,77 @@ static int8_t map_matter_mode_to_ir(uint8_t matter_mode)
     }
 }
 
+// Mode reconciliation (2026-10-04) -- sync_task compares the Desired
+// Setpoint endpoint's mode (matter_get_desired_system_mode()) against the
+// unit's reported mode every poll, the way it already did for setpoint.
+// Before this nothing reconciled mode in either direction: the old
+// unit->Desired mirror was removed 2026-10-01 (it snapped a fresh "Off" back
+// to the stale prior mode while Tuya lagged) and there was never a
+// Desired->unit resend, so a missed command or an out-of-band change stayed
+// mismatched for hours (2026-10-03: unit off/auto, Desired heat, ~6h).
+//
+// Which side wins depends on which one moved last. If the unit changed after
+// the last Desired change and the new mode isn't something we commanded in
+// the last MODE_ECHO_WINDOW_MS, it was changed out-of-band (IR remote, Tuya
+// app) and Desired adopts it. Otherwise (a command that didn't land, or a
+// late Tuya report echoing an older command of ours -- observed ~15 min
+// late 2026-10-01) Desired's mode is resent. Requires the mismatch to hold
+// for MODE_MISMATCH_POLLS consecutive polls, and won't resend a mode it
+// already sent within MODE_RESEND_HOLDOFF_MS, so Tuya's reporting lag
+// doesn't cause duplicate sends.
+#define MODE_MISMATCH_POLLS 2
+#define MODE_ECHO_WINDOW_MS (30 * 60 * 1000)
+#define MODE_RESEND_HOLDOFF_MS (15 * 60 * 1000)
+#define MODE_CMD_HISTORY_LEN 4
+
+typedef struct {
+    uint8_t matter_mode;
+    TickType_t tick;
+    bool valid;
+} mode_cmd_record_t;
+
+static mode_cmd_record_t g_mode_cmd_history[MODE_CMD_HISTORY_LEN];
+static uint8_t g_mode_cmd_history_next = 0;
+static TickType_t g_desired_mode_changed_tick = 0;
+static uint8_t g_last_actual_mode = MATTER_DESIRED_MODE_UNKNOWN;
+static TickType_t g_actual_mode_changed_tick = 0;
+static uint8_t g_mode_mismatch_polls = 0;
+
+static void record_mode_command(uint8_t matter_mode)
+{
+    g_mode_cmd_history[g_mode_cmd_history_next] = (mode_cmd_record_t){
+        .matter_mode = matter_mode, .tick = xTaskGetTickCount(), .valid = true};
+    g_mode_cmd_history_next = (uint8_t)((g_mode_cmd_history_next + 1) % MODE_CMD_HISTORY_LEN);
+}
+
+static bool mode_commanded_within(uint8_t matter_mode, uint32_t window_ms)
+{
+    TickType_t now = xTaskGetTickCount();
+    for (int i = 0; i < MODE_CMD_HISTORY_LEN; i++) {
+        const mode_cmd_record_t *r = &g_mode_cmd_history[i];
+        if (r->valid && r->matter_mode == matter_mode && (now - r->tick) < pdMS_TO_TICKS(window_ms)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// First observation after boot is not treated as a change (tick stays 0), so
+// a boot-time mismatch resolves in Desired's favor rather than adopting.
+static void note_actual_mode(uint8_t matter_mode)
+{
+    if (g_last_actual_mode != MATTER_DESIRED_MODE_UNKNOWN && matter_mode != g_last_actual_mode) {
+        g_actual_mode_changed_tick = xTaskGetTickCount();
+    }
+    g_last_actual_mode = matter_mode;
+}
+
+static void note_desired_mode_changed(void)
+{
+    g_desired_mode_changed_tick = xTaskGetTickCount();
+    g_mode_mismatch_polls = 0;
+}
+
 // Tuya's fan_speed_enum (0-7: Stop/Mute/Low/Med-Low/Med/Med-High/High/
 // Turbo, TUYA_DP_REFERENCE.md) -> the IR protocol's own 4-value Fan enum
 // (IR_FAN_* above). Not a 1:1 mapping -- Tuya exposes finer granularity
@@ -455,6 +526,26 @@ static void build_ir_state_frame(const tuya_device_status_t *status, bool power_
 // firmware sent silently told the unit Fresh Air was off -- the root cause
 // of Fresh Air reverting on any Device B command. See
 // IR_PROTOCOL_REFERENCE.md's "Known gaps" for the full writeup.
+// Fresh Air switch (2026-10-04). Every full-state frame carries the Fresh
+// Air bit, so while a Fresh Air command is still waiting for Tuya to report
+// it (lag observed up to ~15 min), every send uses the commanded value
+// instead of the stale reported one -- otherwise the next Follow-Me
+// heartbeat would revert the change. After the window, Tuya's reported
+// state is trusted again (so a remote/app change sticks).
+#define FRESH_AIR_CONFIRM_WINDOW_MS (15 * 60 * 1000)
+static bool g_fresh_air_cmd_valid = false;
+static bool g_fresh_air_cmd_value = false;
+static TickType_t g_fresh_air_cmd_tick = 0;
+
+static bool effective_fresh_air(const tuya_device_status_t *status)
+{
+    if (g_fresh_air_cmd_valid &&
+        (xTaskGetTickCount() - g_fresh_air_cmd_tick) < pdMS_TO_TICKS(FRESH_AIR_CONFIRM_WINDOW_MS)) {
+        return g_fresh_air_cmd_value;
+    }
+    return status->fresh_air_valve;
+}
+
 static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], bool fresh_air_on)
 {
     // Serializes every IR send across command_task, sync_task, and
@@ -547,7 +638,7 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
                           override_setpoint, override_setpoint_c_x100,
                           frame, &ir_mode, &setpoint_c);
 
-    esp_err_t err = transmit_ir_state_frame(frame, status->fresh_air_valve);
+    esp_err_t err = transmit_ir_state_frame(frame, effective_fresh_air(status));
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "IR frame sent: power=%s mode=%u setpoint=%dC",
                  power_on ? "on" : "off", ir_mode, setpoint_c);
@@ -622,7 +713,7 @@ static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t 
     }
     frame[11] = (uint8_t)ambient_temp_c;
 
-    esp_err_t err = transmit_ir_state_frame(frame, status->fresh_air_valve);
+    esp_err_t err = transmit_ir_state_frame(frame, effective_fresh_air(status));
     if (err == ESP_OK) {
         g_followme_active = true;
         g_last_followme_send_tick = xTaskGetTickCount();
@@ -731,6 +822,10 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
     matter_update_system_mode(map_tuya_mode_to_matter(device_status));
     vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
+    // effective_fresh_air(), not the raw reported value, so the switch
+    // doesn't snap back while a fresh command is still waiting on Tuya.
+    matter_update_fresh_air(effective_fresh_air(device_status));
+    vTaskDelay(pdMS_TO_TICKS(MATTER_UPDATE_BURST_SPACING_MS));
 
     uint8_t compressor_pct = compressor_demand_percent(device_status);
     matter_update_compressor_demand(compressor_pct);
@@ -807,7 +902,63 @@ static void cache_and_apply_status(const tuya_device_status_t *device_status)
     // bookkeeping above needs to be current before that push happens (same
     // ordering lesson as note_tuya_poll_success()'s call sites).
     check_setpoint_mismatch_outage(device_status);
+    note_actual_mode(map_tuya_mode_to_matter(device_status));
     apply_status_to_matter(device_status);
+}
+
+static void reconcile_system_mode(const tuya_device_status_t *status)
+{
+    uint8_t actual = map_tuya_mode_to_matter(status);
+    uint8_t desired = matter_get_desired_system_mode();
+
+    if (desired == MATTER_DESIRED_MODE_UNKNOWN) {
+        ESP_LOGI(TAG, "Mode reconcile: no desired mode recorded yet, adopting unit's mode %u", actual);
+        matter_set_desired_system_mode(actual);
+        note_desired_mode_changed();
+        return;
+    }
+    if (actual == desired || matter_get_system_mode_command() != 0xFF || matter_get_onoff_command()) {
+        g_mode_mismatch_polls = 0;
+        return;
+    }
+    if (++g_mode_mismatch_polls < MODE_MISMATCH_POLLS) {
+        ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u (poll %u/%u), waiting",
+                 actual, desired, g_mode_mismatch_polls, MODE_MISMATCH_POLLS);
+        return;
+    }
+
+    TickType_t now = xTaskGetTickCount();
+    bool unit_moved_last = (now - g_actual_mode_changed_tick) < (now - g_desired_mode_changed_tick);
+    if (unit_moved_last && !mode_commanded_within(actual, MODE_ECHO_WINDOW_MS)) {
+        ESP_LOGW(TAG, "Mode reconcile: unit changed to %u on its own (remote/app), Desired adopts it (was %u)",
+                 actual, desired);
+        matter_set_desired_system_mode(actual);
+        note_desired_mode_changed();
+        return;
+    }
+
+    int8_t ir_mode = map_matter_mode_to_ir(desired);
+    if (desired != 0 && ir_mode < 0) {
+        ESP_LOGW(TAG, "Mode reconcile: desired mode %u has no IR equivalent, adopting unit's %u", desired, actual);
+        matter_set_desired_system_mode(actual);
+        note_desired_mode_changed();
+        return;
+    }
+    if (mode_commanded_within(desired, MODE_RESEND_HOLDOFF_MS)) {
+        ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u, waiting for the recent send to show up in Tuya",
+                 actual, desired);
+        return;
+    }
+
+    ESP_LOGW(TAG, "Mode reconcile: unit %u vs desired %u -- resending desired mode via IR", actual, desired);
+    esp_err_t err = (desired == 0) ? send_ir_frame(status, false, false, 0, false, 0)
+                                   : send_ir_frame(status, true, true, (uint8_t)ir_mode, false, 0);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Mode reconcile: IR send failed: %s", esp_err_to_name(err));
+        return;
+    }
+    record_mode_command(desired);
+    g_mode_mismatch_polls = 0;
 }
 
 /**
@@ -991,10 +1142,15 @@ static void sync_task(void *param)
         // still catching and correcting a real, larger divergence (e.g. a
         // command that silently failed to land, or an out-of-band change
         // back toward a stale setpoint).
+        //
+        // 2026-10-04: skipped while the unit is off. This frame always sets
+        // Power On, and with the unit off its mode byte falls back to Auto
+        // (kOff has no IR mode) -- so a correction sent while off would turn
+        // the unit back on in Auto. Mode reconciliation below owns power.
         int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
         int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
         int16_t setpoint_mismatch_f = (int16_t)abs(desired_f_for_outage_check - device_status.temp_set_f);
-        if (setpoint_mismatch_f > 1) {
+        if (setpoint_mismatch_f > 1 && device_status.switch_state) {
             ESP_LOGW(TAG, "Setpoint mismatch %dF beyond tolerance (desired %dF, Tuya reports %dF) -- sending IR correction",
                      setpoint_mismatch_f, desired_f_for_outage_check, device_status.temp_set_f);
             esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
@@ -1002,6 +1158,8 @@ static void sync_task(void *param)
                 ESP_LOGE(TAG, "Failed to send setpoint correction via IR: %s", esp_err_to_name(send_err));
             }
         }
+
+        reconcile_system_mode(&device_status);
     }
 }
 
@@ -1150,6 +1308,17 @@ static void followme_task(void *param)
             vTaskDelay(interval_ticks);
             continue;
         }
+        // 2026-10-04: every Follow-Me frame sets Power On, and with the unit
+        // off its mode byte falls back to Auto (kOff has no IR mode) -- so
+        // this heartbeat was turning an off unit back on in Auto. Matches
+        // the unit going off->auto with no command from HA on 2026-10-01
+        // and 2026-10-03. Skip while off; the next tick after it turns back
+        // on re-enables Follow-Me (with its beep) via g_followme_active.
+        if (!g_last_device_status.switch_state) {
+            g_followme_active = false;
+            vTaskDelay(interval_ticks);
+            continue;
+        }
 
         // Forced re-enable (see g_followme_last_forced_tick's doc comment)
         // -- every FOLLOWME_FORCED_REENABLE_INTERVAL_MS, upgrade whatever
@@ -1223,6 +1392,19 @@ static void command_task(void *param)
             // exact change -- skip the redundant IR send and its ~90s
             // post-send verify loop entirely, rather than re-transmitting a
             // command that wouldn't change anything.
+            // 2026-10-04: keep the Desired Setpoint endpoint's mode in step
+            // with a power change from an OnOff endpoint, or mode
+            // reconciliation would undo it -- Off sets desired mode Off; On
+            // from Off clears it so the next poll adopts whatever mode the
+            // unit comes back on in.
+            if (!desired_onoff) {
+                matter_set_desired_system_mode(0);
+                note_desired_mode_changed();
+            } else if (matter_get_desired_system_mode() == 0) {
+                matter_set_desired_system_mode(MATTER_DESIRED_MODE_UNKNOWN);
+                note_desired_mode_changed();
+            }
+
             if (refreshed_status.switch_state == desired_onoff) {
                 ESP_LOGI(TAG, "Power already %s per fresh Tuya status, skipping redundant IR send",
                          desired_onoff ? "on" : "off");
@@ -1231,6 +1413,12 @@ static void command_task(void *param)
                 esp_err_t result = send_ir_frame(&refreshed_status, desired_onoff, false, 0, false, 0);
                 if (result != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send power command via IR: %s", esp_err_to_name(result));
+                } else if (!desired_onoff) {
+                    record_mode_command(0);
+                } else {
+                    tuya_device_status_t on_status = refreshed_status;
+                    on_status.switch_state = true;
+                    record_mode_command(map_tuya_mode_to_matter(&on_status));
                 }
 
                 matter_clear_onoff_command();
@@ -1285,6 +1473,13 @@ static void command_task(void *param)
             if (abs(tuya_setpoint_f_to_c(refreshed_status.temp_set_f) - desired_c_x100) <= 50) {
                 ESP_LOGI(TAG, "Setpoint already matches per fresh Tuya status, skipping redundant IR send");
                 matter_clear_desired_setpoint_command_pending();
+            } else if (!refreshed_status.switch_state) {
+                // 2026-10-04: this frame sets Power On (mode byte falling back
+                // to Auto while off), so sending it would turn an off unit on.
+                // The new setpoint stays stored; sync_task applies it once the
+                // unit is back on.
+                ESP_LOGI(TAG, "Unit is off, holding desired setpoint until it's back on");
+                matter_clear_desired_setpoint_command_pending();
             } else {
                 esp_err_t send_err = send_ir_frame(&refreshed_status, true, false, 0, true, desired_c_x100);
                 if (send_err != ESP_OK) {
@@ -1301,6 +1496,7 @@ static void command_task(void *param)
         uint8_t mode_cmd = matter_get_system_mode_command();
         if (mode_cmd != 0xFF) {  // 0xFF = no command
             ESP_LOGI(TAG, "Processing mode command from controller: %u", mode_cmd);
+            note_desired_mode_changed();
 
             // Pre-send refresh (PLAN.md Milestone 2), same reasoning as the
             // Desired Setpoint/OnOff blocks above: fetch Tuya's latest status
@@ -1335,6 +1531,8 @@ static void command_task(void *param)
                     esp_err_t result = send_ir_frame(&refreshed_status, false, false, 0, false, 0);
                     if (result != ESP_OK) {
                         ESP_LOGE(TAG, "Failed to send power-off via IR: %s", esp_err_to_name(result));
+                    } else {
+                        record_mode_command(0);
                     }
                     matter_clear_mode_command();
                     post_send_verify_and_sync(true, false, false, 0, false, 0);
@@ -1353,13 +1551,19 @@ static void command_task(void *param)
                     // Milestone 2): if Tuya already reports the mode this
                     // command asks for, skip the redundant IR send and its
                     // ~90s post-send verify loop.
-                    bool mode_already_matches = (refreshed_status.ac_mode == expected_tuya_mode);
+                    // 2026-10-04: also requires the unit to be on -- comparing
+                    // ac_mode alone treated "off, last mode heat" as already
+                    // in Heat, so selecting Heat on an off unit sent nothing.
+                    bool mode_already_matches = refreshed_status.switch_state &&
+                                                (refreshed_status.ac_mode == expected_tuya_mode);
                     if (mode_already_matches) {
                         ESP_LOGI(TAG, "Mode already matches per fresh Tuya status, skipping redundant IR send");
                     } else {
                         esp_err_t result = send_ir_frame(&refreshed_status, true, true, ir_mode, false, 0);
                         if (result != ESP_OK) {
                             ESP_LOGE(TAG, "Failed to send mode command via IR: %s", esp_err_to_name(result));
+                        } else {
+                            record_mode_command(mode_cmd);
                         }
                     }
 
@@ -1373,6 +1577,41 @@ static void command_task(void *param)
                     }
                 }
             }
+        }
+
+        // ===== Check for Fresh Air command (2026-10-04) =====
+        // Sent as a full-state frame that keeps power/mode/setpoint as Tuya
+        // last reported them, with only the Fresh Air bit changed (via
+        // effective_fresh_air(), which picks up g_fresh_air_cmd_* set here).
+        // Power is passed through as-is, so this never turns the unit on or
+        // off as a side effect.
+        bool fresh_air_desired = false;
+        if (matter_get_fresh_air_command(&fresh_air_desired)) {
+            ESP_LOGI(TAG, "Processing Fresh Air command: %s", fresh_air_desired ? "ON" : "OFF");
+
+            tuya_device_status_t refreshed_status = g_last_device_status;
+            if (tuya_get_device_status(&refreshed_status) == ESP_OK) {
+                note_tuya_poll_success();
+                cache_and_apply_status(&refreshed_status);
+                g_sync_state.last_status_update = xTaskGetTickCount();
+            } else {
+                ESP_LOGW(TAG, "Pre-send Tuya refresh failed; using last known state for the Fresh Air frame");
+            }
+
+            g_fresh_air_cmd_value = fresh_air_desired;
+            g_fresh_air_cmd_tick = xTaskGetTickCount();
+            g_fresh_air_cmd_valid = true;
+
+            if (refreshed_status.fresh_air_valve == fresh_air_desired) {
+                ESP_LOGI(TAG, "Fresh Air already %s per fresh Tuya status, skipping redundant IR send",
+                         fresh_air_desired ? "on" : "off");
+            } else {
+                esp_err_t result = send_ir_frame(&refreshed_status, refreshed_status.switch_state, false, 0, false, 0);
+                if (result != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send Fresh Air command via IR: %s", esp_err_to_name(result));
+                }
+            }
+            matter_clear_fresh_air_command();
         }
     }
 }

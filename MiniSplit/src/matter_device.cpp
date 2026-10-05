@@ -123,6 +123,15 @@ typedef struct {
     // there was no guarantee anything would re-arrive promptly.
     int16_t followme_ambient_temp_c_x100;
     bool followme_ambient_valid;
+    // What HA last asked for via the Desired Setpoint endpoint's SystemMode
+    // (or what sync_task's mode reconciliation adopted from the unit) --
+    // 2026-10-04. Until then the endpoint write landed in system_mode above,
+    // which every Tuya poll overwrites with the unit's reported mode, so the
+    // firmware had no record of the request to reconcile against.
+    uint8_t desired_system_mode;
+    // Fresh Air switch (2026-10-04) -- see g_fresh_air_endpoint.
+    bool fresh_air_desired;
+    bool fresh_air_command_pending;
 } matter_device_state_t;
 
 static matter_device_state_t g_matter_state = {
@@ -151,6 +160,9 @@ static matter_device_state_t g_matter_state = {
     .desired_setpoint_command_pending = false,
     .followme_ambient_temp_c_x100 = 0,
     .followme_ambient_valid = false,
+    .desired_system_mode = MATTER_DESIRED_MODE_UNKNOWN,
+    .fresh_air_desired = false,
+    .fresh_air_command_pending = false,
 };
 
 static node_t *g_node = nullptr;
@@ -164,6 +176,7 @@ static endpoint_t *g_outage_active_endpoint = nullptr;
 static endpoint_t *g_outage_reason_endpoint = nullptr;
 static endpoint_t *g_thread_rssi_endpoint = nullptr;
 static endpoint_t *g_followme_endpoint = nullptr;
+static endpoint_t *g_fresh_air_endpoint = nullptr;
 static uint16_t g_endpoint_id = 0;
 static uint16_t g_outdoor_temp_sensor_endpoint_id = 0;
 static uint16_t g_compressor_endpoint_id = 0;
@@ -174,6 +187,7 @@ static uint16_t g_outage_active_endpoint_id = 0;
 static uint16_t g_thread_rssi_endpoint_id = 0;
 static uint16_t g_outage_reason_endpoint_id = 0;
 static uint16_t g_followme_endpoint_id = 0;
+static uint16_t g_fresh_air_endpoint_id = 0;
 static bool g_internal_attr_update = false;
 static bool g_started = false;
 
@@ -195,6 +209,7 @@ static bool g_started = false;
 #define NVS_KEY_SYSTEM_MODE "sys_mode"
 #define NVS_KEY_DESIRED_SETPOINT "desired_sp"
 #define NVS_KEY_FOLLOWME_AMBIENT "fm_ambient_c"
+#define NVS_KEY_DESIRED_MODE "desired_mode"
 
 static nvs_handle_t g_nvs_handle = 0;
 static bool g_nvs_ready = false;
@@ -248,9 +263,13 @@ static void nvs_load_persisted_state(matter_device_state_t *state)
         state->followme_ambient_temp_c_x100 = followme_ambient;
         state->followme_ambient_valid = true;
     }
-    ESP_LOGI(TAG, "Loaded persisted state: onoff=%d system_mode=%u desired_cooling_setpoint=%d "
-                  "followme_ambient_valid=%d followme_ambient_temp_c_x100=%d",
-             state->onoff, state->system_mode, state->desired_cooling_setpoint,
+    uint8_t desired_mode = 0;
+    if (nvs_get_u8(g_nvs_handle, NVS_KEY_DESIRED_MODE, &desired_mode) == ESP_OK) {
+        state->desired_system_mode = desired_mode;
+    }
+    ESP_LOGI(TAG, "Loaded persisted state: onoff=%d system_mode=%u desired_system_mode=%u "
+                  "desired_cooling_setpoint=%d followme_ambient_valid=%d followme_ambient_temp_c_x100=%d",
+             state->onoff, state->system_mode, state->desired_system_mode, state->desired_cooling_setpoint,
              state->followme_ambient_valid, state->followme_ambient_temp_c_x100);
 }
 
@@ -330,12 +349,24 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
     // entity HA actually writes a target temperature to now -- see below.
     bool is_relevant_endpoint = (endpoint_id == g_endpoint_id || endpoint_id == g_power_endpoint_id ||
                                   endpoint_id == g_desired_setpoint_endpoint_id ||
-                                  endpoint_id == g_followme_endpoint_id);
+                                  endpoint_id == g_followme_endpoint_id ||
+                                  endpoint_id == g_fresh_air_endpoint_id);
     if (!val || !is_relevant_endpoint || g_internal_attr_update) {
         return ESP_OK;
     }
 
     if (type != attribute::PRE_UPDATE) {
+        return ESP_OK;
+    }
+
+    // Must come before the generic OnOff handling below, which treats any
+    // OnOff write as unit power.
+    if (endpoint_id == g_fresh_air_endpoint_id) {
+        if (cluster_id == OnOff::Id && attribute_id == OnOff::Attributes::OnOff::Id) {
+            g_matter_state.fresh_air_desired = val->val.b;
+            g_matter_state.fresh_air_command_pending = true;
+            ESP_LOGI(TAG, "Fresh Air command from Matter: %s", g_matter_state.fresh_air_desired ? "ON" : "OFF");
+        }
         return ESP_OK;
     }
 
@@ -374,9 +405,12 @@ static esp_err_t matter_attribute_callback(attribute::callback_type_t type,
             // selecting Heat (now available, see the Heat feature flag
             // added above) from this endpoint's climate card actually does
             // something instead of being silently accepted and ignored.
-            g_matter_state.system_mode = val->val.u8;
-            g_matter_state.mode_command_pending = g_matter_state.system_mode;
-            ESP_LOGI(TAG, "System mode command (Desired Setpoint endpoint): %u", g_matter_state.system_mode);
+            // 2026-10-04: recorded in desired_system_mode (persisted), not
+            // system_mode -- see that field's comment.
+            g_matter_state.desired_system_mode = val->val.u8;
+            nvs_persist_u8(NVS_KEY_DESIRED_MODE, g_matter_state.desired_system_mode);
+            g_matter_state.mode_command_pending = g_matter_state.desired_system_mode;
+            ESP_LOGI(TAG, "System mode command (Desired Setpoint endpoint): %u", g_matter_state.desired_system_mode);
             return ESP_OK;
         }
     }
@@ -623,7 +657,8 @@ extern "C" esp_err_t matter_device_init(void)
     endpoint::thermostat::config_t desired_setpoint_cfg;
     desired_setpoint_cfg.thermostat.feature_flags = cluster::thermostat::feature::cooling::get_id() |
                                                      cluster::thermostat::feature::heating::get_id();
-    desired_setpoint_cfg.thermostat.system_mode = 3; // kCool
+    desired_setpoint_cfg.thermostat.system_mode =
+        (g_matter_state.desired_system_mode != MATTER_DESIRED_MODE_UNKNOWN) ? g_matter_state.desired_system_mode : 3; // kCool
     desired_setpoint_cfg.thermostat.local_temperature = nullable<int16_t>();
     desired_setpoint_cfg.thermostat.features.cooling.occupied_cooling_setpoint = g_matter_state.desired_cooling_setpoint;
     // Same single "desired target temperature" concept as cooling above --
@@ -742,6 +777,26 @@ extern "C" esp_err_t matter_device_init(void)
     g_followme_endpoint_id = endpoint::get_id(g_followme_endpoint);
     if (!g_followme_endpoint_id) {
         ESP_LOGE(TAG, "Failed to resolve Follow-Me endpoint id");
+        return ESP_FAIL;
+    }
+
+    // Fresh Air switch (2026-10-04) -- On/Off Plug-in Unit, same pattern as
+    // the Power endpoint, mirrored from Tuya's fresh_air_valve on every poll
+    // (main.c) and sent via the IR Type 2 companion frame's state[12] bit
+    // 0x01. Added LAST for the same endpoint-numbering reason as Follow-Me
+    // above. start_up_on_off null for the same reason as Power: the spec
+    // default would otherwise force it Off on every reboot.
+    endpoint::on_off_plug_in_unit::config_t fresh_air_cfg;
+    fresh_air_cfg.on_off.on_off = false;
+    fresh_air_cfg.on_off_lighting.start_up_on_off = nullable<uint8_t>();
+    g_fresh_air_endpoint = endpoint::on_off_plug_in_unit::create(g_node, &fresh_air_cfg, ENDPOINT_FLAG_NONE, nullptr);
+    if (!g_fresh_air_endpoint) {
+        ESP_LOGE(TAG, "Failed to create Fresh Air endpoint");
+        return ESP_FAIL;
+    }
+    g_fresh_air_endpoint_id = endpoint::get_id(g_fresh_air_endpoint);
+    if (!g_fresh_air_endpoint_id) {
+        ESP_LOGE(TAG, "Failed to resolve Fresh Air endpoint id");
         return ESP_FAIL;
     }
 
@@ -1016,6 +1071,47 @@ extern "C" uint8_t matter_get_system_mode_command(void)
     return g_matter_state.mode_command_pending;
 }
 
+extern "C" uint8_t matter_get_desired_system_mode(void)
+{
+    return g_matter_state.desired_system_mode;
+}
+
+extern "C" bool matter_get_fresh_air_command(bool *out_desired)
+{
+    if (!g_matter_state.fresh_air_command_pending) {
+        return false;
+    }
+    if (out_desired) {
+        *out_desired = g_matter_state.fresh_air_desired;
+    }
+    return true;
+}
+
+extern "C" void matter_clear_fresh_air_command(void)
+{
+    g_matter_state.fresh_air_command_pending = false;
+}
+
+extern "C" void matter_update_fresh_air(bool on)
+{
+    update_attr_on_endpoint(g_fresh_air_endpoint, g_fresh_air_endpoint_id,
+                            OnOff::Id, OnOff::Attributes::OnOff::Id, esp_matter_bool(on));
+}
+
+extern "C" void matter_set_desired_system_mode(uint8_t mode)
+{
+    g_matter_state.desired_system_mode = mode;
+    if (mode == MATTER_DESIRED_MODE_UNKNOWN) {
+        if (g_nvs_ready && nvs_erase_key(g_nvs_handle, NVS_KEY_DESIRED_MODE) == ESP_OK) {
+            nvs_commit(g_nvs_handle);
+        }
+        return;
+    }
+    nvs_persist_u8(NVS_KEY_DESIRED_MODE, mode);
+    update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
+                            Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
+}
+
 extern "C" void matter_clear_onoff_command(void)
 {
     g_matter_state.onoff_command_pending = false;
@@ -1039,6 +1135,7 @@ extern "C" void matter_device_deinit(void)
     g_compressor_endpoint = nullptr;
     g_compressor_running_endpoint = nullptr;
     g_power_endpoint = nullptr;
+    g_fresh_air_endpoint = nullptr;
     g_desired_setpoint_endpoint = nullptr;
     g_followme_endpoint = nullptr;
     g_endpoint_id = 0;
@@ -1046,6 +1143,7 @@ extern "C" void matter_device_deinit(void)
     g_compressor_endpoint_id = 0;
     g_compressor_running_endpoint_id = 0;
     g_power_endpoint_id = 0;
+    g_fresh_air_endpoint_id = 0;
     g_desired_setpoint_endpoint_id = 0;
     g_followme_endpoint_id = 0;
     g_started = false;
