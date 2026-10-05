@@ -15,6 +15,20 @@ FollowMe predictive setpoint correction" automation's multi-paragraph
 description) — and this file should either be deleted or marked superseded,
 not kept as a second copy of the truth.
 
+**2026-10-04: Phase 0 decision rules reworked — the automation's
+`description:` is now the source of truth for how it decides, and the
+rule sketches below (single `error` vs. thermostat_6's setpoint, compressor-
+idle exit, 40F/80F sanity guard) are superseded.** The shadow automation had
+been switched off ~2026-09-15; re-enabled 2026-10-01, it flipped cool<->off
+33 times in 3 days while the right answer was Off throughout. It now judges
+each mode against its own target (the 2026-10-01 heat/cool day/night split),
+gates every entry on outdoor temperature, holds each condition 30 minutes,
+exits only on a 1F overshoot, and blocks Cool<->Heat reversals within 6
+hours. Replay over 2026-09-24..10-04: 0 changes vs. 28. Caveat: that window
+never had a day that genuinely warranted Cool or Heat, so the rules are
+proven quiet but not yet proven to fire when they should — watch the first
+real hot afternoon / cold snap before Phase 1.
+
 **Two real implementation findings from the Phase 0 deploy, worth keeping
 for Phase 2+:**
 - A new `template:` sensor with no `homeassistant`/`start` trigger sits at
@@ -34,6 +48,10 @@ for Phase 2+:**
   than a fluke, the real automation's own persisted mode state (once it's
   actually controlling the unit) can't be allowed to silently reset on
   every HA restart the way this shadow one just did.
+  **Resolved 2026-10-04:** not a fluke — `initial:` wins over restore on
+  every boot (a 2026-10-04 restart reset a live 'cool' to 'off'). Removed
+  `initial:`; the next restart restored 'cool' correctly. Any mode-state
+  helper for Phase 2 must not set `initial:`.
 
 ## Goal
 

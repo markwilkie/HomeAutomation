@@ -85,8 +85,9 @@ got to its current form, in order:
 New `input_number`/template-sensor entities added via YAML don't get an `area_id` or (for `input_number`) a
 real starting value from config alone — both need a one-time `docker stop` / edit `.storage/core.entity_registry`
 + `.storage/core.restore_state` / `docker start` cycle after deploying. Done for `minisplit_day_setpoint`,
-`minisplit_night_setpoint` (2026-08-07), `minisplit_temp_offset` (2026-08-08), and the four heat/cool split
-setpoints above (2026-10-01).
+`minisplit_night_setpoint` (2026-08-07), `minisplit_temp_offset` (2026-08-08), the four heat/cool split
+setpoints above (2026-10-01), and the shadow-mode rework's `minisplit_mode_cool_outdoor_min` /
+`minisplit_mode_heat_outdoor_max` (seeded 65/60) plus its new target/Wanted/Satisfied entities (2026-10-04).
 
 This history — the *why* behind each change — lives in this repo's git log for this directory, not in the
 live HA instance itself.
