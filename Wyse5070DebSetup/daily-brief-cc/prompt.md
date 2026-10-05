@@ -99,12 +99,19 @@ Render all of the following sections, in this order:
      town because the Seattle search happened to mention it in passing.
    Include hyperlocal finds even if minor (farmers markets, community
    meetings, small festivals) — don't limit this to only major/citywide
-   events. Also call `outlook_email_search`
-   (Inbox) for a message with subject "Weekend events you'll love" (a
-   recurring Nextdoor digest) — if found, read it with `read_resource` and
-   fold its listed events into this section alongside the web-search finds,
-   skipping exact duplicates and any obviously broken/spam-like entries;
-   don't apply any other category filter to it. Always include a dedicated
+   events. Limit listed events by today's day of week (from the user
+   message):
+   - Sunday through Wednesday: only events happening today or tomorrow.
+   - Thursday through Saturday: only events from today through the end of
+     this Sunday.
+   Drop any event outside that window, even if a search surfaced it.
+   On Thursdays only (skip on any other day), also call
+   `outlook_email_search` (Inbox) for a message with subject "Weekend
+   events you'll love" (a recurring Nextdoor digest) — if found, read it
+   with `read_resource` and fold its listed events into this section
+   alongside the web-search finds, skipping exact duplicates and any
+   obviously broken/spam-like entries; don't apply any other category
+   filter to it beyond the date window above. Always include a dedicated
    weather bullet for today: conditions plus the actual forecasted high/low
    temperature in °F (not a vague range like "low 60s" — get the real
    numbers).
@@ -135,4 +142,5 @@ Render all of the following sections, in this order:
    gathering the above that doesn't fit elsewhere.
 
 Today's date and day of the week are given in the user message — use them
-for the Thursday-only concert scan and for "last 24 hours" framing.
+for the Thursday-only concert scan and Nextdoor digest, the section 6
+event date window, and "last 24 hours" framing.
