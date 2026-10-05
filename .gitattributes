@@ -1,0 +1,4 @@
+# Shell scripts and Makefiles must keep LF endings -- with core.autocrlf on
+# Windows, a CRLF checkout breaks bash ($'': command not found) and make.
+*.sh text eol=lf
+Makefile text eol=lf
