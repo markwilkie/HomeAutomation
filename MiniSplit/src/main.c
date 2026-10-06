@@ -622,8 +622,8 @@ static void apply_status_to_matter(const tuya_device_status_t *device_status)
 
 // Opens/closes OUTAGE_REASON_SETPOINT_MISMATCH based on whether the
 // Desired Setpoint (Matter, HA-writable) currently agrees with Tuya's
-// reported temp_set_f within the same >1F tolerance sync_task's
-// correction-sending logic uses. Shared by every call site that receives a
+// reported temp_set_f within 1F (sync_task's correction itself has been
+// exact-match since 2026-10-05; see there for why this stays looser). Shared by every call site that receives a
 // fresh Tuya status via cache_and_apply_status() below -- added 2026-09-10,
 // same reasoning as note_tuya_poll_success(): before this, only sync_task's
 // own 5-minute reconciliation loop ever cleared this outage, so a real
@@ -903,11 +903,21 @@ static void sync_task(void *param)
         // so this resent IR every 5 min to no effect (seen live: remote set
         // Auto/80F, Desired 69F stayed unapplied). Leaving Auto via a mode
         // command now carries Desired's setpoint (see command_task).
+        //
+        // 2026-10-05: exact match now, no >1F tolerance. The "rounding-
+        // convention noise" above was really the half-degree bug (state[12]
+        // 0x04 left set on every frame, so every whole-degree setpoint landed
+        // 1F high -- see build_ir_state_frame()). With that fixed every whole
+        // F in 61-86 lands exactly, and build_ir_state_frame() snaps Desired to
+        // the whole F compared here, so any difference is a real miss or a
+        // remote setpoint change (which HA's Desired now overrides). The
+        // SETPOINT_MISMATCH outage keeps its >1F tolerance -- it also makes
+        // HA's setpoint automation hold, which a 1F in-flight gap shouldn't.
         int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
         int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
         int16_t setpoint_mismatch_f = (int16_t)abs(desired_f_for_outage_check - device_status.temp_set_f);
-        if (setpoint_mismatch_f > 1 && device_status.switch_state && device_status.ac_mode != 0) {
-            ESP_LOGW(TAG, "Setpoint mismatch %dF beyond tolerance (desired %dF, Tuya reports %dF) -- sending IR correction",
+        if (setpoint_mismatch_f > 0 && device_status.switch_state && device_status.ac_mode != 0) {
+            ESP_LOGW(TAG, "Setpoint mismatch %dF (desired %dF, Tuya reports %dF) -- sending IR correction",
                      setpoint_mismatch_f, desired_f_for_outage_check, device_status.temp_set_f);
             esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
             if (send_err != ESP_OK) {

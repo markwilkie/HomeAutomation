@@ -117,7 +117,14 @@ void build_ir_state_frame(const tuya_device_status_t *status, bool power_on,
     // frames leave clear, for the same whole-degree Temp byte -- status->
     // temp_set's own imprecision was producing an odd half_steps count that
     // temp_set_f-derived values don't.
-    int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100
+    // 2026-10-05: an override is snapped to the whole degree F it rounds to
+    // first, so the unit lands on exactly the temp_set_f that
+    // tuya_setpoint_c_to_f(override) predicts -- sync_task's exact-match
+    // setpoint correction compares those two, and an off-grid value (e.g.
+    // the 24.00C boot default = 75.2F, which as a raw half step would read
+    // back 76F... or any HA value between whole F) would otherwise never
+    // match and get resent every poll.
+    int16_t setpoint_c_x100 = override_setpoint ? tuya_normalize_setpoint_c(override_setpoint_c_x100)
                                                  : tuya_setpoint_f_to_c(status->temp_set_f);
     // Round to the nearest HALF degree C, not whole degree -- 2026-09-09.
     // (2026-10-05: the half-degree bit is state[12] 0x04 on this unit, not

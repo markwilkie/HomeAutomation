@@ -110,9 +110,19 @@ static void test_frame_setpoint(void)
     build(&s, true, true, IR_MODE_HEAT, true, 2167, f);
     CHECK(f[7] == 10 && f[12] == 0x84);
 
-    build(&s, true, false, 0, true, 2400, f);   // override 24.0C
+    // Overrides snap to the whole F they round to before stepping, so the
+    // unit lands on tuya_setpoint_c_to_f(override) exactly.
+    build(&s, true, false, 0, true, 2400, f);   // 24.00C = 75.2F -> 75F -> 24.0C
     CHECK(f[7] == 7);
     CHECK(!(f[12] & 0x04));
+    build(&s, true, false, 0, true, 2125, f);   // 21.25C = 70.25F -> 70F -> 21.0C, not 21.5C
+    CHECK(f[7] == 10 && !(f[12] & 0x04));
+    // Every whole F: the step sent reads back (Tuya C->F) as that same F.
+    for (int16_t want = 61; want <= 86; want++) {
+        build(&s, true, false, 0, true, tuya_setpoint_f_to_c(want), f);
+        int16_t sent_x100 = (int16_t)((31 - f[7]) * 100 + ((f[12] & 0x04) ? 50 : 0));
+        CHECK(tuya_setpoint_c_to_f(sent_x100) == want);
+    }
 
     build(&s, true, false, 0, true, 1000, f);   // below 16C clamps to 16
     CHECK(f[7] == 15);
