@@ -56,6 +56,14 @@ fi
 
 # ---- Caddyfile --------------------------------------------------------
 CADDYFILE="${APPDATA_ROOT}/Caddyfile"
+# Site blocks other repos manage live between "# BEGIN <name>" / "# END <name>"
+# markers (RaceTimes: mayhem-racing.duckdns.org, written by its
+# deploy/racetimes-users.sh). Keep them across this rewrite, or re-running
+# this script would silently take those sites offline.
+FOREIGN_BLOCKS=""
+if [ -f "${CADDYFILE}" ]; then
+  FOREIGN_BLOCKS=$(awk '/^# BEGIN /{keep=1} keep{print} /^# END /{keep=0}' "${CADDYFILE}")
+fi
 echo "==> Writing ${CADDYFILE}"
 tee "${CADDYFILE}" > /dev/null <<EOF
 ${DOMAIN} {
@@ -80,6 +88,10 @@ ${DOMAIN} {
 	}
 }
 EOF
+if [ -n "${FOREIGN_BLOCKS}" ]; then
+  echo "==> Keeping site blocks managed elsewhere: $(grep -c '^# BEGIN ' <<<"${FOREIGN_BLOCKS}")"
+  printf '\n%s\n' "${FOREIGN_BLOCKS}" >> "${CADDYFILE}"
+fi
 
 # ---- docker-compose.yml ------------------------------------------------
 COMPOSE_FILE="${APPDATA_ROOT}/docker-compose.yml"

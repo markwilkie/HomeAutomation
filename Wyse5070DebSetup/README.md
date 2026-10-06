@@ -20,7 +20,7 @@ this table exists specifically so that doesn't happen:
 | 9001 | Mosquitto (MQTT over WebSockets) | No — broker only | (none) | `mosquitto` |
 | **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
 | **8085** | Dashboard | Yes — quick links to every service below + top-level repo docs | (none) | `dashboard` |
-| **8095** | RaceTimes | Yes — Mayhem's ORC time owed/received per boat (separate repo [markwilkie/RaceTimes](https://github.com/markwilkie/RaceTimes), `deploy/setup-racetimes.sh`) | (none) | `racetimes` |
+| 8095 | RaceTimes | Yes, but via Caddy only: **https://mayhem-racing.duckdns.org/** (public, basic auth); the port is bound to 127.0.0.1. Mayhem's ORC time owed/received per boat — separate repo [markwilkie/RaceTimes](https://github.com/markwilkie/RaceTimes), deployed and documented there | (none) | `racetimes` |
 | 8600 | MCP gateway: Microsoft To Do | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-todo` |
 | 8601 | MCP gateway: Trilium | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-trilium` |
 | 8602 | MCP gateway: Monarch Money | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-monarch` |
@@ -31,7 +31,8 @@ this table exists specifically so that doesn't happen:
 (`setup-dashboard.sh`, source in `dashboard/index.html`) linking to every
 browsable service in the table above plus this repo's top-level
 README/CLAUDE.md docs on GitHub. LAN/Tailscale only, same as everything
-else in this table except the Caddy-fronted MCP gateways below — not in
+else in this table except the Caddy-fronted MCP gateways below and
+RaceTimes (`mayhem-racing.duckdns.org`) — not in
 the Caddyfile, not reachable via `wilkiefamily.duckdns.org`.
 
 ## The three dongle admin UIs, side by side
@@ -284,6 +285,15 @@ output for the actual token):
 - `https://wilkiefamily.duckdns.org/todo/<token>/mcp`
 - `https://wilkiefamily.duckdns.org/trilium/<token>/mcp`
 - `https://wilkiefamily.duckdns.org/monarch/<token>/mcp`
+
+The Caddyfile also carries a second site, `mayhem-racing.duckdns.org`
+(RaceTimes, basic auth), in a block between `# BEGIN racetimes` /
+`# END racetimes` markers that RaceTimes' own `racetimes-users.sh`
+regenerates. `setup-caddy.sh` rewrites the file but keeps any such marked
+block, so re-running it doesn't take RaceTimes offline. That container is
+also firewalled off from the LAN and this host by `racetimes-egress.service`
+(iptables `RT-EGRESS` / `DOCKER-USER` / `INPUT` rules) — see the RaceTimes
+README before touching those chains.
 
 ## Setup scripts, for reference
 
