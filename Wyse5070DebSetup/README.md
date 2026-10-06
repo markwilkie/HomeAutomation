@@ -20,6 +20,7 @@ this table exists specifically so that doesn't happen:
 | 9001 | Mosquitto (MQTT over WebSockets) | No — broker only | (none) | `mosquitto` |
 | **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
 | **8085** | Dashboard | Yes — quick links to every service below + top-level repo docs | (none) | `dashboard` |
+| **8095** | RaceTimes | Yes — Mayhem's ORC time owed/received per boat (separate repo [markwilkie/RaceTimes](https://github.com/markwilkie/RaceTimes), `deploy/setup-racetimes.sh`) | (none) | `racetimes` |
 | 8600 | MCP gateway: Microsoft To Do | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-todo` |
 | 8601 | MCP gateway: Trilium | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-trilium` |
 | 8602 | MCP gateway: Monarch Money | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-monarch` |
