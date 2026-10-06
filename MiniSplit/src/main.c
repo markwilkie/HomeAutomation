@@ -24,6 +24,7 @@
 #include "secrets.h"
 #include "esp_openthread.h"
 #include "esp_openthread_lock.h"
+#include "esp_app_desc.h"
 #include <openthread/instance.h>
 #include <openthread/thread.h>
 
@@ -1437,7 +1438,7 @@ static void thread_state_changed_cb(otChangedFlags flags, void *context)
  */
 void app_main(void)
 {
-    ESP_LOGI(TAG, "\n\n=== MiniSplit Matter Bridge Starting ===\n");
+    ESP_LOGI(TAG, "\n\n=== MiniSplit Matter Bridge %s Starting ===\n", esp_app_get_description()->version);
     
     // Initialize NVS flash
     esp_err_t ret = nvs_flash_init();

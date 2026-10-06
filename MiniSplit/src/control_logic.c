@@ -120,6 +120,8 @@ void build_ir_state_frame(const tuya_device_status_t *status, bool power_on,
     int16_t setpoint_c_x100 = override_setpoint ? override_setpoint_c_x100
                                                  : tuya_setpoint_f_to_c(status->temp_set_f);
     // Round to the nearest HALF degree C, not whole degree -- 2026-09-09.
+    // (2026-10-05: the half-degree bit is state[12] 0x04 on this unit, not
+    // the 0x20 the paragraph below names -- see where it's set further down.)
     // Whole-degree-only rounding here was never a real hardware limit: it
     // was found (live, real remote vs. Device B comparison) that sending
     // 71F from the real remote makes the unit report back exactly 71F,
@@ -213,14 +215,20 @@ void build_ir_state_frame(const tuya_device_status_t *status, bool power_on,
 
     out_frame[6] = (uint8_t)((out_frame[6] & ~0x0F) | (ir_mode & 0x0F));  // Mode nibble; bits 4-7 preserved from base
     out_frame[7] = (uint8_t)setpoint_c;
-    // HalfDegree -- state[12] bit 0x20, see half_steps' doc comment above.
-    // isTcl (bit 0x80) and the anti-repeat toggle (bit 0x04) are left as
-    // the base template's values; frame[13] (checksum) is recomputed fresh
-    // by ir_tcl112_send().
+    // Half degree -- state[12] bit 0x04 on this unit, NOT 0x20 (2026-10-05).
+    // The real remote (in F) sends 70F as Temp=21C with state[12]=0x80 and
+    // 71F as Temp=21C with 0x84 (MiniSplitIR/capture_tools/remote_capture/
+    // temperature_69_to_71.log, temperature_71_to_70.log), and never sets
+    // 0x20. This code used to treat 0x04 as an "anti-repeat toggle" and leave
+    // it set from the base template, so every whole-degree setpoint landed
+    // 0.5C high (70F -> 21.5C/71F, 68F -> 20.5C/69F) -- confirmed live against
+    // Tuya's raw temp_set: remote 70 -> 2100, bridge "70" -> 2150. 0x20 is
+    // what IRremoteESP8266 calls HalfDegree; this unit ignores it, so it's
+    // cleared. isTcl (bit 0x80) stays as the base template's value;
+    // frame[13] (checksum) is recomputed fresh by ir_tcl112_send().
+    out_frame[12] &= (uint8_t)~(0x20 | 0x04);
     if (half_degree) {
-        out_frame[12] |= 0x20;
-    } else {
-        out_frame[12] &= (uint8_t)~0x20;
+        out_frame[12] |= 0x04;
     }
     //
     // Fresh Air is NOT set anywhere in this Type 1 frame -- bit-level capture

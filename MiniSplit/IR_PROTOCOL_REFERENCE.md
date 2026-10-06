@@ -151,9 +151,9 @@ file.
 | `state[10]` | 1-6 | `OnTimer` **(sourced, unconfirmed)** — mask `0x7E`, same units as `OffTimer` |
 | `state[11]` | — | Follow Me sensor temp, whole degrees C — only meaningful when the Follow Me bit is set; `0x00` otherwise. **This is the field this project's Follow-Me feature writes.** Fully unclaimed in the library's model (all 8 bits "00000000"), same situation as `state[4]` — another feature this library doesn't implement, that our own captures found the real firmware using. |
 | `state[12]` | 0 | **Fresh Air** — `0x01`. **Type 2 frame only** (Type 1's `state[12]` byte 12 doesn't carry it — see "Known gaps" below for the full writeup). Set = on, clear = off. Found 2026-09-10 via bit-level capture comparison (6 captures, 3 each state, all checksum-valid). |
-| `state[12]` | 2 | Unnamed toggle bit that flips per remote button-press even when no field actually changed (our own capture-confirmed finding, e.g. `0x80`↔`0x84`) — anti-repeat/session toggle, not decoded further. Now pinned to a specific bit rather than "somewhere in this byte." |
+| `state[12]` | 2 | **Half degree (+0.5°C)** — `0x04`. **Confirmed 2026-10-05.** Previously misread as an anti-repeat toggle because it flips on each °F step while `Temp` stays put: the remote (in °F) sends 70°F as `Temp`=21°C + `0x80` and 71°F as 21°C + `0x84` (`remote_capture/temperature_69_to_71.log`, `temperature_71_to_70.log`). Raw Tuya `temp_set` confirms it: remote 69/70/71/72 → 2050/2100/2150/2200. The firmware used to leave this bit set on every frame, so whole-degree setpoints (64, 66, 68, 70, 72°F…) landed 0.5°C / 1°F high. |
 | `state[12]` | 3 | `SwingH` **(sourced, unconfirmed)** — `0x08` |
-| `state[12]` | 5 | `HalfDegree` **(sourced, unconfirmed)** — `0x20`. Not used by this project (whole-degree setpoints only). |
+| `state[12]` | 5 | `HalfDegree` per IRremoteESP8266 — `0x20`. **This unit ignores it** (the real remote never sets it; half degrees are `0x04` above). The firmware always clears it. |
 | `state[12]` | 7 | `isTcl` **(sourced)** — `0x80`, a TCL-vs-clone model flag the library sets by default and every one of our own captures shows set. High confidence this one's correct without further confirmation, since 100% of captures agree. |
 | `state[13]` | — | Checksum — see above, resolved and verified. |
 
@@ -315,7 +315,7 @@ the remote or Tuya app will be reset within ~3 minutes.
 | Light | copied from Tuya `light`, but the inverted polarity (`state[5]` `0x40`) is sourced-unconfirmed | `light` |
 
 Preserved correctly: Power (explicit per caller), Mode, Setpoint (0.5°C
-resolution via HalfDegree), Fan within the 4 IR levels, Fresh Air (Type 2
+resolution via `state[12]` `0x04`), Fan within the 4 IR levels, Fresh Air (Type 2
 `state[12]` bit 0), Follow-Me (above). If any of the table's features start
 being used, the fix is reading the DP and writing the (capture-confirmed)
 bit in `build_ir_state_frame()` — confirm the bit first.

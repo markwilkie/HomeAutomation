@@ -94,22 +94,44 @@ static void test_frame_setpoint(void)
     tuya_device_status_t s = status_on(4, 68);  // 20.0C
     build(&s, true, false, 0, false, 0, f);
     CHECK(f[7] == 11);                          // Temp = 31 - 20
-    CHECK(!(f[12] & 0x20));                     // no half degree
+    CHECK(!(f[12] & 0x04));                     // no half degree
+    CHECK(!(f[12] & 0x20));                     // 0x20 never set (unit ignores it)
 
     s.temp_set_f = 69;                          // 20.56C -> 20.5C
     build(&s, true, false, 0, false, 0, f);
     CHECK(f[7] == 11);
-    CHECK(f[12] & 0x20);                        // half degree
+    CHECK(f[12] & 0x04);                        // half degree
+    CHECK(!(f[12] & 0x20));
+
+    // Matches the real remote's captured frames (Heat): 70F = 21C + 0x80,
+    // 71F = 21C + 0x84.
+    build(&s, true, true, IR_MODE_HEAT, true, 2111, f);
+    CHECK(f[7] == 10 && f[12] == 0x80);
+    build(&s, true, true, IR_MODE_HEAT, true, 2167, f);
+    CHECK(f[7] == 10 && f[12] == 0x84);
 
     build(&s, true, false, 0, true, 2400, f);   // override 24.0C
     CHECK(f[7] == 7);
-    CHECK(!(f[12] & 0x20));
+    CHECK(!(f[12] & 0x04));
 
     build(&s, true, false, 0, true, 1000, f);   // below 16C clamps to 16
     CHECK(f[7] == 15);
 
     build(&s, true, true, IR_MODE_COOL, false, 0, f);
     CHECK((f[6] & 0x0F) == IR_MODE_COOL);       // mode override
+}
+
+static void test_setpoint_f_round_trip(void)
+{
+    // Every whole-F setpoint survives F -> C x100 -> F (ceiling broke 73F).
+    for (int16_t f = 61; f <= 86; f++) {
+        CHECK(tuya_setpoint_c_to_f(tuya_setpoint_f_to_c(f)) == f);
+    }
+    // Tuya's reported F for the unit's raw C (live, 2026-10-05).
+    CHECK(tuya_setpoint_c_to_f(2050) == 69);
+    CHECK(tuya_setpoint_c_to_f(2100) == 70);
+    CHECK(tuya_setpoint_c_to_f(2150) == 71);
+    CHECK(tuya_setpoint_c_to_f(2200) == 72);
 }
 
 static void test_followme_bits(void)
@@ -207,6 +229,7 @@ int main(void)
     test_fan_mapping();
     test_frame_power_light_fan();
     test_frame_setpoint();
+    test_setpoint_f_round_trip();
     test_followme_bits();
     test_fresh_air();
     test_mode_reconcile();

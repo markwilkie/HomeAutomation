@@ -39,8 +39,8 @@ typedef struct {
 } tuya_device_status_t;
 
 /**
- * @brief Clamp a Celsius (×100) setpoint and round it UP (ceiling) to the
- *        nearest whole Fahrenheit degree -- the single source of truth for
+ * @brief Clamp a Celsius (×100) setpoint and round it to the nearest whole
+ *        Fahrenheit degree -- the single source of truth for
  *        the C->F step, shared by tuya_normalize_setpoint_c(),
  *        tuya_set_temperature() (retired direct-API path), and main.c's
  *        desired-setpoint reconciliation/outage-mismatch checks (what gets
@@ -64,6 +64,13 @@ typedef struct {
  * re-validated against every setpoint in range, so treat as a strong,
  * evidence-based correction rather than a fully proven one if a future
  * capture ever contradicts it.
+ *
+ * 2026-10-05: contradicted, back to round-to-nearest. That "23.0C" frame
+ * really carried the unit's half-degree bit (state[12] 0x04, which the IR
+ * encoder left set on every frame -- see build_ir_state_frame()), so the unit
+ * held 23.5C = 74.3F -> 74F. Raw Tuya readings from the real remote fit
+ * round-to-nearest: 20.5C->69, 21.0C->70, 21.5C->71, 22.0C->72. Ceiling also
+ * broke the round trip with tuya_setpoint_f_to_c() (73F -> 2278 -> 74F).
  * @param temp_c_x100 Setpoint in Celsius (×100), any range
  * @return Whole-degree Fahrenheit, clamped to the device's 16-30C range
  */
@@ -74,7 +81,7 @@ static inline int16_t tuya_setpoint_c_to_f(int16_t temp_c_x100)
     } else if (temp_c_x100 > 3000) {
         temp_c_x100 = 3000;
     }
-    return (int16_t)(((int32_t)temp_c_x100 * 9 + 499) / 500 + 32);
+    return (int16_t)(((int32_t)temp_c_x100 * 9 + 250) / 500 + 32);
 }
 
 /**
