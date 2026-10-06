@@ -144,6 +144,56 @@ static void test_setpoint_f_round_trip(void)
     CHECK(tuya_setpoint_c_to_f(2200) == 72);
 }
 
+static void test_setpoint_reconcile(void)
+{
+    int16_t pending = SETPOINT_UNKNOWN_F;
+    setpoint_reconcile_input_t in = {
+        .desired_f = 70, .unit_f = 70, .prev_unit_f = 70, .correctable = true,
+        .mode_changed = false, .sent_recently = false, .last_sent_f = 70,
+    };
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_IN_SYNC);
+
+    // Missed update: HA moved Desired to 68, the bridge sent it, the unit
+    // stayed at 70 -> resend, never adopt.
+    in.desired_f = 68; in.sent_recently = true; in.last_sent_f = 68;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+
+    // Our own send landing is in sync, not a manual change.
+    in.unit_f = 68; in.prev_unit_f = 70;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_IN_SYNC);
+
+    // Remote press 68 -> 72: wait one poll, then adopt.
+    in.unit_f = 72; in.prev_unit_f = 68; in.sent_recently = false;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_WAIT);
+    CHECK(pending == 72);
+    in.prev_unit_f = 72;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_ADOPT);
+    CHECK(pending == SETPOINT_UNKNOWN_F);
+
+    // ...even right after a bridge send, if it's not the value we sent.
+    in.desired_f = 68; in.unit_f = 71; in.prev_unit_f = 68; in.sent_recently = true; in.last_sent_f = 68;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_WAIT);
+
+    // A one-poll glitch that goes back is never adopted.
+    in.unit_f = 68; in.prev_unit_f = 71;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_IN_SYNC);
+    CHECK(pending == SETPOINT_UNKNOWN_F);
+
+    // Remote MODE press (carries the remote's temp) -> resend Desired.
+    in.unit_f = 75; in.prev_unit_f = 68; in.mode_changed = true; in.sent_recently = false;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+    in.mode_changed = false;
+
+    // No previous poll (boot): resend, don't adopt.
+    in.prev_unit_f = SETPOINT_UNKNOWN_F;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+
+    // Off or Auto: hands off.
+    in.correctable = false;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_SKIP);
+}
+
 static void test_followme_bits(void)
 {
     uint8_t f[IR_TCL112_FRAME_LEN];
@@ -240,6 +290,7 @@ int main(void)
     test_frame_power_light_fan();
     test_frame_setpoint();
     test_setpoint_f_round_trip();
+    test_setpoint_reconcile();
     test_followme_bits();
     test_fresh_air();
     test_mode_reconcile();

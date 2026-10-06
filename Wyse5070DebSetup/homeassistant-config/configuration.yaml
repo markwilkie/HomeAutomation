@@ -204,6 +204,19 @@ input_number:
     icon: mdi:fire
     mode: box
 
+  # Manual override (2026-10-05): the last setpoint the setpoint automation
+  # wrote to Desired. Desired changing to anything else -- the HA card, or a
+  # remote/app change the firmware adopted -- is a manual override (see
+  # "MiniSplit Manual Override Detect" in automations.yaml).
+  minisplit_schedule_setpoint:
+    name: "MiniSplit Schedule Setpoint"
+    min: 50
+    max: 90
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:calendar-clock
+    mode: box
+
   # minisplit_mode_w_hallway / _w_outdoor (predictor weights) and
   # minisplit_mode_cool_outdoor_min / _heat_outdoor_max (fixed outdoor
   # gates) removed 2026-10-05 with the shadow-rule simplification -- see the
@@ -393,6 +406,14 @@ template:
         state: >-
           {{ ((state_attr('climate.mini_split_ac_bridge_thermostat_1', 'current_temperature') | float(0))
               - (states('sensor.0x18690afffe5602f1_temperature') | float(0))) | abs <= 2 }}
+      # On while a manual setpoint (HA card or remote) is holding off the
+      # setpoint automation -- see input_datetime.minisplit_override_until.
+      - name: "MiniSplit Manual Override"
+        unique_id: minisplit_manual_override
+        icon: mdi:hand-back-right
+        state: >-
+          {% set u = states('input_datetime.minisplit_override_until') %}
+          {{ u not in ['unknown', 'unavailable', ''] and now().timestamp() < as_timestamp(u, 0) }}
       - name: "MiniSplit Shadow Cool Wanted"
         unique_id: minisplit_shadow_cool_wanted
         icon: mdi:snowflake-alert
@@ -729,6 +750,19 @@ input_datetime:
     name: "MiniSplit Predictive Last Write"
     has_date: true
     has_time: true
+
+  # Manual override end (2026-10-05): the setpoint automation leaves Desired
+  # alone until then. Set to the next day/night change (07:00 or 19:00) when
+  # a manual change is detected; set to now by a mode change or Resume.
+  minisplit_override_until:
+    name: "MiniSplit Override Until"
+    has_date: true
+    has_time: true
+
+input_button:
+  minisplit_resume_schedule:
+    name: "MiniSplit Resume Schedule"
+    icon: mdi:calendar-sync
 
 # sensor.minisplit_bme280_smoothed (filter platform) and
 # sensor.minisplit_bme280_trend (derivative platform) removed 2026-09-06:

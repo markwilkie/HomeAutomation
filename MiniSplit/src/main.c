@@ -373,6 +373,32 @@ static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], boo
 
 static bool g_followme_active;
 
+// Last setpoint the bridge sent (whole F) and when -- lets sync_task tell its
+// own command landing from a remote/app change (setpoint_reconcile_decide()).
+static portMUX_TYPE g_setpoint_sent_lock = portMUX_INITIALIZER_UNLOCKED;
+static bool g_setpoint_sent_valid;
+static int16_t g_setpoint_sent_f;
+static TickType_t g_setpoint_sent_tick;
+
+static void note_setpoint_sent(int16_t setpoint_c_x100)
+{
+    taskENTER_CRITICAL(&g_setpoint_sent_lock);
+    g_setpoint_sent_f = tuya_setpoint_c_to_f(setpoint_c_x100);
+    g_setpoint_sent_tick = xTaskGetTickCount();
+    g_setpoint_sent_valid = true;
+    taskEXIT_CRITICAL(&g_setpoint_sent_lock);
+}
+
+static bool setpoint_last_sent(int16_t *out_f, uint32_t *out_ms_ago)
+{
+    taskENTER_CRITICAL(&g_setpoint_sent_lock);
+    bool valid = g_setpoint_sent_valid;
+    *out_f = g_setpoint_sent_f;
+    *out_ms_ago = pdTICKS_TO_MS(xTaskGetTickCount() - g_setpoint_sent_tick);
+    taskEXIT_CRITICAL(&g_setpoint_sent_lock);
+    return valid;
+}
+
 // Ambient reading HA last relayed, rounded to the whole degrees C state[11]
 // carries (see IR_PROTOCOL_REFERENCE.md's Follow Me section).
 static bool followme_ambient_whole_c(int8_t *out_c)
@@ -417,6 +443,9 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
     }
 
     esp_err_t err = transmit_ir_state_frame(frame, effective_fresh_air(status));
+    if (err == ESP_OK && power_on && override_setpoint) {
+        note_setpoint_sent(override_setpoint_c_x100);
+    }
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "IR frame sent: power=%s mode=%u setpoint=%dC follow_me=%s",
                  power_on ? "on" : "off", ir_mode, setpoint_c, with_followme ? "kept" : "off");
@@ -772,6 +801,12 @@ static esp_err_t wait_for_time_sync(void)
  * 3. Handle errors and retries
  * 4. Log status for debugging
  */
+// sync_task's view of the unit at its previous poll, for
+// setpoint_reconcile_decide(). Only sync_task touches these.
+static int16_t s_prev_unit_setpoint_f = SETPOINT_UNKNOWN_F;
+static uint8_t s_prev_unit_mode = MATTER_MODE_UNKNOWN;
+static int16_t s_pending_manual_setpoint_f = SETPOINT_UNKNOWN_F;
+
 static void sync_task(void *param)
 {
     ESP_LOGI(TAG, "Status synchronization task started (interval: %ums)", STATUS_POLL_INTERVAL_MS);
@@ -913,16 +948,53 @@ static void sync_task(void *param)
         // remote setpoint change (which HA's Desired now overrides). The
         // SETPOINT_MISMATCH outage keeps its >1F tolerance -- it also makes
         // HA's setpoint automation hold, which a 1F in-flight gap shouldn't.
+        //
+        // 2026-10-05: and a mismatch is no longer always corrected -- a
+        // setpoint changed on the remote/app is adopted into Desired instead
+        // (setpoint_reconcile_decide(): the unit moved to a value the bridge
+        // didn't send, outside a mode change, held for two polls). A missed
+        // update -- the unit still at its previous value -- is resent as
+        // before. HA's setpoint automation treats an adopted value as a
+        // manual override until the next day/night change.
         int16_t desired_c_x100 = matter_get_desired_cooling_setpoint();
-        int16_t desired_f_for_outage_check = tuya_setpoint_c_to_f(desired_c_x100);
-        int16_t setpoint_mismatch_f = (int16_t)abs(desired_f_for_outage_check - device_status.temp_set_f);
-        if (setpoint_mismatch_f > 0 && device_status.switch_state && device_status.ac_mode != 0) {
-            ESP_LOGW(TAG, "Setpoint mismatch %dF (desired %dF, Tuya reports %dF) -- sending IR correction",
-                     setpoint_mismatch_f, desired_f_for_outage_check, device_status.temp_set_f);
-            esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
-            if (send_err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send setpoint correction via IR: %s", esp_err_to_name(send_err));
+        int16_t last_sent_f;
+        uint32_t ms_since_sent;
+        bool sent_any = setpoint_last_sent(&last_sent_f, &ms_since_sent);
+        uint8_t unit_mode_now = map_tuya_mode_to_matter(&device_status);
+        setpoint_reconcile_input_t sp_in = {
+            .desired_f = tuya_setpoint_c_to_f(desired_c_x100),
+            .unit_f = device_status.temp_set_f,
+            .prev_unit_f = s_prev_unit_setpoint_f,
+            .correctable = device_status.switch_state && device_status.ac_mode != 0,
+            .mode_changed = s_prev_unit_mode != MATTER_MODE_UNKNOWN && unit_mode_now != s_prev_unit_mode,
+            .sent_recently = sent_any && ms_since_sent < SETPOINT_ECHO_WINDOW_MS,
+            .last_sent_f = last_sent_f,
+        };
+        s_prev_unit_setpoint_f = device_status.temp_set_f;
+        s_prev_unit_mode = unit_mode_now;
+        switch (setpoint_reconcile_decide(&sp_in, &s_pending_manual_setpoint_f)) {
+            case SETPOINT_RECONCILE_WAIT:
+                ESP_LOGW(TAG, "Setpoint: unit moved to %dF on its own (desired %dF) -- confirming on next poll before adopting",
+                         sp_in.unit_f, sp_in.desired_f);
+                break;
+            case SETPOINT_RECONCILE_ADOPT:
+                ESP_LOGW(TAG, "Setpoint: unit held %dF (remote/app change), Desired adopts it (was %dF)",
+                         sp_in.unit_f, sp_in.desired_f);
+                matter_set_desired_setpoint(tuya_setpoint_f_to_c(sp_in.unit_f));
+                check_setpoint_mismatch_outage(&device_status);
+                break;
+            case SETPOINT_RECONCILE_RESEND: {
+                ESP_LOGW(TAG, "Setpoint mismatch (desired %dF, Tuya reports %dF) -- sending IR correction",
+                         sp_in.desired_f, sp_in.unit_f);
+                esp_err_t send_err = send_ir_frame(&device_status, true, false, 0, true, desired_c_x100);
+                if (send_err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send setpoint correction via IR: %s", esp_err_to_name(send_err));
+                }
+                break;
             }
+            case SETPOINT_RECONCILE_SKIP:
+            case SETPOINT_RECONCILE_IN_SYNC:
+                break;
         }
 
         reconcile_system_mode(&device_status);

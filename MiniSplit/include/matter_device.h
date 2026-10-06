@@ -255,6 +255,15 @@ uint8_t matter_get_desired_system_mode(void);
 void matter_set_desired_system_mode(uint8_t mode);
 
 /**
+ * @brief Set the Desired setpoint from the firmware side (adopting a
+ *        setpoint changed on the remote/app, 2026-10-05) -- updates the
+ *        Desired endpoint's heating and cooling setpoints and NVS without
+ *        queuing a command.
+ * @param temp_c_x100 Setpoint in Celsius (×100)
+ */
+void matter_set_desired_setpoint(int16_t temp_c_x100);
+
+/**
  * @brief Check for a pending Fresh Air switch command from Matter
  * @param out_desired Set to the requested state when a command is pending
  * @return true if a command is pending

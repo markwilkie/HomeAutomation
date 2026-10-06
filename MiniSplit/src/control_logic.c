@@ -293,3 +293,31 @@ mode_reconcile_action_t mode_reconcile_decide(const mode_reconcile_input_t *in, 
     }
     return MODE_RECONCILE_RESEND;
 }
+
+setpoint_reconcile_action_t setpoint_reconcile_decide(const setpoint_reconcile_input_t *in, int16_t *pending_f)
+{
+    if (!in->correctable) {
+        *pending_f = SETPOINT_UNKNOWN_F;
+        return SETPOINT_RECONCILE_SKIP;
+    }
+    if (in->unit_f == in->desired_f) {
+        *pending_f = SETPOINT_UNKNOWN_F;
+        return SETPOINT_RECONCILE_IN_SYNC;
+    }
+    // Second poll in a row at the same manual value: it's real, adopt it.
+    if (*pending_f != SETPOINT_UNKNOWN_F && in->unit_f == *pending_f) {
+        *pending_f = SETPOINT_UNKNOWN_F;
+        return SETPOINT_RECONCILE_ADOPT;
+    }
+    // The unit moved since last poll, not to something the bridge just sent,
+    // and not as part of a mode change: someone changed it by hand. A missed
+    // update looks different -- the unit stays at its previous value.
+    bool unit_moved = in->prev_unit_f != SETPOINT_UNKNOWN_F && in->unit_f != in->prev_unit_f;
+    bool our_echo = in->sent_recently && in->unit_f == in->last_sent_f;
+    if (unit_moved && !our_echo && !in->mode_changed) {
+        *pending_f = in->unit_f;
+        return SETPOINT_RECONCILE_WAIT;
+    }
+    *pending_f = SETPOINT_UNKNOWN_F;
+    return SETPOINT_RECONCILE_RESEND;
+}

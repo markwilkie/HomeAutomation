@@ -19,9 +19,9 @@ Zigbee temp sensor --Z2M--> HA --Matter/Thread--> bridge --IR--> mini-split
 - `command_task` — turns HA writes (setpoint, mode, power, Fresh Air) into IR
   frames, after a fresh Tuya read and a dedup check.
 - `sync_task` — polls Tuya every 5 min, mirrors state to Matter, and
-  reconciles: resends the Desired setpoint if the unit is >1°F off, and
-  reconciles mode (adopts a remote/app change, otherwise resends Desired's
-  mode).
+  reconciles setpoint and mode the same way: a change made on the remote/app
+  is adopted into Desired, anything else (a missed IR update) gets Desired
+  resent. A remote mode change keeps the schedule's temperature.
 - `followme_task` — sends the room temperature (Follow-Me heartbeat) every 3
   min while the unit is on. With Follow-Me engaged the unit regulates on that
   reading, not its own ~3–4°F-warm sensor.
@@ -51,6 +51,9 @@ unique IDs — only ever add endpoints at the end):
 - *Setpoint automation* — strategy `direct` (Desired = the day/night target
   for the current mode) while Follow-Me is engaged, falling back to an offset
   controller otherwise. Targets: separate heat/cool day/night sliders.
+  A setpoint set by hand (HA card, or the remote via the firmware) is a
+  *manual override*: the schedule leaves it until the next 07:00/19:00, or
+  until the mode changes or **Resume schedule** is pressed.
 - *Follow-Me relay* — forwards the room sensor to EP10 when its whole-°C
   value changes.
 - *Shadow mode decision* — computes Off/Cool/Heat but never touches the unit;

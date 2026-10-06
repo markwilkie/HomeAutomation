@@ -31,6 +31,12 @@
     otherwise, 0.3-1.2) on ticks the target bound didn't pin, and is
     boosted on hot days in Cool / cold days in Heat.
 
+    MANUAL OVERRIDE (2026-10-05): skipped while
+    binary_sensor.minisplit_manual_override is on (a setpoint set on the HA
+    card or the remote, until the next 07:00/19:00 day/night change). Each
+    write records its value in input_number.minisplit_schedule_setpoint first
+    so the override detector can tell it apart.
+
     Dated design history (2026-08-26 onward): history/setpoint-automation.md
     next to this file -- moved out of this description 2026-10-05.
   initial_state: true
@@ -64,6 +70,11 @@
   # 2026-10-05: Heat/Cool only -- see description.
   - condition: template
     value_template: "{{ states('climate.bedroom_mini_split_ac_bridge_thermostat_6') in ['heat', 'cool'] }}"
+  # 2026-10-05: hands off during a manual override (HA card or remote) --
+  # see "MiniSplit Manual Override Detect" below.
+  - condition: state
+    entity_id: binary_sensor.minisplit_manual_override
+    state: "off"
   actions:
   - variables:
       target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(66) }}"
@@ -366,6 +377,14 @@
   # (it's read-only now, mirroring Tuya only). The firmware's own sync_task
   # reconciles this endpoint's value against Tuya every poll and re-sends on
   # its own if they disagree.
+  #
+  # 2026-10-05: record the value BEFORE writing it, so the override detector
+  # (triggered by Desired changing) sees this write as the schedule's own.
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.minisplit_schedule_setpoint
+    data:
+      value: "{{ new_setpoint }}"
   - action: climate.set_temperature
     target:
       entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
@@ -457,12 +476,14 @@
     version, 2026-10-04) meant the automation never ran for 30 minutes
     after every HA restart -- and there were five that day.
 
-    Rules (simplified 2026-10-05, see configuration.yaml's binary sensors):
-    Cool wanted = room more than the band (1.5F) above the cool target AND
-    outdoor warmer than the cool target; Heat wanted = room more than the
-    band below the heat target AND outdoor colder than the heat target (if
-    it's already past the target outside, the house gets there by itself).
-    Satisfied = room 1F past the target the other way. Targets are
+    Rules (2026-10-05 evening, see configuration.yaml's binary sensors):
+    Cool wanted = room more than the band (1.5F) above the cool target, held
+    2 hours; Heat wanted = room more than the band below the heat target,
+    held 2 hours. No weather gate: outdoor-only blocked cooling a heat-soaked
+    house on cool evenings, and outdoor-or-hallway and trend projections
+    changed no decision in replay -- the 2-hour hold is the "would doing
+    nothing work" check. Satisfied = room 1F past the target the other way,
+    held 30 minutes. Targets are
     sensor.minisplit_cool_target / heat_target (the 2026-10-01 heat/cool
     day/night split). The 2026-10-04 version's trend-based early trigger, 3h
     outdoor-trend gate, fixed 65F/60F outdoor gates and outdoor-based exits
@@ -557,4 +578,79 @@
             entity_id: input_datetime.minisplit_shadow_last_change
           data:
             datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+  mode: single
+- id: '1789700000001'
+  alias: MiniSplit Manual Override Detect
+  description: >-
+    2026-10-05. Desired's setpoint changed to something the setpoint
+    automation didn't write (input_number.minisplit_schedule_setpoint) --
+    i.e. set on the HA card, or on the remote/app and adopted by the bridge
+    firmware (1.2.0+: it tells a remote change from a missed IR update by
+    whether the unit moved to a value the bridge didn't send). Holds the
+    schedule off until the next day/night change: 07:00 or 19:00, whichever
+    comes first. A mode change from the remote doesn't count (the firmware
+    keeps the schedule's temperature for it), and any Desired mode change
+    ends an override (next automation).
+  triggers:
+    - trigger: state
+      entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
+      attribute: temperature
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ trigger.from_state is not none and trigger.to_state is not none
+           and trigger.from_state.state not in ['unknown', 'unavailable']
+           and trigger.to_state.state in ['heat', 'cool']
+           and trigger.from_state.attributes.temperature is not none
+           and trigger.to_state.attributes.temperature is not none
+           and ((trigger.to_state.attributes.temperature | float)
+                - states('input_number.minisplit_schedule_setpoint') | float(0)) | abs >= 0.5 }}
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.minisplit_override_until
+      data:
+        datetime: >-
+          {% set t7 = today_at('07:00') %}{% set t19 = today_at('19:00') %}
+          {{ (t7 if now() < t7 else t19 if now() < t19 else t7 + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}
+  mode: queued
+- id: '1789700000002'
+  alias: MiniSplit Manual Override End
+  description: >-
+    2026-10-05. Ends a manual override early: on the dashboard's Resume
+    Schedule button, or when Desired's mode changes (Heat/Cool/Off/Auto, from
+    HA or adopted from the remote). Clears the setpoint automation's cooldown
+    and runs it right away so the schedule's temperature goes back at once.
+  triggers:
+    - trigger: state
+      entity_id: input_button.minisplit_resume_schedule
+      id: resume
+    - trigger: state
+      entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
+      id: mode
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ trigger.id == 'resume'
+           or (trigger.from_state is not none and trigger.to_state is not none
+               and trigger.from_state.state not in ['unknown', 'unavailable']
+               and trigger.to_state.state not in ['unknown', 'unavailable']
+               and trigger.from_state.state != trigger.to_state.state) }}
+  actions:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.minisplit_override_until
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.minisplit_predictive_last_write
+      data:
+        datetime: "2000-01-01 00:00:00"
+    - delay: "00:00:05"
+    - action: automation.trigger
+      target:
+        entity_id: automation.minisplit_bme280_predictive_setpoint_correction
+      data:
+        skip_condition: false
   mode: single

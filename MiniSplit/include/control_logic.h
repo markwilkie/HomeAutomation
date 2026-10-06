@@ -80,6 +80,37 @@ typedef struct {
 // mismatch); the caller resets it after a successful resend.
 mode_reconcile_action_t mode_reconcile_decide(const mode_reconcile_input_t *in, uint8_t *mismatch_polls);
 
+// Setpoint reconciliation (2026-10-05): tells a missed update (the unit kept
+// its old value -> resend Desired) from a manual change on the remote/app
+// (the unit moved to a value the bridge didn't send -> Desired adopts it,
+// once it's held for two polls so a Tuya glitch can't be adopted).
+#define SETPOINT_UNKNOWN_F INT16_MIN
+#define SETPOINT_ECHO_WINDOW_MS (15 * 60 * 1000)
+
+typedef enum {
+    SETPOINT_RECONCILE_SKIP,     // unit off or in Auto -- nothing to correct
+    SETPOINT_RECONCILE_IN_SYNC,
+    SETPOINT_RECONCILE_WAIT,     // looks manual; confirm on the next poll
+    SETPOINT_RECONCILE_ADOPT,    // manual change confirmed: Desired = unit
+    SETPOINT_RECONCILE_RESEND,   // missed update (or unit drifted): resend Desired
+} setpoint_reconcile_action_t;
+
+typedef struct {
+    int16_t desired_f;           // Desired, as the whole F it rounds to
+    int16_t unit_f;              // Tuya temp_set_f this poll
+    int16_t prev_unit_f;         // temp_set_f last poll, or SETPOINT_UNKNOWN_F
+    bool correctable;            // unit on and not in Auto
+    bool mode_changed;           // unit's mode differs from last poll (a remote
+                                 // mode press carries the remote's temp -- not
+                                 // a temperature choice)
+    bool sent_recently;          // bridge sent a setpoint within SETPOINT_ECHO_WINDOW_MS
+    int16_t last_sent_f;         // ...and which one
+} setpoint_reconcile_input_t;
+
+// *pending_f holds the manual value awaiting confirmation (SETPOINT_UNKNOWN_F
+// if none); start it at SETPOINT_UNKNOWN_F.
+setpoint_reconcile_action_t setpoint_reconcile_decide(const setpoint_reconcile_input_t *in, int16_t *pending_f);
+
 #ifdef __cplusplus
 }
 #endif

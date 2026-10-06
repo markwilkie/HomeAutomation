@@ -1112,6 +1112,20 @@ extern "C" void matter_set_desired_system_mode(uint8_t mode)
                             Thermostat::Id, Thermostat::Attributes::SystemMode::Id, esp_matter_enum8(mode));
 }
 
+extern "C" void matter_set_desired_setpoint(int16_t temp_c_x100)
+{
+    if (g_matter_state.desired_cooling_setpoint != temp_c_x100) {
+        g_matter_state.desired_cooling_setpoint = temp_c_x100;
+        nvs_persist_i16(NVS_KEY_DESIRED_SETPOINT, temp_c_x100);
+    }
+    update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
+                            Thermostat::Id, Thermostat::Attributes::OccupiedHeatingSetpoint::Id,
+                            esp_matter_int16(temp_c_x100));
+    update_attr_on_endpoint(g_desired_setpoint_endpoint, g_desired_setpoint_endpoint_id,
+                            Thermostat::Id, Thermostat::Attributes::OccupiedCoolingSetpoint::Id,
+                            esp_matter_int16(temp_c_x100));
+}
+
 extern "C" void matter_clear_onoff_command(void)
 {
     g_matter_state.onoff_command_pending = false;
