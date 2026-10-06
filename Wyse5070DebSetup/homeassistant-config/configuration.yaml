@@ -354,25 +354,27 @@ template:
         state: "{{ cool_target }}"
 
   # The shadow-mode decision's "is this mode warranted / is it done"
-  # conditions, each held for 30 minutes (delay_on) before reading on, so a
-  # single reading can't flip the decision. The automation (automations.yaml)
-  # only reads these four plus its own dwell/reversal bookkeeping.
+  # conditions. The automation (automations.yaml) only reads these four plus
+  # its own dwell/reversal bookkeeping.
   #
-  # Simplified 2026-10-05:
-  #   Cool wanted: room > cool target + band, AND outdoor > cool target.
-  #   Heat wanted: room < heat target - band, AND outdoor < heat target.
-  #   Cool done:   room <= cool target - 1.   Heat done: room >= heat target + 1.
-  # The outdoor check is relative to the mode's own target: if it's already
-  # past the target outside, the house gets there by itself. That replaced
-  # fixed 65F/60F gates, which wrongly blocked e.g. heating a cold room on a
-  # 62F morning (the house can't warm itself to 69 when it's 62 out). Also
-  # removed: the trend-based early trigger and its weights, the 3h outdoor
-  # trend gate, and outdoor-based exits (which could abandon a mode with the
-  # room still far off). Replay 2026-09-25..10-05: 0 changes for both the
-  # old and simplified rules, i.e. the removed parts never changed an
-  # outcome. "Done" is deliberately 1F PAST the target, not at it: with the
-  # unit running, the room sitting at target means the mode is doing its
-  # job, not that it's no longer needed.
+  # Room only (2026-10-05, evening):
+  #   Cool wanted: room > cool target + band, held 2 hours.
+  #   Heat wanted: room < heat target - band, held 2 hours.
+  #   Cool done:   room <= cool target - 1, held 30 min.
+  #   Heat done:   room >= heat target + 1, held 30 min.
+  # "Don't act if doing nothing would also work" is the 2-hour hold: a warm
+  # spell that resolves on its own never reaches it. Weather/house gates were
+  # tried and dropped the same day -- replay 2026-09-30..10-05:
+  #   - outdoor > target (cool) blocked cooling a 73F room on 55-62F evenings
+  #     when the house holds the day's heat;
+  #   - outdoor OR hallway gave identical decisions to no gate at all (the
+  #     hallway tracks the bedroom);
+  #   - a trend projection ("back to target within N h at the current rate")
+  #     changed no decision at any setting tried: past the band, the room
+  #     drifts only ~0.1-0.6F/h on its own. sensor.minisplit_room_trend is on
+  #     the dashboard to revisit this with summer data.
+  # "Done" is deliberately 1F PAST the target, not at it: with the unit
+  # running, the room sitting at target means the mode is doing its job.
   - binary_sensor:
       # Whether the unit is actually using Follow-Me (2026-10-05): with it
       # engaged, the unit reports the relayed Follow-Me value as its own
@@ -394,25 +396,21 @@ template:
       - name: "MiniSplit Shadow Cool Wanted"
         unique_id: minisplit_shadow_cool_wanted
         icon: mdi:snowflake-alert
-        delay_on: "00:30:00"
+        delay_on: "02:00:00"
         availability: >-
-          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_cool_target')
-             and has_value('sensor.minisplit_outdoor_temp') }}
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_cool_target') }}
         state: >-
-          {% set target = states('sensor.minisplit_cool_target') | float(0) %}
-          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) > target + states('input_number.minisplit_mode_cool_band') | float(1.5)
-             and states('sensor.minisplit_outdoor_temp') | float(0) > target }}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0)
+             > states('sensor.minisplit_cool_target') | float(0) + states('input_number.minisplit_mode_cool_band') | float(1.5) }}
       - name: "MiniSplit Shadow Heat Wanted"
         unique_id: minisplit_shadow_heat_wanted
         icon: mdi:fire-alert
-        delay_on: "00:30:00"
+        delay_on: "02:00:00"
         availability: >-
-          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_heat_target')
-             and has_value('sensor.minisplit_outdoor_temp') }}
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_heat_target') }}
         state: >-
-          {% set target = states('sensor.minisplit_heat_target') | float(0) %}
-          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) < target - states('input_number.minisplit_mode_heat_band') | float(1.5)
-             and states('sensor.minisplit_outdoor_temp') | float(0) < target }}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0)
+             < states('sensor.minisplit_heat_target') | float(0) - states('input_number.minisplit_mode_heat_band') | float(1.5) }}
       - name: "MiniSplit Shadow Cool Satisfied"
         unique_id: minisplit_shadow_cool_satisfied
         icon: mdi:snowflake-check
@@ -745,3 +743,16 @@ input_datetime:
 # (derivative platform) removed 2026-10-05 -- they only fed the shadow
 # decision's early-trigger and 3h-trend gate, both dropped in the
 # simplification (see the Shadow Wanted/Satisfied binary sensors above).
+
+# Room temperature trend, F/hour over the last hour (2026-10-05). Display
+# only -- nothing decides on it (see the shadow-mode comment in template:
+# for why). On the MiniSplit dashboard to see whether summer afternoon
+# spikes come and go on their own.
+sensor:
+  - platform: derivative
+    source: sensor.0x18690afffe5602f1_temperature
+    name: "MiniSplit Room Trend"
+    unique_id: minisplit_room_trend
+    unit_time: h
+    time_window: "01:00:00"
+    round: 1
