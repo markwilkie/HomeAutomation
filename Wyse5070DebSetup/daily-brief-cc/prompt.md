@@ -121,9 +121,13 @@ Render all of the following sections, in this order:
    different query or `list_children_notes` if the first search comes up
    empty before concluding nothing exists). Once found, do a broad scan of
    the upcoming weeks (not just this weekend) for Seattle-area shows,
-   PLUS shows specifically at Mt Baker Theatre (Bellingham — otherwise
-   outside scope, but always check this one venue), matching that taste
-   profile via web search. For EVERY show listed:
+   PLUS dedicated searches for shows specifically at these two venues,
+   matching that taste profile via web search:
+   - Mt Baker Theatre (Bellingham — otherwise outside scope, but always
+     check this one venue)
+   - Tractor Tavern (Ballard, Seattle — always give it its own dedicated
+     search, even though it's in Seattle, since a general Seattle-shows
+     search doesn't reliably surface it) For EVERY show listed:
    - If the artist is directly in my taste notes/library, mark it with a ⭐
      at the start of the bullet — don't also spell out "directly in your
      library" as text, the star already says that.
