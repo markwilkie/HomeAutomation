@@ -65,7 +65,13 @@ for f in "${changed[@]}"; do
     echo "$f: deployed (backup: $f.bak-$stamp)"
 done
 
-if ! remote "docker exec homeassistant python3 -m homeassistant --script check_config -c /config"; then
+# check_config exits 0 even on "Incorrect config" (an invalid platform just
+# gets dropped -- "Successful config (partial)"), so judge by its output too.
+# Found 2026-10-06 when a bad statistics sensor deployed without rollback.
+check_out=$(remote "docker exec homeassistant python3 -m homeassistant --script check_config -c /config" 2>&1)
+check_rc=$?
+echo "$check_out"
+if [[ $check_rc -ne 0 ]] || grep -qE "Incorrect config|Invalid config|partial\)" <<<"$check_out"; then
     echo "Config check FAILED -- rolling back." >&2
     for f in "${changed[@]}"; do
         remote "docker exec homeassistant cp /config/$f.bak-$stamp /config/$f"

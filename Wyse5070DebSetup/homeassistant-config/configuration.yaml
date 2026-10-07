@@ -76,49 +76,66 @@ input_number:
   # automation's gain state) removed 2026-10-05 along with that automation
   # -- see git history.
 
-  # Day/night setpoints that sensor.minisplit_computed_setpoint (below)
-  # interpolates between. These are the only MiniSplit values meant to be
-  # hand-set now -- the computed setpoint itself is read-only. Split into
-  # heat/cool pairs 2026-10-01 (was a single mode-blind pair): the computed
-  # setpoint sensor picks a pair based on thermostat_6's current hvac_mode,
-  # same as minisplit_mode_cool_band/minisplit_mode_heat_band's existing
-  # suffix convention. Same "no initial:" reasoning as the other MiniSplit
-  # input_numbers.
-  minisplit_day_setpoint_heat:
-    name: "MiniSplit Day Temp (Heat)"
-    min: 65
+  # Seasonal day/night targets (2026-10-06), replacing the 2026-10-01
+  # heat/cool day/night pairs. Each is "the temperature I want" -- no mode in
+  # it. sensor.minisplit_heat_target / _cool_target (template: below) blend
+  # winter -> summer by the 7-day average outdoor temperature (45F and below
+  # = winter, 70F and above = summer) and day -> night by the clock. Whether
+  # summer is warmer or cooler than winter is just the values (owner's
+  # choice, 2026-10-07: winter 69/67, summer 72/69) -- either way one target
+  # can't let the heat target overtake the cool one in spring/fall, which
+  # separate heat/cool settings could. Heat aims at the target, Cool at
+  # target + minisplit_cool_offset, so the two never cross. Manual overrides
+  # are logged (/config/minisplit/overrides.csv) to tune these.
+  # Boxes, not sliders: two slider bumps from scrolling on a phone set
+  # 80F targets on 2026-10-05. Same "no initial:" reasoning as the other
+  # MiniSplit input_numbers.
+  minisplit_winter_day:
+    name: "MiniSplit Winter Day"
+    min: 60
     max: 80
     step: 0.5
     unit_of_measurement: "°F"
-    icon: mdi:weather-sunny
-    mode: slider
+    icon: mdi:snowflake-thermometer
+    mode: box
 
-  minisplit_night_setpoint_heat:
-    name: "MiniSplit Night Temp (Heat)"
-    min: 65
+  minisplit_winter_night:
+    name: "MiniSplit Winter Night"
+    min: 60
     max: 80
     step: 0.5
     unit_of_measurement: "°F"
     icon: mdi:weather-night
-    mode: slider
+    mode: box
 
-  minisplit_day_setpoint_cool:
-    name: "MiniSplit Day Temp (Cool)"
-    min: 65
+  minisplit_summer_day:
+    name: "MiniSplit Summer Day"
+    min: 60
     max: 80
     step: 0.5
     unit_of_measurement: "°F"
-    icon: mdi:weather-sunny
-    mode: slider
+    icon: mdi:sun-thermometer
+    mode: box
 
-  minisplit_night_setpoint_cool:
-    name: "MiniSplit Night Temp (Cool)"
-    min: 65
+  minisplit_summer_night:
+    name: "MiniSplit Summer Night"
+    min: 60
     max: 80
     step: 0.5
     unit_of_measurement: "°F"
     icon: mdi:weather-night
-    mode: slider
+    mode: box
+
+  # How far above the target Cool aims (and its shadow band starts) -- the
+  # gap that keeps a just-heated room from immediately counting as too warm.
+  minisplit_cool_offset:
+    name: "MiniSplit Cool Offset"
+    min: 0
+    max: 3
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:arrow-expand-vertical
+    mode: box
 
   # minisplit_temp_offset (calibration constant for BME280 placement bias)
   # removed 2026-09-06: BME280 was retired in favor of a Zigbee "follow me"
@@ -264,6 +281,14 @@ input_select:
 # 6 hours (shoulder season: 50F nights, upper-70s afternoons). Empty/unknown
 # until the first time it leaves an active mode.
 input_text:
+  # Last manual setpoint override, human-readable for the dashboard
+  # (2026-10-06). The full history goes to /config/minisplit/overrides.csv
+  # via shell_command.minisplit_log_override below.
+  minisplit_last_override:
+    name: "MiniSplit Last Override"
+    max: 255
+    icon: mdi:hand-back-right
+
   minisplit_shadow_prev_mode:
     name: "MiniSplit Shadow Previous Mode"
     max: 8
@@ -320,6 +345,10 @@ input_text:
 # so a slider edit takes effect immediately instead of on the next 5-minute
 # tick, and homeassistant/start avoids sitting at the restored value after
 # a restart.
+#
+# 2026-10-06: the heat/cool pairs are gone -- one seasonal target (winter/
+# summer day/night, blended by the 7-day outdoor average), Heat at the
+# target and Cool at target + offset. See the input_number comment.
 template:
   - trigger:
       - trigger: time_pattern
@@ -327,10 +356,12 @@ template:
       - trigger: state
         entity_id:
           - climate.bedroom_mini_split_ac_bridge_thermostat_6
-          - input_number.minisplit_day_setpoint_heat
-          - input_number.minisplit_night_setpoint_heat
-          - input_number.minisplit_day_setpoint_cool
-          - input_number.minisplit_night_setpoint_cool
+          - input_number.minisplit_winter_day
+          - input_number.minisplit_winter_night
+          - input_number.minisplit_summer_day
+          - input_number.minisplit_summer_night
+          - input_number.minisplit_cool_offset
+          - sensor.minisplit_outdoor_7d_avg
       - trigger: homeassistant
         event: start
     variables:
@@ -340,14 +371,22 @@ template:
         {% set m = now().hour * 60 + now().minute %}
         {{ 0 if m < 420 else ((m - 420) / 240) if m < 660 else 1 if m < 1140
            else (1 - (m - 1140) / 180) if m < 1320 else 0 }}
-      heat_target: >-
-        {% set d = states('input_number.minisplit_day_setpoint_heat') | float(69) %}
-        {% set n = states('input_number.minisplit_night_setpoint_heat') | float(66) %}
-        {{ ((n + day_weight * (d - n)) * 2) | round(0) / 2 }}
-      cool_target: >-
-        {% set d = states('input_number.minisplit_day_setpoint_cool') | float(74) %}
-        {% set n = states('input_number.minisplit_night_setpoint_cool') | float(71) %}
-        {{ ((n + day_weight * (d - n)) * 2) | round(0) / 2 }}
+      # 2026-10-06: seasonal. 0 = winter values, 1 = summer values, linear
+      # in the 7-day average outdoor temperature between 45F and 70F (half
+      # and half if the average isn't available yet).
+      summer_weight: >-
+        {% set a = states('sensor.minisplit_outdoor_7d_avg') %}
+        {{ min(max((a | float - 45) / 25, 0), 1) if is_number(a) else 0.5 }}
+      target_raw: >-
+        {% set wd = states('input_number.minisplit_winter_day') | float(71) %}
+        {% set wn = states('input_number.minisplit_winter_night') | float(69) %}
+        {% set sd = states('input_number.minisplit_summer_day') | float(69) %}
+        {% set sn = states('input_number.minisplit_summer_night') | float(67) %}
+        {% set winter = wn + day_weight * (wd - wn) %}
+        {% set summer = sn + day_weight * (sd - sn) %}
+        {{ winter + summer_weight * (summer - winter) }}
+      heat_target: "{{ (target_raw * 2) | round(0) / 2 }}"
+      cool_target: "{{ ((target_raw + states('input_number.minisplit_cool_offset') | float(1)) * 2) | round(0) / 2 }}"
     sensor:
       - name: "MiniSplit Target Temp"
         unique_id: minisplit_computed_setpoint
@@ -365,6 +404,13 @@ template:
         unit_of_measurement: "°F"
         icon: mdi:snowflake
         state: "{{ cool_target }}"
+      - name: "MiniSplit Season"
+        unique_id: minisplit_season
+        unit_of_measurement: "%"
+        icon: mdi:sun-snowflake-variant
+        state: "{{ (summer_weight * 100) | round(0) }}"
+        attributes:
+          meaning: "0 = winter targets, 100 = summer targets"
 
   # The shadow-mode decision's "is this mode warranted / is it done"
   # conditions. The automation (automations.yaml) only reads these four plus
@@ -373,8 +419,8 @@ template:
   # Room only (2026-10-05, evening):
   #   Cool wanted: room > cool target + band, held 2 hours.
   #   Heat wanted: room < heat target - band, held 2 hours.
-  #   Cool done:   room <= cool target - 1, held 30 min.
-  #   Heat done:   room >= heat target + 1, held 30 min.
+  #   Cool done:   room <= cool target, held 30 min.
+  #   Heat done:   room >= heat target, held 30 min.
   # "Don't act if doing nothing would also work" is the 2-hour hold: a warm
   # spell that resolves on its own never reaches it. Weather/house gates were
   # tried and dropped the same day -- replay 2026-09-30..10-05:
@@ -386,8 +432,13 @@ template:
   #     changed no decision at any setting tried: past the band, the room
   #     drifts only ~0.1-0.6F/h on its own. sensor.minisplit_room_trend is on
   #     the dashboard to revisit this with summer data.
-  # "Done" is deliberately 1F PAST the target, not at it: with the unit
-  # running, the room sitting at target means the mode is doing its job.
+  # "Done" was 1F PAST the target until 2026-10-07. With the seasonal
+  # targets (cool only cool_offset above heat) that made "cool done" equal
+  # the heat target, so a mode held through the whole middle zone -- still
+  # "cool" at 7am with the room at 70. At the target, held 30 min, is
+  # enough: re-entering takes 2h past the band. Replay 09-28..10-07: same
+  # number of changes, modes end 30-80 min sooner. (The changes themselves
+  # -- 24 in 9 days at cool_offset 1, 14 at 3 -- are set by cool_offset.)
   - binary_sensor:
       # Whether the unit is actually using Follow-Me (2026-10-05): with it
       # engaged, the unit reports the relayed Follow-Me value as its own
@@ -439,7 +490,7 @@ template:
         availability: >-
           {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_cool_target') }}
         state: >-
-          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) <= states('sensor.minisplit_cool_target') | float(0) - 1 }}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) <= states('sensor.minisplit_cool_target') | float(0) }}
       - name: "MiniSplit Shadow Heat Satisfied"
         unique_id: minisplit_shadow_heat_satisfied
         icon: mdi:fire-off
@@ -447,7 +498,7 @@ template:
         availability: >-
           {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_heat_target') }}
         state: >-
-          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) >= states('sensor.minisplit_heat_target') | float(0) + 1 }}
+          {{ states('sensor.0x18690afffe5602f1_temperature') | float(0) >= states('sensor.minisplit_heat_target') | float(0) }}
 
   # sensor.minisplit_bme280_corrected removed 2026-09-06: BME280 (and its
   # smoothing sensor, sensor.minisplit_bme280_smoothed) retired in favor of
@@ -770,6 +821,14 @@ input_datetime:
     has_date: true
     has_time: true
 
+# Appends a manual-override record to /config/minisplit/overrides.csv
+# (minisplit/log_override.py in this repo, deployed alongside). Arguments
+# are single tokens -- HA runs templated commands without a shell.
+shell_command:
+  minisplit_log_override: >-
+    python3 /config/minisplit/log_override.py {{ when }} {{ chosen }} {{ schedule }}
+    {{ outdoor_7d }} {{ room }} {{ season }} {{ mode }} {{ source }}
+
 input_button:
   minisplit_resume_schedule:
     name: "MiniSplit Resume Schedule"
@@ -794,6 +853,19 @@ input_button:
 # for why). On the MiniSplit dashboard to see whether summer afternoon
 # spikes come and go on their own.
 sensor:
+  # 7-day time-weighted average outdoor temperature (2026-10-06) -- picks the
+  # winter/summer blend for the MiniSplit targets (see input_number above).
+  # Loads its history from the recorder at startup, so no warm-up week.
+  - platform: statistics
+    name: "MiniSplit Outdoor 7d Avg"
+    unique_id: minisplit_outdoor_7d_avg
+    entity_id: sensor.minisplit_outdoor_temp
+    state_characteristic: average_linear
+    max_age:
+      days: 7
+    sampling_size: 20000
+    precision: 1
+
   - platform: derivative
     source: sensor.0x18690afffe5602f1_temperature
     name: "MiniSplit Room Trend"

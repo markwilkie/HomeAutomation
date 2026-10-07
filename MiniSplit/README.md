@@ -50,7 +50,11 @@ unique IDs — only ever add endpoints at the end):
 **Home Assistant side** (`../Wyse5070DebSetup/homeassistant-config/`):
 - *Setpoint automation* — strategy `direct` (Desired = the day/night target
   for the current mode) while Follow-Me is engaged, falling back to an offset
-  controller otherwise. Targets: separate heat/cool day/night sliders.
+  controller otherwise. Targets: one seasonal target from Winter/Summer
+  day/night settings, blended by the 7-day average outdoor temperature (45°F
+  and below = winter, 70°F and above = summer); Heat aims at it, Cool at
+  target + 1°F. Manual overrides are logged to `/config/minisplit/overrides.csv`
+  on wyse, to tune the seasonal numbers from real choices.
   A setpoint set by hand (HA card, or the remote via the firmware) is a
   *manual override*: the schedule leaves it until the next 07:00/19:00, or
   until the mode changes or **Resume schedule** is pressed.

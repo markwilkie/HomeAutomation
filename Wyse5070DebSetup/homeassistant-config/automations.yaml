@@ -482,10 +482,10 @@
     held 2 hours. No weather gate: outdoor-only blocked cooling a heat-soaked
     house on cool evenings, and outdoor-or-hallway and trend projections
     changed no decision in replay -- the 2-hour hold is the "would doing
-    nothing work" check. Satisfied = room 1F past the target the other way,
-    held 30 minutes. Targets are
-    sensor.minisplit_cool_target / heat_target (the 2026-10-01 heat/cool
-    day/night split). The 2026-10-04 version's trend-based early trigger, 3h
+    nothing work" check. Satisfied = room back at the mode's target (was 1F past it
+    until 2026-10-07), held 30 minutes. Targets are
+    sensor.minisplit_cool_target / heat_target (since 2026-10-06 one seasonal
+    target: heat at it, cool at target + offset). The 2026-10-04 version's trend-based early trigger, 3h
     outdoor-trend gate, fixed 65F/60F outdoor gates and outdoor-based exits
     were removed -- in replay they never changed an outcome, and the fixed
     gates were wrong in mild weather (no heat for a cold room on a 62F
@@ -613,6 +613,34 @@
         datetime: >-
           {% set t7 = today_at('07:00') %}{% set t19 = today_at('19:00') %}
           {{ (t7 if now() < t7 else t19 if now() < t19 else t7 + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}
+    # 2026-10-06: record it -- the evidence for tuning the seasonal
+    # winter/summer targets. A change with a user behind it came from HA (the
+    # card or the API); without one, it's the firmware adopting a remote/app
+    # change.
+    - variables:
+        chosen: "{{ trigger.to_state.attributes.temperature | float }}"
+        schedule: "{{ states('input_number.minisplit_schedule_setpoint') | float(0) }}"
+        outdoor_7d: "{{ states('sensor.minisplit_outdoor_7d_avg') }}"
+        room: "{{ states('sensor.0x18690afffe5602f1_temperature') }}"
+        season: "{{ states('sensor.minisplit_season') }}"
+        source: "{{ 'ha' if trigger.to_state.context.user_id else 'remote' }}"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.minisplit_last_override
+      data:
+        value: >-
+          {{ chosen }}F by {{ source }} at {{ now().strftime('%a %H:%M') }} (schedule {{ schedule }}F,
+          room {{ room }}F, 7-day outdoor {{ outdoor_7d }}F, season {{ season }}% summer)
+    - action: shell_command.minisplit_log_override
+      data:
+        when: "{{ now().strftime('%Y-%m-%dT%H:%M:%S') }}"
+        chosen: "{{ chosen }}"
+        schedule: "{{ schedule }}"
+        outdoor_7d: "{{ outdoor_7d }}"
+        room: "{{ room }}"
+        season: "{{ season }}"
+        mode: "{{ trigger.to_state.state }}"
+        source: "{{ source }}"
   mode: queued
 - id: '1789700000002'
   alias: MiniSplit Manual Override End
