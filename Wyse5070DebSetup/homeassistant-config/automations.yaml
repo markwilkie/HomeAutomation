@@ -654,3 +654,31 @@
       data:
         skip_condition: false
   mode: single
+- id: '1789700000003'
+  alias: SmartThings Stream Watchdog
+  description: >-
+    2026-10-06. HA's SmartThings integration receives device changes over a
+    pushed event stream, which dropped silently at ~16:04 that day: the roof
+    weather station kept reporting in the SmartThings app, but HA got nothing
+    (no log error) until the integration was reloaded. If the station's
+    temperature hasn't been reported for 45 min (it normally reports ~every
+    10), reload the integration -- at most once an hour.
+    sensor.minisplit_outdoor_temp falls back to the unit's own reading after
+    30 min in the meantime.
+  triggers:
+    - trigger: time_pattern
+      minutes: /15
+  conditions:
+    - condition: template
+      value_template: >-
+        {% set s = states.sensor.roof_weather_device_temperature %}
+        {{ s is not none and (now() - s.last_reported).total_seconds() > 2700 }}
+    - condition: template
+      value_template: >-
+        {% set last = this.attributes.last_triggered %}
+        {{ last is none or (now() - last).total_seconds() > 3600 }}
+  actions:
+    - action: homeassistant.reload_config_entry
+      data:
+        entry_id: 01M46WFF0GRHJ4GXTNEAM20FE6
+  mode: single

@@ -646,6 +646,18 @@ template:
         event: start
       - trigger: event
         event_type: event_template_reloaded
+      # Re-check staleness even when neither source changes (a frozen
+      # station sends nothing).
+      - trigger: time_pattern
+        minutes: /5
+    variables:
+      # Station counts only if it has a value AND reported in the last 30
+      # min (it normally reports ~every 10). 2026-10-06: its temperature
+      # froze at 68.1F from 16:04 while still showing as available, and the
+      # has_value()-only check kept passing the frozen value through.
+      station_fresh: >-
+        {{ has_value('sensor.roof_weather_device_temperature')
+           and (now() - states.sensor.roof_weather_device_temperature.last_reported).total_seconds() < 1800 }}
     sensor:
       - name: "MiniSplit Outdoor Temp"
         unique_id: minisplit_outdoor_temp
@@ -653,16 +665,15 @@ template:
         icon: mdi:thermometer
         # Roof weather station (SmartThings, added 2026-10-05) -- more accurate
         # than the unit's own outdoor reading; falls back to that when the
-        # station is unavailable.
+        # station is unavailable or stale (station_fresh above).
         state: >-
-          {% if has_value('sensor.roof_weather_device_temperature') %}
+          {% if station_fresh %}
             {{ states('sensor.roof_weather_device_temperature') }}
           {% else %}
             {{ states('sensor.mini_split_ac_bridge_outdoor_temperature') }}
           {% endif %}
         attributes:
-          source: >-
-            {{ 'weather station' if has_value('sensor.roof_weather_device_temperature') else 'mini-split unit' }}
+          source: "{{ 'weather station' if station_fresh else 'mini-split unit' }}"
 
   # PLAN_AUTO_MODE.md Phase 0 -- records *why* the shadow decision
   # automation (below) did what it did, at the moment it did it. Needed
