@@ -18,13 +18,13 @@ Zigbee temp sensor --Z2M--> HA --Matter/Thread--> bridge --IR--> mini-split
 **Firmware tasks** (`src/main.c`):
 - `command_task` — turns HA writes (setpoint, mode, power, Fresh Air) into IR
   frames, after a fresh Tuya read and a dedup check.
-- `sync_task` — polls Tuya every 5 min, mirrors state to Matter, and
+- `sync_task` — polls Tuya every 3 min, mirrors state to Matter, and
   reconciles setpoint and mode the same way: a change made on the remote/app
   is adopted into Desired, anything else (a missed IR update) gets Desired
-  resent. A remote mode change keeps the schedule's temperature.
-- `followme_task` — sends the room temperature (Follow-Me heartbeat) every 3
-  min while the unit is on. With Follow-Me engaged the unit regulates on that
-  reading, not its own ~3–4°F-warm sensor.
+  resent. A remote mode change keeps the schedule's temperature. Then it
+  sends the Follow-Me heartbeat (the room temperature) from the status it
+  just polled, while the unit is on. With Follow-Me engaged the unit
+  regulates on that reading, not its own ~3–4°F-warm sensor.
 - Pure logic (mode mapping, IR frame building, mode-reconcile decision, Fresh
   Air hold) lives in `src/control_logic.c` and is unit-tested on a host.
 

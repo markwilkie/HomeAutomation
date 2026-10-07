@@ -43,7 +43,7 @@ static EventGroupHandle_t g_app_event_group = NULL;
 static tuya_device_status_t g_last_device_status = {0};
 static bool g_last_device_status_valid = false;
 
-// Written by sync_task and command_task, read by those plus followme_task --
+// Written by sync_task and command_task, read by both --
 // copy in/out under this lock so a reader never sees a half-written struct
 // (2026-10-05). Readers work on their own copy (status_cache_get()).
 static portMUX_TYPE g_status_cache_lock = portMUX_INITIALIZER_UNLOCKED;
@@ -58,7 +58,7 @@ static bool status_cache_get(tuya_device_status_t *out)
 }
 
 // Serializes every call into transmit_ir_state_frame() across
-// command_task/sync_task/followme_task -- see that function's doc comment.
+// command_task/sync_task -- see that function's doc comment.
 // Created in app_main() before any of those tasks start.
 static SemaphoreHandle_t g_ir_send_mutex = NULL;
 
@@ -86,7 +86,10 @@ static SemaphoreHandle_t g_ir_send_mutex = NULL;
 #define PAPERTRAIL_PORT       54449
 #define PAPERTRAIL_SYSTEMNAME "minisplit"
 
-#define STATUS_POLL_INTERVAL_MS 300000    // Poll Tuya every 5 minutes, fixed
+// Poll Tuya every 3 minutes, fixed (was 5 until 2026-10-06). Also the
+// Follow-Me heartbeat cadence: the heartbeat now goes out right after each
+// poll, built from that fresh status -- see the end of sync_task's loop.
+#define STATUS_POLL_INTERVAL_MS 180000
 #define COMMAND_POLL_INTERVAL_MS 5000     // Check Matter commands every 5 seconds
 
 // Gap between the Type2 companion send and the Type1 send in
@@ -294,10 +297,15 @@ static bool effective_fresh_air(const tuya_device_status_t *status)
     return fresh_air_effective(g_fresh_air_cmd_valid, g_fresh_air_cmd_value, ms_since_cmd, status->fresh_air_valve);
 }
 
+// Bumped on every IR transmission (any task) -- sync_task skips its
+// heartbeat if anything went out since it fetched the status the heartbeat
+// would be built from, so a stale frame can't undo a fresher one.
+static volatile uint32_t g_ir_tx_count = 0;
+
 static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], bool fresh_air_on)
 {
     // Serializes every IR send across command_task, sync_task, and
-    // followme_task -- 2026-10-01, found via user question while reviewing
+    // (followme_task until 2026-10-06) -- 2026-10-01, found via user question while reviewing
     // the IR_TCL112_INTER_FRAME_GAP_MS change above: nothing previously
     // prevented two of those tasks from calling this function concurrently
     // on the same shared RMT TX channel. Before the inter-frame gap existed
@@ -367,6 +375,7 @@ static esp_err_t transmit_ir_state_frame(uint8_t frame[IR_TCL112_FRAME_LEN], boo
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ir_tcl112_send failed: %s", esp_err_to_name(err));
     }
+    g_ir_tx_count++;  // under g_ir_send_mutex
     xSemaphoreGive(g_ir_send_mutex);
     return err;
 }
@@ -475,18 +484,6 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
 // command frames while this is set.
 static bool g_followme_active = false;
 
-// Timestamp of the last successful Follow-Me send specifically -- 2026-10-01:
-// previously shared with every IR send of any
-// kind (command or heartbeat) via a single g_last_ir_send_tick, which meant
-// an unrelated command sent from command_task reset followme_task's 3-minute
-// clock, delaying the next heartbeat by a full interval every time one fired
-// (originally intentional, PLAN.md Milestone 2's "don't immediately follow a
-// just-sent command" note). Changed on request: a real heartbeat needs to go
-// out every 3 minutes regardless of other traffic -- repeatedly pushing it
-// back risks the AC's own internal Follow-Me fallback timeout lapsing if
-// commands happen to arrive more often than every 3 minutes.
-static TickType_t g_last_followme_send_tick = 0;
-
 static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t ambient_temp_c)
 {
     uint8_t frame[IR_TCL112_FRAME_LEN];
@@ -498,7 +495,6 @@ static esp_err_t send_followme_frame(const tuya_device_status_t *status, int8_t 
     esp_err_t err = transmit_ir_state_frame(frame, effective_fresh_air(status));
     if (err == ESP_OK) {
         g_followme_active = true;
-        g_last_followme_send_tick = xTaskGetTickCount();
         ESP_LOGI(TAG, "Follow-Me heartbeat sent: ambient=%dC mode=%u setpoint=%dC",
                  ambient_temp_c, ir_mode, setpoint_c);
     }
@@ -835,6 +831,7 @@ static void sync_task(void *param)
         first_pass = false;
 
         tuya_device_status_t device_status = {0};
+        uint32_t ir_tx_before_poll = g_ir_tx_count;
 
         // Attempt to get device status with retries, backing off
         // exponentially (2s, 4s, ...) so a failure storm doesn't multiply
@@ -998,6 +995,32 @@ static void sync_task(void *param)
         }
 
         reconcile_system_mode(&device_status);
+
+        // Follow-Me heartbeat (PLAN.md Milestone 3), built from the status
+        // just polled. 2026-10-06: was its own 3-minute task building frames
+        // from the status cache -- i.e. from the last poll, which (a) put back
+        // the pre-correction setpoint right after every correction above
+        // (correction to 69, heartbeat back to 68, every few minutes, once
+        // the correction went exact-match) and (b) reverted any remote/app
+        // setpoint change made since the last poll before it could be seen,
+        // let alone adopted. Every IR frame is a full state, so a heartbeat
+        // must only ever carry what the unit holds right now. Skipped when
+        // anything was transmitted since this poll's fetch (a correction or
+        // mode resend above, or a command_task send) -- those frames already
+        // carry Follow-Me's bits (send_ir_frame()) and are newer than this
+        // status. Skipped while the unit is off: every frame sets Power On.
+        int8_t ambient_c;
+        if (!device_status.switch_state) {
+            g_followme_active = false;
+        } else if (!followme_ambient_whole_c(&ambient_c)) {
+            ESP_LOGW(TAG, "Follow-Me: no ambient sensor reading from HA yet, skipping heartbeat");
+            g_followme_active = false;
+        } else if (g_ir_tx_count == ir_tx_before_poll) {
+            esp_err_t hb_err = send_followme_frame(&device_status, ambient_c);
+            if (hb_err != ESP_OK) {
+                ESP_LOGE(TAG, "Follow-Me send failed: %s", esp_err_to_name(hb_err));
+            }
+        }
     }
 }
 
@@ -1054,93 +1077,6 @@ static void post_send_verify_and_sync(bool check_power, bool expected_power_on,
     }
     ESP_LOGW(TAG, "Post-send verify: gave up after %d attempts, thermostat1 may still be stale "
                   "until sync_task's next poll", POST_SEND_VERIFY_MAX_ATTEMPTS);
-}
-
-// Follow-Me heartbeat interval -- matches the real remote's observed 3-minute
-// re-send cadence (see IR_PROTOCOL_REFERENCE.md's "Follow Me behavior"
-// section), not derived from the unverified ~10-minute fallback-timeout
-// guess mentioned there.
-#define FOLLOWME_HEARTBEAT_INTERVAL_MS (3 * 60 * 1000)
-
-/**
- * @brief Follow-Me task (PLAN.md Milestone 3): periodically sends the
- *        ambient-temperature sensor reading to the unit over IR.
- *
- * The reading itself comes from HA (matter_get_followme_ambient_temp_c_x100()),
- * which relays the real Zigbee2MQTT sensor value via an automation writing
- * to the Follow-Me Matter endpoint -- this firmware has no MQTT client of
- * its own (see that getter's doc comment for why). Always active whenever a
- * value has been set and a confirmed Tuya state are both available -- no
- * separate HA-exposed enable/disable control, matching this project's
- * minimal-surface approach elsewhere.
- *
- * Every send is a silent heartbeat (2026-10-05 -- see send_followme_frame()'s
- * comment for why the beeping enable instance was dropped).
- *
- * The very first loop iteration after boot skips the interval wait below
- * (see first_pass) -- fixed 2026-09-10 after finding this task always slept
- * a full FOLLOWME_HEARTBEAT_INTERVAL_MS (3 minutes) before its very first
- * check on every boot. The data-validity checks just below (ambient reading
- * available, confirmed Tuya state available) already guard against acting
- * on stale/default state, and both are normally available within seconds of
- * boot.
- *
- * Schedules strictly off its own last send (g_last_followme_send_tick), not
- * off any command send -- see that variable's doc comment (2026-10-01): a
- * command arriving between heartbeats no longer pushes the next one back.
- */
-static void followme_task(void *param)
-{
-    ESP_LOGI(TAG, "Follow-Me task started (interval: %ums)", FOLLOWME_HEARTBEAT_INTERVAL_MS);
-
-    bool first_pass = true;
-
-    while (1) {
-        // Re-derive the remaining wait from g_last_followme_send_tick every
-        // time we wake, rather than a single fixed vTaskDelay -- this is what
-        // keeps the heartbeat on a strict 3-minute cadence even across a
-        // skipped tick (see the skip branches below, which don't advance this
-        // tick, so a retry still targets the original schedule, not a fresh
-        // 3 minutes from the retry). Skipped on the very first iteration
-        // (first_pass) -- see this function's doc comment.
-        TickType_t interval_ticks = pdMS_TO_TICKS(FOLLOWME_HEARTBEAT_INTERVAL_MS);
-        TickType_t elapsed = xTaskGetTickCount() - g_last_followme_send_tick;
-        if (!first_pass && elapsed < interval_ticks) {
-            vTaskDelay(interval_ticks - elapsed);
-            continue;
-        }
-        first_pass = false;
-
-        int8_t ambient_c;
-        if (!followme_ambient_whole_c(&ambient_c)) {
-            ESP_LOGW(TAG, "Follow-Me: no ambient sensor reading from HA yet, skipping this tick");
-            g_followme_active = false;
-            vTaskDelay(interval_ticks);
-            continue;
-        }
-        tuya_device_status_t cached_status;
-        if (!status_cache_get(&cached_status)) {
-            ESP_LOGW(TAG, "Follow-Me: no confirmed Tuya state yet, skipping this tick");
-            vTaskDelay(interval_ticks);
-            continue;
-        }
-        // 2026-10-04: every Follow-Me frame sets Power On, and with the unit
-        // off its mode byte falls back to Auto (kOff has no IR mode) -- so
-        // this heartbeat was turning an off unit back on in Auto. Matches
-        // the unit going off->auto with no command from HA on 2026-10-01
-        // and 2026-10-03. Skip while off; the first heartbeat after it turns
-        // back on re-engages Follow-Me.
-        if (!cached_status.switch_state) {
-            g_followme_active = false;
-            vTaskDelay(interval_ticks);
-            continue;
-        }
-
-        esp_err_t err = send_followme_frame(&cached_status, ambient_c);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Follow-Me send failed: %s", esp_err_to_name(err));
-        }
-    }
 }
 
 /**
@@ -1649,8 +1585,8 @@ void app_main(void)
     // commands.
     ESP_ERROR_CHECK(ir_tcl112_init());
 
-    // Must exist before any of Phase 3's tasks (sync_task/command_task/
-    // followme_task) start, since all three can call transmit_ir_state_frame().
+    // Must exist before Phase 3's tasks (sync_task, which also sends the
+    // Follow-Me heartbeat, and command_task) start -- both call transmit_ir_state_frame().
     g_ir_send_mutex = xSemaphoreCreateMutex();
     if (!g_ir_send_mutex) {
         ESP_LOGE(TAG, "Failed to create IR send mutex");
@@ -1698,16 +1634,6 @@ void app_main(void)
                 4096,
                 NULL,
                 2,
-                NULL);
-
-    // Follow-Me task (PLAN.md Milestone 3). Same priority tier as
-    // command_task -- it sends IR too, just on its own timer instead of in
-    // response to a Matter write.
-    xTaskCreate(followme_task,
-                "followme",
-                8192,
-                NULL,
-                3,
                 NULL);
 
     ESP_LOGI(TAG, "\n=== MiniSplit Matter Bridge Ready ===");
