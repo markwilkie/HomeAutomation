@@ -141,7 +141,11 @@ Render all of the following sections, in this order:
    `get-tasks` separately for *every single list returned* (not just one) —
    due/overdue items can be on any list (e.g. a "Maintenance" list, not
    just the default list). Aggregate across all of them, then report open
-   tasks that are due today or overdue.
+   tasks that are due today or overdue. Then, as its own bold
+   **Important** sub-list (label on its own line, then a flat bullet
+   list), every open task marked important (Importance: high -- To Do's
+   starred "Important" view) across all lists, whatever its due date.
+   Don't repeat a task already listed as due/overdue above.
 9. **Anything else interesting** — anything notable you noticed while
    gathering the above that doesn't fit elsewhere.
 

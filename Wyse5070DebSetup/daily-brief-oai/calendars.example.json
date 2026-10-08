@@ -1,0 +1,9 @@
+{
+  "My calendar": "https://calendar.google.com/calendar/ical/<id>/private-<secret>/basic.ics",
+  "Jennie": "https://calendar.google.com/calendar/ical/<id>/private-<secret>/basic.ics",
+  "Seattle Seahawks": "https://calendar.google.com/calendar/ical/<id>/private-<secret>/basic.ics",
+  "Seattle Sounders FC": "https://calendar.google.com/calendar/ical/<id>/private-<secret>/basic.ics",
+  "Vitality Specific Appointments": "https://calendar.google.com/calendar/ical/<id>/private-<secret>/basic.ics",
+  "Birthdays": "https://calendar.google.com/calendar/ical/<id>/private-<secret>/basic.ics",
+  "Holidays": "https://calendar.google.com/calendar/ical/en.usa%23holiday%40group.v.calendar.google.com/public/basic.ics"
+}

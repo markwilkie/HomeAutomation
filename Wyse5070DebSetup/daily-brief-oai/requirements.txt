@@ -1,0 +1,7 @@
+openai==3.26.1
+mcp==2.2.0
+icalendar==7.3.0
+recurring-ical-events==3.8.2
+python-dotenv==1.2.3
+msal==1.39.0
+markdown==3.10.3
