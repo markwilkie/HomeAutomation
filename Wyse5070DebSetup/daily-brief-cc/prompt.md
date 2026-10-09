@@ -51,7 +51,10 @@ Render all of the following sections, in this order:
      Gmail. No unread filter param exists, so fetch per-folder and check
      each message's `isRead` field yourself: `folderName` "Inbox" and
      separately "Clutter", newest first, flag anything unread that's
-     noteworthy. Also watch for real urgency in subject/content regardless
+     noteworthy. Check Clutter on every run, not just Inbox -- Outlook
+     files real mail there (e.g. consulting requests). In either folder,
+     include any message whose subject looks important or relevant to me,
+     read or not. Also watch for real urgency in subject/content regardless
      of read status ("action required", a deadline) — there's no
      flag/priority field on this tool, don't try to check one. Each
      flagged item is its own bullet under an **Email** label.

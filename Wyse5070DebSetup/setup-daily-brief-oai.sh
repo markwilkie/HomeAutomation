@@ -51,7 +51,7 @@ fi
 
 echo "==> Copying brief.py + graph_login.py + run.sh + requirements.txt, plus shared prompt.md + send_mail.py from daily-brief-cc"
 cp "${LOCAL_APP_SRC}/brief.py" "${LOCAL_APP_SRC}/graph_login.py" "${LOCAL_APP_SRC}/run.sh" \
-   "${LOCAL_APP_SRC}/requirements.txt" "${APP_DIR}/"
+   "${LOCAL_APP_SRC}/monarch_refresh.py" "${LOCAL_APP_SRC}/requirements.txt" "${APP_DIR}/"
 cp "${SHARED_SRC}/prompt.md" "${SHARED_SRC}/send_mail.py" "${APP_DIR}/"
 chmod +x "${APP_DIR}/run.sh"
 
@@ -65,5 +65,6 @@ echo "==> Done."
 [ -f "${CONFIG_DIR}/calendars.json" ] || echo "    !! ${CONFIG_DIR}/calendars.json missing -- Calendar section will report unavailable (prerequisite 2)."
 [ -f "${CONFIG_DIR}/graph_token_cache.json" ] || echo "    !! Run once: ${APP_DIR}/venv/bin/python ${APP_DIR}/graph_login.py"
 echo "    Test: ${APP_DIR}/run.sh --dry-run"
-echo "    Cron (after daily-brief-cc's 6:30 run; its 6:00 Monarch refresh covers both):"
-echo "      45 6 * * * ${APP_DIR}/run.sh >> \$HOME/daily-brief-oai.log 2>&1"
+echo "    Cron:"
+echo "      0 6 * * * ${APP_DIR}/venv/bin/python ${APP_DIR}/monarch_refresh.py >> \$HOME/daily-brief-oai.log 2>&1"
+echo "      30 6 * * * ${APP_DIR}/run.sh >> \$HOME/daily-brief-oai.log 2>&1"
