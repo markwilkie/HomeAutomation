@@ -267,18 +267,10 @@ def graph_get(path: str, params: dict | None = None) -> dict:
         raise RuntimeError(f"Graph {exc.code}: {exc.read().decode('utf-8', 'replace')[:500]}") from exc
 
 
-UNREAD_TEXT_CHARS = 1500
-
-
-def _email_text(m: dict) -> str:
-    text = html.unescape(re.sub(r"\s*\n\s*\n\s*", "\n\n", (m.get("body") or {}).get("content", ""))).strip()
-    return text[:UNREAD_TEXT_CHARS] + ("..." if len(text) > UNREAD_TEXT_CHARS else "")
-
-
 def outlook_email_search(args: dict) -> str:
     folder = (args.get("folderName") or "Inbox").strip().lower()
     top = min(int(args.get("top") or 25), 50)
-    params = {"$top": top, "$select": "id,subject,from,receivedDateTime,isRead,bodyPreview,body"}
+    params = {"$top": top, "$select": "id,subject,from,receivedDateTime,isRead,bodyPreview"}
     if args.get("query"):
         # $search can't be combined with $orderby; results come back by relevance.
         params["$search"] = f'"{args["query"]}"'
@@ -295,11 +287,10 @@ def outlook_email_search(args: dict) -> str:
             "from": (m.get("from") or {}).get("emailAddress", {}).get("address"),
             "received": m.get("receivedDateTime"),
             "isRead": m.get("isRead"),
-            # Unread mail is what the brief is looking for, and a 255-char
-            # preview hid what mattered (a water-leak alert, a mortgage
-            # due date) on 2026-10-08 -- so unread messages carry their text.
-            "text": _email_text(m) if not m.get("isRead") else None,
-            "preview": m.get("bodyPreview") if m.get("isRead") else None,
+            # Preview only (owner's call 2026-10-09): full text of unread
+            # mail added tokens for little gain -- the 10/08 emails it was
+            # meant to catch had actually been deleted, not hidden.
+            "preview": m.get("bodyPreview"),
         }
         for m in data.get("value", [])
     ]
@@ -503,10 +494,11 @@ Notes for this run:
 - Thoroughness: this brief is judged on coverage, not brevity of research.
   Don't stop searching once a section has something in it. Aim for 25+ web
   searches overall. In particular:
-  - Email: every unread message in Inbox and Clutter comes with its text.
-    Read all of it and include anything actionable or time-sensitive --
-    alerts (water, security, data breach), bills and due dates, interview or
-    appointment changes. Only drop true newsletters/promotions.
+  - Email: judge each message from its subject, sender and preview -- don't
+    open messages with read_resource except the Thursday Nextdoor digest.
+    Include anything actionable or time-sensitive -- alerts (water,
+    security, data breach), bills and due dates, interview or appointment
+    changes. Only drop true newsletters/promotions.
   - News: at least 5 distinct national/world stories, from 2+ searches.
   - Market snapshot: use the most recent official closing prices (the
     previous trading day's close if the market hasn't closed today), not
