@@ -296,8 +296,8 @@ input_text:
 
 # Read-only, computed setpoint interpolated from the heat or cool day/night
 # pair above (picked by thermostat_6's current hvac_mode): flat at the night
-# setpoint 22:00-07:00, ramps linearly up to the day setpoint 07:00-11:00,
-# flat at the day setpoint 11:00-19:00, ramps back down to the night
+# setpoint 22:00-06:00, ramps linearly up to the day setpoint 06:00-09:00,
+# flat at the day setpoint 09:00-19:00, ramps back down to the night
 # setpoint 19:00-22:00. Read by the "MiniSplit FollowMe cascade setpoint
 # correction" and "...predictive setpoint correction" automations
 # (automations.yaml) as their target temperature every run.
@@ -366,10 +366,11 @@ template:
         event: start
     variables:
       # Weight of the day setpoint vs. the night one: 0 overnight, ramps up
-      # 07:00-11:00, 1 through 19:00, ramps back down by 22:00.
+      # 06:00-09:00 (was 07:00-11:00 until 2026-10-10), 1 through 19:00,
+      # ramps back down by 22:00.
       day_weight: >-
         {% set m = now().hour * 60 + now().minute %}
-        {{ 0 if m < 420 else ((m - 420) / 240) if m < 660 else 1 if m < 1140
+        {{ 0 if m < 360 else ((m - 360) / 180) if m < 540 else 1 if m < 1140
            else (1 - (m - 1140) / 180) if m < 1320 else 0 }}
       # 2026-10-06: seasonal. 0 = winter values, 1 = summer values, linear
       # in the 7-day average outdoor temperature between 45F and 70F (half
@@ -814,7 +815,7 @@ input_datetime:
     has_time: true
 
   # Manual override end (2026-10-05): the setpoint automation leaves Desired
-  # alone until then. Set to the next day/night change (07:00 or 19:00) when
+  # alone until then. Set to the next day/night change (06:00 or 19:00) when
   # a manual change is detected; set to now by a mode change or Resume.
   minisplit_override_until:
     name: "MiniSplit Override Until"

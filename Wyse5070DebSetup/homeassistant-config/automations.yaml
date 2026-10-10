@@ -33,7 +33,7 @@
 
     MANUAL OVERRIDE (2026-10-05): skipped while
     binary_sensor.minisplit_manual_override is on (a setpoint set on the HA
-    card or the remote, until the next 07:00/19:00 day/night change). Each
+    card or the remote, until the next 06:00/19:00 day/night change). Each
     write records its value in input_number.minisplit_schedule_setpoint first
     so the override detector can tell it apart.
 
@@ -587,7 +587,7 @@
     i.e. set on the HA card, or on the remote/app and adopted by the bridge
     firmware (1.2.0+: it tells a remote change from a missed IR update by
     whether the unit moved to a value the bridge didn't send). Holds the
-    schedule off until the next day/night change: 07:00 or 19:00, whichever
+    schedule off until the next day/night change: 06:00 or 19:00, whichever
     comes first. A mode change from the remote doesn't count (the firmware
     keeps the schedule's temperature for it), and any Desired mode change
     ends an override (next automation).
@@ -611,7 +611,7 @@
         entity_id: input_datetime.minisplit_override_until
       data:
         datetime: >-
-          {% set t7 = today_at('07:00') %}{% set t19 = today_at('19:00') %}
+          {% set t7 = today_at('06:00') %}{% set t19 = today_at('19:00') %}
           {{ (t7 if now() < t7 else t19 if now() < t19 else t7 + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}
     # 2026-10-06: record it -- the evidence for tuning the seasonal
     # winter/summer targets. A change with a user behind it came from HA (the

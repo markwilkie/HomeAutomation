@@ -56,7 +56,7 @@ unique IDs — only ever add endpoints at the end):
   target + 1°F. Manual overrides are logged to `/config/minisplit/overrides.csv`
   on wyse, to tune the seasonal numbers from real choices.
   A setpoint set by hand (HA card, or the remote via the firmware) is a
-  *manual override*: the schedule leaves it until the next 07:00/19:00, or
+  *manual override*: the schedule leaves it until the next 06:00/19:00, or
   until the mode changes or **Resume schedule** is pressed.
 - *Follow-Me relay* — forwards the room sensor to EP10 when its whole-°C
   value changes.
