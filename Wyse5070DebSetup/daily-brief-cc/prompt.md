@@ -33,7 +33,7 @@ section, and never guess at numbers instead of calling the tool correctly.
 Any section may be omitted entirely if there's genuinely nothing worth
 reporting in it — don't pad a section out just to have content. When a
 section is omitted, renumber the remaining sections sequentially with no
-gap (e.g. if section 7 is skipped, the next one is still numbered 7, not 8).
+gap (e.g. if section 6 is skipped, the next one is still numbered 6, not 7).
 
 Render all of the following sections, in this order:
 
@@ -85,7 +85,40 @@ Render all of the following sections, in this order:
    (S&P 500, Dow, Nasdaq), MSFT stock, and gold price. For each one, give
    BOTH the day change AND the weekly change (i.e. vs. this time last
    week/past 5 trading days) — not day change alone.
-6. **Local Events & Headlines** — this section has a fixed list of required
+6. **Concerts** — only on Thursdays (check today's day of week in the user
+   message; skip on any other day). On Thursdays: call the trilium
+   `search_notes` tool for my notes on artists/genres I like (try a
+   different query or `list_children_notes` if the first search comes up
+   empty before concluding nothing exists). Once found, do a broad scan of
+   the upcoming weeks (not just this weekend) for Seattle-area shows,
+   PLUS dedicated searches for shows specifically at these two venues,
+   matching that taste profile via web search:
+   - Mt Baker Theatre (Bellingham — otherwise outside scope, but always
+     check this one venue)
+   - Tractor Tavern (Ballard, Seattle — always give it its own dedicated
+     search, even though it's in Seattle, since a general Seattle-shows
+     search doesn't reliably surface it) For EVERY show listed:
+   - If the artist is directly in my taste notes/library, mark it with a ⭐
+     at the start of the bullet — don't also spell out "directly in your
+     library" as text, the star already says that.
+   - Always include a short description of the artist's sound (genre/style
+     in a few words) and who they're similar to/sound like — for an artist
+     already in my library, name other similar artists; for one that
+     isn't, explain the similarity that makes them a plausible match. This
+     is required for every show, not just the non-library ones.
+7. **To Do — Urgent Today** — call the todo `get-task-lists` (or
+   `get-task-lists-organized`) tool first to get every list ID. Then call
+   `get-tasks` separately for *every single list returned* (not just one) —
+   due/overdue items can be on any list (e.g. a "Maintenance" list, not
+   just the default list). Aggregate across all of them, then report open
+   tasks that are due today or overdue. Then, as its own bold
+   **Important** sub-list (label on its own line, then a flat bullet
+   list), every open task marked important (Importance: high -- To Do's
+   starred "Important" view) across all lists, whatever its due date.
+   Don't repeat a task already listed as due/overdue above.
+8. **Anything else interesting** — anything notable you noticed while
+   gathering the rest of the brief that doesn't fit elsewhere.
+9. **Local Events & Headlines** — this section has a fixed list of required
    web searches below; run EVERY one of them every time, not just a subset
    that feels sufficient (an incomplete subset has previously caused this
    section's content to vary wildly run-to-run for no reason other than
@@ -118,40 +151,7 @@ Render all of the following sections, in this order:
    weather bullet for today: conditions plus the actual forecasted high/low
    temperature in °F (not a vague range like "low 60s" — get the real
    numbers).
-7. **Concerts** — only on Thursdays (check today's day of week in the user
-   message; skip on any other day). On Thursdays: call the trilium
-   `search_notes` tool for my notes on artists/genres I like (try a
-   different query or `list_children_notes` if the first search comes up
-   empty before concluding nothing exists). Once found, do a broad scan of
-   the upcoming weeks (not just this weekend) for Seattle-area shows,
-   PLUS dedicated searches for shows specifically at these two venues,
-   matching that taste profile via web search:
-   - Mt Baker Theatre (Bellingham — otherwise outside scope, but always
-     check this one venue)
-   - Tractor Tavern (Ballard, Seattle — always give it its own dedicated
-     search, even though it's in Seattle, since a general Seattle-shows
-     search doesn't reliably surface it) For EVERY show listed:
-   - If the artist is directly in my taste notes/library, mark it with a ⭐
-     at the start of the bullet — don't also spell out "directly in your
-     library" as text, the star already says that.
-   - Always include a short description of the artist's sound (genre/style
-     in a few words) and who they're similar to/sound like — for an artist
-     already in my library, name other similar artists; for one that
-     isn't, explain the similarity that makes them a plausible match. This
-     is required for every show, not just the non-library ones.
-8. **To Do — Urgent Today** — call the todo `get-task-lists` (or
-   `get-task-lists-organized`) tool first to get every list ID. Then call
-   `get-tasks` separately for *every single list returned* (not just one) —
-   due/overdue items can be on any list (e.g. a "Maintenance" list, not
-   just the default list). Aggregate across all of them, then report open
-   tasks that are due today or overdue. Then, as its own bold
-   **Important** sub-list (label on its own line, then a flat bullet
-   list), every open task marked important (Importance: high -- To Do's
-   starred "Important" view) across all lists, whatever its due date.
-   Don't repeat a task already listed as due/overdue above.
-9. **Anything else interesting** — anything notable you noticed while
-   gathering the above that doesn't fit elsewhere.
 
 Today's date and day of the week are given in the user message — use them
-for the Thursday-only concert scan and Nextdoor digest, the section 6
+for the Thursday-only concert scan and Nextdoor digest, the section 9
 event date window, and "last 24 hours" framing.

@@ -482,7 +482,7 @@ def root_cause(exc: BaseException) -> BaseException:
 #  - On the same prompt, the first side-by-side (2026-10-08) came back much
 #    thinner than Claude's: ~18 searches vs several dozen, 6 local events vs
 #    ~25, 4 concerts vs 11, 3 emails vs 8, intraday market quotes, and no
-#    cross-referencing in section 9. It stops once a section has something.
+#    cross-referencing in "Anything else". It stops once a section has something.
 PROMPT_ADDENDUM = """
 
 Notes for this run:
@@ -513,8 +513,8 @@ Notes for this run:
     match in the next ~6 weeks, typically 8-12 shows.
   - To Do: the todo get-task-lists/get-tasks tools named above aren't
     available here. Call todo_due_tasks once instead -- it already sweeps
-    every list. Section 8 is its overdue/today tasks plus the Important
-    list (tasks with important=true); upcoming ones can feed section 9.
+    every list. Section 7 is its overdue/today tasks plus the Important
+    list (tasks with important=true); upcoming ones can feed section 8.
   - Anything else interesting: actively cross-reference what you gathered
     -- e.g. balances vs bills coming due, an alert vs an open to-do, account
     connections that need attention in Monarch.
