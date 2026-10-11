@@ -292,6 +292,28 @@ before the Type 1 frame on every call, shared by both `send_ir_frame()` and
   to its onboard sensor. What the real remote sends for an ordinary button
   press while Follow-Me is on hasn't been captured; this follows the
   full-state-every-frame model.
+- **Side effect: commands are silent (noticed 2026-10-10, owner wants to
+  keep it).** The unit beeps for frames with `state[5]` `0x20` set (remote
+  button presses, the old enable instance) and not for heartbeat-shaped ones
+  (`0x20` clear). Since command frames became heartbeat-shaped, setpoint/
+  mode/Fresh Air commands apply without a beep; IR still lands (on
+  2026-10-09/10 the unit followed every Desired change within ~1 min).
+  Confirmed 2026-10-10: the remote still beeps (buzzer on, Tuya `beep`
+  DP true, no unit/module firmware change -- module 1.0.55, never
+  upgraded), and a plain frame from the bridge (power-off) beeped. The
+  display doesn't wake for these frames either (Tuya `light` stays on --
+  it's the per-press feedback that's missing). Live 2026-10-10: right
+  after a power-on (Follow-Me inactive until the next poll's heartbeat) two
+  setpoint commands beeped; minutes later two more were silent. Frames
+  sent while Follow-Me isn't active (no ambient reading from HA) are plain
+  and still beep. **Don't send plain command frames while Follow-Me is
+  active** -- it would bring the beeps back as well as dropping Follow-Me.
+- **A heartbeat-shaped frame won't turn the unit ON (2026-10-10).** While
+  off, the unit ignores it (a Follow-Me update, not a command): Desired Off
+  then Heat seconds later -- no poll in between to clear Follow-Me -- left
+  the unit off. Since firmware 1.3.1, a frame sent to an off unit never
+  carries Follow-Me bits: power-on is plain (and beeps), and the next
+  heartbeat re-engages Follow-Me.
 
 ## Fields not preserved across bridge-sent frames (by design)
 

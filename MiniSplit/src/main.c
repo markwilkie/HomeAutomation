@@ -446,7 +446,15 @@ static esp_err_t send_ir_frame(const tuya_device_status_t *status, bool power_on
                           frame, &ir_mode, &setpoint_c);
 
     int8_t ambient_c = 0;
-    bool with_followme = power_on && g_followme_active && followme_ambient_whole_c(&ambient_c);
+    // 2026-10-10: never on a frame that turns the unit ON (status says it's
+    // off). The unit treats a heartbeat-shaped frame as a Follow-Me update:
+    // applied silently while it's on (why commands stopped beeping), but
+    // ignored while it's off -- so Desired Off then Heat a few seconds later
+    // (no poll in between to clear g_followme_active) left the unit off.
+    // A plain frame turns it on (with a beep); the next heartbeat re-engages
+    // Follow-Me (IR_PROTOCOL_REFERENCE.md).
+    bool with_followme = power_on && status->switch_state && g_followme_active &&
+                         followme_ambient_whole_c(&ambient_c);
     if (with_followme) {
         ir_frame_set_followme(frame, ambient_c);
     }
