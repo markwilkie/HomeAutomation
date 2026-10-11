@@ -15,7 +15,10 @@
 # the same reasoning applies to the data-gathering and formatting here too.
 #
 # Data sources (see wyse repo history for how each was set up):
-#   - Memory/CPU: sysstat (sar -r, sar -W), 10-min samples, ~7 day retention.
+#   - Memory/CPU: sysstat (sar -r, sar -W, sar -q MEM for PSI stall), 10-min
+#     samples, ~7 day retention; OOM kills from the kernel journal.
+#   - Reboots: journalctl --list-boots, plus whether each predecessor boot
+#     logged a clean shutdown.
 #   - Disk: /var/log/disk-usage.log (setup-disk-usage-log.sh), 10-min samples.
 #   - Containers: docker ps -a / docker inspect, live state only (no history
 #     -- RestartCount is cumulative since each container's last
@@ -61,12 +64,14 @@ MEM_MIN="$(echo "$MEM_STATS" | awk '{print $1}')"
 MEM_AVG="$(echo "$MEM_STATS" | awk '{print $2}')"
 MEM_MAX="$(echo "$MEM_STATS" | awk '{print $3}')"
 
-# Rate of pswpout/s samples that clear a noise floor (10 pages/s): idle
-# Linux touches swap for trivial sub-1-page/s background reasons
-# constantly, which is not pressure and was swamping a >0 threshold in
-# testing. A handful of double-digit blips lining up with cron/rebuild
-# activity is normal (see this week's memory-pressure investigation);
-# many of them, or large ones, would indicate real sustained pressure.
+# Swap-out is informational only, never flagged. On this 3.7 GB box Linux
+# routinely pages idle memory (sleeping MCP gateways, TripTracker) out to
+# swap, and the daily brief's 6:30-6:50 run adds a burst most mornings --
+# the week of 2026-10-11 had 19 samples >=10 pages/s (max ~0.4 MB/s) with
+# 0.14% peak memory stall, no OOM kills and >=870 MB always available.
+# Counting swap-out samples was flagging that as "worth a look". The real
+# signals are below: memory stall time (PSI), available-memory low and
+# OOM kills.
 SWAP_ACTIVITY="$(
   for f in $(ls -1 /var/log/sysstat/sa[0-9][0-9] 2>/dev/null | tail -7); do
     LC_ALL=C sar -W -f "$f" 2>/dev/null
@@ -78,20 +83,101 @@ SWAP_ACTIVITY="$(
     END { printf "%.0f %d", sum+0, hits+0 }
   '
 )"
-SWAP_SUM="$(echo "$SWAP_ACTIVITY" | awk '{print $1}')"
 SWAP_HITS="$(echo "$SWAP_ACTIVITY" | awk '{print $2}')"
-if [ "${SWAP_HITS:-0}" -gt 10 ]; then
-  SWAP_NOTE="**${SWAP_HITS} samples this week with notable swap-out (>=10 pages/s, sum ${SWAP_SUM}) -- worth a look.**"
+SWAP_NOTE="${SWAP_HITS:-0} sample(s) with swap-out >=10 pages/s (informational -- mostly the 6:30 brief run; not a problem on its own)."
+
+# Memory stall (PSI) per 10-min sample: %smem = share of time at least one
+# task waited on memory, %fmem = share of time all did. Thresholds are
+# far above this box's normal (peak 0.14% the week of 2026-10-11).
+PSI_STATS="$(
+  for f in $(ls -1 /var/log/sysstat/sa[0-9][0-9] 2>/dev/null | tail -7); do
+    LC_ALL=C sar -q MEM -f "$f" 2>/dev/null
+  done | awk '
+    /^[0-9][0-9]:[0-9][0-9]:[0-9][0-9]/ && !/Average/ && !/RESTART/ && $5 ~ /^[0-9.]+$/ {
+      if ($5 > ms) { ms = $5; ts = $1 }
+      if ($9 > mf) mf = $9
+    }
+    END { printf "%.2f %.2f %s", ms+0, mf+0, (ts == "" ? "-" : ts) }
+  '
+)"
+PSI_SOME="$(echo "$PSI_STATS" | awk '{print $1}')"
+PSI_FULL="$(echo "$PSI_STATS" | awk '{print $2}')"
+if awk -v s="$PSI_SOME" -v f="$PSI_FULL" 'BEGIN { exit !(s >= 10 || f >= 2) }'; then
+  PSI_NOTE="**peak ${PSI_SOME}% of a 10-min window stalled (full ${PSI_FULL}%) -- real memory pressure.**"
   ISSUES=$((ISSUES + 1))
 else
-  SWAP_NOTE="Normal (${SWAP_HITS:-0} notable blip(s) this week, typically aligned with cron/rebuild activity)."
+  PSI_NOTE="OK (peak ${PSI_SOME}% of any 10-min window, full ${PSI_FULL}%)."
+fi
+
+# Lowest available memory (sar -r kbavail, 3rd field in 24h C locale).
+AVAIL_MIN_MB="$(
+  for f in $(ls -1 /var/log/sysstat/sa[0-9][0-9] 2>/dev/null | tail -7); do
+    LC_ALL=C sar -r -f "$f" 2>/dev/null
+  done | awk '
+    /^[0-9][0-9]:[0-9][0-9]:[0-9][0-9]/ && !/Average/ && !/RESTART/ && $3 ~ /^[0-9]+$/ {
+      if (min == "" || $3 < min) min = $3
+    }
+    END { if (min == "") print "NA"; else printf "%.0f", min/1024 }
+  '
+)"
+if [ "$AVAIL_MIN_MB" != "NA" ] && [ "$AVAIL_MIN_MB" -lt 300 ]; then
+  AVAIL_NOTE="**low point ${AVAIL_MIN_MB} MB available -- close to running out.**"
+  ISSUES=$((ISSUES + 1))
+else
+  AVAIL_NOTE="OK (low point ${AVAIL_MIN_MB} MB available)."
+fi
+
+# OOM kills (kernel log; mwilkie has NOPASSWD sudo for journalctl).
+OOM_COUNT="$(sudo -n journalctl -k --since "7 days ago" --no-pager -q 2>/dev/null | grep -ciE 'oom-kill|out of memory' || true)"
+if [ "${OOM_COUNT:-0}" -gt 0 ]; then
+  OOM_NOTE="**${OOM_COUNT} OOM-killer event(s) this week.**"
+  ISSUES=$((ISSUES + 1))
+else
+  OOM_NOTE="None."
+fi
+
+# ---- Reboots -------------------------------------------------------------
+# A boot whose predecessor's journal ends without a clean-shutdown marker
+# means the box lost power or hard-hung. 2026-10-09 had two (04:10, 05:41)
+# with the ISP modem restarting at the same moments (public IP changed
+# each time) -- i.e. power blips, not software.
+WEEK_AGO_EPOCH="$(date -d '7 days ago' +%s)"
+REBOOT_LINES=""
+UNCLEAN=0
+BOOTS_THIS_WEEK=0
+while read -r IDX _ _ SDATE STIME _ _ EDATE ETIME _; do
+  [[ "$IDX" =~ ^-?[0-9]+$ ]] || continue
+  [ "$(date -d "$SDATE $STIME" +%s)" -ge "$WEEK_AGO_EPOCH" ] || continue
+  BOOTS_THIS_WEEK=$((BOOTS_THIS_WEEK + 1))
+  PREV=$((IDX - 1))
+  if ! sudo -n journalctl -b "$PREV" -n 40 --no-pager -q 2>/dev/null \
+      | grep -qE 'Journal stopped|systemd-shutdown|Reached target.*(Shutdown|Power-Off|Reboot)'; then
+    UNCLEAN=$((UNCLEAN + 1))
+    PREV_END="$(sudo -n journalctl -b "$PREV" -n 1 --no-pager -q -o short-iso 2>/dev/null | awk '{print $1}')"
+    REBOOT_LINES="${REBOOT_LINES}- Booted ${SDATE} ${STIME}; previous run stopped ${PREV_END:-?} with no clean shutdown (power loss or hang)
+"
+  fi
+done < <(sudo -n journalctl --list-boots --no-pager -q 2>/dev/null)
+if [ "$UNCLEAN" -gt 0 ]; then
+  REBOOT_NOTE="**${UNCLEAN} unexpected reboot(s) this week.** If your public IP / modem also reset at the same time, it was a power blip -- a small UPS would ride these out."
+  ISSUES=$((ISSUES + 1))
+else
+  REBOOT_NOTE="No unexpected reboots (${BOOTS_THIS_WEEK} boot(s) this week, all after clean shutdowns)."
 fi
 
 # ---- Disk ----------------------------------------------------------------
 DISK_LOG="/var/log/disk-usage.log"
 DISK_NOW="$(df -h / | awk 'NR==2 {print $3" used / "$2" total ("$4" available, "$5" used)"}')"
 if [ -f "$DISK_LOG" ] && [ -s "$DISK_LOG" ]; then
-  DISK_WEEK_AGO_LINE="$(head -1 "$DISK_LOG")"
+  # logrotate rotates this log weekly at Sunday ~00:30, hours before this
+  # report's Sunday 7am run, so the live file alone only ever held today
+  # (the trend compared today with today until 2026-10-11). Read last
+  # week's rotated file too and take the first sample from >=7 days ago.
+  WEEK_AGO="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
+  DISK_WEEK_AGO_LINE="$(
+    { zcat -f "${DISK_LOG}.1.gz" 2>/dev/null || true; cat "$DISK_LOG"; } \
+      | awk -v cutoff="$WEEK_AGO" '($1" "$2) >= cutoff { print; exit }'
+  )"
   DISK_WEEK_AGO_PCT="$(echo "$DISK_WEEK_AGO_LINE" | grep -oE 'pct=[0-9]+%' | grep -oE '[0-9]+')"
   DISK_WEEK_AGO_DATE="$(echo "$DISK_WEEK_AGO_LINE" | awk '{print $1}')"
   DISK_NOW_PCT="$(df -h / | awk 'NR==2 {print $5}' | tr -d '%')"
@@ -144,7 +230,14 @@ ${STATUS_LINE}
 ## Memory
 - Now: ${MEM_NOW}
 - Past week: min ${MEM_MIN}% / avg ${MEM_AVG}% / max ${MEM_MAX}% used
-- Swap pressure: ${SWAP_NOTE}
+- Memory stall: ${PSI_NOTE}
+- Available memory: ${AVAIL_NOTE}
+- OOM kills: ${OOM_NOTE}
+- Swap activity: ${SWAP_NOTE}
+
+## Reboots
+- ${REBOOT_NOTE}
+$( [ -n "$REBOOT_LINES" ] && printf '%s' "$REBOOT_LINES" )
 
 ## Disk (/)
 - Now: ${DISK_NOW}
