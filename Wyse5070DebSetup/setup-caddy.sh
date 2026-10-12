@@ -5,12 +5,14 @@
 # wilkie-home-server, terminating TLS (automatic Let's Encrypt via
 # wilkiefamily.duckdns.org) and reverse-proxying by path to the MCP
 # gateways deployed by setup-mcp-gateway-todo.sh / setup-mcp-gateway-trilium.sh
-# / setup-mcp-gateway-monarch.sh / setup-mcp-gateway-spotify.sh.
+# / setup-mcp-gateway-monarch.sh / setup-mcp-gateway-spotify.sh, and the
+# Personal Shopper MCP server (personal-shopper repo,
+# deploy/setup-mcp-gateway-shopper.sh, port 8604).
 #
 # Runs via Docker (network_mode: host, matching this repo's convention for
 # most services) rather than an OS package install -- this host's operator
 # account doesn't have passwordless sudo, and host networking is required
-# anyway so Caddy can reach the four gateways on 127.0.0.1:8600/8601/8602/8603
+# anyway so Caddy can reach the gateways on 127.0.0.1:8600/8601/8602/8603/8604
 # (which are deliberately bound to the host's loopback only, not reachable
 # via container-to-container networking or a bridge).
 #
@@ -83,6 +85,10 @@ ${DOMAIN} {
 		reverse_proxy 127.0.0.1:8603
 	}
 
+	handle_path /shopper/{\$MCP_AUTH_TOKEN}/* {
+		reverse_proxy 127.0.0.1:8604
+	}
+
 	handle {
 		respond "Not found" 404
 	}
@@ -130,5 +136,6 @@ echo "    https://${DOMAIN}/todo/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/trilium/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/monarch/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/spotify/${TOKEN}/mcp"
+echo "    https://${DOMAIN}/shopper/${TOKEN}/mcp"
 echo ""
 echo "    Requires ports 80 + 443 forwarded from pfSense to 192.168.15.30."
