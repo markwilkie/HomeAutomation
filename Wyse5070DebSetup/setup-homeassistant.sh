@@ -47,10 +47,16 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     network_mode: host
+    # Bluetooth adapter auto-recovery (habluetooth) needs these two network
+    # capabilities; without them HA logs "Missing NET_ADMIN/NET_RAW
+    # capabilities for Bluetooth management" at every start (seen 2026-10-13).
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     # Docker's default 10s SIGTERM->SIGKILL grace period isn't always enough
     # for HA to finish its own clean-shutdown save of restore_state to disk.
     # Confirmed on real hardware (2026-08-07): input_number values changed
-    # ~6 minutes before a `docker restart` were lost (reset back to their
+    # ~6 minutes before a 'docker restart' were lost (reset back to their
     # config-file floor) even though input_numbers with no "initial:" are
     # specifically meant to survive restarts via restore_state -- a
     # longer-unchanged input_number on the same restart persisted correctly,
