@@ -65,7 +65,7 @@ set +e
 CLAUDE_OUTPUT="$(claude -p "Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}." \
   --append-system-prompt-file prompt.md \
   --mcp-config mcp.json \
-  --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,mcp__claude_ai_Google_Calendar__list_calendars,mcp__claude_ai_Google_Calendar__list_events,mcp__claude_ai_Google_Calendar__search_events,mcp__claude_ai_Microsoft_365__outlook_email_search,mcp__claude_ai_Microsoft_365__get_me,WebSearch" \
+  --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,mcp__restaurants__trip,mcp__claude_ai_Google_Calendar__list_calendars,mcp__claude_ai_Google_Calendar__list_events,mcp__claude_ai_Google_Calendar__search_events,mcp__claude_ai_Microsoft_365__outlook_email_search,mcp__claude_ai_Microsoft_365__get_me,WebSearch" \
   --permission-mode dontAsk \
   --output-format json)"
 CLAUDE_EXIT=$?

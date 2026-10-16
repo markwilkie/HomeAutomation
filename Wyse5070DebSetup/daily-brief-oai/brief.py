@@ -7,6 +7,8 @@ Same prompt.md as daily-brief-cc (copied in by setup-daily-brief-oai.sh).
 The tools it names are provided here under the same names:
   - todo / trilium / monarch: this host's local MCP gateways, proxied as
     function tools (same allowlist as the original daily-brief).
+  - restaurants: restaurant-finder's `trip` tool, so an upcoming trip on
+    the calendar gets its towns read up on before we get there.
   - list_calendars / list_events: Google Calendar via each calendar's
     secret iCal URL (config/calendars.json) -- no OAuth, stands in for the
     claude.ai Google Calendar connector.
@@ -62,6 +64,7 @@ MCP_SERVERS = {
     "todo": os.environ.get("TODO_MCP_URL", "http://127.0.0.1:8600/mcp"),
     "trilium": os.environ.get("TRILIUM_MCP_URL", "http://127.0.0.1:8601/mcp"),
     "monarch": os.environ.get("MONARCH_MCP_URL", "http://127.0.0.1:8602/mcp"),
+    "restaurants": os.environ.get("RESTAURANTS_MCP_URL", "http://127.0.0.1:8605/mcp"),
 }
 
 # Read-only subset prompt.md actually uses -- the gateways expose many more
@@ -73,6 +76,9 @@ MCP_SERVERS = {
 TOOL_ALLOWLIST = {
     "trilium": {"search_notes", "list_children_notes", "get_note", "resolve_note_id"},
     "monarch": {"get_accounts", "get_transactions", "search_transactions"},
+    # The one write: queues a background read of an upcoming trip's towns
+    # (idempotent -- a town read this week just answers "ready").
+    "restaurants": {"trip"},
 }
 
 # Long tool outputs (a whole note, a month of transactions) are cut so one

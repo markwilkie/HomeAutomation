@@ -37,7 +37,7 @@ gap (e.g. if section 6 is skipped, the next one is still numbered 6, not 7).
 
 Render all of the following sections, in this order:
 
-1. **Calendar & Email**: rendered as two labeled sub-lists, each its own
+1. **Calendar & Email**: rendered as labeled sub-lists, each its own
    bold line followed by its own flat bullet list (see the note above on
    never joining items with " - " in one line) — not a single "Calendar"/
    "Email" bullet with the details crammed into its text:
@@ -58,6 +58,28 @@ Render all of the following sections, in this order:
      of read status ("action required", a deadline) — there's no
      flag/priority field on this tool, don't try to check one. Each
      flagged item is its own bullet under an **Email** label.
+   - **Travel** section — notice when I'm away or about to be. Call
+     `list_events` again on My calendar and Jennie for today through 7
+     days out, and look for travel: flights (✈️ events, airline
+     confirmations), hotel/Airbnb stays, and all-day or multi-day events
+     named after a town (e.g. "Chattanooga", "Nashville (airbnb)") or with
+     an out-of-town location. A town counts when it's outside the Seattle
+     area — a day trip to Bremerton or Bellingham counts, Kirkland or
+     Shoreline doesn't. If any stop starts within that window, or I'm
+     already on a trip today:
+     - Call the restaurants `trip` tool once with every stop, each as
+       "City, ST" (e.g. ["Chattanooga, TN", "Nashville, TN"]), same
+       wording every day so it recognizes a town it's already read up on.
+       Don't pass airports or towns I'm only connecting through. It only
+       queues background research and returns at once; calling it again
+       on later days is harmless.
+     - One bullet per trip under a **Travel** label: where, which dates,
+       flights if on the calendar, and what the `trip` tool said (e.g.
+       "restaurant ideas being readied" / "restaurant ideas ready"). If
+       it said it couldn't find a town, say so. If I'm traveling today,
+       lead with that ("You're in Nashville today").
+     Omit the **Travel** label entirely when there's no trip in the
+     window. Don't recommend restaurants here.
    - Report only what's actually interesting or urgent from either —
      skip routine noise (newsletters, automated notifications, trivial
      recurring reminders).
