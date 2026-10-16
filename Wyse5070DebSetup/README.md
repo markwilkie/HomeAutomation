@@ -24,6 +24,9 @@ this table exists specifically so that doesn't happen:
 | 8600 | MCP gateway: Microsoft To Do | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-todo` |
 | 8601 | MCP gateway: Trilium | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-trilium` |
 | 8602 | MCP gateway: Monarch Money | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only | (none) | `mcp-gateway-monarch` |
+| 8603 | MCP gateway: Spotify | **Not running** — `setup-mcp-gateway-spotify.sh` was started (2026-09-04, upstream cloned) but never finished; the Caddy `/spotify/` route points at nothing. claude.ai uses Spotify's own connector instead | (none) | (none) |
+| 8604 | MCP server: Personal Shopper | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only. Own repo [markwilkie/personal-shopper](https://github.com/markwilkie/personal-shopper) (tools, skill and deploy documented there) | (none) | `mcp-gateway-shopper` |
+| 8605 | MCP server: Restaurant Finder | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only. Own repo [markwilkie/restaurant-finder](https://github.com/markwilkie/restaurant-finder) (tools, skill and deploy documented there) | (none) | `mcp-gateway-restaurants` |
 
 ## Quick-links dashboard
 
@@ -288,7 +291,8 @@ run.
 thing this host exposes to the internet — automatic Let's Encrypt TLS for
 `wilkiefamily.duckdns.org`, reverse-proxying by path to the MCP gateways
 above (`/todo/*` → `mcp-gateway-todo`, `/trilium/*` →
-`mcp-gateway-trilium`, `/monarch/*` → `mcp-gateway-monarch`). Requires
+`mcp-gateway-trilium`, `/monarch/*` → `mcp-gateway-monarch`, `/shopper/*` →
+`mcp-gateway-shopper`, `/restaurants/*` → `mcp-gateway-restaurants`). Requires
 ports 80 and 443 forwarded from pfSense to this host (`192.168.15.30`) —
 80 for Let's Encrypt's renewal challenge, not just 443.
 
@@ -303,6 +307,15 @@ output for the actual token):
 - `https://wilkiefamily.duckdns.org/todo/<token>/mcp`
 - `https://wilkiefamily.duckdns.org/trilium/<token>/mcp`
 - `https://wilkiefamily.duckdns.org/monarch/<token>/mcp`
+- `https://wilkiefamily.duckdns.org/shopper/<token>/mcp` (Personal Shopper, 8604)
+- `https://wilkiefamily.duckdns.org/restaurants/<token>/mcp` (Restaurant Finder, 8605)
+- `/spotify/<token>/mcp` is routed to 8603, but nothing is listening there (see the port table)
+
+Personal Shopper and Restaurant Finder are our own Python MCP servers (not
+`supergateway` wrappers), each deployed from its own repo by its
+`deploy/seed-wyse.ps1` / `setup-mcp-gateway-*.sh`, and each paired with a
+claude.ai **skill** (`skill/SKILL.md` in its repo) that teaches the chat how
+to use it. The dashboard's "MCP servers & skills" section lists them all.
 
 The Caddyfile also carries a second site, `mayhem-racing.duckdns.org`
 (RaceTimes, basic auth), in a block between `# BEGIN racetimes` /

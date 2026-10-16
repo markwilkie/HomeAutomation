@@ -193,6 +193,34 @@
   }
   .doc-list a.deprecated .proj { color: var(--text-dim); text-decoration: line-through; }
 
+  .card .meta {
+    color: var(--text-dim);
+    font-size: 0.76rem;
+    margin-top: 8px;
+    overflow-wrap: anywhere;
+  }
+  .card .meta code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .card .links {
+    margin-top: 8px;
+    font-size: 0.78rem;
+  }
+  .card .links a { color: var(--accent); text-decoration: none; margin-right: 10px; }
+  .card .links a:hover { text-decoration: underline; }
+  .note {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin: -4px 0 12px;
+  }
+  .note code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
   footer {
     color: var(--text-dim);
     font-size: 0.78rem;
@@ -261,6 +289,131 @@
   </section>
 
   <section>
+    <h2>MCP servers — Claude connectors</h2>
+    <p class="note">Public at <code>https://wilkiefamily.duckdns.org/&lt;path&gt;/&lt;token&gt;/mcp</code> through Caddy; each
+      server listens on 127.0.0.1 only. The token is in <code>/mnt/data/appdata/caddy/.env</code> on this host.
+      Add the URL in claude.ai → Settings → Connectors; after a server's tools change, remove and re-add it.</p>
+    <div class="grid">
+      <div class="card disabled">
+        <div class="row"><span class="name">Restaurant Finder</span><span class="port">8605</span></div>
+        <div class="desc">Where to eat, by vibe and occasion, learned from our Monarch history and what we've said
+          about places. Weather, Resy credit (Amex Platinum) and Microsoft Alumni perks. Our own code.</div>
+        <div class="meta">Path <code>/restaurants/</code> · container <code>mcp-gateway-restaurants</code> · skill: restaurant-finder</div>
+        <div class="meta">Tools: options, recommend, takeout, our_places, place, remember, flag_place, wishlist,
+          more_questions_for_me, answer_question, worth_trying, status</div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/restaurant-finder/blob/main/README.md" target="_blank" rel="noopener">README</a>
+          <a href="https://github.com/markwilkie/restaurant-finder/blob/main/skill/SKILL.md" target="_blank" rel="noopener">Skill</a>
+          <a href="https://github.com/markwilkie/restaurant-finder/blob/main/SPEC.md" target="_blank" rel="noopener">Spec</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Personal Shopper</span><span class="port">8604</span></div>
+        <div class="desc">Researches what to buy and recommends only as strongly as its evidence allows (strong /
+          moderate / thin). Jobs take minutes. Our own code.</div>
+        <div class="meta">Path <code>/shopper/</code> · container <code>mcp-gateway-shopper</code> · skill: personal-shopper</div>
+        <div class="meta">Tools: start_job, wait_for_update, job_status, answer_question, get_result, refine_job,
+          finalize_job, list_jobs, cancel_job, prefs_list, prefs_set, prefs_forget, credits, claude_plan_usage</div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/personal-shopper/blob/main/README.md" target="_blank" rel="noopener">README</a>
+          <a href="https://github.com/markwilkie/personal-shopper/blob/main/skill/SKILL.md" target="_blank" rel="noopener">Skill</a>
+          <a href="https://github.com/markwilkie/personal-shopper/blob/main/SPEC.md" target="_blank" rel="noopener">Spec</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Monarch Money</span><span class="port">8602</span></div>
+        <div class="desc">Accounts, transactions, budgets, cash flow. Upstream robcerda/monarch-mcp-server wrapped
+          with supergateway. Restaurant Finder reads its history through this.</div>
+        <div class="meta">Path <code>/monarch/</code> · container <code>mcp-gateway-monarch</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-mcp-gateway-monarch.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+          <a href="https://github.com/robcerda/monarch-mcp-server" target="_blank" rel="noopener">Upstream</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Trilium</span><span class="port">8601</span></div>
+        <div class="desc">Search, read and edit Trilium notes. Upstream triliumnext-mcp wrapped with supergateway.</div>
+        <div class="meta">Path <code>/trilium/</code> · container <code>mcp-gateway-trilium</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-mcp-gateway-trilium.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+          <a href="https://github.com/TriliumNext/triliumnext-mcp" target="_blank" rel="noopener">Upstream</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Microsoft To Do</span><span class="port">8600</span></div>
+        <div class="desc">Task lists and tasks. Upstream microsoft-todo-mcp-server wrapped with supergateway, on its
+          own OAuth grant (separate from Claude Desktop's).</div>
+        <div class="meta">Path <code>/todo/</code> · container <code>mcp-gateway-todo</code> · Claude Desktop also runs
+          <code>microsoft-todo-mcp</code> over SSH (stdio, per session)</div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-mcp-gateway-todo.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+          <a href="https://github.com/jordanburke/microsoft-todo-mcp-server" target="_blank" rel="noopener">Upstream</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Spotify</span><span class="badge warn">not running</span></div>
+        <div class="desc">Setup was started (2026-09-04) but never finished; the <code>/spotify/</code> route on
+          port 8603 has nothing behind it. claude.ai uses Spotify's own connector instead.</div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-mcp-gateway-spotify.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Skills</h2>
+    <p class="note">claude.ai skills teach the chat how to use an MCP server: upload the zip in claude.ai → Settings →
+      Capabilities → Skills, and re-upload after any change. Build zips with Python, never Compress-Archive.
+      Claude Code skills load automatically in that repo (or for every repo, from <code>~/.claude/skills</code>).</p>
+    <div class="grid">
+      <div class="card disabled">
+        <div class="row"><span class="name">restaurant-finder</span><span class="badge ok">claude.ai</span></div>
+        <div class="desc">Talk like a friend who knows us: vibe first, one pick with a reason, honest watch-outs,
+          deals, the "how was it?" questions.</div>
+        <div class="meta">Zip: <code>deploy/build_skill_zip.py</code> in the repo</div>
+        <div class="links"><a href="https://github.com/markwilkie/restaurant-finder/blob/main/skill/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">personal-shopper</span><span class="badge ok">claude.ai</span></div>
+        <div class="desc">Start and follow shopping jobs, ask their questions, present results without upgrading the
+          confidence label.</div>
+        <div class="links"><a href="https://github.com/markwilkie/personal-shopper/blob/main/skill/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">deploy-mcp</span><span class="badge ok">Claude Code</span></div>
+        <div class="desc">Containerize an MCP server on wyse behind Caddy + DuckDNS.</div>
+        <div class="links"><a href="https://github.com/markwilkie/HomeAutomation/blob/master/.claude/skills/deploy-mcp/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">deploy-service</span><span class="badge ok">Claude Code</span></div>
+        <div class="desc">Containerize any Docker service on wyse behind Caddy + DuckDNS.</div>
+        <div class="links"><a href="https://github.com/markwilkie/HomeAutomation/blob/master/.claude/skills/deploy-service/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">otbr-stability-check</span><span class="badge ok">Claude Code</span></div>
+        <div class="desc">Check the Thread border router for crashes or hangs since the last baseline.</div>
+        <div class="links"><a href="https://github.com/markwilkie/HomeAutomation/blob/master/.claude/skills/otbr-stability-check/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">zigbee-reporting-check</span><span class="badge ok">Claude Code</span></div>
+        <div class="desc">Audit (and fix) Zigbee2MQTT attribute reporting; walk through pairing a new sensor.</div>
+        <div class="links"><a href="https://github.com/markwilkie/HomeAutomation/blob/master/.claude/skills/zigbee-reporting-check/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">session-state-doc</span><span class="badge ok">Claude Code</span></div>
+        <div class="desc">Append an end-of-session summary to docs/STATE.md and push it.</div>
+        <div class="links"><a href="https://github.com/markwilkie/HomeAutomation/blob/master/.claude/skills/session-state-doc/SKILL.md" target="_blank" rel="noopener">SKILL.md</a></div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">commit-push</span><span class="badge ok">Claude Code</span></div>
+        <div class="desc">Stage relevant changes, write a why-focused commit message, and push. In this repo and in
+          <code>~/.claude/skills</code> on the laptop (every repo).</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>Documentation</h2>
     <div class="doc-list" id="doc-list">
       <a href="https://github.com/markwilkie/HomeAutomation/blob/master/CLAUDE.md" target="_blank" rel="noopener">
@@ -271,6 +424,12 @@
       </a>
       <a href="https://github.com/markwilkie/RaceTimes/blob/main/README.md" target="_blank" rel="noopener">
         <span class="proj">RaceTimes (own repo)</span><span class="file">README.md</span>
+      </a>
+      <a href="https://github.com/markwilkie/restaurant-finder/blob/main/README.md" target="_blank" rel="noopener">
+        <span class="proj">restaurant-finder (own repo)</span><span class="file">README.md — tools, skill, schedule</span>
+      </a>
+      <a href="https://github.com/markwilkie/personal-shopper/blob/main/README.md" target="_blank" rel="noopener">
+        <span class="proj">personal-shopper (own repo)</span><span class="file">README.md — tools, skill</span>
       </a>
       <a href="https://github.com/markwilkie/HomeAutomation/blob/master/MiniSplit/README.md" target="_blank" rel="noopener">
         <span class="proj">MiniSplit</span><span class="file">README.md</span>
