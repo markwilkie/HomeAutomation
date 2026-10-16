@@ -3,6 +3,7 @@ name: deploy-service
 description: Containerize and expose any Dockerized service on wyse behind Caddy + DuckDNS
 ---
 Given a service name, source location, and upstream port:
+0. Source comes from GitHub, never copied from the laptop (no scp/rsync): commit and push, then on wyse clone/`git pull --ff-only` into `~/github/<repo>` and build from that clone. The deploy script should do the pull itself (see personal-shopper's `deploy/setup-mcp-gateway-shopper.sh`). Only secrets go over SSH, into the host's gitignored `.env`.
 1. Write a Dockerfile (or reuse an existing one) with PINNED versions for every dependency — no floating majors.
 2. Add a service to the appropriate docker-compose.yml on wyse, matching existing service patterns already in that stack.
 3. Add a Caddy site block for <name>.<duckdns-host>; echo the exact hostname back to me for confirmation BEFORE generating certs.

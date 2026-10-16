@@ -18,7 +18,7 @@
 ## Deploying config changes to the live box
 - Use `../Wyse5070DebSetup/homeassistant-config/deploy.sh` (2026-10-05): drift check against the last deploy, backup, config check with rollback, then reload (needs `HA_TOKEN` in `/mnt/data/appdata/homeassistant/.env`) or `--restart`. For `.storage` edits (areas, labels, dashboard, seeding, orphans) use `patch-storage.sh <patch.py>`, which always restarts HA even if the patch fails. The manual steps below are what these scripts automate.
 - Template entity IDs come from the slugified name: "Follow-Me" becomes `follow_me` -- check the registered ID before referencing a new entity.
-- `/mnt/data/appdata/homeassistant/config` on `wyse` (bind-mounted into the `homeassistant` container as `/config`) is NOT a git checkout — there is no `git pull` path to sync it.
+- `/mnt/data/appdata/homeassistant/config` on `wyse` (bind-mounted into the `homeassistant` container as `/config`) is NOT a git checkout — `deploy.sh` copies files into it from wyse's `~/github/HomeAutomation` clone.
 - Before overwriting a file there, diff it against the live copy first (`docker exec homeassistant cat /config/<file>` vs the repo version). The live file can have uncommitted edits of its own; overwriting blind can silently clobber them.
-- Deploy by `scp`-ing the file to the host, then `docker cp` into the container (e.g. `docker cp /tmp/configuration.yaml homeassistant:/config/configuration.yaml`).
+- Deploy from GitHub, never by copying files from the laptop: commit and push, `git pull` in `~/github/HomeAutomation` on wyse, then `docker cp` from that clone into the container (e.g. `docker cp ~/github/HomeAutomation/Wyse5070DebSetup/homeassistant-config/configuration.yaml homeassistant:/config/configuration.yaml`).
 - Sanity-check the YAML parses before reloading/restarting.

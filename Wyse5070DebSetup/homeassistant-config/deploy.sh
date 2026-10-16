@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Deploy configuration.yaml / automations.yaml from this directory to the
-# live Home Assistant on wyse, the way it's been done by hand: refuse if the
-# live file was edited outside this script, back up, copy in, config-check
-# (rolling back on failure), then reload -- or restart with --restart.
+# Deploy configuration.yaml / automations.yaml to the live Home Assistant on
+# wyse from GitHub: pull ~/github/HomeAutomation on wyse, refuse if the live
+# file was edited outside this script, back up, copy in from that clone,
+# config-check (rolling back on failure), then reload -- or restart with
+# --restart. Nothing is copied from this machine: commit and push first.
 #
 #   ./deploy.sh            deploy changed files, reload YAML via the HA API
 #   ./deploy.sh --restart  same, but full container restart (needed for new
@@ -16,6 +17,8 @@
 set -euo pipefail
 
 HOST="${WYSE_HOST:-mwilkie@192.168.15.30}"
+REMOTE_REPO="~/github/HomeAutomation"
+REMOTE_DIR="${REMOTE_REPO}/Wyse5070DebSetup/homeassistant-config"
 FILES=(configuration.yaml automations.yaml)
 RESTART=0
 FORCE=0
@@ -30,6 +33,24 @@ cd "$(dirname "$0")"
 
 remote() { ssh "$HOST" "$@"; }
 sha() { sha256sum | cut -d' ' -f1; }
+
+# wyse deploys what's on GitHub, so what's here must be committed and pushed.
+if ! git diff --quiet HEAD -- "${FILES[@]}"; then
+    echo "Uncommitted changes to ${FILES[*]} -- commit and push first." >&2
+    exit 1
+fi
+git fetch -q
+if ! git merge-base --is-ancestor HEAD '@{u}'; then
+    echo "This checkout has commits not on GitHub -- push first." >&2
+    exit 1
+fi
+remote "git -C $REMOTE_REPO pull -q --ff-only"
+for f in "${FILES[@]}"; do
+    if [[ "$(remote "cat $REMOTE_DIR/$f" | sha)" != "$(sha < "$f")" ]]; then
+        echo "$f: wyse's clone doesn't match this checkout after pulling (local branch behind GitHub?)." >&2
+        exit 1
+    fi
+done
 
 stamp=$(date +%Y%m%d-%H%M%S)
 changed=()
@@ -59,9 +80,8 @@ if [[ ${#changed[@]} -eq 0 ]]; then
 fi
 
 for f in "${changed[@]}"; do
-    scp -q "$f" "$HOST:/tmp/$f.deploy"
     remote "docker exec homeassistant cp /config/$f /config/$f.bak-$stamp \
-        && docker cp /tmp/$f.deploy homeassistant:/config/$f && rm -f /tmp/$f.deploy"
+        && docker cp $REMOTE_DIR/$f homeassistant:/config/$f"
     echo "$f: deployed (backup: $f.bak-$stamp)"
 done
 
