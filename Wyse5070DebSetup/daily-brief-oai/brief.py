@@ -181,6 +181,39 @@ async def todo_due_tasks(session: ClientSession) -> str:
     return json.dumps({"today": today.isoformat(), "lists_checked": len(lists), "tasks": tasks, "errors": errors})
 
 
+async def sober_line(session: ClientSession) -> str | None:
+    """Days/weeks since the latest date in the top-level Trilium note
+    "Sober" (e.g. "9/28/2026 - last relapse"). Counted here, not by the
+    model, so the number is never off by a day."""
+    found = json.loads(
+        await call_mcp(
+            session,
+            "search_notes",
+            {
+                "searchCriteria": [
+                    {"type": "noteProperty", "property": "title", "op": "=", "value": "Sober", "logic": "AND"},
+                    {"type": "noteProperty", "property": "parents.noteId", "op": "=", "value": "root", "logic": "AND"},
+                ]
+            },
+        )
+    )
+    if not found:
+        return None
+    content = json.loads(await call_mcp(session, "get_note", {"noteId": found[0]["noteId"]})).get("content", "")
+    dates = [
+        datetime.date(int(y), int(m), int(d)) for m, d, y in re.findall(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", content)
+    ]
+    if not dates:
+        return None
+    relapse = max(dates)
+    days = (datetime.datetime.now(TZ).date() - relapse).days
+    weeks, rem = divmod(days, 7)
+    return (
+        f"{days} days since last relapse ({relapse.month}/{relapse.day}/{relapse.year}) -- "
+        f"{weeks} week{'s' if weeks != 1 else ''}, {rem} day{'s' if rem != 1 else ''}"
+    )
+
+
 # --- Google Calendar via secret iCal URLs -----------------------------------
 
 
@@ -419,6 +452,13 @@ async def generate_brief(prompt_text: str) -> str:
         tools.append(web_search_tool())
 
         next_input = f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
+        if "trilium" in sessions:
+            try:
+                sober = await sober_line(sessions["trilium"])
+                if sober:
+                    next_input += f" Sober count: {sober}."
+            except Exception as exc:
+                log(f"WARN: could not read the Sober note: {exc}")
         previous_id = None
         totals = {"input": 0, "cached": 0, "output": 0}
         for turn in range(1, MAX_TURNS + 1):

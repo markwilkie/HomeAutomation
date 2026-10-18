@@ -35,6 +35,15 @@ reporting in it — don't pad a section out just to have content. When a
 section is omitted, renumber the remaining sections sequentially with no
 gap (e.g. if section 6 is skipped, the next one is still numbered 6, not 7).
 
+Before section 1, open the brief with a single bold line (not a numbered
+section) saying how long I've been sober, e.g. "**Sober: 20 days (2
+weeks, 6 days)** since last relapse 9/28/2026". If the user message gives
+a "Sober count", use its numbers exactly. Otherwise get the top-level
+Trilium note titled "Sober" (`search_notes` for that title, then
+`get_note`), take the most recent date in it as the last relapse, and
+count days from it to today (the relapse date itself is day 0). No
+commentary beyond the line. Omit it if there's no such note.
+
 Render all of the following sections, in this order:
 
 1. **Calendar & Email**: rendered as labeled sub-lists, each its own
