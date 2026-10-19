@@ -27,6 +27,7 @@ this table exists specifically so that doesn't happen:
 | 8603 | MCP gateway: Spotify | **Not running** — `setup-mcp-gateway-spotify.sh` was started (2026-09-04, upstream cloned) but never finished; the Caddy `/spotify/` route points at nothing. claude.ai uses Spotify's own connector instead | (none) | (none) |
 | 8604 | MCP server: Personal Shopper | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only. Own repo [markwilkie/personal-shopper](https://github.com/markwilkie/personal-shopper) (tools, skill and deploy documented there) | (none) | `mcp-gateway-shopper` |
 | 8605 | MCP server: Restaurant Finder | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only. Own repo [markwilkie/restaurant-finder](https://github.com/markwilkie/restaurant-finder) (tools, skill and deploy documented there) | (none) | `mcp-gateway-restaurants` |
+| 8606 | MCP server: WhatsApp | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only (host networking). [Sealjay/mcp-whatsapp](https://github.com/Sealjay/mcp-whatsapp) v0.6.0 linked to my personal account as a Linked Device; `setup-mcp-gateway-whatsapp.sh` has the pairing steps (`/pair` via SSH tunnel; re-pair ~every 20 days). Used by the daily brief and claude.ai | (none) | `mcp-gateway-whatsapp` |
 
 ## Quick-links dashboard
 
@@ -309,6 +310,7 @@ output for the actual token):
 - `https://wilkiefamily.duckdns.org/monarch/<token>/mcp`
 - `https://wilkiefamily.duckdns.org/shopper/<token>/mcp` (Personal Shopper, 8604)
 - `https://wilkiefamily.duckdns.org/restaurants/<token>/mcp` (Restaurant Finder, 8605)
+- `https://wilkiefamily.duckdns.org/whatsapp/<token>/mcp` (WhatsApp, 8606; forwards `/mcp` only, never `/pair`)
 - `/spotify/<token>/mcp` is routed to 8603, but nothing is listening there (see the port table)
 
 Personal Shopper and Restaurant Finder are our own Python MCP servers (not

@@ -15,6 +15,10 @@
     "restaurants": {
       "type": "http",
       "url": "http://127.0.0.1:8605/mcp"
+    },
+    "whatsapp": {
+      "type": "http",
+      "url": "http://127.0.0.1:8606/mcp"
     }
   }
 }

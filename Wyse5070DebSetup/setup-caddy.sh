@@ -9,12 +9,12 @@
 # Personal Shopper MCP server (personal-shopper repo,
 # deploy/setup-mcp-gateway-shopper.sh, port 8604), and the Restaurant Finder
 # MCP server (restaurant-finder repo, deploy/setup-mcp-gateway-restaurants.sh,
-# port 8605).
+# port 8605), and WhatsApp (setup-mcp-gateway-whatsapp.sh, port 8606).
 #
 # Runs via Docker (network_mode: host, matching this repo's convention for
 # most services) rather than an OS package install -- this host's operator
 # account doesn't have passwordless sudo, and host networking is required
-# anyway so Caddy can reach the gateways on 127.0.0.1:8600/8601/8602/8603/8604/8605
+# anyway so Caddy can reach the gateways on 127.0.0.1:8600-8606
 # (which are deliberately bound to the host's loopback only, not reachable
 # via container-to-container networking or a bridge).
 #
@@ -93,6 +93,17 @@ ${DOMAIN} {
 
 	handle_path /restaurants/{\$MCP_AUTH_TOKEN}/* {
 		reverse_proxy 127.0.0.1:8605
+	}
+
+	# MCP only: the same port also serves WhatsApp's /pair (device linking)
+	# page, which must never be reachable from outside.
+	handle_path /whatsapp/{\$MCP_AUTH_TOKEN}/* {
+		handle /mcp {
+			reverse_proxy 127.0.0.1:8606
+		}
+		handle {
+			respond "Not found" 404
+		}
 	}
 
 	handle {

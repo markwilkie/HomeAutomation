@@ -65,6 +65,7 @@ MCP_SERVERS = {
     "trilium": os.environ.get("TRILIUM_MCP_URL", "http://127.0.0.1:8601/mcp"),
     "monarch": os.environ.get("MONARCH_MCP_URL", "http://127.0.0.1:8602/mcp"),
     "restaurants": os.environ.get("RESTAURANTS_MCP_URL", "http://127.0.0.1:8605/mcp"),
+    "whatsapp": os.environ.get("WHATSAPP_MCP_URL", "http://127.0.0.1:8606/mcp"),
 }
 
 # Read-only subset prompt.md actually uses -- the gateways expose many more
@@ -79,6 +80,9 @@ TOOL_ALLOWLIST = {
     # The one write: queues a background read of an upcoming trip's towns
     # (idempotent -- a town read this week just answers "ready").
     "restaurants": {"trip"},
+    # Read-only: the server also has send/react/group-admin tools, and
+    # message text is untrusted input to the model.
+    "whatsapp": {"get_status", "list_chats", "list_messages"},
 }
 
 # Long tool outputs (a whole note, a month of transactions) are cut so one
