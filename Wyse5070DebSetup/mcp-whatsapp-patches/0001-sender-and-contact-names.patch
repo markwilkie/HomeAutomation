@@ -45,10 +45,10 @@ index c63201e..a6a2fde 100644
  }
  
 diff --git a/internal/store/contacts.go b/internal/store/contacts.go
-index 592cf31..2f93d7b 100644
+index 592cf31..079deb3 100644
 --- a/internal/store/contacts.go
 +++ b/internal/store/contacts.go
-@@ -1,6 +1,11 @@
+@@ -1,6 +1,12 @@
  package store
  
 -import "database/sql"
@@ -57,19 +57,107 @@ index 592cf31..2f93d7b 100644
 +	"database/sql"
 +	"fmt"
 +	"strings"
++	"time"
 +)
  
  // contactNameExpr coalesces the whatsmeow_contacts name columns in preference
  // order: the saved address-book name first, then push name, first name, and
-@@ -24,6 +29,46 @@ func (s *Store) ContactName(jid string) string {
+@@ -8,22 +14,125 @@ import "database/sql"
+ const contactNameExpr = `COALESCE(NULLIF(full_name,''), NULLIF(push_name,''), NULLIF(first_name,''), NULLIF(business_name,''))`
+ 
+ // ContactName returns the synced address-book name for a JID from the
+-// whatsmeow_contacts table, or "" when the contact is unknown or the
+-// whatsmeow store is unavailable. LID JIDs are resolved to phone JIDs first.
++// whatsmeow_contacts table, falling back to the names saved by
++// SaveContactNames (so names outlive a re-pair), or "" when the contact is
++// unknown. LID JIDs are resolved to phone JIDs first.
+ func (s *Store) ContactName(jid string) string {
+-	if s.whatsmeowDB == nil {
+-		return ""
+-	}
+ 	jid = s.ResolveLIDToJID(jid)
+ 	var name sql.NullString
+-	err := s.whatsmeowDB.QueryRow(
+-		`SELECT `+contactNameExpr+` FROM whatsmeow_contacts WHERE their_jid = ?`, jid).Scan(&name)
+-	if err != nil || !name.Valid {
++	if s.whatsmeowDB != nil {
++		err := s.whatsmeowDB.QueryRow(
++			`SELECT `+contactNameExpr+` FROM whatsmeow_contacts WHERE their_jid = ?`, jid).Scan(&name)
++		if err == nil && name.Valid {
++			return name.String
++		}
++	}
++	if err := s.db.QueryRow(`SELECT name FROM contact_names WHERE jid = ?`, jid).Scan(&name); err != nil || !name.Valid {
+ 		return ""
+ 	}
  	return name.String
  }
  
++// SaveContactNames copies every known name from whatsmeow_contacts into
++// contact_names. whatsmeow keys its contacts on the paired device and drops
++// them when WhatsApp ends the session (about every 20 days); the address
++// book re-syncs after pairing again, but push names of people outside it
++// only return with their next message. Returns how many names were added
++// or changed.
++func (s *Store) SaveContactNames(ctx context.Context) (int, error) {
++	if s.whatsmeowDB == nil {
++		return 0, nil
++	}
++	rows, err := s.whatsmeowDB.QueryContext(ctx,
++		`SELECT their_jid, `+contactNameExpr+` FROM whatsmeow_contacts`)
++	if err != nil {
++		return 0, fmt.Errorf("save contact names: %w", err)
++	}
++	// Read everything before writing: in tests both handles share one
++	// in-memory database.
++	names := map[string]string{}
++	for rows.Next() {
++		var jid string
++		var name sql.NullString
++		if err := rows.Scan(&jid, &name); err != nil {
++			rows.Close()
++			return 0, err
++		}
++		if name.Valid && name.String != "" {
++			names[jid] = name.String
++		}
++	}
++	rows.Close()
++	if err := rows.Err(); err != nil {
++		return 0, err
++	}
++
++	tx, err := s.db.BeginTx(ctx, nil)
++	if err != nil {
++		return 0, fmt.Errorf("save contact names: %w", err)
++	}
++	defer tx.Rollback()
++	saved := 0
++	now := time.Now().UTC()
++	for jid, name := range names {
++		res, err := tx.ExecContext(ctx, `
++			INSERT INTO contact_names (jid, name, updated_at) VALUES (?, ?, ?)
++			ON CONFLICT(jid) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at
++			WHERE contact_names.name <> excluded.name`, jid, name, now)
++		if err != nil {
++			return 0, fmt.Errorf("save contact names: %w", err)
++		}
++		if n, _ := res.RowsAffected(); n > 0 {
++			saved++
++		}
++	}
++	return saved, tx.Commit()
++}
++
 +// RefreshChatNames replaces placeholder 1:1 chat names -- empty, or the
 +// bare number a chat is named after when it arrives before its contact has
-+// synced -- with the contact's name once one is known. Returns how many
-+// chats were renamed.
++// synced -- with the contact's name once one is known. Saves contact names
++// first, so both run after each history sync and before list_chats.
++// Returns how many chats were renamed.
 +func (s *Store) RefreshChatNames(ctx context.Context) (int, error) {
++	if _, err := s.SaveContactNames(ctx); err != nil {
++		return 0, err
++	}
 +	rows, err := s.db.QueryContext(ctx, `SELECT jid, COALESCE(name,'') FROM chats WHERE jid NOT LIKE '%@g.us'`)
 +	if err != nil {
 +		return 0, fmt.Errorf("refresh chat names: %w", err)
@@ -141,3 +229,70 @@ index a0fdc01..9b29b85 100644
  	if name := s.chatNameByJID(ctx, senderJID); name != "" {
  		return name
  	}
+diff --git a/internal/store/queries_test.go b/internal/store/queries_test.go
+index a345ab0..2b2554c 100644
+--- a/internal/store/queries_test.go
++++ b/internal/store/queries_test.go
+@@ -515,3 +515,26 @@ func TestGetMessageAtOrBefore_NothingThatFarBack(t *testing.T) {
+ 		t.Fatalf("expected sql.ErrNoRows, got %v", err)
+ 	}
+ }
++
++// Names must outlive a re-pair, which cascade-deletes whatsmeow_contacts.
++func TestContactName_SurvivesRepair(t *testing.T) {
++	s := openTestStore(t)
++	ctx := context.Background()
++
++	n, err := s.SaveContactNames(ctx)
++	if err != nil || n == 0 {
++		t.Fatalf("SaveContactNames: saved %d, err %v", n, err)
++	}
++	if n, _ := s.SaveContactNames(ctx); n != 0 {
++		t.Fatalf("second SaveContactNames re-saved %d unchanged names", n)
++	}
++	if _, err := s.db.Exec(`DELETE FROM whatsmeow_contacts`); err != nil {
++		t.Fatalf("clear contacts: %v", err)
++	}
++	if got := s.ContactName("919900000000@s.whatsapp.net"); got != "Jane Smith Delhi" {
++		t.Fatalf("expected saved name after re-pair, got %q", got)
++	}
++	if got := s.ContactName("11223344@lid"); got != "Jane Smith Delhi" {
++		t.Fatalf("expected saved name via LID after re-pair, got %q", got)
++	}
++}
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 4721fa1..68a2dec 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -336,6 +336,14 @@ CREATE TABLE IF NOT EXISTS poll_votes (
+ 	timestamp TIMESTAMP NOT NULL,
+ 	PRIMARY KEY (poll_message_id, poll_chat_jid, voter_jid)
+ );
++
++-- Names copied out of whatsmeow_contacts, which is keyed on the paired
++-- device and cascade-deleted when WhatsApp ends the session.
++CREATE TABLE IF NOT EXISTS contact_names (
++	jid TEXT PRIMARY KEY,
++	name TEXT NOT NULL,
++	updated_at TIMESTAMP
++);
+ `
+ 
+ // migrateSchema brings legacy databases up to the current layout. SQLite lacks
+diff --git a/internal/store/testdata/seed.sql b/internal/store/testdata/seed.sql
+index 3149aea..b9ba35a 100644
+--- a/internal/store/testdata/seed.sql
++++ b/internal/store/testdata/seed.sql
+@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS poll_votes (
+     PRIMARY KEY (poll_message_id, poll_chat_jid, voter_jid)
+ );
+ 
++CREATE TABLE IF NOT EXISTS contact_names (
++    jid TEXT PRIMARY KEY,
++    name TEXT NOT NULL,
++    updated_at TIMESTAMP
++);
++
+ -- whatsmeow LID->PN map (normally lives in whatsapp.db, but co-located for tests)
+ CREATE TABLE IF NOT EXISTS whatsmeow_lid_map (
+     lid TEXT PRIMARY KEY,

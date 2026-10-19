@@ -22,3 +22,9 @@ Found 2026-10-19: names were missing almost everywhere.
   after the bare number forever (`GetChatName` reuses the stored name).
   `RefreshChatNames` renames those once the contact is known; it runs after
   each history sync and before `list_chats`, so name search finds them.
+- **Names survive re-pairing.** `whatsmeow_contacts` is keyed on the paired
+  device and cascade-deleted when WhatsApp ends the session (~20 days), so
+  push names of people outside the address book were lost until their next
+  message. `SaveContactNames` copies every known name into a
+  `contact_names` table in messages.db (same schedule as
+  `RefreshChatNames`), and `ContactName` falls back to it.
