@@ -20,8 +20,9 @@
 # what lets it stay loopback-only without its -allow-remote + bearer-token
 # mode, which claude.ai's connector form couldn't send anyway.
 #
-# Pinned to v0.6.0 (commit 078ac8c). To upgrade, change PINNED_REF and
-# re-run.
+# Pinned to v0.6.0 (commit 078ac8c), plus the patches in
+# mcp-whatsapp-patches/. To upgrade, change PINNED_REF and re-run; drop any
+# patch upstream has since fixed.
 #
 # Pairing (first run, and again whenever WhatsApp rotates the session --
 # roughly every 20 days; the brief says so when it's unpaired):
@@ -49,6 +50,15 @@ chmod 700 "${STORE_DIR}"
 echo "==> Fetching ${REPO_URL} at ${PINNED_REF}"
 rm -rf "${BUILD_DIR}"
 git clone --quiet --depth 1 --branch "${PINNED_REF}" "${REPO_URL}" "${BUILD_DIR}"
+
+# Local fixes on top of the pinned release (see each patch's notes in
+# mcp-whatsapp-patches/README.md). An upgrade that no longer applies them
+# fails here rather than silently dropping a fix.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for patch in "${SCRIPT_DIR}"/mcp-whatsapp-patches/*.patch; do
+  echo "==> Applying $(basename "${patch}")"
+  git -C "${BUILD_DIR}" apply "${patch}"
+done
 
 # ---- docker-compose.yml ------------------------------------------------
 # Runs as this host user (not the image's uid 10001) so the bind-mounted

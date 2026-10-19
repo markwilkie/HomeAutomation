@@ -1,0 +1,143 @@
+diff --git a/internal/client/events.go b/internal/client/events.go
+index c63201e..a6a2fde 100644
+--- a/internal/client/events.go
++++ b/internal/client/events.go
+@@ -285,6 +285,12 @@ func (c *Client) handleHistorySync(historySync *events.HistorySync) {
+ 				if !isFromMe && msg.Message.Key.Participant != nil && *msg.Message.Key.Participant != "" {
+ 					rawSenderJID = *msg.Message.Key.Participant
+ 					senderUser = strings.Split(rawSenderJID, "@")[0]
++				} else if p := msg.Message.GetParticipant(); !isFromMe && isGroup && p != "" {
++					// History-sync group messages carry the sender in
++					// WebMessageInfo.participant, not in the key; without
++					// this every one is stored as sent by the group.
++					rawSenderJID = p
++					senderUser = strings.Split(rawSenderJID, "@")[0]
+ 				} else if isFromMe {
+ 					rawSenderJID = ownID + "@s.whatsapp.net"
+ 					senderUser = ownID
+@@ -297,6 +303,16 @@ func (c *Client) handleHistorySync(historySync *events.HistorySync) {
+ 				senderUser = jid.User
+ 			}
+ 
++			// Keep the sender's own WhatsApp name, so people who aren't
++			// in the address book still get a name instead of a number.
++			if pn := msg.Message.GetPushName(); !isFromMe && pn != "" {
++				if senderJID, err := types.ParseJID(rawSenderJID); err == nil && senderJID.Server != types.GroupServer {
++					if _, _, err := c.wa.Store.Contacts.PutPushName(ctx, senderJID.ToNonAD(), pn); err != nil {
++						c.log.Warnf("Failed to store push name: %v", err)
++					}
++				}
++			}
++
+ 			msgID := ""
+ 			if msg.Message.Key != nil && msg.Message.Key.ID != nil {
+ 				msgID = *msg.Message.Key.ID
+@@ -332,6 +348,11 @@ func (c *Client) handleHistorySync(historySync *events.HistorySync) {
+ 		}
+ 	}
+ 
++	if n, err := c.store.RefreshChatNames(ctx); err != nil {
++		c.log.Warnf("Failed to refresh chat names: %v", err)
++	} else if n > 0 {
++		c.log.Infof("Refreshed %d chat names from contacts", n)
++	}
+ 	c.log.Infof("History sync complete. Stored %d messages.", syncedCount)
+ }
+ 
+diff --git a/internal/store/contacts.go b/internal/store/contacts.go
+index 592cf31..2f93d7b 100644
+--- a/internal/store/contacts.go
++++ b/internal/store/contacts.go
+@@ -1,6 +1,11 @@
+ package store
+ 
+-import "database/sql"
++import (
++	"context"
++	"database/sql"
++	"fmt"
++	"strings"
++)
+ 
+ // contactNameExpr coalesces the whatsmeow_contacts name columns in preference
+ // order: the saved address-book name first, then push name, first name, and
+@@ -24,6 +29,46 @@ func (s *Store) ContactName(jid string) string {
+ 	return name.String
+ }
+ 
++// RefreshChatNames replaces placeholder 1:1 chat names -- empty, or the
++// bare number a chat is named after when it arrives before its contact has
++// synced -- with the contact's name once one is known. Returns how many
++// chats were renamed.
++func (s *Store) RefreshChatNames(ctx context.Context) (int, error) {
++	rows, err := s.db.QueryContext(ctx, `SELECT jid, COALESCE(name,'') FROM chats WHERE jid NOT LIKE '%@g.us'`)
++	if err != nil {
++		return 0, fmt.Errorf("refresh chat names: %w", err)
++	}
++	type rename struct{ jid, name string }
++	var renames []rename
++	for rows.Next() {
++		var jid, name string
++		if err := rows.Scan(&jid, &name); err != nil {
++			rows.Close()
++			return 0, err
++		}
++		if name != "" && strings.Trim(name, "0123456789+") != "" {
++			continue
++		}
++		user := jidUser(jid)
++		for _, candidate := range []string{jid, user + "@s.whatsapp.net", user + "@lid"} {
++			if n := s.ContactName(candidate); n != "" && n != name {
++				renames = append(renames, rename{jid, n})
++				break
++			}
++		}
++	}
++	rows.Close()
++	if err := rows.Err(); err != nil {
++		return 0, err
++	}
++	for _, r := range renames {
++		if _, err := s.db.ExecContext(ctx, `UPDATE chats SET name = ? WHERE jid = ?`, r.name, r.jid); err != nil {
++			return 0, fmt.Errorf("refresh chat names: %w", err)
++		}
++	}
++	return len(renames), nil
++}
++
+ // searchContactNames returns address-book contacts whose name or JID matches
+ // the LIKE pattern, as a jid -> display-name map. Empty when the whatsmeow
+ // store is unavailable.
+diff --git a/internal/store/queries.go b/internal/store/queries.go
+index a0fdc01..9b29b85 100644
+--- a/internal/store/queries.go
++++ b/internal/store/queries.go
+@@ -132,6 +132,11 @@ func (s *Store) ListChats(ctx context.Context, query string, limit, page int, in
+ 	if page < 0 {
+ 		page = 0
+ 	}
++	// Before the name filter below, so a search by person finds 1:1 chats
++	// first recorded under a bare number.
++	if _, err := s.RefreshChatNames(ctx); err != nil {
++		return nil, err
++	}
+ 
+ 	var b strings.Builder
+ 	b.WriteString(chatSelectSQL("chats", includeLastMessage))
+@@ -318,6 +323,16 @@ func (s *Store) GetSenderName(ctx context.Context, senderJID string) string {
+ 	if name := s.ContactName(senderJID); name != "" {
+ 		return name
+ 	}
++	// Stored senders are bare user parts, but whatsmeow_contacts is keyed
++	// on full JIDs: try the phone form, then the LID form (an unresolved
++	// LID user, which ContactName maps to its phone JID).
++	if !strings.Contains(senderJID, "@") {
++		for _, server := range []string{"@s.whatsapp.net", "@lid"} {
++			if name := s.ContactName(senderJID + server); name != "" {
++				return name
++			}
++		}
++	}
+ 	if name := s.chatNameByJID(ctx, senderJID); name != "" {
+ 		return name
+ 	}
