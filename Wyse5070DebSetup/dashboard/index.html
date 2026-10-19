@@ -245,6 +245,23 @@
         <div class="row"><span class="name">Home Assistant</span><span class="port">8123</span></div>
         <div class="desc">Main dashboard &amp; automations</div>
       </a>
+      <div class="card disabled">
+        <div class="row"><span class="name">Mosquitto (MQTT)</span><span class="port">1883</span></div>
+        <div class="desc">No web UI — broker for Zigbee2MQTT and HA; WebSockets on 9001</div>
+        <div class="meta">Container <code>mosquitto</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-mosquitto.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Caddy</span><span class="port">80/443</span></div>
+        <div class="desc">The only internet-facing entry point: TLS for wilkiefamily.duckdns.org (MCP connectors,
+          token-gated) and mayhem-racing.duckdns.org (RaceTimes)</div>
+        <div class="meta">Container <code>caddy</code> · token in <code>/mnt/data/appdata/caddy/.env</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-caddy.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -368,6 +385,46 @@
         <div class="links">
           <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-mcp-gateway-spotify.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Scheduled jobs</h2>
+    <p class="note">No web UI. Cron jobs are in <code>crontab -l</code> on this host; logs in <code>~/</code>.</p>
+    <div class="grid">
+      <div class="card disabled">
+        <div class="row"><span class="name">Daily Brief</span><span class="badge ok">6:30am daily</span></div>
+        <div class="desc">Emailed morning brief: sober count, calendar, email, WhatsApp (Avenida Ficoa, Mayhem race
+          instructions), travel, balances, news, markets, To Do, local events. Azure OpenAI; falls back to
+          Claude Code if that fails. Monarch accounts refreshed at 6:00.</div>
+        <div class="meta"><code>/mnt/data/appdata/daily-brief-oai</code> · log <code>~/daily-brief-oai.log</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/daily-brief-cc/prompt.md" target="_blank" rel="noopener">Prompt</a>
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-daily-brief-oai.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Weekly health check</span><span class="badge ok">Sun 7am</span></div>
+        <div class="desc">Emailed host health report (no model involved)</div>
+        <div class="meta">log <code>~/daily-brief-cc.log</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/weekly_health_check.sh" target="_blank" rel="noopener">Script</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Home Assistant backup</span><span class="badge ok">3:15am daily</span></div>
+        <div class="desc">Tars HA's config to <code>/mnt/data/appdata/homeassistant-backups/</code> and prunes old
+          ones. Local only — same disk.</div>
+        <div class="meta">systemd <code>homeassistant-backup.timer</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-homeassistant-backup.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+        </div>
+      </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">TripTracker backup</span><span class="badge ok">3am daily</span></div>
+        <div class="desc">Backs up TripTracker's database</div>
+        <div class="meta"><code>~/github/TripTracker/scripts/backup.sh</code> · log <code>~/backup.log</code></div>
       </div>
     </div>
   </section>

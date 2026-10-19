@@ -16,6 +16,7 @@ this table exists specifically so that doesn't happen:
 | **8091** | Z-Wave JS UI | Yes — Z-Wave pairing, device list, logs | Aeotec Z-Stick Gen5 (`usb-0658_0200-if00`) | `zwavejsui` |
 | 5580 | Matter Server | No — WebSocket only, for HA's Matter integration | (Thread, via OTBR's border routing — no dongle of its own) | `matter-server` |
 | 3000 | Z-Wave JS server | No — WebSocket only, for HA's Z-Wave JS integration | Aeotec Z-Stick Gen5 (same dongle as :8091, different port) | `zwavejsui` |
+| 80, 443 | Caddy | No — reverse proxy, the only internet-facing entry point (see "Internet-facing entry point: Caddy") | (none) | `caddy` |
 | 1883 | Mosquitto (MQTT) | No — broker only | (none) | `mosquitto` |
 | 9001 | Mosquitto (MQTT over WebSockets) | No — broker only | (none) | `mosquitto` |
 | **8090** | Trilium Notes | Yes — notes, migrated from Evernote | (none) | `trilium` |
@@ -28,6 +29,16 @@ this table exists specifically so that doesn't happen:
 | 8604 | MCP server: Personal Shopper | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only. Own repo [markwilkie/personal-shopper](https://github.com/markwilkie/personal-shopper) (tools, skill and deploy documented there) | (none) | `mcp-gateway-shopper` |
 | 8605 | MCP server: Restaurant Finder | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only. Own repo [markwilkie/restaurant-finder](https://github.com/markwilkie/restaurant-finder) (tools, skill and deploy documented there) | (none) | `mcp-gateway-restaurants` |
 | 8606 | MCP server: WhatsApp | No — Streamable HTTP, `/mcp` path, 127.0.0.1-only (host networking). [Sealjay/mcp-whatsapp](https://github.com/Sealjay/mcp-whatsapp) v0.6.0 linked to my personal account as a Linked Device; `setup-mcp-gateway-whatsapp.sh` has the pairing steps (`/pair` via SSH tunnel; re-pair ~every 20 days). Used by the daily brief and claude.ai | (none) | `mcp-gateway-whatsapp` |
+
+Scheduled jobs (no port):
+
+| When | Job | Runs from |
+|---|---|---|
+| 6:00am daily | Monarch account refresh, ahead of the brief | crontab → `daily-brief-oai/monarch_refresh.py` |
+| 6:30am daily | Daily brief (see "daily-brief-oai" below) | crontab → `daily-brief-oai/run.sh` |
+| Sun 7:00am | Weekly health check email | crontab → `weekly_health_check.sh` (deployed under daily-brief-cc) |
+| 3:15am daily | Home Assistant config backup (local disk) | systemd `homeassistant-backup.timer` (`setup-homeassistant-backup.sh`) |
+| 3:00am daily | TripTracker database backup | crontab → `~/github/TripTracker/scripts/backup.sh` |
 
 ## Quick-links dashboard
 
