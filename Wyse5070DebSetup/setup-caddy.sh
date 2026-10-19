@@ -96,10 +96,13 @@ ${DOMAIN} {
 	}
 
 	# MCP only: the same port also serves WhatsApp's /pair (device linking)
-	# page, which must never be reachable from outside.
+	# page, which must never be reachable from outside. It also rejects any
+	# Host but its own loopback address (DNS-rebinding guard).
 	handle_path /whatsapp/{\$MCP_AUTH_TOKEN}/* {
 		handle /mcp {
-			reverse_proxy 127.0.0.1:8606
+			reverse_proxy 127.0.0.1:8606 {
+				header_up Host 127.0.0.1:8606
+			}
 		}
 		handle {
 			respond "Not found" 404
