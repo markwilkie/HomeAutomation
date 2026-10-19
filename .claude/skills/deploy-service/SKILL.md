@@ -10,4 +10,5 @@ Given a service name, source location, and upstream port:
 4. Never emit placeholder tokens (YOURTOKEN, CHANGEME, example.com) — read real values from the host's gitignored `.env` or ask me for them.
 5. Deploy: `docker compose up -d && docker compose logs --tail=50 <name>` and show me the logs.
 6. Verify: curl the public HTTPS endpoint with real cert validation and show me the response.
-Do not report the service as live until steps 5 and 6 both pass with no errors.
+7. Add it to the dashboard (`Wyse5070DebSetup/dashboard/index.html`, run `setup-dashboard.sh` on wyse) and to `Wyse5070DebSetup/README.md`'s port table, and make sure its compose service has `restart: unless-stopped` so it survives a reboot.
+Do not report the service as live until steps 5 and 6 pass with no errors and step 7 is done.

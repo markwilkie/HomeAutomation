@@ -21,6 +21,8 @@ Before proposing a networking or deployment change, state which host it runs on 
 ## Deployment Verification
 - Never report a service as 'live' until you have: (1) pinned all dependency versions in requirements.txt/package.json, (2) run `docker compose up -d && docker compose logs --tail=50` and shown me the logs, and (3) curled the public endpoint and shown the response.
 - If a deploy fails, keep investigating root cause even if I say I'll work around it manually — tell me what you found.
+- Every new service, container, MCP server or scheduled job on wyse gets a card on the dashboard (http://192.168.15.30:8085/, source `Wyse5070DebSetup/dashboard/index.html`, deployed by `setup-dashboard.sh`) and a row in `Wyse5070DebSetup/README.md`'s port table, in the same change that adds it — including ones deployed from other repos (personal-shopper, restaurant-finder, RaceTimes). A deploy isn't done until the dashboard is redeployed.
+- Containers must survive a reboot: `restart: unless-stopped` in a compose file that a checked-in setup script writes (never a hand-run `docker run`).
 
 ## Interactive Steps
 You cannot complete interactive OAuth logins, Windows UAC prompts, or TTY-based installers. When a plan requires one, stop and give me a numbered copy-paste block of exactly what to run, then wait for me to confirm before continuing.
