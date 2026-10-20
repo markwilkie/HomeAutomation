@@ -38,5 +38,5 @@ if [ "${1:-}" = "--dry-run" ]; then
   echo ""
   echo "$BRIEF"
 else
-  echo "$BRIEF" | venv/bin/python send_mail.py --subject "Daily Brief (OpenAI)"
+  echo "$BRIEF" | venv/bin/python send_mail.py --subject "Daily Brief (OpenAI)" --also-to jennie@wilkiefamily.net
 fi

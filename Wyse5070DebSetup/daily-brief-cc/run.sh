@@ -105,5 +105,5 @@ if [ "${1:-}" = "--dry-run" ]; then
   echo ""
   echo "$BRIEF"
 else
-  echo "$BRIEF" | venv/bin/python send_mail.py --subject "Daily Brief (Claude Code)"
+  echo "$BRIEF" | venv/bin/python send_mail.py --subject "Daily Brief (Claude Code)" --also-to jennie@wilkiefamily.net
 fi

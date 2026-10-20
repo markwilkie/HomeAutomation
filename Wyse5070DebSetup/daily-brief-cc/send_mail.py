@@ -151,13 +151,14 @@ def render_brief_html(body_markdown: str) -> str:
     return EMAIL_HTML_TEMPLATE.format(body=body_html)
 
 
-def send_email(subject: str, body_markdown: str) -> None:
+def send_email(subject: str, body_markdown: str, also_to: list[str]) -> None:
     access_token = get_graph_access_token()
+    recipients = [os.environ["EMAIL_TO"], *also_to]
     payload = {
         "message": {
             "subject": subject,
             "body": {"contentType": "HTML", "content": render_brief_html(body_markdown)},
-            "toRecipients": [{"emailAddress": {"address": os.environ["EMAIL_TO"]}}],
+            "toRecipients": [{"emailAddress": {"address": a}} for a in recipients],
         }
     }
     import json
@@ -181,6 +182,9 @@ def send_email(subject: str, body_markdown: str) -> None:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subject", default="Daily Brief")
+    # Extra recipients beyond EMAIL_TO, for the brief itself only -- failure
+    # notices and the weekly health report stay EMAIL_TO-only.
+    parser.add_argument("--also-to", action="append", default=[])
     args = parser.parse_args()
 
     body_markdown = sys.stdin.read()
@@ -188,7 +192,7 @@ def main():
         print("ERROR: no brief text on stdin", file=sys.stderr)
         sys.exit(1)
 
-    send_email(args.subject, body_markdown)
+    send_email(args.subject, body_markdown, args.also_to)
     print("Emailed brief successfully.")
 
 
