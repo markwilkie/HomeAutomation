@@ -198,8 +198,12 @@ record_exits_between() {
     # the container's own log, which still holds the pre-exit lines.
     local exits line
     exits="$(docker logs -t --tail 20000 "${CONTAINER_NAME}" 2>&1         | python3 "${SIGNATURE_SCRIPT}" --before "$2"         | awk -v after="${1:0:19}" 'substr($1, 1, 19) > after')" || true
-    while IFS=$'	' read -r when signature; do
-        [ -n "${when}" ] && record_failure "${when}" "${signature}"
+    while IFS=$'\t' read -r when signature; do
+        # Not `[ ] && ...`: with nothing to record (a requested stop or
+        # recreate) that leaves a false status, which set -e treats as fatal.
+        if [ -n "${when}" ]; then
+            record_failure "${when}" "${signature}"
+        fi
     done <<< "${exits}"
 }
 
