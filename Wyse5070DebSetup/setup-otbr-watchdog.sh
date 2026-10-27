@@ -49,6 +49,15 @@
 # file, so the next occurrence leaves a trail instead of just "it's better
 # now".
 #
+# Failure history: every otbr exit -- otbr-agent dying on its own (the
+# container restarts; Docker brings it back) or this watchdog restarting a
+# hung one -- is appended to /mnt/data/appdata/otbr-log-archive/failures.log as
+# "<time>	<signature>", where the signature is the kind of failure (exit
+# code + otbr-agent's critical reason, via otbr_failure_signature.py). The
+# weekly health check reads it to flag exits getting more frequent or
+# changing in nature. Exits are recorded within one poll of happening, so
+# log rotation can't lose the evidence first.
+#
 # Usage:
 #   ./setup-otbr-watchdog.sh            # install + enable + start the service
 #   ./setup-otbr-watchdog.sh --watch    # run the monitoring loop directly
@@ -74,6 +83,8 @@ NAT64_JOOL_SCRIPT="${SCRIPT_DIR}/setup-nat64-jool.sh"
 LOG_FILE="/mnt/data/appdata/otbr/watchdog.log"
 DIAG_DIR="/mnt/data/appdata/otbr/diagnostics"
 DIAG_RETENTION_COUNT=20
+FAILURE_LOG="/mnt/data/appdata/otbr-log-archive/failures.log"
+SIGNATURE_SCRIPT="${SCRIPT_DIR}/otbr_failure_signature.py"
 
 log() {
     local line="[otbr-watchdog] $(date '+%Y-%m-%d %H:%M:%S') $*"
@@ -171,6 +182,27 @@ capture_diagnostics() {
     log "Captured pre-restart diagnostics -> ${diag_file}"
 }
 
+container_started_at() {
+    docker inspect --format '{{.State.StartedAt}}' "${CONTAINER_NAME}" 2>/dev/null || true
+}
+
+record_failure() {
+    printf '%s	%s
+' "$1" "$2" >> "${FAILURE_LOG}" 2>/dev/null || true
+    log "Recorded otbr failure: $2"
+}
+
+record_exits_between() {
+    # The container restarted without this watchdog doing it: find the
+    # exit(s) between the start we last saw ($1) and the new one ($2) in
+    # the container's own log, which still holds the pre-exit lines.
+    local exits line
+    exits="$(docker logs -t --tail 20000 "${CONTAINER_NAME}" 2>&1         | python3 "${SIGNATURE_SCRIPT}" --before "$2"         | awk -v after="${1:0:19}" 'substr($1, 1, 19) > after')" || true
+    while IFS=$'	' read -r when signature; do
+        [ -n "${when}" ] && record_failure "${when}" "${signature}"
+    done <<< "${exits}"
+}
+
 reapply_jool() {
     log "Reapplying Jool NAT64 override"
     if "${NAT64_JOOL_SCRIPT}"; then
@@ -182,11 +214,24 @@ reapply_jool() {
 
 watch_loop() {
     log "Starting otbr watchdog (poll every ${POLL_INTERVAL_SECONDS}s)"
+    local last_started current_started
+    last_started="$(container_started_at)"
     while true; do
+        current_started="$(container_started_at)"
+        if [ -n "${last_started}" ] && [ -n "${current_started}" ] && [ "${current_started}" != "${last_started}" ]; then
+            log "otbr container restarted (now started ${current_started})"
+            record_exits_between "${last_started}" "${current_started}"
+            # Let it finish starting before judging it unresponsive below.
+            wait_for_otbr_responsive || true
+        fi
+        [ -n "${current_started}" ] && last_started="${current_started}"
+
         if ! otbr_responsive; then
             log "otbr-agent unresponsive (container may be 'Up' but the daemon is dead) -- restarting container"
             capture_diagnostics
+            record_failure "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "watchdog restart: otbr-agent unresponsive"
             docker restart "${CONTAINER_NAME}" > /dev/null
+            last_started="$(container_started_at)"
             if wait_for_otbr_responsive; then
                 log "otbr-agent responsive again after restart"
                 reapply_jool

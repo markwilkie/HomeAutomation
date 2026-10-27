@@ -10,8 +10,8 @@
 # compose-managed container so it picks the default up -- log options are
 # fixed when a container is created, so a restart alone isn't enough.
 #
-# otbr is not compose-managed: setup-mg24-production.sh sets the same
-# rotation on its own `docker run` and recreates it.
+# otbr is not compose-managed: setup-mg24-production.sh sets its own
+# (larger) rotation on its `docker run` and recreates it.
 #
 # Restarting Docker briefly stops every container (they come back via their
 # restart policies), and recreating a container discards its old log.

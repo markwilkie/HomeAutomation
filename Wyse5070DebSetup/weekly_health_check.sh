@@ -198,51 +198,16 @@ else
 fi
 
 # ---- Containers ------------------------------------------------------------
-# Containers whose restarts are expected, not a problem in themselves:
-# otbr exits now and then and Docker brings it back (plus otbr-watchdog
-# restarts it if otbr-agent hangs). For these, what matters is the *rate*:
-# each run records the cumulative RestartCount to RESTART_HISTORY, and the
-# week's increase is flagged only if it climbs well above the trailing
-# average of the previous (up to) 4 weeks -- more than double it, and at
-# least RESTART_RATE_FLOOR, so a quiet baseline doesn't flag on 1-2.
-EXPECTED_RESTARTS="otbr"
-RESTART_HISTORY="../config/container_restarts.log"  # "<date> <name> <count> <weekly increase, or - if unknown>"
-RESTART_RATE_FLOOR=5
+# otbr's exits are expected (see the otbr section below), so a running otbr
+# isn't flagged for its restart count here -- only if it's not running.
 CONTAINER_LINES=""
-CONTAINER_NOTES=""
 CONTAINER_TOTAL=0
 CONTAINER_FLAGGED=0
 while IFS='|' read -r NAME STATUS; do
   [ -z "$NAME" ] && continue
   CONTAINER_TOTAL=$((CONTAINER_TOTAL + 1))
   RESTARTS="$(docker inspect --format '{{.RestartCount}}' "$NAME" 2>/dev/null || echo "?")"
-  if [ "$STATUS" = "running" ] && [ "$RESTARTS" != "?" ] && [[ " ${EXPECTED_RESTARTS} " == *" ${NAME} "* ]]; then
-    PREV_COUNT="$(awk -v n="$NAME" '$2 == n {c = $3} END {print c}' "$RESTART_HISTORY" 2>/dev/null)"
-    # Trailing average of up to the last 4 weekly increases.
-    BASELINE="$(awk -v n="$NAME" '$2 == n && $4 ~ /^[0-9]+$/ {d[++k] = $4} END {s = 0; m = 0; for (i = k; i > 0 && m < 4; i--) {s += d[i]; m++} if (m) printf "%.1f", s / m}' "$RESTART_HISTORY" 2>/dev/null)"
-    if [ -z "$PREV_COUNT" ]; then
-      WEEK_DELTA=""
-    elif [ "$RESTARTS" -ge "$PREV_COUNT" ]; then
-      WEEK_DELTA=$((RESTARTS - PREV_COUNT))
-    else
-      WEEK_DELTA="$RESTARTS"  # container was recreated; count started over
-    fi
-    if [ "${1:-}" != "--dry-run" ]; then
-      echo "${REPORT_DATE} ${NAME} ${RESTARTS} ${WEEK_DELTA:--}" >> "$RESTART_HISTORY"
-    fi
-    if [ -z "$WEEK_DELTA" ]; then
-      CONTAINER_NOTES="${CONTAINER_NOTES}- ${NAME}: restarts=${RESTARTS} (expected; tracking the weekly rate starting now)
-"
-    elif [ -n "$BASELINE" ] && [ "$WEEK_DELTA" -ge "$RESTART_RATE_FLOOR" ]          && awk -v d="$WEEK_DELTA" -v b="$BASELINE" 'BEGIN {exit !(d > 2 * b)}'; then
-      CONTAINER_FLAGGED=$((CONTAINER_FLAGGED + 1))
-      CONTAINER_LINES="${CONTAINER_LINES}- **${NAME}: restart rate climbing -- ${WEEK_DELTA} this week vs ${BASELINE}/week average.**
-"
-    else
-      CONTAINER_NOTES="${CONTAINER_NOTES}- ${NAME}: ${WEEK_DELTA} restart(s) this week (expected; average ${BASELINE:-n/a}/week)
-"
-    fi
-    continue
-  fi
+  [ "$NAME" = "otbr" ] && [ "$STATUS" = "running" ] && continue
   if [ "$STATUS" != "running" ] || { [ "$RESTARTS" != "?" ] && [ "$RESTARTS" -gt 0 ]; }; then
     CONTAINER_FLAGGED=$((CONTAINER_FLAGGED + 1))
     CONTAINER_LINES="${CONTAINER_LINES}- **${NAME}**: status=${STATUS}, restarts=${RESTARTS} (cumulative since last create)
@@ -250,6 +215,59 @@ while IFS='|' read -r NAME STATUS; do
   fi
 done < <(docker ps -a --format '{{.Names}}|{{.State}}')
 if [ "$CONTAINER_FLAGGED" -gt 0 ]; then
+  ISSUES=$((ISSUES + 1))
+fi
+
+# ---- otbr exits ------------------------------------------------------------
+# otbr exiting is known (the MG24 radio stops answering after a serial
+# framing error; Docker restarts it), so it's flagged only if exits get
+# more frequent or change in nature. Source: failures.log, appended by
+# otbr-watchdog as each exit happens ("<UTC time>\t<signature>").
+#   - More frequent: this week's exits are at least OTBR_RATE_FLOOR and more
+#     than double the average of the previous 4 weeks.
+#   - Change in nature: a signature this week never seen before. Entries
+#     whose reason is unknown (log unreadable) can't count as new.
+OTBR_FAILURE_LOG="/mnt/data/appdata/otbr-log-archive/failures.log"
+OTBR_RATE_FLOOR=5
+OTBR_LINES="$(python3 - "$OTBR_FAILURE_LOG" "$OTBR_RATE_FLOOR" <<'EOF'
+import sys
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+
+path, floor = sys.argv[1], int(sys.argv[2])
+try:
+    rows = [line.rstrip("\n").split("\t", 1) for line in open(path) if line[:1].isdigit()]
+except OSError:
+    print(f"- **failures.log missing ({path}) -- is otbr-watchdog running?**")
+    print("FLAGS=1")
+    sys.exit()
+now = datetime.now(timezone.utc)
+when = lambda r: datetime.strptime(r[0], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+week = [r for r in rows if when(r) >= now - timedelta(days=7)]
+before = [r for r in rows if when(r) < now - timedelta(days=7)]
+prior = [r for r in before if when(r) >= now - timedelta(days=35)]
+avg = len(prior) / 4
+flags = 0
+
+line = f"- Exits this week: {len(week)} (previous 4 weeks: {avg:.1f}/week)"
+if len(week) >= floor and len(week) > 2 * avg:
+    line = f"- **More frequent: {len(week)} exits this week vs {avg:.1f}/week over the previous 4 weeks.**"
+    flags += 1
+print(line)
+
+seen = {sig for _, sig in before}
+for sig, n in Counter(sig for _, sig in week).most_common():
+    if sig not in seen and "reason unknown" not in sig:
+        print(f"- **New kind of exit: {n} x {sig}** (never seen before this week)")
+        flags += 1
+    else:
+        print(f"- {n} x {sig}")
+print(f"FLAGS={flags}")
+EOF
+)"
+OTBR_FLAGS="$(printf '%s\n' "$OTBR_LINES" | sed -n 's/^FLAGS=//p')"
+OTBR_LINES="$(printf '%s\n' "$OTBR_LINES" | grep -v '^FLAGS=')"
+if [ "${OTBR_FLAGS:-0}" -gt 0 ]; then
   ISSUES=$((ISSUES + 1))
 fi
 
@@ -284,11 +302,13 @@ $( [ -n "$REBOOT_LINES" ] && printf '%s' "$REBOOT_LINES" )
 
 ## Containers
 - ${CONTAINER_TOTAL} total, ${CONTAINER_FLAGGED} flagged
-$( [ "$CONTAINER_FLAGGED" -gt 0 ] && echo "${CONTAINER_LINES}" || echo "- All running, no unexpected restarts since last create." )
-$( [ -n "$CONTAINER_NOTES" ] && printf '%s' "$CONTAINER_NOTES" )
+$( [ "$CONTAINER_FLAGGED" -gt 0 ] && echo "${CONTAINER_LINES}" || echo "- All running, no restarts since last create (otbr's are covered below)." )
+
+## otbr (Thread border router) exits
+${OTBR_LINES}
 
 ---
-_Generated automatically every Sunday 7:00 AM from wilkie-home-server. Sources: sysstat, disk-usage.log, docker._
+_Generated automatically every Sunday 7:00 AM from wilkie-home-server. Sources: sysstat, disk-usage.log, docker, otbr failures.log._
 EOF
 )"
 

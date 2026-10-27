@@ -98,13 +98,15 @@ fi
 # Docker's json-file driver never rotates by default, and otbr-agent logs at
 # debug level (every watchdog `ot-ctl` poll, every spinel frame), so its log
 # grew unbounded from 2026-08-08 until rotation was added here 2026-10-27.
-# 5 x 20MB keeps a few days of history for diagnosing otbr-agent exits.
+# It writes roughly 100MB/day, so 10 x 30MB keeps about 3 days. Each exit's
+# signature is recorded as it happens by otbr-watchdog (failures.log), so
+# rotation can't lose that.
 echo "==> Starting OTBR (production image: ${IMAGE})"
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
-  --log-opt max-size=20m \
-  --log-opt max-file=5 \
+  --log-opt max-size=30m \
+  --log-opt max-file=10 \
   --network host \
   --privileged \
   -v "${SERIAL_DEVICE}:/dev/ttyUSB0" \
