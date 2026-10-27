@@ -8,8 +8,11 @@ new": the exit code, the reason from otbr-agent's last critical ([C]) log
 line, and whether the RCP reported a serial framing error first, e.g.
     exit=6 RadioSpinelNoResponse (after RCP framing error)
 
-Exits by SIGTERM (a requested stop: docker restart/stop, host shutdown) are
-not failures and are skipped.
+Requested stops are not failures and are skipped: an exit by SIGTERM, or
+one the container's s6 supervisor asked for ("service otbr-agent: stopping"
+logged before the exit -- what docker stop/restart, a Docker daemon restart
+or a host shutdown look like). In a real failure otbr-agent exits first and
+s6's shutdown lines follow it.
 
 Used by setup-otbr-watchdog.sh, which records each exit to
 /mnt/data/appdata/otbr-log-archive/failures.log as it happens.
@@ -30,27 +33,29 @@ SIGTERM = 15
 
 
 def signatures(lines, before=None):
-    crit, framing = [], False
+    crit, framing, stopping = [], False, False
     for line in lines:
         timestamp, _, text = line.rstrip("\n").partition(" ")
         if before and timestamp >= before:
             break
         if "Starting otbr-agent" in text:
-            crit, framing = [], False
+            crit, framing, stopping = [], False, False
+        elif "service otbr-agent: stopping" in text:
+            stopping = True
         elif "Framing error" in text:
             framing = True
         elif match := CRIT_RE.search(text):
             crit.append(match.group(1).strip())
         elif match := EXIT_RE.search(text):
             code, signal = int(match.group(1)), int(match.group(2))
-            if signal != SIGTERM:
+            if signal != SIGTERM and not stopping:
                 if signal:
                     reason = f"killed by signal {signal}"
                 else:
                     reasons = [m.group(1) for c in crit if (m := REASON_RE.search(c))]
                     reason = reasons[-1] if reasons else (crit[-1][:80] if crit else "no critical log line")
                 yield timestamp[:19] + "Z", f"exit={code} {reason}" + (" (after RCP framing error)" if framing else "")
-            crit, framing = [], False
+            crit, framing, stopping = [], False, False
 
 
 def main():
