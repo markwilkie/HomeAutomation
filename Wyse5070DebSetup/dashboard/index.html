@@ -426,6 +426,17 @@
         <div class="desc">Backs up TripTracker's database</div>
         <div class="meta"><code>~/github/TripTracker/scripts/backup.sh</code> · log <code>~/backup.log</code></div>
       </div>
+      <div class="card disabled">
+        <div class="row"><span class="name">Stale process cleanup</span><span class="badge ok">4am daily</span></div>
+        <div class="desc">Kills orphaned ad-hoc loops and watchers (<code>bash -c</code>, <code>docker logs</code>,
+          <code>tail -f</code>) left running over 24h by closed SSH sessions. <code>KEEP_RUNNING</code> in a command
+          line exempts it.</div>
+        <div class="meta"><code>/mnt/data/appdata/stale-process-cleanup</code> · log <code>~/stale-process-cleanup.log</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/cleanup_stale_processes.sh" target="_blank" rel="noopener">Script</a>
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-stale-process-cleanup.sh" target="_blank" rel="noopener">Setup</a>
+        </div>
+      </div>
     </div>
   </section>
 
