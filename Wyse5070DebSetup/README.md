@@ -198,7 +198,11 @@ error, not a UI.
   Thread network. See `setup-nat64-jool.sh`.
 - `otbr-watchdog.service` — polls otbr-agent every 30s and restarts it on
   crash. Log: `/mnt/data/appdata/otbr/watchdog.log` (plain-text mirror of the
-  journal, world-readable, no `sudo` needed to `tail -f` it).
+  journal, world-readable, no `sudo` needed to `tail -f` it). Also records
+  every otbr exit, with its signature (e.g. `exit=6 RadioSpinelNoResponse
+  (after RCP framing error)`), to `/mnt/data/appdata/otbr-log-archive/failures.log`
+  as it happens; the weekly health check flags exits getting more frequent
+  or a new signature. Saved pre-rotation container logs are in the same folder.
 
 ## Scheduled jobs (cron, not a container)
 
