@@ -198,13 +198,25 @@ else
 fi
 
 # ---- Containers ------------------------------------------------------------
+# Containers whose restarts are expected, not a problem: otbr is restarted
+# on purpose by otbr-watchdog.service whenever otbr-agent crashes. Their
+# restart count is still listed, but only flagged if they're not running.
+EXPECTED_RESTARTS="otbr"
 CONTAINER_LINES=""
+CONTAINER_NOTES=""
 CONTAINER_TOTAL=0
 CONTAINER_FLAGGED=0
 while IFS='|' read -r NAME STATUS; do
   [ -z "$NAME" ] && continue
   CONTAINER_TOTAL=$((CONTAINER_TOTAL + 1))
   RESTARTS="$(docker inspect --format '{{.RestartCount}}' "$NAME" 2>/dev/null || echo "?")"
+  if [ "$STATUS" = "running" ] && [[ " ${EXPECTED_RESTARTS} " == *" ${NAME} "* ]]; then
+    if [ "$RESTARTS" != "0" ]; then
+      CONTAINER_NOTES="${CONTAINER_NOTES}- ${NAME}: restarts=${RESTARTS} (expected -- otbr-watchdog restarts it; informational only)
+"
+    fi
+    continue
+  fi
   if [ "$STATUS" != "running" ] || { [ "$RESTARTS" != "?" ] && [ "$RESTARTS" -gt 0 ]; }; then
     CONTAINER_FLAGGED=$((CONTAINER_FLAGGED + 1))
     CONTAINER_LINES="${CONTAINER_LINES}- **${NAME}**: status=${STATUS}, restarts=${RESTARTS} (cumulative since last create)
@@ -246,7 +258,8 @@ $( [ -n "$REBOOT_LINES" ] && printf '%s' "$REBOOT_LINES" )
 
 ## Containers
 - ${CONTAINER_TOTAL} total, ${CONTAINER_FLAGGED} flagged
-$( [ "$CONTAINER_FLAGGED" -gt 0 ] && echo "${CONTAINER_LINES}" || echo "- All running, no restarts since last create." )
+$( [ "$CONTAINER_FLAGGED" -gt 0 ] && echo "${CONTAINER_LINES}" || echo "- All running, no unexpected restarts since last create." )
+$( [ -n "$CONTAINER_NOTES" ] && printf '%s' "$CONTAINER_NOTES" )
 
 ---
 _Generated automatically every Sunday 7:00 AM from wilkie-home-server. Sources: sysstat, disk-usage.log, docker._
