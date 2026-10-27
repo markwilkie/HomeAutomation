@@ -351,3 +351,8 @@ directory (`setup-homeassistant.sh`, `setup-mg24.sh` for OTBR,
 Re-running any of them is safe/idempotent and will recreate that one
 container (or, for the daily-brief scripts, that one venv) with current
 settings.
+
+Container logs rotate (5 x 20MB each): `setup-docker-log-rotation.sh` sets
+that as Docker's default in `/etc/docker/daemon.json` and recreates the
+compose-managed containers; `setup-mg24-production.sh` sets it on otbr's own
+`docker run`.
