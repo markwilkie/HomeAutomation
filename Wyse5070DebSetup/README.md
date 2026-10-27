@@ -39,6 +39,7 @@ Scheduled jobs (no port):
 | Sun 7:00am | Weekly health check email | crontab → `weekly_health_check.sh` (deployed under daily-brief-cc) |
 | 3:15am daily | Home Assistant config backup (local disk) | systemd `homeassistant-backup.timer` (`setup-homeassistant-backup.sh`) |
 | 3:00am daily | TripTracker database backup | crontab → `~/github/TripTracker/scripts/backup.sh` |
+| 4:00am daily | Kill stale ad-hoc processes (orphaned `ssh … bash -c` loops/watchers older than 24h) | crontab → `cleanup_stale_processes.sh` (`setup-stale-process-cleanup.sh`); log `~/stale-process-cleanup.log` |
 
 ## Quick-links dashboard
 
