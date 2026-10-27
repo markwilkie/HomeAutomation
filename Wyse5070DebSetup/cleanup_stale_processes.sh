@@ -48,12 +48,12 @@ while read -r PID PARENT AGE CMD; do
   [[ "$CMD" == *KEEP_RUNNING* ]] && continue
 
   FOUND=$((FOUND + 1))
+  # Freeze the root first so a loop can't spawn its next child (a new
+  # `sleep`, a new `docker logs`) between listing the tree and killing it.
+  [ "$DRY_RUN" -eq 0 ] && kill -STOP "$PID" 2>/dev/null
   TREE="$(descendants "$PID") $PID"
   echo "[$(date -Iseconds)] stale: pid=${PID} age=$((AGE / 3600))h procs=$(echo $TREE | wc -w) cmd=$(printf '%s' "$CMD" | tr '\n' ' ' | cut -c1-200)"
   if [ "$DRY_RUN" -eq 0 ]; then
-    # Children first, so a loop can't respawn one before it's gone.
-    kill $TREE 2>/dev/null || true
-    sleep 2
     kill -9 $TREE 2>/dev/null || true
   fi
 done < <(ps -u "$(id -u)" -o pid=,ppid=,etimes=,args=)
