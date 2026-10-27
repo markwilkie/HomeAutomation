@@ -198,10 +198,16 @@ else
 fi
 
 # ---- Containers ------------------------------------------------------------
-# Containers whose restarts are expected, not a problem: otbr is restarted
-# on purpose by otbr-watchdog.service whenever otbr-agent crashes. Their
-# restart count is still listed, but only flagged if they're not running.
+# Containers whose restarts are expected, not a problem in themselves:
+# otbr exits now and then and Docker brings it back (plus otbr-watchdog
+# restarts it if otbr-agent hangs). For these, what matters is the *rate*:
+# each run records the cumulative RestartCount to RESTART_HISTORY, and the
+# week's increase is flagged only if it climbs well above the trailing
+# average of the previous (up to) 4 weeks -- more than double it, and at
+# least RESTART_RATE_FLOOR, so a quiet baseline doesn't flag on 1-2.
 EXPECTED_RESTARTS="otbr"
+RESTART_HISTORY="../config/container_restarts.log"  # "<date> <name> <count> <weekly increase, or - if unknown>"
+RESTART_RATE_FLOOR=5
 CONTAINER_LINES=""
 CONTAINER_NOTES=""
 CONTAINER_TOTAL=0
@@ -210,9 +216,29 @@ while IFS='|' read -r NAME STATUS; do
   [ -z "$NAME" ] && continue
   CONTAINER_TOTAL=$((CONTAINER_TOTAL + 1))
   RESTARTS="$(docker inspect --format '{{.RestartCount}}' "$NAME" 2>/dev/null || echo "?")"
-  if [ "$STATUS" = "running" ] && [[ " ${EXPECTED_RESTARTS} " == *" ${NAME} "* ]]; then
-    if [ "$RESTARTS" != "0" ]; then
-      CONTAINER_NOTES="${CONTAINER_NOTES}- ${NAME}: restarts=${RESTARTS} (expected -- otbr-watchdog restarts it; informational only)
+  if [ "$STATUS" = "running" ] && [ "$RESTARTS" != "?" ] && [[ " ${EXPECTED_RESTARTS} " == *" ${NAME} "* ]]; then
+    PREV_COUNT="$(awk -v n="$NAME" '$2 == n {c = $3} END {print c}' "$RESTART_HISTORY" 2>/dev/null)"
+    # Trailing average of up to the last 4 weekly increases.
+    BASELINE="$(awk -v n="$NAME" '$2 == n && $4 ~ /^[0-9]+$/ {d[++k] = $4} END {s = 0; m = 0; for (i = k; i > 0 && m < 4; i--) {s += d[i]; m++} if (m) printf "%.1f", s / m}' "$RESTART_HISTORY" 2>/dev/null)"
+    if [ -z "$PREV_COUNT" ]; then
+      WEEK_DELTA=""
+    elif [ "$RESTARTS" -ge "$PREV_COUNT" ]; then
+      WEEK_DELTA=$((RESTARTS - PREV_COUNT))
+    else
+      WEEK_DELTA="$RESTARTS"  # container was recreated; count started over
+    fi
+    if [ "${1:-}" != "--dry-run" ]; then
+      echo "${REPORT_DATE} ${NAME} ${RESTARTS} ${WEEK_DELTA:--}" >> "$RESTART_HISTORY"
+    fi
+    if [ -z "$WEEK_DELTA" ]; then
+      CONTAINER_NOTES="${CONTAINER_NOTES}- ${NAME}: restarts=${RESTARTS} (expected; tracking the weekly rate starting now)
+"
+    elif [ -n "$BASELINE" ] && [ "$WEEK_DELTA" -ge "$RESTART_RATE_FLOOR" ]          && awk -v d="$WEEK_DELTA" -v b="$BASELINE" 'BEGIN {exit !(d > 2 * b)}'; then
+      CONTAINER_FLAGGED=$((CONTAINER_FLAGGED + 1))
+      CONTAINER_LINES="${CONTAINER_LINES}- **${NAME}: restart rate climbing -- ${WEEK_DELTA} this week vs ${BASELINE}/week average.**
+"
+    else
+      CONTAINER_NOTES="${CONTAINER_NOTES}- ${NAME}: ${WEEK_DELTA} restart(s) this week (expected; average ${BASELINE:-n/a}/week)
 "
     fi
     continue

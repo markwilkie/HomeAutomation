@@ -62,10 +62,11 @@ if [ ! -f "${CONFIG_DIR}/.env" ]; then
   exit 1
 fi
 
-echo "==> Copying run.sh + monarch_refresh.sh + parse_claude_result.py + send_mail.py + graph_login.py + mcp.json + prompt.md + requirements.txt into ${APP_DIR}"
+echo "==> Copying run.sh + monarch_refresh.sh + parse_claude_result.py + send_mail.py + graph_login.py + mcp.json + prompt.md + requirements.txt + weekly_health_check.sh into ${APP_DIR}"
 cp "${LOCAL_APP_SRC}/run.sh" "${LOCAL_APP_SRC}/monarch_refresh.sh" "${LOCAL_APP_SRC}/parse_claude_result.py" "${LOCAL_APP_SRC}/send_mail.py" "${LOCAL_APP_SRC}/graph_login.py" \
    "${LOCAL_APP_SRC}/mcp.json" "${LOCAL_APP_SRC}/prompt.md" "${LOCAL_APP_SRC}/requirements.txt" "${APP_DIR}/"
-chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/monarch_refresh.sh"
+cp "${SCRIPT_DIR}/weekly_health_check.sh" "${APP_DIR}/"
+chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/monarch_refresh.sh" "${APP_DIR}/weekly_health_check.sh"
 
 echo "==> Creating/updating venv at ${APP_DIR}/venv (for send_mail.py's deps only -- Claude Code CLI needs none of these)"
 python3 -m venv "${APP_DIR}/venv"
