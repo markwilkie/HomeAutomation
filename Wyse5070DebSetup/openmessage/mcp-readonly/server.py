@@ -40,6 +40,13 @@ STATE_PATH = Path(os.environ.get("STATE_PATH", "/state/gap.json"))
 GAP_THRESHOLD = 3 * 3600  # seconds offline before the quick catch-up isn't trusted
 GAP_MARGIN = 3600  # backfill from this long before the last connected moment
 CHECK_INTERVAL = 600
+# OpenMessage refuses /api and /mcp requests whose Host isn't loopback
+# (DNS-rebinding guard), and this reaches it over the compose network.
+UPSTREAM_HEADERS = {"Host": "127.0.0.1:7007"}
+
+
+def upstream_client(timeout: float = 5) -> httpx.AsyncClient:
+    return httpx.AsyncClient(headers=UPSTREAM_HEADERS, timeout=httpx.Timeout(timeout, read=max(timeout, 300)))
 
 # Read tools only. download_media and set_message_transcript are excluded
 # (they write), as are the send/react/draft/import tools and the
@@ -88,6 +95,11 @@ FIX_PHONE = (
     f"  ssh -t 192.168.15.30 ~/github/HomeAutomation/Wyse5070DebSetup/openmessage/pair.sh"
     " (then tap the emoji it prints on the phone)."
 )
+FIX_CALL_FAILED = (
+    "The texts server is running but didn't answer this request. Try again in a minute; "
+    "if it keeps failing, restart it:\n"
+    f"  {SSH} 'cd {COMPOSE_DIR} && docker compose restart openmessage'"
+)
 NOTE_RECONNECTING = (
     "The texts server is reconnecting to Google Messages (it retries on its own). "
     "If this note persists for more than 30 minutes, check the phone is online, then "
@@ -128,7 +140,7 @@ def save_state(state: dict) -> None:
 
 
 async def get_json(path: str) -> dict:
-    async with httpx.AsyncClient(timeout=5) as client:
+    async with httpx.AsyncClient(headers=UPSTREAM_HEADERS, timeout=5) as client:
         return (await client.get(f"{UPSTREAM}{path}")).raise_for_status().json()
 
 
@@ -206,7 +218,7 @@ async def check_gap() -> None:
             state.pop("repair_started")
         if state.get("gap_since"):
             since = datetime.datetime.fromtimestamp(state["gap_since"]).astimezone().isoformat()
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(headers=UPSTREAM_HEADERS, timeout=10) as client:
                 response = await client.post(f"{UPSTREAM}/api/backfill", json={"since": since})
             if response.status_code == 200:
                 state["repair_started"] = now
@@ -232,12 +244,20 @@ class Upstream:
         self.url = f"{UPSTREAM}/mcp"
 
     async def list_tools(self) -> list[types.Tool]:
-        async with streamable_http_client(self.url) as (read, write), ClientSession(read, write) as session:
+        async with (
+            upstream_client(30) as http,
+            streamable_http_client(self.url, http_client=http) as (read, write),
+            ClientSession(read, write) as session,
+        ):
             await session.initialize()
             return (await session.list_tools()).tools
 
     async def call_tool(self, name: str, args: dict) -> types.CallToolResult:
-        async with streamable_http_client(self.url) as (read, write), ClientSession(read, write) as session:
+        async with (
+            upstream_client(30) as http,
+            streamable_http_client(self.url, http_client=http) as (read, write),
+            ClientSession(read, write) as session,
+        ):
             await session.initialize()
             return await session.call_tool(name, args)
 
@@ -286,7 +306,7 @@ async def on_call_tool(ctx, params: types.CallToolRequestParams) -> types.CallTo
             return text_result(f"'{params.name}' isn't available: this texts connector is read-only.", is_error=True)
         result = await upstream.call_tool(params.name, params.arguments or {})
     except Exception as exc:
-        problems = problems or [FIX_DOWN]
+        problems = problems or [FIX_CALL_FAILED]
         return text_result(f"{warning_block(problems)}\n\nCall failed: {exc}", is_error=True)
 
     if problems:
