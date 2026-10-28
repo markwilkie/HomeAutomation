@@ -27,7 +27,7 @@
 # one active web client, and that would kick OpenMessage off.
 #
 # Pinned to upstream commit a455f63 (2026-10-24) and linuxserver/chromium
-# 1aca5d17-ls61. To upgrade, change the pins and re-run.
+# 2dba585f-ls60. To upgrade, change the pins and re-run.
 #
 # Data: ${APPDATA_ROOT}/data (session.json = the pairing, messages.db = the
 # archive, unencrypted -- keep it on this host). It was first created in a
@@ -64,7 +64,7 @@ CHROMIUM_DIR="${APPDATA_ROOT}/chromium"
 REPO_URL="https://github.com/MaxGhenis/openmessage.git"
 PINNED_REF="a455f63"
 BASE_IMAGE="openmessage-upstream:${PINNED_REF}"
-CHROMIUM_IMAGE="lscr.io/linuxserver/chromium:1aca5d17-ls61"
+CHROMIUM_IMAGE="lscr.io/linuxserver/chromium:2dba585f-ls60"
 LISTEN_PORT="7007"
 CHROMIUM_PORT="3001"
 TRIAL_VOLUME="openmessage_openmessage-data"
