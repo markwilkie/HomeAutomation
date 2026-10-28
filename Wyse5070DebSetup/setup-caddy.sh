@@ -9,12 +9,13 @@
 # Personal Shopper MCP server (personal-shopper repo,
 # deploy/setup-mcp-gateway-shopper.sh, port 8604), and the Restaurant Finder
 # MCP server (restaurant-finder repo, deploy/setup-mcp-gateway-restaurants.sh,
-# port 8605), and WhatsApp (setup-mcp-gateway-whatsapp.sh, port 8606).
+# port 8605), WhatsApp (setup-mcp-gateway-whatsapp.sh, port 8606), and texts
+# (setup-openmessage.sh's read-only texts-mcp, port 8607).
 #
 # Runs via Docker (network_mode: host, matching this repo's convention for
 # most services) rather than an OS package install -- this host's operator
 # account doesn't have passwordless sudo, and host networking is required
-# anyway so Caddy can reach the gateways on 127.0.0.1:8600-8606
+# anyway so Caddy can reach the gateways on 127.0.0.1:8600-8607
 # (which are deliberately bound to the host's loopback only, not reachable
 # via container-to-container networking or a bridge).
 #
@@ -109,6 +110,19 @@ ${DOMAIN} {
 		}
 	}
 
+	# Texts (SMS + RCS): the read-only proxy, never OpenMessage itself (7007
+	# can send). MCP only; the proxy also rejects any Host but loopback.
+	handle_path /texts/{\$MCP_AUTH_TOKEN}/* {
+		handle /mcp {
+			reverse_proxy 127.0.0.1:8607 {
+				header_up Host 127.0.0.1:8607
+			}
+		}
+		handle {
+			respond "Not found" 404
+		}
+	}
+
 	handle {
 		respond "Not found" 404
 	}
@@ -158,5 +172,7 @@ echo "    https://${DOMAIN}/monarch/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/spotify/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/shopper/${TOKEN}/mcp"
 echo "    https://${DOMAIN}/restaurants/${TOKEN}/mcp"
+echo "    https://${DOMAIN}/whatsapp/${TOKEN}/mcp"
+echo "    https://${DOMAIN}/texts/${TOKEN}/mcp"
 echo ""
 echo "    Requires ports 80 + 443 forwarded from pfSense to 192.168.15.30."

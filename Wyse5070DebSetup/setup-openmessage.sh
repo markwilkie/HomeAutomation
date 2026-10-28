@@ -4,13 +4,15 @@
 # Deploys MaxGhenis/openmessage (github.com/MaxGhenis/openmessage), a Go
 # server that pairs with Google Messages like messages.google.com does and
 # keeps a local SQLite archive of my phone's SMS + RCS, so the daily brief
-# (and claude.ai, later) can read my texts. Unofficial protocol (mautrix
-# libgm); the brief only ever reads, never sends -- OpenMessage itself has
-# no read-only mode, so nothing may reach port 7007 except through a
-# read-only proxy (not built yet).
+# and claude.ai can read my texts. Unofficial protocol (mautrix libgm); the
+# brief only ever reads, never sends -- OpenMessage itself has no read-only
+# mode, so nothing may reach port 7007 except through the read-only proxy.
 #
-# Two containers:
+# Three containers:
 #   openmessage           the server, 127.0.0.1:7007 (web UI + /api + MCP)
+#   texts-mcp             read-only MCP proxy in front of it, 127.0.0.1:8607
+#                         (openmessage/mcp-readonly/); Caddy exposes its /mcp
+#                         at /texts/<MCP_AUTH_TOKEN>/mcp for claude.ai
 #   openmessage-chromium  a Chromium kept signed in to my Google account,
 #                         127.0.0.1:3001 (web desktop for the one-time sign-in)
 #
@@ -46,8 +48,9 @@
 #   then tap the emoji it prints in Google Messages on the phone.
 #
 # When it breaks -- what /api/status shows, and the exact fix. The read-only
-# MCP proxy (to come) must put the matching steps in every tool response
-# while the problem lasts, so the brief and claude.ai relay them verbatim:
+# MCP proxy puts the matching steps at the top of every tool response while
+# the problem lasts (keep openmessage/mcp-readonly/server.py in step with
+# this table), so the brief and claude.ai relay them verbatim:
 #   status unreachable          -> server down:
 #       ssh 192.168.15.30 'cd /mnt/data/appdata/openmessage && docker compose up -d'
 #   google.paired false, or     -> pairing gone: run pair.sh (above), tap
@@ -82,6 +85,7 @@ PINNED_REF="a455f63"
 BASE_IMAGE="openmessage-upstream:${PINNED_REF}"
 CHROMIUM_IMAGE="lscr.io/linuxserver/chromium:2dba585f-ls60"
 LISTEN_PORT="7007"
+MCP_PORT="8607"
 CHROMIUM_PORT="3001"
 TRIAL_VOLUME="openmessage_openmessage-data"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -125,6 +129,8 @@ services:
     container_name: openmessage
     restart: unless-stopped
     user: "$(id -u):$(id -g)"
+    # Naming any transport turns the rest off, so the web/API side is named too.
+    command: ["serve", "--web", "--mcp-sse"]
     ports:
       - "127.0.0.1:${LISTEN_PORT}:7007"
     environment:
@@ -146,6 +152,17 @@ services:
       timeout: 5s
       retries: 3
 
+  texts-mcp:
+    build: ${SCRIPT_DIR}/openmessage/mcp-readonly
+    image: texts-mcp:local
+    container_name: texts-mcp
+    restart: unless-stopped
+    environment:
+      OPENMESSAGE_URL: http://openmessage:7007
+      TZ: America/Los_Angeles
+    ports:
+      - "127.0.0.1:${MCP_PORT}:8607"
+
   openmessage-chromium:
     image: ${CHROMIUM_IMAGE}
     container_name: openmessage-chromium
@@ -164,7 +181,7 @@ services:
       - seccomp:unconfined
 EOF
 
-echo "==> Building and starting openmessage + openmessage-chromium"
+echo "==> Building and starting openmessage + texts-mcp + openmessage-chromium"
 cd "${APPDATA_ROOT}"
 docker compose up -d --build
 
@@ -173,15 +190,17 @@ sleep 10
 
 echo ""
 echo "==> Container status:"
-docker ps --filter "name=openmessage"
+docker ps --filter "name=openmessage" --filter "name=texts-mcp"
 
 echo ""
 echo "==> Recent logs:"
 docker logs openmessage --tail 15
 docker logs openmessage-chromium --tail 5
+docker logs texts-mcp --tail 5
 
 echo ""
 echo "==> Done."
 echo "    Data:     ${DATA_DIR}"
 echo "    Status:   docker exec openmessage wget -qO- http://localhost:${LISTEN_PORT}/api/status"
+echo "    MCP:      http://127.0.0.1:${MCP_PORT}/mcp (read-only; claude.ai via Caddy /texts/<token>/mcp)"
 echo "    Sign-in:  ssh -L ${CHROMIUM_PORT}:127.0.0.1:${CHROMIUM_PORT} mwilkie@192.168.15.30, then https://localhost:${CHROMIUM_PORT}"
