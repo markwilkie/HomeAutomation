@@ -12,8 +12,13 @@ OPENMESSAGE_SESSION_PATH.
 Upstream also expects the cookie DB at <profile>/Network/Cookies; this
 Chromium keeps it at <profile>/Cookies, so point upstream at a temporary
 profile whose Network/Cookies links to it.
+
+With --print-json it instead prints the cookies as the JSON object
+`openmessage pair --google` reads on stdin (used by pair.sh), and writes
+nothing.
 """
 import importlib.util
+import json
 import os
 import sys
 import tempfile
@@ -32,4 +37,10 @@ spec = importlib.util.spec_from_file_location(
 refresh = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(refresh)
 refresh.chrome_safe_storage_secret = lambda args: b"peanuts"
+if "--print-json" in sys.argv:
+    cookies, _iterations, _ok, _failed = refresh.load_chrome_cookies(
+        Path(os.environ["OPENMESSAGE_CHROME_PROFILE"]), b"peanuts"
+    )
+    print(json.dumps(cookies))
+    sys.exit(0)
 sys.exit(refresh.main())

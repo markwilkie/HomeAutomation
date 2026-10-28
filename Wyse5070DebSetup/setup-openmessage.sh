@@ -42,10 +42,26 @@
 #      phone's Google Messages uses. Leave it on myaccount.google.com.
 #
 # Pairing the phone (only if session.json is lost, or the phone unpairs it):
-#   docker compose -f ${APPDATA_ROOT}/docker-compose.yml stop openmessage
-#   <cookie header or cURL from a signed-in browser> | docker compose \
-#     -f ${APPDATA_ROOT}/docker-compose.yml run --rm -T openmessage pair --google
-#   then tap the emoji it prints in Google Messages on the phone, and start it.
+#   ssh -t 192.168.15.30 ~/github/HomeAutomation/Wyse5070DebSetup/openmessage/pair.sh
+#   then tap the emoji it prints in Google Messages on the phone.
+#
+# When it breaks -- what /api/status shows, and the exact fix. The read-only
+# MCP proxy (to come) must put the matching steps in every tool response
+# while the problem lasts, so the brief and claude.ai relay them verbatim:
+#   status unreachable          -> server down:
+#       ssh 192.168.15.30 'cd /mnt/data/appdata/openmessage && docker compose up -d'
+#   google.paired false, or     -> pairing gone: run pair.sh (above), tap
+#   google.needs_pairing true      the emoji on the phone
+#   google.connected false and  -> Google sign-in expired and Chromium's
+#   supervisor.state "blocked"     couldn't fix it: do the Google sign-in
+#                                  steps above, then
+#       ssh 192.168.15.30 'cd /mnt/data/appdata/openmessage && docker compose restart openmessage'
+#   google.phone_responding     -> phone offline or asleep: unlock it, open
+#   false                          Messages, check it has a connection; if it
+#                                  persists, Messages -> Device pairing should
+#                                  still list this computer (else pair.sh)
+#   freshness.stale true        -> archive behind (texts may be missing since
+#                                  freshness.newest_ms); same checks as above
 #
 # Full-history backfill (needs the phone awake and plugged in -- a dozing
 # Android answers after libgm's fixed 35s timeout and the run aborts):
