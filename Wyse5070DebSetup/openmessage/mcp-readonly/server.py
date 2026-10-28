@@ -8,11 +8,25 @@ readOnlyHint by upstream), and refuses everything else.
 Whenever OpenMessage isn't healthy, every tool result starts with what's
 wrong and the exact steps to fix it (same table as setup-openmessage.sh's
 "When it breaks"), so whoever reads the result can relay them verbatim.
+
+It also repairs gaps after long outages. OpenMessage's catch-up on
+reconnect only checks the 50 most recent conversations, at most 120
+messages each, and never revisits a hole it leaves -- fine for an hour or
+two offline, not for a day or a week. So this records (in STATE_PATH, which
+survives reboots) when OpenMessage was last connected; after more than
+GAP_THRESHOLD offline it runs a window backfill from just before the outage,
+retrying every CHECK_INTERVAL until one finishes clean (the phone may be
+asleep). While a gap is open, every result says so, with the manual
+repair-gap.sh command.
 """
 from __future__ import annotations
 
+import asyncio
 import datetime
+import json
 import os
+import time
+from pathlib import Path
 
 import httpx2 as httpx
 import uvicorn
@@ -22,6 +36,10 @@ from mcp.server.lowlevel import Server
 
 UPSTREAM = os.environ.get("OPENMESSAGE_URL", "http://openmessage:7007")
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", "8607"))
+STATE_PATH = Path(os.environ.get("STATE_PATH", "/state/gap.json"))
+GAP_THRESHOLD = 3 * 3600  # seconds offline before the quick catch-up isn't trusted
+GAP_MARGIN = 3600  # backfill from this long before the last connected moment
+CHECK_INTERVAL = 600
 
 # Read tools only. download_media and set_message_transcript are excluded
 # (they write), as are the send/react/draft/import tools and the
@@ -84,16 +102,52 @@ def _when(ms: int | None) -> str:
     return datetime.datetime.fromtimestamp(ms / 1000).astimezone().strftime("%a %b %-d, %-I:%M %p")
 
 
+def _date(seconds: float) -> str:
+    return datetime.datetime.fromtimestamp(seconds).astimezone().strftime("%Y-%m-%d")
+
+
+def repair_command(since_seconds: float) -> str:
+    return (
+        "  1. Unlock the phone and open Google Messages.\n"
+        f"  2. On the PC run: {SSH} ~/github/HomeAutomation/Wyse5070DebSetup/openmessage/repair-gap.sh "
+        f"{_date(since_seconds)}"
+    )
+
+
+def load_state() -> dict:
+    try:
+        return json.loads(STATE_PATH.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(state: dict) -> None:
+    tmp = STATE_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state))
+    tmp.replace(STATE_PATH)
+
+
+async def get_json(path: str) -> dict:
+    async with httpx.AsyncClient(timeout=5) as client:
+        return (await client.get(f"{UPSTREAM}{path}")).raise_for_status().json()
+
+
 async def health_problems() -> list[str]:
     """What's wrong with OpenMessage right now, each with its exact fix."""
+    problems = []
+    gap = load_state().get("gap_since")
+    if gap:
+        problems.append(
+            f"Texts since {_when(gap * 1000)} may be incomplete: the texts server was offline "
+            "for a long time. A repair runs automatically every 10 minutes until it succeeds "
+            "(it needs the phone awake). To run it now:\n" + repair_command(gap)
+        )
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            status = (await client.get(f"{UPSTREAM}/api/status")).raise_for_status().json()
+        status = await get_json("/api/status")
     except Exception:
-        return [FIX_DOWN]
+        return [FIX_DOWN, *problems]
 
     google = status.get("google") or {}
-    problems = []
     if not google.get("paired") or google.get("needs_pairing"):
         problems.append(FIX_PAIRING)
     elif not google.get("connected"):
@@ -105,12 +159,61 @@ async def health_problems() -> list[str]:
     freshness = status.get("freshness") or {}
     google_fresh = freshness.get("google") or {}
     if google_fresh.get("stale") or freshness.get("silence_stalled"):
+        newest = (freshness.get("newest_ms") or 0) / 1000 or time.time() - 86400
         problems.append(
-            f"Texts may be missing since {_when(freshness.get('newest_ms'))}: the archive "
-            "has stopped receiving new messages. Follow the steps above if there are any; "
-            "otherwise check the phone is online with Google Messages working."
+            f"Texts may be missing since {_when(newest * 1000)}: the archive has stopped "
+            "receiving new messages. Follow the steps above if there are any; otherwise "
+            "check the phone is online with Google Messages working, then fill the gap:\n"
+            + repair_command(newest - GAP_MARGIN)
         )
     return problems
+
+
+async def gap_loop() -> None:
+    """Notice long outages and backfill them (see the module docstring)."""
+    await asyncio.sleep(60)
+    while True:
+        try:
+            await check_gap()
+        except Exception as exc:
+            print(f"gap check failed: {exc}", flush=True)
+        await asyncio.sleep(CHECK_INTERVAL)
+
+
+async def check_gap() -> None:
+    state = load_state()
+    now = time.time()
+    status = await get_json("/api/status")
+    # Only OpenMessage's own connection counts: a phone asleep overnight isn't
+    # an outage (a phone offline for days shows up as a stale archive).
+    if not (status.get("google") or {}).get("connected"):
+        return  # offline: last_connected stays where it was
+
+    last = state.get("last_connected", now)
+    if not state.get("gap_since") and now - last > GAP_THRESHOLD:
+        state["gap_since"] = last - GAP_MARGIN
+        print(f"offline {(now - last) / 3600:.1f}h; gap since {_date(state['gap_since'])}", flush=True)
+
+    if state.get("gap_since"):
+        backfill = await get_json("/api/backfill/status")
+        if backfill.get("running"):
+            save_state(state)
+            return
+        if state.get("repair_started"):
+            if backfill.get("errors") == 0:
+                print("gap repaired", flush=True)
+                state.pop("gap_since")
+            state.pop("repair_started")
+        if state.get("gap_since"):
+            since = datetime.datetime.fromtimestamp(state["gap_since"]).astimezone().isoformat()
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.post(f"{UPSTREAM}/api/backfill", json={"since": since})
+            if response.status_code == 200:
+                state["repair_started"] = now
+                print(f"gap repair started (since {since})", flush=True)
+
+    state["last_connected"] = now
+    save_state(state)
 
 
 def warning_block(problems: list[str]) -> str:
@@ -207,5 +310,10 @@ server = Server(
 
 app = server.streamable_http_app(stateless_http=True, host="127.0.0.1")
 
+async def main() -> None:
+    web = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=LISTEN_PORT, log_level="warning"))
+    await asyncio.gather(web.serve(), gap_loop())
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=LISTEN_PORT, log_level="warning")
+    asyncio.run(main())

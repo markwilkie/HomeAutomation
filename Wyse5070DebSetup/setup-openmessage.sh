@@ -64,7 +64,18 @@
 #                                  persists, Messages -> Device pairing should
 #                                  still list this computer (else pair.sh)
 #   freshness.stale true        -> archive behind (texts may be missing since
-#                                  freshness.newest_ms); same checks as above
+#                                  freshness.newest_ms); same checks as above,
+#                                  then repair-gap.sh from that date
+#   offline > 3h (texts-mcp's   -> gap: texts-mcp backfills it by itself
+#   gap.json)                      every 10 min until clean; manual way is
+#       ssh 192.168.15.30 ~/github/HomeAutomation/Wyse5070DebSetup/openmessage/repair-gap.sh YYYY-MM-DD
+#
+# Outages: up to an hour or two, OpenMessage's own catch-up on reconnect is
+# enough (50 most recent conversations, newest-first down to what's stored,
+# max 120 messages each). Longer, it misses messages for good -- busy
+# threads past 120, quieter ones pushed out of the top 50 -- hence texts-mcp
+# watching for it and running a window backfill (all folders, every
+# conversation active since the date, down to that date).
 #
 # Full-history backfill (needs the phone awake and plugged in -- a dozing
 # Android answers after libgm's fixed 35s timeout and the run aborts):
@@ -80,6 +91,7 @@ APPDATA_ROOT="/mnt/data/appdata/openmessage"
 BUILD_DIR="${APPDATA_ROOT}/build"
 DATA_DIR="${APPDATA_ROOT}/data"
 CHROMIUM_DIR="${APPDATA_ROOT}/chromium"
+MCP_STATE_DIR="${APPDATA_ROOT}/texts-mcp"
 REPO_URL="https://github.com/MaxGhenis/openmessage.git"
 PINNED_REF="a455f63"
 BASE_IMAGE="openmessage-upstream:${PINNED_REF}"
@@ -91,7 +103,7 @@ TRIAL_VOLUME="openmessage_openmessage-data"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "==> Creating directory structure under ${APPDATA_ROOT}"
-mkdir -p "${APPDATA_ROOT}" "${DATA_DIR}" "${CHROMIUM_DIR}"
+mkdir -p "${APPDATA_ROOT}" "${DATA_DIR}" "${CHROMIUM_DIR}" "${MCP_STATE_DIR}"
 chmod 700 "${DATA_DIR}" "${CHROMIUM_DIR}"
 
 echo "==> Fetching ${REPO_URL} at ${PINNED_REF}"
@@ -157,11 +169,16 @@ services:
     image: texts-mcp:local
     container_name: texts-mcp
     restart: unless-stopped
+    user: "$(id -u):$(id -g)"
     environment:
       OPENMESSAGE_URL: http://openmessage:7007
       TZ: America/Los_Angeles
     ports:
       - "127.0.0.1:${MCP_PORT}:8607"
+    # gap.json: when OpenMessage was last connected, so an outage (even a
+    # whole-host one) is noticed and backfilled once it's back.
+    volumes:
+      - ${MCP_STATE_DIR}:/state
 
   openmessage-chromium:
     image: ${CHROMIUM_IMAGE}
