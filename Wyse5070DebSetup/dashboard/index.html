@@ -349,6 +349,19 @@
         </div>
       </div>
       <div class="card disabled">
+        <div class="row"><span class="name">Texts (SMS + RCS)</span><span class="port">7007</span></div>
+        <div class="desc">My phone's Google Messages, paired like messages.google.com: a local archive of
+          SMS + RCS for the daily brief. Upstream MaxGhenis/openmessage (trial). Can send, so
+          nothing reaches it except through a read-only proxy (not built yet). A signed-in
+          Chromium (<code>openmessage-chromium</code>, 3001) keeps its Google cookies fresh.
+          Never open messages.google.com — it kicks this off.</div>
+        <div class="meta">127.0.0.1 only, not on Caddy yet · containers <code>openmessage</code>, <code>openmessage-chromium</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-openmessage.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+          <a href="https://github.com/MaxGhenis/openmessage" target="_blank" rel="noopener">Upstream</a>
+        </div>
+      </div>
+      <div class="card disabled">
         <div class="row"><span class="name">Monarch Money</span><span class="port">8602</span></div>
         <div class="desc">Accounts, transactions, budgets, cash flow. Upstream robcerda/monarch-mcp-server wrapped
           with supergateway. Restaurant Finder reads its history through this.</div>
