@@ -399,8 +399,10 @@ def graph_get(path: str, params: dict | None = None) -> dict:
 
 def outlook_email_search(args: dict) -> str:
     folder = (args.get("folderName") or "Inbox").strip().lower()
+    # Graph's well-known folder names have no spaces ("Sent Items" -> sentitems).
+    folder = {"sent items": "sentitems", "sent": "sentitems", "junk email": "junkemail"}.get(folder, folder)
     top = min(int(args.get("top") or 25), 50)
-    params = {"$top": top, "$select": "id,subject,from,receivedDateTime,isRead,bodyPreview"}
+    params = {"$top": top, "$select": "id,subject,from,toRecipients,receivedDateTime,isRead,bodyPreview"}
     if args.get("query"):
         # $search can't be combined with $orderby; results come back by relevance.
         params["$search"] = f'"{args["query"]}"'
@@ -415,6 +417,7 @@ def outlook_email_search(args: dict) -> str:
             "id": m["id"],
             "subject": m.get("subject"),
             "from": (m.get("from") or {}).get("emailAddress", {}).get("address"),
+            "to": [r.get("emailAddress", {}).get("address") for r in m.get("toRecipients") or []],
             "received": m.get("receivedDateTime"),
             "isRead": m.get("isRead"),
             # Preview only (owner's call 2026-10-09): full text of unread
@@ -473,7 +476,7 @@ LOCAL_TOOLS = {
         {
             "type": "object",
             "properties": {
-                "folderName": {"type": "string", "description": "e.g. Inbox, Clutter, JunkEmail"},
+                "folderName": {"type": "string", "description": "e.g. Inbox, Clutter, Sent Items, JunkEmail"},
                 "query": {"type": "string", "description": "Optional search text, e.g. a subject"},
                 "top": {"type": "integer", "description": "Max messages, default 25, max 50"},
             },
