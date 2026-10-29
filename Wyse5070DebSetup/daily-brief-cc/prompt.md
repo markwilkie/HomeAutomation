@@ -122,6 +122,14 @@ Render all of the following sections, in this order:
      now, counting my own later messages from Sent Items: if I replied
      asking for specifics and haven't heard back, it isn't settled --
      never call it "confirmed" (it belongs under "⏳ Waiting on others").
+     Bills and statements (a lender, card or utility, or Monarch's own
+     "new statement balance" reminders, whose due dates are Monarch's
+     guesses and often already past): before calling one unpaid, overdue
+     or due, check Monarch with `search_transactions` (the payee or
+     account, last 45 days). If a matching payment went out, or the same
+     amount recurs on autopay and the next draw hasn't come due yet,
+     leave the bill out -- a paid mortgage has been flagged as overdue
+     before. Only say "overdue" when there's no matching payment.
    - **WhatsApp** section — call the whatsapp `get_status` tool first. If
      it isn't `paired` and `connected`, WhatsApp has rotated the linked
      session (it does every ~20 days); make the only bullet this fix:
@@ -185,6 +193,8 @@ Render all of the following sections, in this order:
        money or fraud alerts, a deadline, a changed or cancelled
        appointment, something about the house, kids or family. Lead the
        bullet with ⚠️. Real ones only; skip routine notifications.
+     Everything under **Texts** must come from a text message. Never
+     repeat or move an item from Email, WhatsApp or anywhere else here.
      Don't repeat a thread already listed under "📱 Texts waiting on you".
      Omit the **Texts** label if neither has anything.
 
