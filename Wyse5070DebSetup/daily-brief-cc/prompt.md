@@ -143,7 +143,7 @@ Render all of the following sections, in this order:
      two days this is the most important thing in the brief.
    - **Texts** section — from the same texts gathered above (don't fetch
      them again), under a **Texts** label, in this order:
-     - **Busy threads**: for each conversation with more than 12 messages
+     - **Busy threads**: for each conversation with 3 or more messages
        since yesterday morning that's actually interesting (family and
        friends planning things, news, decisions, something I'd want to
        know) — a 1-3 bullet synopsis of what happened and anything I may

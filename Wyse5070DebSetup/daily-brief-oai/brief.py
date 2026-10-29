@@ -190,7 +190,7 @@ async def todo_due_tasks(session: ClientSession) -> str:
 
 
 TEXTS_OPEN_DAYS = 7  # how far back an unanswered text still counts as open
-TEXTS_BUSY = 12  # messages since yesterday morning that make a thread "busy"
+TEXTS_BUSY = 3  # messages since yesterday morning that make a thread "busy" (this many or more)
 TEXTS_BODY_CHARS = 280
 TEXTS_BUDGET_CHARS = MAX_TOOL_OUTPUT_CHARS - 500
 _TEXTS_CONV_RE = re.compile(r"^- (.+?)(?: \((\d+) unread\))? \(ID: (\S+), last: (\S+)\)$", re.M)
@@ -235,7 +235,7 @@ async def texts_digest(session: ClientSession) -> str:
         recent = [m for m in messages if m[0] >= yesterday_6am]
         if messages[-1][1] and not recent:
             continue  # I had the last word and it's gone quiet: nothing to report
-        shown = recent if len(recent) > TEXTS_BUSY else messages[-6:]
+        shown = recent if len(recent) >= TEXTS_BUSY else messages[-6:]
         conversations.append(
             {
                 "name": name,
@@ -267,7 +267,7 @@ async def texts_digest(session: ClientSession) -> str:
         if size() <= TEXTS_BUDGET_CHARS:
             break
         for conv in conversations:
-            limit = keep * 5 if conv["messages_since_yesterday"] > TEXTS_BUSY else keep
+            limit = keep * 5 if conv["messages_since_yesterday"] >= TEXTS_BUSY else keep
             conv["messages"] = [{**m, "text": m["text"][:chars]} for m in conv["messages"][-limit:]]
     return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 
