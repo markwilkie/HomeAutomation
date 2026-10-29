@@ -233,6 +233,8 @@ async def texts_digest(session: ClientSession) -> str:
         if not messages:
             continue
         recent = [m for m in messages if m[0] >= yesterday_6am]
+        if messages[-1][1] and not recent:
+            continue  # I had the last word and it's gone quiet: nothing to report
         shown = recent if len(recent) > TEXTS_BUSY else messages[-6:]
         conversations.append(
             {
@@ -255,15 +257,19 @@ async def texts_digest(session: ClientSession) -> str:
         )
 
     result = {"problem": problem, "open_window_days": TEXTS_OPEN_DAYS, "conversations": conversations}
-    # Fit the tool-output cap by trimming quiet threads first, then the
-    # busy ones, rather than having the tail (oldest activity) cut off.
-    for keep in (4, 2, 1):
-        if len(json.dumps(result)) <= TEXTS_BUDGET_CHARS:
+
+    def size() -> int:
+        return len(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+
+    # Fit the tool-output cap by trimming, quiet threads before busy ones,
+    # rather than having the tail (oldest activity) cut off mid-JSON.
+    for keep, chars in ((4, TEXTS_BODY_CHARS), (2, 160), (1, 100)):
+        if size() <= TEXTS_BUDGET_CHARS:
             break
         for conv in conversations:
             limit = keep * 5 if conv["messages_since_yesterday"] > TEXTS_BUSY else keep
-            conv["messages"] = conv["messages"][-limit:]
-    return json.dumps(result)
+            conv["messages"] = [{**m, "text": m["text"][:chars]} for m in conv["messages"][-limit:]]
+    return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 
 
 async def sober_line(session: ClientSession) -> str | None:
