@@ -66,6 +66,7 @@ MCP_SERVERS = {
     "monarch": os.environ.get("MONARCH_MCP_URL", "http://127.0.0.1:8602/mcp"),
     "restaurants": os.environ.get("RESTAURANTS_MCP_URL", "http://127.0.0.1:8605/mcp"),
     "whatsapp": os.environ.get("WHATSAPP_MCP_URL", "http://127.0.0.1:8606/mcp"),
+    "texts": os.environ.get("TEXTS_MCP_URL", "http://127.0.0.1:8607/mcp"),
 }
 
 # Read-only subset prompt.md actually uses -- the gateways expose many more
@@ -83,6 +84,9 @@ TOOL_ALLOWLIST = {
     # Read-only: the server also has send/react/group-admin tools, and
     # message text is untrusted input to the model.
     "whatsapp": {"get_status", "list_chats", "list_messages"},
+    # SMS + RCS (read-only proxy). texts_digest below does the sweep; these
+    # are for reading further into one thread the digest flagged.
+    "texts": {"get_conversation", "search_messages"},
 }
 
 # Long tool outputs (a whole note, a month of transactions) are cut so one
@@ -183,6 +187,83 @@ async def todo_due_tasks(session: ClientSession) -> str:
             )
     tasks.sort(key=lambda t: t["due"] or "9999")
     return json.dumps({"today": today.isoformat(), "lists_checked": len(lists), "tasks": tasks, "errors": errors})
+
+
+TEXTS_OPEN_DAYS = 7  # how far back an unanswered text still counts as open
+TEXTS_BUSY = 12  # messages since yesterday morning that make a thread "busy"
+TEXTS_BODY_CHARS = 280
+TEXTS_BUDGET_CHARS = MAX_TOOL_OUTPUT_CHARS - 500
+_TEXTS_CONV_RE = re.compile(r"^- (.+?)(?: \((\d+) unread\))? \(ID: (\S+), last: (\S+)\)$", re.M)
+# get_conversation lines: "[2026-10-28T23:06:36Z] → Me: «text»" (→ = sent by
+# me, ← = received), newest first; a body can span lines.
+_TEXTS_MSG_RE = re.compile(r"^\[(\S+)\] (←|→) (.+?): «(.*?)»", re.M | re.S)
+
+
+def _utc(stamp: str) -> datetime.datetime:
+    return datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+
+
+async def texts_digest(session: ClientSession) -> str:
+    """SMS + RCS for the brief in one result: every conversation active in
+    the last TEXTS_OPEN_DAYS, oldest-first messages, who had the last word,
+    and how busy it's been since yesterday morning. Busy threads get
+    everything since then; the rest their last few messages. Deciding
+    what's open, interesting or urgent is the model's job."""
+    status = await call_mcp(session, "get_status", {})
+    # The proxy leads with the problem and its exact fix steps when the
+    # texts connection is broken; pass that through verbatim.
+    problem = status.split("\n\n(Results below")[0] if "TEXTS ACCESS PROBLEM" in status else None
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    open_since = now - datetime.timedelta(days=TEXTS_OPEN_DAYS)
+    yesterday_6am = datetime.datetime.combine(
+        datetime.datetime.now(TZ).date() - datetime.timedelta(days=1), datetime.time(6), TZ
+    )
+    listing = await call_mcp(session, "list_conversations", {"limit": 100})
+
+    conversations = []
+    for name, unread, conv_id, last in _TEXTS_CONV_RE.findall(listing):
+        if _utc(last) < open_since:
+            break  # sorted newest first
+        out = await call_mcp(session, "get_conversation", {"conversation_id": conv_id, "limit": 60})
+        messages = sorted(
+            (_utc(ts), arrow == "→", sender.strip(), " ".join(body.split()))
+            for ts, arrow, sender, body in _TEXTS_MSG_RE.findall(out)
+        )
+        if not messages:
+            continue
+        recent = [m for m in messages if m[0] >= yesterday_6am]
+        shown = recent if len(recent) > TEXTS_BUSY else messages[-6:]
+        conversations.append(
+            {
+                "name": name,
+                "id": conv_id,
+                "group": name.endswith("[group]"),
+                "unread": int(unread or 0),
+                "last_at": messages[-1][0].astimezone(TZ).strftime("%a %-m/%-d %-I:%M %p"),
+                "last_from_me": messages[-1][1],
+                "messages_since_yesterday": len(recent),
+                "messages": [
+                    {
+                        "at": at.astimezone(TZ).strftime("%a %-I:%M %p"),
+                        "from": "me" if mine else sender,
+                        "text": body[:TEXTS_BODY_CHARS],
+                    }
+                    for at, mine, sender, body in shown
+                ],
+            }
+        )
+
+    result = {"problem": problem, "open_window_days": TEXTS_OPEN_DAYS, "conversations": conversations}
+    # Fit the tool-output cap by trimming quiet threads first, then the
+    # busy ones, rather than having the tail (oldest activity) cut off.
+    for keep in (4, 2, 1):
+        if len(json.dumps(result)) <= TEXTS_BUDGET_CHARS:
+            break
+        for conv in conversations:
+            limit = keep * 5 if conv["messages_since_yesterday"] > TEXTS_BUSY else keep
+            conv["messages"] = conv["messages"][-limit:]
+    return json.dumps(result)
 
 
 async def sober_line(session: ClientSession) -> str | None:
@@ -453,6 +534,16 @@ async def generate_brief(prompt_text: str) -> str:
                     "strict": False,
                 }
             )
+        if "texts" in sessions:
+            tools.append(
+                {
+                    "type": "function",
+                    "name": "texts_digest",
+                    "description": f"My SMS + RCS texts: every conversation active in the last {TEXTS_OPEN_DAYS} days with its latest messages, who sent the last one, and how busy it's been since yesterday morning. One call covers everything; includes the fix steps if the texts connection is broken.",
+                    "parameters": {"type": "object", "properties": {}},
+                    "strict": False,
+                }
+            )
         tools.append(web_search_tool())
 
         next_input = f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
@@ -500,6 +591,8 @@ async def generate_brief(prompt_text: str) -> str:
                     args = json.loads(call.arguments or "{}")
                     if call.name == "todo_due_tasks" and "todo" in sessions:
                         output = await todo_due_tasks(sessions["todo"])
+                    elif call.name == "texts_digest" and "texts" in sessions:
+                        output = await texts_digest(sessions["texts"])
                     elif call.name in dispatch:
                         session, original = dispatch[call.name]
                         output = await call_mcp(session, original, args)
