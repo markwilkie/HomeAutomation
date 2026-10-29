@@ -1,0 +1,244 @@
+diff --git a/internal/app/gm_failfast.go b/internal/app/gm_failfast.go
+index df40cdc..5690bbb 100644
+--- a/internal/app/gm_failfast.go
++++ b/internal/app/gm_failfast.go
+@@ -3,8 +3,12 @@ package app
+ import (
+ 	"errors"
+ 	"fmt"
++	"os"
++	"strings"
+ 	"sync"
++	"time"
+ 
++	"github.com/rs/zerolog"
+ 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
+ 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
+ )
+@@ -31,15 +35,46 @@ func IsGoogleUnansweredError(err error) bool {
+ // holds the backfill guard. After the first unanswered request every later
+ // call fails at once with ErrGoogleCatchUpStopped, wrapping that request's
+ // error. Other errors (auth, payload-less answers) pass through untouched.
++//
++// Local patch: before a request counts as unanswered, a phone that did not
++// respond is asked again after each delay in unansweredRetryDelays. A dozing
++// Android phone often misses libgm's fixed timeout once and then answers the
++// retry, so a long backfill no longer dies on the first sleepy moment. A
++// closed connection is not retried (the catch-up's client is gone).
+ type failFastGMClient struct {
+-	inner GMClient
++	inner  GMClient
++	logger zerolog.Logger
+ 
+ 	mu         sync.Mutex
+ 	unanswered error
+ }
+ 
+ func newFailFastGMClient(inner GMClient) *failFastGMClient {
+-	return &failFastGMClient{inner: inner}
++	return &failFastGMClient{inner: inner, logger: zerolog.Nop()}
++}
++
++// unansweredRetryDelays comes from OPENMESSAGES_UNANSWERED_RETRY_DELAYS, a
++// comma-separated list of durations ("30s,2m,5m"). Unset or empty keeps
++// upstream's behaviour: no retries.
++var unansweredRetryDelays = parseRetryDelays(os.Getenv("OPENMESSAGES_UNANSWERED_RETRY_DELAYS"))
++
++// retrySleep is swapped out by tests.
++var retrySleep = time.Sleep
++
++func parseRetryDelays(spec string) []time.Duration {
++	var delays []time.Duration
++	for _, part := range strings.Split(spec, ",") {
++		part = strings.TrimSpace(part)
++		if part == "" {
++			continue
++		}
++		d, err := time.ParseDuration(part)
++		if err != nil || d < 0 {
++			continue
++		}
++		delays = append(delays, d)
++	}
++	return delays
+ }
+ 
+ // Unanswered returns the first unanswered request's error, or nil.
+@@ -55,6 +90,20 @@ func failFast[T any](c *failFastGMClient, name string, call func() (T, error)) (
+ 		return zero, fmt.Errorf("%s %w: %w", name, ErrGoogleCatchUpStopped, first)
+ 	}
+ 	value, err := call()
++	for attempt, delay := range unansweredRetryDelays {
++		if !errors.Is(err, libgm.ErrPhoneNotResponding) {
++			break
++		}
++		c.logger.Warn().Err(err).Str("request", name).
++			Int("retry", attempt+1).Int("of", len(unansweredRetryDelays)).Dur("after", delay).
++			Msg("Phone did not answer; retrying")
++		retrySleep(delay)
++		if first := c.Unanswered(); first != nil {
++			var zero T
++			return zero, fmt.Errorf("%s %w: %w", name, ErrGoogleCatchUpStopped, first)
++		}
++		value, err = call()
++	}
+ 	if IsGoogleUnansweredError(err) {
+ 		c.mu.Lock()
+ 		if c.unanswered == nil {
+diff --git a/internal/app/gm_failfast_retry_test.go b/internal/app/gm_failfast_retry_test.go
+new file mode 100644
+index 0000000..8c116c7
+--- /dev/null
++++ b/internal/app/gm_failfast_retry_test.go
+@@ -0,0 +1,115 @@
++package app
++
++import (
++	"errors"
++	"reflect"
++	"testing"
++	"time"
++
++	"go.mau.fi/mautrix-gmessages/pkg/libgm"
++)
++
++func withRetryDelays(t *testing.T, delays ...time.Duration) *[]time.Duration {
++	t.Helper()
++	oldDelays, oldSleep := unansweredRetryDelays, retrySleep
++	var slept []time.Duration
++	unansweredRetryDelays = delays
++	retrySleep = func(d time.Duration) { slept = append(slept, d) }
++	t.Cleanup(func() { unansweredRetryDelays, retrySleep = oldDelays, oldSleep })
++	return &slept
++}
++
++func TestParseRetryDelays(t *testing.T) {
++	got := parseRetryDelays(" 30s, 2m,bogus,,-1s,5m ")
++	want := []time.Duration{30 * time.Second, 2 * time.Minute, 5 * time.Minute}
++	if !reflect.DeepEqual(got, want) {
++		t.Fatalf("parseRetryDelays = %v, want %v", got, want)
++	}
++	if got := parseRetryDelays(""); len(got) != 0 {
++		t.Fatalf("empty spec gave %v", got)
++	}
++}
++
++// A phone that misses the timeout and answers a retry does not stop the
++// catch-up.
++func TestRetryRecoversASleepyPhone(t *testing.T) {
++	slept := withRetryDelays(t, time.Second, 2*time.Second)
++	inner := &scriptedGMClient{errs: []error{unanswered(libgm.ErrPhoneNotResponding), nil}}
++	gm := newFailFastGMClient(inner)
++	if _, err := gm.FetchMessages("a", 10, nil); err != nil {
++		t.Fatalf("retry did not recover: %v", err)
++	}
++	if gm.Unanswered() != nil {
++		t.Fatal("a recovered request was recorded as unanswered")
++	}
++	if !reflect.DeepEqual(*slept, []time.Duration{time.Second}) {
++		t.Fatalf("slept %v, want one 1s delay", *slept)
++	}
++	for i, err := range callAll(gm) {
++		if err != nil {
++			t.Fatalf("call %d after recovery: %v", i, err)
++		}
++	}
++}
++
++// Every retry unanswered: the catch-up stops exactly as upstream's does.
++func TestRetryExhaustedStillFailsFast(t *testing.T) {
++	slept := withRetryDelays(t, time.Second, 2*time.Second)
++	miss := unanswered(libgm.ErrPhoneNotResponding)
++	inner := &scriptedGMClient{errs: []error{miss, miss, miss}}
++	gm := newFailFastGMClient(inner)
++	_, err := gm.FetchMessages("a", 10, nil)
++	if err != miss {
++		t.Fatalf("err = %v, want the last miss", err)
++	}
++	if inner.calls != 3 || len(*slept) != 2 {
++		t.Fatalf("calls = %d, sleeps = %v; want 3 calls and 2 sleeps", inner.calls, *slept)
++	}
++	for i, err := range callAll(gm) {
++		if !errors.Is(err, ErrGoogleCatchUpStopped) {
++			t.Fatalf("call %d after exhausted retries: %v", i, err)
++		}
++	}
++	if inner.calls != 3 {
++		t.Fatalf("%d calls reached libgm, want none after the miss", inner.calls)
++	}
++}
++
++// A closed connection and other errors are never retried.
++func TestRetryOnlyForAPhoneThatDidNotRespond(t *testing.T) {
++	slept := withRetryDelays(t, time.Second)
++	for _, e := range []error{unanswered(libgm.ErrConnectionClosed), errors.New("HTTP 401")} {
++		inner := &scriptedGMClient{errs: []error{e}}
++		gm := newFailFastGMClient(inner)
++		if _, err := gm.FetchMessages("a", 10, nil); err != e {
++			t.Fatalf("err = %v, want %v unchanged", err, e)
++		}
++		if inner.calls != 1 {
++			t.Fatalf("%v was retried", e)
++		}
++	}
++	if len(*slept) != 0 {
++		t.Fatalf("slept %v", *slept)
++	}
++}
++
++// A request that waited out its retries while another one gave up does not
++// try again: the catch-up has already stopped.
++func TestRetryStopsWhenAnotherRequestGaveUp(t *testing.T) {
++	withRetryDelays(t, time.Second)
++	inner := &scriptedGMClient{errs: []error{unanswered(libgm.ErrPhoneNotResponding)}}
++	gm := newFailFastGMClient(inner)
++	other := unanswered(libgm.ErrConnectionClosed)
++	retrySleep = func(time.Duration) {
++		gm.mu.Lock()
++		gm.unanswered = other
++		gm.mu.Unlock()
++	}
++	_, err := gm.FetchMessages("a", 10, nil)
++	if !errors.Is(err, ErrGoogleCatchUpStopped) || !errors.Is(err, libgm.ErrConnectionClosed) {
++		t.Fatalf("err = %v, want ErrGoogleCatchUpStopped wrapping the other miss", err)
++	}
++	if inner.calls != 1 {
++		t.Fatalf("%d calls, want no retry after the catch-up stopped", inner.calls)
++	}
++}
+diff --git a/internal/app/google_history.go b/internal/app/google_history.go
+index bb90649..2576918 100644
+--- a/internal/app/google_history.go
++++ b/internal/app/google_history.go
+@@ -67,7 +67,7 @@ func (a *App) beginGoogleCatchUp(reason string) *googleCatchUp {
+ 	if a.gmClient != nil {
+ 		return &googleCatchUp{
+ 			app:     a,
+-			gm:      newFailFastGMClient(a.gmClient),
++			gm:      a.newCatchUpGMClient(a.gmClient),
+ 			token:   a.gmClient,
+ 			reason:  reason,
+ 			history: a.gmHistory,
+@@ -85,13 +85,21 @@ func (a *App) beginGoogleCatchUp(reason string) *googleCatchUp {
+ 	}
+ 	return &googleCatchUp{
+ 		app:     a,
+-		gm:      newFailFastGMClient(newRealGMClient(cli.GM)),
++		gm:      a.newCatchUpGMClient(newRealGMClient(cli.GM)),
+ 		token:   cli.GM,
+ 		reason:  reason,
+ 		history: history,
+ 	}
+ }
+ 
++// newCatchUpGMClient wraps inner in the fail-fast client, logging its retries
++// through the app's logger.
++func (a *App) newCatchUpGMClient(inner GMClient) *failFastGMClient {
++	ff := newFailFastGMClient(inner)
++	ff.logger = a.Logger
++	return ff
++}
++
+ func (c *googleCatchUp) stillCurrent() bool {
+ 	return !c.closed && c.app.backfillClientStillCurrent(c.token)
+ }

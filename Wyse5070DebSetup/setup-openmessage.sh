@@ -29,7 +29,12 @@
 # one active web client, and that would kick OpenMessage off.
 #
 # Pinned to upstream commit a455f63 (2026-10-24) and linuxserver/chromium
-# 2dba585f-ls60. To upgrade, change the pins and re-run.
+# 2dba585f-ls60, plus the patches in openmessage/patches/ (applied before
+# the build; an upgrade that no longer applies them fails loudly). To
+# upgrade, change the pins, drop any patch upstream has since fixed, re-run.
+#   0001-retry-unanswered-requests: a request the phone doesn't answer within
+#     libgm's 35s is retried after OPENMESSAGES_UNANSWERED_RETRY_DELAYS
+#     (set below) before the run gives up, instead of aborting at once.
 #
 # Data: ${APPDATA_ROOT}/data (session.json = the pairing, messages.db = the
 # archive, unencrypted -- keep it on this host). It was first created in a
@@ -77,8 +82,9 @@
 # watching for it and running a window backfill (all folders, every
 # conversation active since the date, down to that date).
 #
-# Full-history backfill (needs the phone awake and plugged in -- a dozing
-# Android answers after libgm's fixed 35s timeout and the run aborts):
+# Full-history backfill (best with the phone plugged in; a dozing Android
+# misses libgm's 35s timeout now and then -- each miss is retried for up to
+# ~10 min, and only a phone silent that long aborts the run):
 #   docker exec openmessage wget -qO- --post-data "" http://localhost:7007/api/backfill
 #   docker exec openmessage wget -qO- http://localhost:7007/api/backfill/status
 #
@@ -110,6 +116,10 @@ echo "==> Fetching ${REPO_URL} at ${PINNED_REF}"
 rm -rf "${BUILD_DIR}"
 git clone --quiet "${REPO_URL}" "${BUILD_DIR}"
 git -C "${BUILD_DIR}" checkout --quiet "${PINNED_REF}"
+for patch in "${SCRIPT_DIR}"/openmessage/patches/*.patch; do
+  echo "==> Applying $(basename "${patch}")"
+  git -C "${BUILD_DIR}" apply "${patch}"
+done
 
 echo "==> Building ${BASE_IMAGE}"
 docker build -q -t "${BASE_IMAGE}" --build-arg VERSION="${PINNED_REF}" "${BUILD_DIR}"
@@ -152,6 +162,8 @@ services:
       # Startup only catches up on recent messages; full history is a
       # manual backfill (see header).
       OPENMESSAGES_STARTUP_BACKFILL: shallow
+      # Local patch 0001: retry a request the phone didn't answer.
+      OPENMESSAGES_UNANSWERED_RETRY_DELAYS: "30s,2m,5m"
       OPENMESSAGE_COOKIE_REFRESH_SCRIPT: /opt/openmessage/refresh-cookies
       OPENMESSAGE_CHROME_PROFILE: /chromium/.config/chromium/Default
       OPENMESSAGE_SESSION_PATH: /data/session.json
