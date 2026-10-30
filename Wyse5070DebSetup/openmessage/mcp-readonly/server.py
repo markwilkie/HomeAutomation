@@ -18,6 +18,12 @@ GAP_THRESHOLD offline it runs a window backfill from just before the outage,
 retrying every CHECK_INTERVAL until one finishes clean (the phone may be
 asleep). While a gap is open, every result says so, with the manual
 repair-gap.sh command.
+
+And it catches up while connected, because the live feed drops messages
+without ever going offline (2026-10-29: my 4:33 PM reply to Kirk never
+arrived, so the brief said I hadn't answered him). Every CATCH_UP_EVERY it
+runs a window backfill from CATCH_UP_MARGIN before the last one started,
+and at CATCH_UP_DAILY_HOUR (before the 6:30 brief) one over the last day.
 """
 from __future__ import annotations
 
@@ -40,6 +46,9 @@ STATE_PATH = Path(os.environ.get("STATE_PATH", "/state/gap.json"))
 GAP_THRESHOLD = 3 * 3600  # seconds offline before the quick catch-up isn't trusted
 GAP_MARGIN = 3600  # backfill from this long before the last connected moment
 CHECK_INTERVAL = 600
+CATCH_UP_EVERY = 3600
+CATCH_UP_MARGIN = 2 * 3600
+CATCH_UP_DAILY_HOUR = 6  # local; a two-day window takes ~10 min, one hour ~2
 # OpenMessage refuses /api and /mcp requests whose Host isn't loopback
 # (DNS-rebinding guard), and this reaches it over the compose network.
 UPSTREAM_HEADERS = {"Host": "127.0.0.1:7007"}
@@ -223,9 +232,32 @@ async def check_gap() -> None:
             if response.status_code == 200:
                 state["repair_started"] = now
                 print(f"gap repair started (since {since})", flush=True)
+    else:
+        await catch_up(state, now)
 
     state["last_connected"] = now
     save_state(state)
+
+
+async def catch_up(state: dict, now: float) -> None:
+    """Re-pull recent messages the live feed may have dropped (see the module docstring)."""
+    last = state.get("caught_up_from", 0)
+    today = datetime.datetime.fromtimestamp(now).astimezone()
+    daily = today.replace(hour=CATCH_UP_DAILY_HOUR, minute=0, second=0, microsecond=0).timestamp()
+    if now >= daily > last:
+        since = now - 26 * 3600
+    elif now - last >= CATCH_UP_EVERY:
+        since = max(last - CATCH_UP_MARGIN, now - 26 * 3600)
+    else:
+        return
+    if (await get_json("/api/backfill/status")).get("running"):
+        return
+    start = datetime.datetime.fromtimestamp(since).astimezone().isoformat()
+    async with httpx.AsyncClient(headers=UPSTREAM_HEADERS, timeout=10) as client:
+        response = await client.post(f"{UPSTREAM}/api/backfill", json={"since": start})
+    if response.status_code == 200:
+        state["caught_up_from"] = now
+        print(f"catch-up started (since {start})", flush=True)
 
 
 def warning_block(problems: list[str]) -> str:

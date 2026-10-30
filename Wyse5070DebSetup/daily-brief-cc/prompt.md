@@ -157,10 +157,12 @@ Render all of the following sections, in this order:
        "Saturday" or "Friday night" without a date, and that is not
        this week's unless a dated source says so (2026-10-30: the
        brief called Round the County "tomorrow, Sat 10/31" when it
-       was Nov 7). Pin each event's calendar date from an explicit date
-       in the chats, my calendar, or email: search email by the
-       event's name (e.g. "Round the County"), since race directors and
-       skippers send the dates there. If nothing gives a date, write
+       was Nov 7, and it was on my calendar). Pin each event's date:
+       first `search_events` on my calendar for the event's name and
+       its short forms (e.g. "Round the County", "RTC"), since I put
+       races there; then an explicit date in the chats; then email
+       searched by the event's name, since race directors and skippers
+       send the dates there. If nothing gives a date, write
        "date not given" and never guess it from the weekday. For each one, a bullet
        with the date and everything that's been asked of the crew so
        far: times (dock/call time, start, return), where to meet, what
