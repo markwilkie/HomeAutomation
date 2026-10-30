@@ -153,7 +153,15 @@ Render all of the following sections, in this order:
        `after` 14 days before today, `limit` 50, paging until a page
        comes back short), since race instructions are
        often posted days ahead. Find every race, practice, delivery or
-       other crew event they mention and its date. For each one, a bullet
+       other crew event they mention and its date. Crew chat says
+       "Saturday" or "Friday night" without a date, and that is not
+       this week's unless a dated source says so (2026-10-30: the
+       brief called Round the County "tomorrow, Sat 10/31" when it
+       was Nov 7). Pin each event's calendar date from an explicit date
+       in the chats, my calendar, or email: search email by the
+       event's name (e.g. "Round the County"), since race directors and
+       skippers send the dates there. If nothing gives a date, write
+       "date not given" and never guess it from the weekday. For each one, a bullet
        with the date and everything that's been asked of the crew so
        far: times (dock/call time, start, return), where to meet, what
        to bring or wear, roles and assignments, food, who to tell if
@@ -171,7 +179,8 @@ Render all of the following sections, in this order:
      Omit the **WhatsApp** label if nothing came in and no Mayhem event
      is coming up.
 
-     **Race day callout:** if a Mayhem event is today or tomorrow, also
+     **Race day callout:** if a Mayhem event's pinned date (above, never
+     a bare weekday) is today or tomorrow, also
      put it at the very top of the brief, right after the sober line,
      under a bold "⛵ Today: <event>" or "⛵ Tomorrow: <event>" line, with
      the full set of times, place, what to bring and every other
