@@ -61,11 +61,18 @@ echo "[$(date -Iseconds)] Generating brief via Claude Code CLI..."
 # own instructions can't help -- this script has to detect that itself and
 # email a fix directly, or a silent cron-log failure could go unnoticed for
 # a long time.
+#
+# --tools: WebSearch is the only built-in it needs (the rest come from
+# mcp.json). 2026-10-31 it had Agent and Bash, ran research agents and
+# `sleep` timers in the background, wrote the brief, then was woken by the
+# timers finishing and replied "nothing further to add" -- and that last
+# reply, not the brief, is the JSON `result` that got emailed.
 set +e
 CLAUDE_OUTPUT="$(claude -p "Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}." \
   --append-system-prompt-file prompt.md \
   --mcp-config mcp.json \
   --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,mcp__restaurants__trip,mcp__whatsapp__get_status,mcp__whatsapp__list_chats,mcp__whatsapp__list_messages,mcp__texts__get_status,mcp__texts__list_conversations,mcp__texts__get_conversation,mcp__texts__search_messages,mcp__claude_ai_Google_Calendar__list_calendars,mcp__claude_ai_Google_Calendar__list_events,mcp__claude_ai_Google_Calendar__search_events,mcp__claude_ai_Microsoft_365__outlook_email_search,mcp__claude_ai_Microsoft_365__get_me,WebSearch" \
+  --tools "WebSearch" \
   --permission-mode dontAsk \
   --output-format json)"
 CLAUDE_EXIT=$?
