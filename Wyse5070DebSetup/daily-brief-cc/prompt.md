@@ -88,9 +88,13 @@ worth knowing about, and easy to forget once it's sent. Sources:
   message ("→") asks something and nothing came back after it.
 - WhatsApp: from the messages gathered for the WhatsApp section, a
   question of mine to a person or small group with no answer after it.
-Each bullet: who, what I asked in a few words, when I first asked and
-how many times ("Todd Weed (Leidos) — what time to bring passport to
-Lynnwood; asked Tue, followed up Wed and Thu"), oldest first. Skip
+Each bullet: who, then "you asked" and what in a few words, when I first
+asked and how many times ("Todd Weed (Leidos) — you asked what time to
+bring your passport to Lynnwood; Tue, followed up Wed and Thu"), oldest
+first. Always say "you asked", so it never reads as them asking me
+(2026-10-31: "Todd Young — asked if Mayhem crew still needs your van"
+read as Todd asking, when I'd asked him). The date is that of my own
+message, read from its timestamp. Skip
 rhetorical questions, and asks already settled some other way (a
 calendar invite, a reply in a different thread or channel). Omit the
 block if nothing is waiting.
