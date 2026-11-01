@@ -1,0 +1,59 @@
+diff --git a/cmd/google_supervisor.go b/cmd/google_supervisor.go
+index ce338c8..a1e339f 100644
+--- a/cmd/google_supervisor.go
++++ b/cmd/google_supervisor.go
+@@ -32,7 +32,7 @@ func googleSupervisorPolicy() bridge.Policy {
+ 		ConnectTimeout:     2*time.Minute + 30*time.Second,
+ 		ProbeEvery:         time.Minute,
+ 		ProbeTimeout:       75 * time.Second,
+-		LivenessTimeout:    12 * time.Minute,
++		LivenessTimeout:    googleLivenessTimeout(),
+ 		MinBackoff:         5 * time.Second,
+ 		MaxBackoff:         5 * time.Minute,
+ 		MaxSameFingerprint: 5,
+@@ -42,6 +42,18 @@ func googleSupervisorPolicy() bridge.Policy {
+ 	}
+ }
+ 
++// googleLivenessTimeout is how long the link may stay silent before the
++// supervisor probes it with a ditto ping. Local patch: like libgm's own
++// pings, each probe tells the phone a web user is active and silences its
++// notifications, so OPENMESSAGES_GOOGLE_LIVENESS_TIMEOUT can stretch it;
++// unset keeps upstream's 12 minutes.
++func googleLivenessTimeout() time.Duration {
++	if timeout, err := time.ParseDuration(os.Getenv("OPENMESSAGES_GOOGLE_LIVENESS_TIMEOUT")); err == nil && timeout > 0 {
++		return timeout
++	}
++	return 12 * time.Minute
++}
++
+ type googleWallClock struct{}
+ 
+ func (googleWallClock) Now() time.Time { return time.Now() }
+diff --git a/internal/client/client.go b/internal/client/client.go
+index af3703d..f1e6f60 100644
+--- a/internal/client/client.go
++++ b/internal/client/client.go
+@@ -3,6 +3,7 @@ package client
+ import (
+ 	"encoding/json"
+ 	"fmt"
++	"os"
+ 	"strings"
+ 	"time"
+ 
+@@ -33,6 +34,14 @@ type Client struct {
+ func newGMClient(authData *libgm.AuthData, pushKeys *libgm.PushKeys, logger zerolog.Logger) *libgm.Client {
+ 	cli := libgm.NewClient(authData, pushKeys, logger)
+ 	cli.SetRequestTimeout(RequestTimeout)
++	// Local patch: each ditto ping tells the phone a web user is active, and
++	// while one is, Google Messages delivers notifications silently (and so
++	// does a paired watch). libgm pings every minute, so the phone never
++	// buzzed. OPENMESSAGES_GOOGLE_PING_INTERVAL (libgm accepts 1m to <4h)
++	// pings less often; unset keeps libgm's default.
++	if interval, err := time.ParseDuration(os.Getenv("OPENMESSAGES_GOOGLE_PING_INTERVAL")); err == nil {
++		cli.SetPingInterval(interval)
++	}
+ 	return cli
+ }
+ 

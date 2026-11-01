@@ -35,6 +35,12 @@
 #   0001-retry-unanswered-requests: a request the phone doesn't answer within
 #     libgm's 35s is retried after OPENMESSAGES_UNANSWERED_RETRY_DELAYS
 #     (set below) before the run gives up, instead of aborting at once.
+#   0002-quiet-ditto-pings: every "ditto" ping tells the phone a web user is
+#     active, and Google Messages then delivers notifications silently (the
+#     watch too). Upstream pinged every minute, so the phone never buzzed;
+#     OPENMESSAGES_GOOGLE_PING_INTERVAL / _LIVENESS_TIMEOUT (set below) space
+#     them out. Cost: a dead link or offline phone is noticed later (the
+#     hourly catch-up in texts-mcp still fills anything the feed drops).
 #
 # Data: ${APPDATA_ROOT}/data (session.json = the pairing, messages.db = the
 # archive, unencrypted -- keep it on this host). It was first created in a
@@ -164,6 +170,10 @@ services:
       OPENMESSAGES_STARTUP_BACKFILL: shallow
       # Local patch 0001: retry a request the phone didn't answer.
       OPENMESSAGES_UNANSWERED_RETRY_DELAYS: "30s,2m,5m"
+      # Local patch 0002: fewer "web user is active" pings, so the phone
+      # (and watch) notify normally.
+      OPENMESSAGES_GOOGLE_PING_INTERVAL: "1h"
+      OPENMESSAGES_GOOGLE_LIVENESS_TIMEOUT: "2h"
       OPENMESSAGE_COOKIE_REFRESH_SCRIPT: /opt/openmessage/refresh-cookies
       OPENMESSAGE_CHROME_PROFILE: /chromium/.config/chromium/Default
       OPENMESSAGE_SESSION_PATH: /data/session.json
