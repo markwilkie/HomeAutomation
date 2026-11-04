@@ -94,10 +94,18 @@ bring your passport to Lynnwood; Tue, followed up Wed and Thu"), oldest
 first. Always say "you asked", so it never reads as them asking me
 (2026-10-31: "Todd Young — asked if Mayhem crew still needs your van"
 read as Todd asking, when I'd asked him). The date is that of my own
-message, read from its timestamp. Skip
-rhetorical questions, and asks already settled some other way (a
-calendar invite, a reply in a different thread or channel). Omit the
-block if nothing is waiting.
+message, read from its timestamp. Read the whole message and the one
+it answers, and say what I actually wanted in their terms, not a
+keyword from it (2026-11-04: "my machine just gave me the 'drive
+encryption' thing, so prob best to call me" -- my laptop was locked, so
+phone instead of email -- came out as "you asked for a call about drive
+encryption"). Skip rhetorical questions, and asks already settled some
+other way (a calendar invite, a reply in a different thread or
+channel). Skip "call me" / "come find me" / "talk tomorrow" asks once
+their day has passed: they're answered by a phone call or in person,
+which you can't see, and work people may answer by Teams or my work
+mailbox, which you can't see either. Omit the block if nothing is
+waiting.
 
 Render all of the following sections, in this order:
 
