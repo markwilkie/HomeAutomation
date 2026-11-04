@@ -134,6 +134,12 @@ if [ -n "${FOREIGN_BLOCKS}" ]; then
 fi
 
 # ---- docker-compose.yml ------------------------------------------------
+# RaceTimes makes this folder (owned by its app user) on deploy; made here too so the
+# mount never creates it root-owned, which would stop the app writing sheets.
+RACETIMES_SHARE="/mnt/data/appdata/racetimes/data/share"
+if [ ! -d "${RACETIMES_SHARE}" ]; then
+  docker run --rm -v "$(dirname "${RACETIMES_SHARE}"):/d" alpine:3.20 sh -c     "mkdir -p /d/share /d/share-meta && chown 1001:1001 /d/share /d/share-meta"
+fi
 COMPOSE_FILE="${APPDATA_ROOT}/docker-compose.yml"
 echo "==> Writing ${COMPOSE_FILE}"
 tee "${COMPOSE_FILE}" > /dev/null <<EOF
@@ -149,6 +155,8 @@ services:
       - ${CADDYFILE}:/etc/caddy/Caddyfile:ro
       - ${APPDATA_ROOT}/data:/data
       - ${APPDATA_ROOT}/config:/config
+      # RaceTimes' shared race sheets, served at /s/<token> without a login (RaceTimes deploy/racetimes-users.sh)
+      - ${RACETIMES_SHARE}:/srv/racetimes-share:ro
 EOF
 
 echo "==> Starting Caddy"
