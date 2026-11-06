@@ -1,6 +1,7 @@
 """Enrich {prefix}_results.csv with distance from Lake Forest Park and dealer ratings."""
 import csv
 import json
+import os
 import re
 import sys
 import time
@@ -13,6 +14,11 @@ OUT = "output"
 # ── Driving-distance API (OSRM + Nominatim, free, no key) ──────────────
 _HOME_LAT, _HOME_LON = 45.5152, -122.6784   # Portland, OR
 _CACHE_FILE = "distance_cache.json"
+# A search can measure from elsewhere: scan.ps1 sets SCANNER_HOME="lat,lon" from its "home"
+# field. Each home gets its own cache, since cached miles are from that home.
+if os.environ.get("SCANNER_HOME"):
+    _HOME_LAT, _HOME_LON = (float(x) for x in os.environ["SCANNER_HOME"].split(","))
+    _CACHE_FILE = f"distance_cache_{_HOME_LAT:.3f}_{_HOME_LON:.3f}.json"
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 _OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
 
@@ -182,20 +188,29 @@ def _city_distance(city, state="WA"):
     return None
 
 
+# Craigslist regions outside WA (otherwise "Portland, WA" geocodes to the wrong Portland)
+_CL_REGION_STATE = {"portland": "OR", "boise": "ID", "eugene": "OR", "salem": "OR"}
+# Newer links (www.craigslist.org/view/d/portland-...) carry no region, so go by the city
+_CL_CITY_STATE = {**_CL_REGION_STATE, "hillsboro": "OR", "beaverton": "OR", "gresham": "OR",
+                  "tigard": "OR", "milwaukie": "OR", "nampa": "ID", "meridian": "ID", "caldwell": "ID"}
+
+
 def get_cl_distance(url):
     """Extract city from Craigslist URL path and return (distance, city_name)."""
+    region = re.search(r"https?://(\w+)\.craigslist", url)
+    state = _CL_REGION_STATE.get(region.group(1), "WA") if region else "WA"
     m = re.search(r"craigslist\.org/.+?/d/([a-z][a-z-]+?)-\d", url)
     if m:
         city_slug = m.group(1)
         city_name = city_slug.replace("-", " ").title()
-        dist = _city_distance(city_name)
+        state = _CL_CITY_STATE.get(city_slug, state)
+        dist = _city_distance(city_name, state)
         if dist is not None:
             return dist, city_name
     # Also check the subdomain for region
-    region = re.search(r"https?://(\w+)\.craigslist", url)
     if region:
         subdomain = region.group(1)
-        dist = _city_distance(subdomain.title())
+        dist = _city_distance(subdomain.title(), state)
         if dist is not None:
             return dist, subdomain.title() + " area"
     return None, None
@@ -232,7 +247,12 @@ def main():
 
             # Use pre-extracted distance from scraper if available
             pre_dist = row.get("distance_mi", "").strip()
-            if pre_dist and pre_dist.isdigit():
+            if "delivery to" in row.get("description", ""):
+                # Cars.com shipped listing: its "(4 mi)" is to the local delivery point,
+                # not to the car. Sort it after everything nearby.
+                dist = 999
+                loc = "Ships from out of area (delivery fee)"
+            elif pre_dist and pre_dist.isdigit():
                 dist = int(pre_dist)
                 loc = dealer
             elif "facebook.com" in url:

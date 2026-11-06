@@ -1,5 +1,5 @@
 {
-    "Frontier": {
+  "Frontier": {
     "make": "Nissan",
     "model": "Frontier",
     "facebook_query": "nissan frontier 4x4",
@@ -15,13 +15,176 @@
         "override": "king cab|extended cab"
       },
       "rwd": {
-        "reject": "4x2|4\u00d72|2x4|2\u00d74|RWD|2WD|rear-wheel drive|rear wheel drive",
-        "override": "4x4|4\u00d74|4WD|AWD|four-wheel drive|all-wheel drive"
+        "reject": "4x2|4×2|2x4|2×4|RWD|2WD|rear-wheel drive|rear wheel drive",
+        "override": "4x4|4×4|4WD|AWD|four-wheel drive|all-wheel drive"
       },
       "title": {
         "reject": "salvage|rebuilt|branded|junk|flood"
       }
     },
     "prompt": ""
+  },
+  "RAV4": {
+    "make": "Toyota",
+    "model": "RAV4",
+    "facebook_query": "toyota rav4",
+    "min_year": 2019,
+    "max_year": 2026,
+    "min_price": 12000,
+    "max_price": 31000,
+    "max_miles": 50000,
+    "title": "Toyota RAV4",
+    "pre_reject": {
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      }
+    },
+    "prompt": "Buyer wants a reliable Toyota or Lexus SUV, about $30k or less, under 50k miles. DROP: any turbocharged engine (2023+ Highlander gas, 2023+ RX 350, RX 500h, NX 200t/NX 300/NX 350, 2025+ 4Runner) and base Toyota trims (RAV4 LE, Highlander L/LE, Corolla Cross L/LE, plain 4Runner SR5). KEEP any Lexus trim. KEEP both hybrid and gas. In the reason, say whether it's a hybrid and whether the price is good for the year and miles, so a cheap gas car can beat a pricier hybrid.",
+    "carscom_models": [
+      "toyota-rav4",
+      "toyota-rav4_hybrid"
+    ],
+    "cargurus_entities": [
+      "d306",
+      "d2318"
+    ],
+    "home": "47.7568,-122.2807"
+  },
+  "Highlander": {
+    "make": "Toyota",
+    "model": "Highlander",
+    "facebook_query": "toyota highlander",
+    "min_year": 2020,
+    "max_year": 2026,
+    "min_price": 12000,
+    "max_price": 31000,
+    "max_miles": 50000,
+    "title": "Toyota Highlander",
+    "pre_reject": {
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      },
+      "turbo": {
+        "reject": "2\\.39\\d*|2\\.4|2\\.40\\d*|turbo"
+      }
+    },
+    "prompt": "Buyer wants a reliable Toyota or Lexus SUV, about $30k or less, under 50k miles. DROP: any turbocharged engine (2023+ Highlander gas, 2023+ RX 350, RX 500h, NX 200t/NX 300/NX 350, 2025+ 4Runner) and base Toyota trims (RAV4 LE, Highlander L/LE, Corolla Cross L/LE, plain 4Runner SR5). KEEP any Lexus trim. KEEP both hybrid and gas. In the reason, say whether it's a hybrid and whether the price is good for the year and miles, so a cheap gas car can beat a pricier hybrid.",
+    "carscom_models": [
+      "toyota-highlander",
+      "toyota-highlander_hybrid"
+    ],
+    "cargurus_entities": [
+      "d298",
+      "d757"
+    ],
+    "home": "47.7568,-122.2807"
+  },
+  "Venza": {
+    "make": "Toyota",
+    "model": "Venza",
+    "facebook_query": "toyota venza",
+    "min_year": 2021,
+    "max_year": 2024,
+    "min_price": 12000,
+    "max_price": 31000,
+    "max_miles": 50000,
+    "title": "Toyota Venza",
+    "pre_reject": {
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      }
+    },
+    "prompt": "Buyer wants a reliable Toyota or Lexus SUV, about $30k or less, under 50k miles. DROP: any turbocharged engine (2023+ Highlander gas, 2023+ RX 350, RX 500h, NX 200t/NX 300/NX 350, 2025+ 4Runner) and base Toyota trims (RAV4 LE, Highlander L/LE, Corolla Cross L/LE, plain 4Runner SR5). KEEP any Lexus trim. KEEP both hybrid and gas. In the reason, say whether it's a hybrid and whether the price is good for the year and miles, so a cheap gas car can beat a pricier hybrid.",
+    "carscom_models": [
+      "toyota-venza"
+    ],
+    "cargurus_entities": [
+      "d1516"
+    ],
+    "home": "47.7568,-122.2807"
+  },
+  "RX": {
+    "make": "Lexus",
+    "model": "RX",
+    "facebook_query": "lexus rx",
+    "min_year": 2018,
+    "max_year": 2026,
+    "min_price": 12000,
+    "max_price": 31000,
+    "max_miles": 50000,
+    "title": "Lexus RX",
+    "pre_reject": {
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      },
+      "turbo": {
+        "reject": "2\\.39\\d*|2\\.4|2\\.40\\d*|turbo|RX ?500h"
+      }
+    },
+    "prompt": "Buyer wants a reliable Toyota or Lexus SUV, about $30k or less, under 50k miles. DROP: any turbocharged engine (2023+ Highlander gas, 2023+ RX 350, RX 500h, NX 200t/NX 300/NX 350, 2025+ 4Runner) and base Toyota trims (RAV4 LE, Highlander L/LE, Corolla Cross L/LE, plain 4Runner SR5). KEEP any Lexus trim. KEEP both hybrid and gas. In the reason, say whether it's a hybrid and whether the price is good for the year and miles, so a cheap gas car can beat a pricier hybrid.",
+    "carscom_models": [
+      "lexus-rx_350",
+      "lexus-rx_350h",
+      "lexus-rx_450h"
+    ],
+    "cargurus_entities": [
+      "d2647",
+      "d2053"
+    ],
+    "home": "47.7568,-122.2807"
+  },
+  "NX": {
+    "make": "Lexus",
+    "model": "NX",
+    "facebook_query": "lexus nx",
+    "min_year": 2018,
+    "max_year": 2026,
+    "min_price": 12000,
+    "max_price": 31000,
+    "max_miles": 50000,
+    "title": "Lexus NX",
+    "pre_reject": {
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      },
+      "turbo": {
+        "reject": "1\\.99\\d*|2\\.0\\d*|2\\.39\\d*|2\\.4|2\\.40\\d*|turbo|NX ?200t|NX ?300(?!h)|NX ?350(?!h)"
+      }
+    },
+    "prompt": "Buyer wants a reliable Toyota or Lexus SUV, about $30k or less, under 50k miles. DROP: any turbocharged engine (2023+ Highlander gas, 2023+ RX 350, RX 500h, NX 200t/NX 300/NX 350, 2025+ 4Runner) and base Toyota trims (RAV4 LE, Highlander L/LE, Corolla Cross L/LE, plain 4Runner SR5). KEEP any Lexus trim. KEEP both hybrid and gas. In the reason, say whether it's a hybrid and whether the price is good for the year and miles, so a cheap gas car can beat a pricier hybrid.",
+    "carscom_models": [
+      "lexus-nx_300h",
+      "lexus-nx_250",
+      "lexus-nx_350h"
+    ],
+    "cargurus_entities": [
+      "d2616",
+      "d2294"
+    ],
+    "home": "47.7568,-122.2807"
+  },
+  "4Runner": {
+    "make": "Toyota",
+    "model": "4Runner",
+    "facebook_query": "toyota 4runner",
+    "min_year": 2018,
+    "max_year": 2024,
+    "min_price": 12000,
+    "max_price": 31000,
+    "max_miles": 50000,
+    "title": "Toyota 4Runner",
+    "pre_reject": {
+      "title": {
+        "reject": "salvage|rebuilt|branded|junk|flood"
+      }
+    },
+    "prompt": "Buyer wants a reliable Toyota or Lexus SUV, about $30k or less, under 50k miles. DROP: any turbocharged engine (2023+ Highlander gas, 2023+ RX 350, RX 500h, NX 200t/NX 300/NX 350, 2025+ 4Runner) and base Toyota trims (RAV4 LE, Highlander L/LE, Corolla Cross L/LE, plain 4Runner SR5). KEEP any Lexus trim. KEEP both hybrid and gas. In the reason, say whether it's a hybrid and whether the price is good for the year and miles, so a cheap gas car can beat a pricier hybrid.",
+    "carscom_models": [
+      "toyota-4runner"
+    ],
+    "cargurus_entities": [
+      "d290"
+    ],
+    "home": "47.7568,-122.2807"
   }
 }

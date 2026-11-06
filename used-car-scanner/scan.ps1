@@ -1,17 +1,25 @@
 param(
     [string]$Only,       # Run only this search (prefix name from searches.json)
     [string]$Platforms,  # Comma-separated platforms to scan (e.g. craigslist,facebook)
-    [switch]$Schedule    # Run on a loop per schedule.json
+    [switch]$Schedule,   # Run on a loop per schedule.json
+    [switch]$NoPublish   # Skip uploading HTML to the Azure static site (local test runs)
 )
 
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUNBUFFERED = "1"
 Set-Location $PSScriptRoot
 
-# Azure OpenAI config
-$env:AZURE_OPENAI_ENDPOINT = "https://mark-9211-resource.cognitiveservices.azure.com"
-$env:AZURE_OPENAI_API_KEY = ""
+# Azure OpenAI config -- the key lives in the gitignored .env next to this script
+$env:AZURE_OPENAI_ENDPOINT = "https://mark-9211-resource.openai.azure.com"
 $env:AZURE_OPENAI_DEPLOYMENT = "gpt-4.1"
+$envFile = Join-Path $PSScriptRoot ".env"
+if (Test-Path $envFile) {
+    foreach ($line in Get-Content $envFile) {
+        if ($line -match '^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$') {
+            Set-Item -Path "env:$($Matches[1])" -Value $Matches[2].Trim()
+        }
+    }
+}
 
 # --- Logging helper ---
 $logsDir = Join-Path $PSScriptRoot "logs"
@@ -106,6 +114,8 @@ print(f'Saved {len(urls)} previous URLs for $prefix')
     if ($minPrice) { $scanArgs += @("--min-price", $minPrice) }
     $fbQuery = $s.facebook_query
     if ($fbQuery) { $scanArgs += @("--facebook-query", $fbQuery) }
+    if ($s.carscom_models) { $scanArgs += @("--carscom-models", ($s.carscom_models -join ",")) }
+    if ($s.cargurus_entities) { $scanArgs += @("--cargurus-entities", ($s.cargurus_entities -join ",")) }
     if ($Platforms) {
         # Partial platform scan: write to a temp file, then merge with existing results
         $scanArgs += @("--csv", "output/${prefix}_partial_results.csv")
@@ -174,6 +184,8 @@ if os.path.exists(partial_csv):
     }
 
     Log "`n=== Enriching distance + location ($prefix) ==="
+    # Optional per-search "home": "lat,lon" to measure distances from (default in enrich_results.py)
+    $env:SCANNER_HOME = if ($s.home) { $s.home } else { "" }
     Run-Py enrich_results.py $prefix
     if ($LASTEXITCODE -ne 0) { Log "Distance enrichment failed for $prefix"; exit 1 }
 
@@ -211,6 +223,7 @@ if os.path.exists(partial_csv):
     Run-Py rebuild_combined.py
     if ($LASTEXITCODE -ne 0) { Log "Combined HTML rebuild failed" }
 
+    if ($NoPublish) { Log "`n=== Skipping Azure publish (-NoPublish) ==="; continue }
     Log "`n=== Publishing to Azure ==="
     $publishFiles = Get-ChildItem "output\*.html" | Where-Object { $_.Name -notmatch '^fb_' }
     foreach ($f in $publishFiles) {

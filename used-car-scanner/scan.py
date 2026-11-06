@@ -72,6 +72,9 @@ class Vehicle:
 # HTTP helpers
 # ---------------------------------------------------------------------------
 
+# Real Chrome for dealer sites: Cloudflare blocks the bundled Chromium (eProcess sites)
+BROWSER_CHANNEL = "chrome"  # and let it send its own user-agent; a mismatched one trips Cloudflare
+
 SESSION = requests.Session()
 SESSION.headers.update({
     "User-Agent": (
@@ -107,9 +110,8 @@ def fetch_with_browser(url: str, wait_ms: int = 5000) -> str | None:
     print("    [~]  Using headless browser...")
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(channel=BROWSER_CHANNEL, headless=True)
             ctx = browser.new_context(
-                user_agent=SESSION.headers["User-Agent"],
                 viewport={"width": 1920, "height": 1080},
             )
             page = ctx.new_page()
@@ -135,7 +137,7 @@ def fetch_with_headed_browser(url: str, wait_ms: int = 8000, wait_until: str = "
     print("    [~]  Using headed browser (off-screen)...")
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(
+            browser = p.chromium.launch(channel=BROWSER_CHANNEL,
                 headless=False,
                 args=[
                     "--window-position=-10000,-10000",
@@ -143,7 +145,6 @@ def fetch_with_headed_browser(url: str, wait_ms: int = 8000, wait_until: str = "
                 ],
             )
             ctx = browser.new_context(
-                user_agent=SESSION.headers["User-Agent"],
                 viewport={"width": 1920, "height": 1080},
                 locale="en-US",
             )
@@ -398,6 +399,16 @@ _DRIVE_LABELS = frozenset({"drivetrain", "drive type", "drive train", "drivetype
 _BODY_LABELS = frozenset({"body style", "bodystyle", "body type", "bodytype",
                            "cab style", "cab size", "cab type"})
 
+def _fill_mileage(v: "Vehicle", specs: dict[str, str]) -> None:
+    """Set v.mileage from detail-page specs when the listing card had none."""
+    if re.search(r"\d", v.mileage or ""):
+        return
+    for key in ("Mileage", "Odometer", "Miles"):
+        if re.search(r"\d", specs.get(key, "")):
+            v.mileage = _fmt_mileage(specs[key])
+            return
+
+
 def _extract_specs_from_html(html: str) -> dict[str, str]:
     """Extract key vehicle specs from a detail page's HTML."""
     specs: dict[str, str] = {}
@@ -444,6 +455,12 @@ def _extract_specs_from_html(html: str) -> dict[str, str]:
                                 val = readable
                                 break
                     specs[label] = val
+
+            odo = item.get("mileageFromOdometer", "")
+            if isinstance(odo, dict):
+                odo = odo.get("value", "")
+            if odo and "Mileage" not in specs:
+                specs["Mileage"] = str(odo)
 
             # Extract price from JSON-LD offers
             if "Price" not in specs:
@@ -673,6 +690,7 @@ def enrich_vehicle_details(vehicles: list[Vehicle], platform: str, needs_browser
                         enriched += 1
                     if not v.vin and specs.get("VIN"):
                         v.vin = specs["VIN"]
+                    _fill_mileage(v, specs)
                     if specs.get("Price"):
                         page_price = _fmt_price(specs["Price"])
                         if page_price != v.price and page_price != "--":
@@ -690,7 +708,7 @@ def enrich_vehicle_details(vehicles: list[Vehicle], platform: str, needs_browser
         try:
             with sync_playwright() as p:
                 if use_headed:
-                    browser = p.chromium.launch(
+                    browser = p.chromium.launch(channel=BROWSER_CHANNEL,
                         headless=False,
                         args=[
                             "--window-position=-10000,-10000",
@@ -698,22 +716,22 @@ def enrich_vehicle_details(vehicles: list[Vehicle], platform: str, needs_browser
                         ],
                     )
                 else:
-                    browser = p.chromium.launch(headless=True)
+                    browser = p.chromium.launch(channel=BROWSER_CHANNEL, headless=True)
+                # Plain context (no locale / webdriver patch): Cloudflare challenges those
                 ctx = browser.new_context(
-                    user_agent=SESSION.headers["User-Agent"],
                     viewport={"width": 1920, "height": 1080},
-                    locale="en-US",
                 )
-                if use_headed:
-                    ctx.add_init_script("""
-                        delete Object.getPrototypeOf(navigator).webdriver;
-                        Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                    """)
                 page = ctx.new_page()
+                first = True
                 for v in to_enrich:
                     try:
+                        if page.is_closed():
+                            page = ctx.new_page()
                         page.goto(v.url, wait_until="domcontentloaded", timeout=30000)
                         wait_ms = 5000 if platform in ("carscom", "autotrader", "cargurus") else 3000
+                        if first and platform == "dealer_eprocess":
+                            wait_ms = 12000  # let Cloudflare's first-visit check finish
+                        first = False
                         page.wait_for_timeout(wait_ms)
                         html = page.content()
                         specs = _extract_specs_from_html(html)
@@ -724,12 +742,15 @@ def enrich_vehicle_details(vehicles: list[Vehicle], platform: str, needs_browser
                                 enriched += 1
                             if not v.vin and specs.get("VIN"):
                                 v.vin = specs["VIN"]
+                            _fill_mileage(v, specs)
                             if specs.get("Price"):
                                 page_price = _fmt_price(specs["Price"])
                                 if page_price != v.price and page_price != "--":
                                     v.price = page_price
                     except Exception as exc:
-                        print(f"    [!]  Enrich error for {v.url[:60]}...: {exc}")
+                        print(f"    [!]  Enrich error for {v.url[:60]}...: {str(exc).splitlines()[0]}")
+                        if "crashed" in str(exc):
+                            page = ctx.new_page()  # a crashed tab stays dead; don't reuse it
                     time.sleep(0.5)
                 browser.close()
             if enriched > 0:
@@ -1489,9 +1510,9 @@ def scrape_carscom(html: str, dealer_name: str, base_url: str) -> list[Vehicle]:
         if not year:
             continue
 
-        # Price: span with class containing "spark-body-larger" or data-test="price"
+        # Price: "fuse-body-larger" span (was "spark-" before Cars.com's 2026 redesign) or data-test="price"
         price = ""
-        price_el = card.select_one("span.spark-body-larger, [data-test='price']")
+        price_el = card.select_one("span.fuse-body-larger, span.spark-body-larger, [data-test='price']")
         if price_el:
             price = price_el.get_text(strip=True)
 
@@ -1505,7 +1526,7 @@ def scrape_carscom(html: str, dealer_name: str, base_url: str) -> list[Vehicle]:
                 mileage = mi_match.group(1).replace(",", "")
 
         # Dealer name from card (override the generic "Cars.com" dealer name)
-        dealer_el = card.select_one("span.spark-body-small, [data-test='dealer-name']")
+        dealer_el = card.select_one("span.fuse-body-small, span.spark-body-small, [data-test='dealer-name']")
         card_dealer = dealer_el.get_text(strip=True) if dealer_el else dealer_name
 
         # Distance from card text: "City, ST (XX mi)"
@@ -1519,7 +1540,9 @@ def scrape_carscom(html: str, dealer_name: str, base_url: str) -> list[Vehicle]:
         url = ""
         link = card.select_one("a[href*='/vehicledetail/'], a[href*='/vehicle/']")
         if link:
-            href = link.get("href", "")
+            # Drop the query string: it carries a per-session sid= that changes every scan,
+            # which made every Cars.com listing look GONE + NEW between runs
+            href = link.get("href", "").split("?")[0]
             url = href if href.startswith("http") else f"https://www.cars.com{href}"
 
         cc_card_text = card.get_text(" ", strip=True)
@@ -1831,7 +1854,8 @@ SCRAPERS = {
 def _build_search_url(dealer: dict, make: str = "", model: str = "",
                       min_year: int = 0, max_year: int = 0,
                       min_price: float = 0, max_price: float = 0,
-                      max_miles: float = 0, facebook_query: str = "") -> str:
+                      max_miles: float = 0, facebook_query: str = "",
+                      carscom_models: list[str] | None = None) -> str:
     """Build a search-specific URL for the dealer, filtering by make/model if given."""
     platform = dealer.get("platform", "generic")
     base_url = dealer["base_url"]
@@ -1955,7 +1979,11 @@ def _build_search_url(dealer: dict, make: str = "", model: str = "",
         }
         if mk:
             params["makes[]"] = mk
-        if md:
+        # Cars.com splits variants into separate models (lexus-rx_350h, toyota-rav4_hybrid),
+        # so a search can list them explicitly; otherwise fall back to make-model
+        if carscom_models:
+            params["models[]"] = carscom_models
+        elif md:
             params["models[]"] = f"{mk}-{md}"
         if min_year:
             params["year_min"] = str(min_year)
@@ -1967,7 +1995,7 @@ def _build_search_url(dealer: dict, make: str = "", model: str = "",
             params["list_price_max"] = str(int(max_price))
         if max_miles:
             params["mileage_max"] = str(int(max_miles))
-        return f"https://www.cars.com/shopping/results/?{urlencode(params)}"
+        return f"https://www.cars.com/shopping/results/?{urlencode(params, doseq=True)}"
 
     elif platform == "motive":
         # Motive SPA uses JSON-encoded filters in the URL
@@ -2106,13 +2134,12 @@ def _fetch_dealeron(dealer: dict, inv_url: str, name: str, base_url: str) -> lis
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(
+            browser = p.chromium.launch(channel=BROWSER_CHANNEL,
                 headless=False,
                 args=["--window-position=-10000,-10000",
                       "--disable-blink-features=AutomationControlled"],
             )
             ctx = browser.new_context(
-                user_agent=SESSION.headers["User-Agent"],
                 viewport={"width": 1920, "height": 1080},
                 locale="en-US",
             )
@@ -2265,7 +2292,7 @@ def _fetch_eprocess(dealer: dict, inv_url: str, name: str, base_url: str,
     print("    [~]  eProcess: headed browser (interactive)...")
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(
+            browser = p.chromium.launch(channel=BROWSER_CHANNEL,
                 headless=False,
                 args=[
                     "--window-position=-10000,-10000",
@@ -2273,17 +2300,16 @@ def _fetch_eprocess(dealer: dict, inv_url: str, name: str, base_url: str,
                 ],
             )
             ctx = browser.new_context(
-                user_agent=SESSION.headers["User-Agent"],
                 viewport={"width": 1920, "height": 1080},
-                locale="en-US",
             )
-            ctx.add_init_script("""
-                delete Object.getPrototypeOf(navigator).webdriver;
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            """)
+            # Keep this context plain (no locale, no navigator.webdriver patch) and
+            # don't touch the page while Cloudflare's "Just a moment..." check runs:
+            # polling it with evaluate() during the check gets us challenged forever
             page = ctx.new_page()
             page.goto(inv_url, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(6000)
+            page.wait_for_timeout(12000)
+            if not page.evaluate("() => !!window.__textSearchDataCache"):
+                print(f"    [!]  eProcess: no data cache after 12s (title: {page.title()!r})")
 
             # --- Strategy 1: JS data cache ---
             vehicles = _eprocess_extract_cache(page, name, base_url)
@@ -2343,6 +2369,7 @@ def _eprocess_extract_cache(page, name: str, base_url: str) -> list[Vehicle]:
                 model: lookup['model:' + v.model] || '',
                 trim: lookup['trim:' + v.trim] || '',
                 price: String(v.price || ''),
+                odometer: String(v.odometer || ''),
                 vin: v.vin || '',
             });
         }
@@ -2361,7 +2388,7 @@ def _eprocess_extract_cache(page, name: str, base_url: str) -> list[Vehicle]:
         vehicles.append(Vehicle(
             dealer=name, year=v["year"], make=v["make"], model=v["model"],
             trim=v.get("trim", ""), price=_fmt_price(v.get("price", "")),
-            mileage="--", url=url, vin=v.get("vin", ""),
+            mileage=_fmt_mileage(v.get("odometer", "")), url=url, vin=v.get("vin", ""),
         ))
     return vehicles
 
@@ -2566,7 +2593,8 @@ def _fetch_cargurus(url: str, name: str, base_url: str) -> list[Vehicle]:
 def scan_dealer(dealer: dict, search_make: str = "", search_model: str = "",
                 min_year: int = 0, max_year: int = 0,
                 min_price: float = 0, max_price: float = 0,
-                max_miles: float = 0, facebook_query: str = "") -> list[Vehicle]:
+                max_miles: float = 0, facebook_query: str = "",
+                carscom_models: list[str] | None = None) -> list[Vehicle]:
     """Fetch and parse one dealer's used inventory."""
     name = dealer["name"]
     platform = dealer.get("platform", "generic")
@@ -2578,7 +2606,8 @@ def scan_dealer(dealer: dict, search_make: str = "", search_model: str = "",
                                 min_year=min_year, max_year=max_year,
                                 min_price=min_price, max_price=max_price,
                                 max_miles=max_miles,
-                                facebook_query=facebook_query)
+                                facebook_query=facebook_query,
+                                carscom_models=carscom_models)
 
     print(f"\n{'='*60}")
     print(f"  Scanning: {name}")
@@ -2596,10 +2625,10 @@ def scan_dealer(dealer: dict, search_make: str = "", search_model: str = "",
                 print(f"    Filtered by make ({search_make}): {before} -> {len(result)}")
         if search_model and result:
             before = len(result)
-            sm = search_model.lower()
-            # Match exact or model prefix (handles "Sportage Hybrid", "Frontier S", etc.)
-            result = [v for v in result
-                      if v.model.lower() == sm or v.model.lower().startswith(sm + " ")]
+            # Match exact or model prefix (handles "Sportage Hybrid", "Frontier S", and
+            # Lexus-style "RX350" / "RX-350h" / "RX 450h" for search model "RX")
+            model_rx = re.compile(r"^" + re.escape(search_model) + r"(?:$|[\s\-]|\d)", re.IGNORECASE)
+            result = [v for v in result if model_rx.match(v.model.strip())]
             if len(result) < before:
                 print(f"    Filtered by model ({search_model}): {before} -> {len(result)}")
         return result
@@ -2828,6 +2857,8 @@ def main():
     parser.add_argument("--max-year", type=int, help="Maximum model year")
     parser.add_argument("--max-miles", type=float, help="Maximum mileage")
     parser.add_argument("--facebook-query", help="Custom Facebook Marketplace search query (overrides model)")
+    parser.add_argument("--carscom-models", help="Comma-separated Cars.com model slugs (e.g. lexus-rx_350,lexus-rx_350h)")
+    parser.add_argument("--cargurus-entities", help="Comma-separated CarGurus model entity IDs (e.g. d306,d2318)")
     parser.add_argument("--csv", metavar="FILE", help="Save results to CSV file")
     parser.add_argument(
         "--dealers", default="dealers.json",
@@ -2868,6 +2899,22 @@ def main():
         allowed = {p.strip().lower() for p in args.platforms.split(",")}
         dealers = [d for d in dealers if d.get("platform", "").lower() in allowed]
 
+    # CarGurus searches one model entity per URL (and hybrids are separate entities),
+    # so scan each CarGurus entry once per entity
+    if args.cargurus_entities:
+        entities = [e.strip() for e in args.cargurus_entities.split(",") if e.strip()]
+        expanded = []
+        for d in dealers:
+            if d.get("platform") != "cargurus":
+                expanded.append(d)
+                continue
+            for ent in entities:
+                expanded.append({**d, "name": f"{d['name']} ({ent})",
+                                 "inventory_url": f"{d['inventory_url'].split('?')[0]}?selectedEntity={ent}"})
+        dealers = expanded
+
+    carscom_models = [m.strip() for m in (args.carscom_models or "").split(",") if m.strip()]
+
     print(f"\nUsed Car Scanner -- Scanning {len(dealers)} dealers near 98155\n")
 
     # Scan each dealer
@@ -2880,6 +2927,7 @@ def main():
                 min_price=args.min_price or 0, max_price=args.max_price or 0,
                 max_miles=args.max_miles or 0,
                 facebook_query=args.facebook_query or "",
+                carscom_models=carscom_models,
             )
             all_vehicles.extend(vehicles)
         except Exception as exc:
