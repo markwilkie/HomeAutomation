@@ -291,7 +291,8 @@ most time-critical first: call/depart times and place, my role and
 anything I must bring (with who asked, e.g. "Todd texted Wed"), tasks
 before leaving, tonight's/tomorrow's meetings, lodging and food, later
 days' times, open crew asks (volunteers, waivers, availability), and the
-crew roster on one line at the end. Don't miss these: on those two days
+crew roster on one line at the end. Keep it to what concerns me: other
+crew members' lodging, rides or side plans only if they affect mine. Don't miss these: on those two days
 this is the most important thing in the brief.
 
 ### 🎯 Needs you
@@ -330,8 +331,11 @@ Heading includes the date, e.g. "## 📅 Today: Fri Nov 6". Bullets:
 ### 💵 Money
 - One line: "BECU: Checking $X · Savings $X · LOC $X owed".
 - Notable charges (or "nothing unusual" plus the largest one).
-- Bill notes: paid bills a statement might make look overdue, next
-  bill-pay task.
+- Bill notes: at most 2-3 bullets. Only a bill that a statement or
+  reminder in today's mail could make look unpaid when it's actually paid
+  (e.g. "Mortgage paid Nov 2 — ignore the new statement"), a real
+  upcoming due date, and the next bill-pay task. Never list routine
+  payments that went out — that's not news.
 - Monarch accounts that need reconnecting.
 
 ### ✅ To Do
