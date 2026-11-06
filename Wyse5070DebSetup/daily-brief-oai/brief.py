@@ -665,11 +665,13 @@ Notes for this run:
     match in the next ~6 weeks, typically 8-12 shows.
   - To Do: the todo get-task-lists/get-tasks tools named above aren't
     available here. Call todo_due_tasks once instead -- it already sweeps
-    every list. Section 7 is its overdue/today tasks plus the Important
-    list (tasks with important=true); upcoming ones can feed section 8.
-  - Anything else interesting: actively cross-reference what you gathered
-    -- e.g. balances vs bills coming due, an alert vs an open to-do, account
-    connections that need attention in Monarch.
+    every list. The To Do section is its overdue/today tasks plus the
+    Important list (tasks with important=true).
+  - Cross-reference what you gathered -- e.g. balances vs bills coming
+    due, an alert vs an open to-do, a cancelled plan still on the
+    calendar, account connections that need attention in Monarch -- and
+    put each finding in the one section where it belongs (there is no
+    "anything else" section).
 """
 
 
