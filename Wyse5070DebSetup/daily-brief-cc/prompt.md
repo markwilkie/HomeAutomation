@@ -346,8 +346,16 @@ Two compact bullets, items joined with " · ":
   Overdue bullet or under Needs you.
 
 ### 💬 Catch-up (FYI)
-Only things that need no action and aren't anywhere above. Sub-labels in
-this order, each omitted if empty:
+Only things that need no action and aren't anywhere above, and only
+what's NEW since yesterday's brief: an email received, a text or
+WhatsApp message sent, after yesterday 6:00 AM Pacific (the brief runs
+every day, so that's always the cutoff). Yesterday's brief already told me about anything
+older, so never list it again, even if it's still in the Inbox or the
+thread is still within the 7-day texts window (2026-11-12/13: the Anthem
+ID card, LinkedIn cancellation and "no breakfast Sat" each appeared two
+days running; the Leidos fee disclosure appeared all week). Action items
+in the sections above are different: they stay until they're done.
+Sub-labels in this order, each omitted if empty:
 - **Email** — noteworthy mail that isn't an action (delivery changes,
   disclosures, policy notices).
 - **WhatsApp** — Avenida Ficoa (2-4 bullets summarizing what was said,
