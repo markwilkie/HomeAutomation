@@ -39,7 +39,7 @@ running** state.
 | 7 | 4 | "Yellow" LED — actually the **GREEN** LED (matches manual power-up order W,R,B,G) | active-low |
 | 8 | 5 | +5 V | — |
 
-Signals are **5 V** → must be isolated/level-shifted for the 3.3 V C6.
+Signals are **5 V** → level-shift to 3.3 V (shared ground with the SmarterSpa low-voltage side). If using BSS138-style shifters, the 5 V-side pull-ups can fake a press on the button lines (idle low) — verify or remove those pull-ups, or use a 3.3 V-powered 74LVC245/74LVC125 (5 V-tolerant inputs, no pull-ups).
 
 ### SmarterSpa LED semantics (ControlOMatic manual, ver. 06/27/16)
 | Pattern | Meaning |
@@ -84,7 +84,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 - ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features).
 - pH/ORP Gravity iso boards → ADC1 pins (GPIO0–6).
 - DS18B20 (1-Wire) → any free GPIO, 4.7 kΩ pull-up.
-- SmarterSpa ribbon → optocouplers → 7 GPIO inputs (4 LEDs, 3 buttons).
+- SmarterSpa ribbon → level shifters (shared GND) → 7 GPIO inputs (4 LEDs, 3 buttons).
 - Pump CT clamp → ADC1 pin (or comparator → digital input).
 
 ---
@@ -94,7 +94,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 Each phase ends with a testable exit criterion.
 
 ### Phase 0 — Hardware prep
-- Build SmarterSpa interface board: optocouplers on 4 LED + 3 button lines (5 V side), 3.3 V C6 side.
+- Build SmarterSpa interface: level shifters on 4 LED + 3 button lines, common ground; confirm button lines still idle low with the shifter attached.
 - Verify Atlas Gravity pH/ORP output range vs. C6 ADC range at chosen supply voltage.
 - Source DS18B20, pump CT clamp, enclosure.
 - Rotate the Wi-Fi password exposed in the old sketch.
