@@ -54,6 +54,11 @@ MAX_TURNS = int(os.environ.get("MAX_TURNS", "40"))
 MAX_OUTPUT_TOKENS = int(os.environ.get("MAX_OUTPUT_TOKENS", "16000"))
 RATE_LIMIT_RETRIES = int(os.environ.get("RATE_LIMIT_RETRIES", "5"))
 REASONING_EFFORT = os.environ.get("REASONING_EFFORT", "high")
+# A real brief is several thousand characters; anything shorter is a refusal or a stray remark.
+MIN_BRIEF_CHARS = int(os.environ.get("MIN_BRIEF_CHARS", "800"))
+NUDGE = ("That isn't the brief. This is my own personal daily brief, built from my own email, calendar, messages "
+         "and accounts, which I asked you to read. Write the full brief now from what you gathered, following the "
+         "instructions. If one item is something you won't summarize, leave just that item out.")
 CALENDARS_PATH = Path(os.environ.get("CALENDARS_FILE", str(CONFIG_DIR / "calendars.json")))
 
 GRAPH_CLIENT_ID = os.environ.get("MS_CLIENT_ID", "d0f1f47d-77ee-494d-a63b-ee3afeb2fad1")
@@ -564,6 +569,7 @@ async def generate_brief(prompt_text: str) -> str:
             except Exception as exc:
                 log(f"WARN: could not read the Sober note: {exc}")
         previous_id = None
+        nudged = False
         totals = {"input": 0, "cached": 0, "output": 0}
         for turn in range(1, MAX_TURNS + 1):
             response = create_with_rate_limit_retry(
@@ -591,8 +597,20 @@ async def generate_brief(prompt_text: str) -> str:
             log(f"  turn {turn}: {len(calls)} tool calls {[c.name for c in calls]}, {searches} web searches, usage={usage and (usage.input_tokens, usage.output_tokens)}")
 
             if not calls:
+                text = response.output_text or ""
+                if len(text.strip()) < MIN_BRIEF_CHARS:
+                    # 2026-11-14: after gathering everything the model answered "I'm sorry, but I cannot
+                    # assist with that request." (49 chars) and that was emailed as the brief. Ask once more
+                    # in the same conversation (cheap: the gathered data is cached); if it still won't
+                    # write one, fail so run.sh falls back to Claude Code.
+                    if nudged:
+                        raise RuntimeError(f"model gave no brief twice; last reply: {text.strip()[:200]!r}")
+                    nudged = True
+                    log(f"  WARN: reply too short to be a brief ({len(text.strip())} chars): {text.strip()[:200]!r}; asking again")
+                    next_input = NUDGE
+                    continue
                 log(f"  total tokens: {totals}")
-                return response.output_text
+                return text
 
             outputs = []
             for call in calls:
