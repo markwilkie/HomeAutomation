@@ -271,6 +271,44 @@ if [ "${OTBR_FLAGS:-0}" -gt 0 ]; then
   ISSUES=$((ISSUES + 1))
 fi
 
+# ---- Daily brief ----------------------------------------------------------
+# The Claude fallback only runs when the Azure run fails, so a lapsed
+# `claude login` would go unnoticed until the day it's needed. `claude auth
+# status` checks it without a model call. Same auth as run.sh: the persisted
+# login, not the token in .env.
+export NVM_DIR="$HOME/.nvm"
+# shellcheck disable=SC1091
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+if (unset CLAUDE_CODE_OAUTH_TOKEN; timeout 60 claude auth status 2>/dev/null) | grep -q '"loggedIn": true'; then
+  CLAUDE_NOTE="logged in"
+else
+  CLAUDE_NOTE="**NOT logged in** -- fix: ssh -t mwilkie@192.168.15.30, then export NVM_DIR=\$HOME/.nvm && . \"\$NVM_DIR/nvm.sh\" && claude login"
+  ISSUES=$((ISSUES + 1))
+fi
+# Tokens and web searches per job this week (run.py appends each run).
+USAGE_LINES="$(python3 - /mnt/data/appdata/daily-brief-oai/state/usage.csv <<'PYEOF'
+import csv, datetime, sys
+from collections import defaultdict
+since = (datetime.date.today() - datetime.timedelta(days=7)).isoformat()
+totals = defaultdict(lambda: [0, 0, 0, 0, 0])
+try:
+    with open(sys.argv[1], newline="") as f:
+        for row in csv.DictReader(f):
+            if row["date"] >= since:
+                t = totals[row["job"]]
+                t[0] += 1
+                for i, k in enumerate(("input", "cached", "output", "searches"), 1):
+                    t[i] += int(row[k] or 0)
+except FileNotFoundError:
+    pass
+if not totals:
+    print("- No runs logged this week (usage.csv starts 2026-11-15).")
+for job, (runs, inp, cached, out, searches) in sorted(totals.items()):
+    print(f"- {job}: {runs} run(s), {inp / 1e6:.2f}M input tokens ({cached / max(inp, 1):.0%} cached), "
+          f"{out / 1e3:.0f}k output, {searches} web searches; per run {inp / runs / 1e6:.2f}M in")
+PYEOF
+)"
+
 # ---- Compose report ------------------------------------------------------
 if [ "$ISSUES" -eq 0 ]; then
   STATUS_LINE="**Status: OK** -- nothing needs attention"
@@ -306,6 +344,10 @@ $( [ "$CONTAINER_FLAGGED" -gt 0 ] && echo "${CONTAINER_LINES}" || echo "- All ru
 
 ## otbr (Thread border router) exits
 ${OTBR_LINES}
+
+## Daily brief and events email
+- Claude fallback: ${CLAUDE_NOTE}
+${USAGE_LINES}
 
 ---
 _Generated automatically every Sunday 7:00 AM from wilkie-home-server. Sources: sysstat, disk-usage.log, docker, otbr failures.log._

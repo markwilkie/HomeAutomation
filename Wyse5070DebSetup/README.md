@@ -40,7 +40,7 @@ Scheduled jobs (no port):
 | 6:00am daily | Monarch account refresh, ahead of the brief | crontab → `/mnt/data/appdata/daily-brief-oai/app/monarch_refresh.py` (source `daily-brief/azure/`) |
 | 6:30am daily | Daily brief (see "daily-brief-oai" below) | crontab → `/mnt/data/appdata/daily-brief-oai/app/run.sh` (source `daily-brief/azure/`) |
 | Thu 5:00am, Sat 8:00am | "Weekend & Ahead" events email to Mark and Jennie (Thursday full search; Saturday refresh with the Nextdoor digest). Prompt `daily-brief-cc/events.md`, taste from the Trilium note "Events Taste Profile" | crontab → `/mnt/data/appdata/daily-brief-oai/app/run_events.sh` (source `daily-brief/azure/`) |
-| Sun 7:00am | Weekly health check email | crontab → `weekly_health_check.sh` (deployed under daily-brief-cc) |
+| Sun 7:00am | Weekly health check email (host health, plus whether the brief's Claude fallback is still logged in and the week's brief/events token use) | crontab → `weekly_health_check.sh` (deployed under daily-brief-cc) |
 | 3:15am daily | Home Assistant config backup (local disk) | systemd `homeassistant-backup.timer` (`setup-homeassistant-backup.sh`) |
 | 3:00am daily | TripTracker database backup | crontab → `~/github/TripTracker/scripts/backup.sh` |
 | Every 5 min | Email Mark when anyone else logs in to RaceTimes | crontab → `/mnt/data/appdata/racetimes/racetimes-login-alert.sh` (installed by RaceTimes' `deploy/setup-racetimes.sh`); log `~/racetimes-login-alert.log` |
