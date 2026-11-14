@@ -83,5 +83,7 @@ if [ "${DRY}" = "--dry-run" ]; then
   echo "${EMAIL}"
 else
   echo "${EMAIL}" > "${STATE_DIR}/events-${TODAY}.md"
-  echo "${EMAIL}" | venv/bin/python send_mail.py --subject "${SUBJECT}" --also-to jennie@wilkiefamily.net
+  # Footer only in the sent email, not the saved copy Saturday builds on.
+  FOOTER="_Want different picks? Reply to this email and say so (for example “skip ice skating” or “more breweries”). Replies from Mark or Jennie update the events email from its next run._"
+  printf '%s\n\n---\n\n%s\n' "${EMAIL}" "${FOOTER}" | venv/bin/python send_mail.py --subject "${SUBJECT}" --also-to jennie@wilkiefamily.net
 fi

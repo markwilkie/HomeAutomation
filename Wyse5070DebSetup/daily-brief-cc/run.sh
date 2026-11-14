@@ -123,5 +123,10 @@ if [ "${1:-}" = "--dry-run" ]; then
   echo "$BRIEF"
 else
   if [ -n "${BRIEF_SAVE_TO:-}" ]; then echo "$BRIEF" > "${BRIEF_SAVE_TO}"; fi
-  echo "$BRIEF" | venv/bin/python send_mail.py --subject "${SUBJECT}" --also-to jennie@wilkiefamily.net
+  if [ "${PROMPT_FILE}" = "events.md" ]; then
+    FOOTER="_Want different picks? Reply to this email and say so (for example “skip ice skating” or “more breweries”). Replies from Mark or Jennie update the events email from its next run._"
+  else
+    FOOTER="_Want more or less of something? Reply to this email and say so (for example “less about Monarch reconnects”). Replies from Mark or Jennie update the brief from the next morning on._"
+  fi
+  printf '%s\n\n---\n\n%s\n' "$BRIEF" "$FOOTER" | venv/bin/python send_mail.py --subject "${SUBJECT}" --also-to jennie@wilkiefamily.net
 fi
