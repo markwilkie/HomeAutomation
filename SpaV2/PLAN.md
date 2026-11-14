@@ -39,7 +39,7 @@ running** state.
 | 7 | 4 | "Yellow" LED — actually the **GREEN** LED (matches manual power-up order W,R,B,G) | active-low |
 | 8 | 5 | +5 V | — |
 
-Signals are **5 V**. Decision: **resistor dividers** (56 kΩ top / 100 kΩ bottom → ~3.2 V) on the **4 LED lines + the +5 V line (power sense)** only; button inputs not needed (menu activity is filtered by white-solid + 5 s steady rule). Shared GND with SmarterSpa low-voltage side.
+Signals are **5 V**. Decision: **resistor dividers** (56 kΩ top / 100 kΩ bottom → ~3.2 V) on the **4 LED lines only** (no power sense, no button inputs) (menu activity is filtered by white-solid + 5 s steady rule). Shared GND with SmarterSpa low-voltage side.
 ⚠️ If the LED lines are open-drain with the LED as the only pull-up, the divider can sag an "off" line below the C6's input-high threshold and read as lit — measure each line at the GPIO with the LED off; if marginal, go to 100 kΩ/220 kΩ or a 3.3 V 74LVC125A.
 
 ### SmarterSpa LED semantics (ControlOMatic manual, ver. 06/27/16)
@@ -85,7 +85,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 - ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features).
 - pH/ORP Gravity iso boards → ADC1 pins (GPIO0–6).
 - DS18B20 (1-Wire) → any free GPIO, 4.7 kΩ pull-up.
-- SmarterSpa ribbon → resistor dividers (shared GND) → 5 GPIO inputs (4 LEDs + power sense).
+- SmarterSpa ribbon → resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
 - Pump CT clamp → ADC1 pin (or comparator → digital input).
 
 ---
@@ -95,7 +95,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 Each phase ends with a testable exit criterion.
 
 ### Phase 0 — Hardware prep
-- Build SmarterSpa interface: dividers on 4 LED lines + +5 V power-sense line, common ground; verify LED-off lines read high at the GPIO with the divider attached.
+- Build SmarterSpa interface: dividers on the 4 LED lines, common ground; verify LED-off lines read high at the GPIO with the divider attached.
 - Verify Atlas Gravity pH/ORP output range vs. C6 ADC range at chosen supply voltage.
 - Source DS18B20, pump CT clamp, enclosure.
 - Rotate the Wi-Fi password exposed in the old sketch.
@@ -128,7 +128,7 @@ Each phase ends with a testable exit criterion.
 - State machine: standby / generating-OK / generating-low / generating-high / salt-shutdown / fault.
   - Solid state accepted only after ~5 s steady.
   - Ignore while WHITE solid (menu modes) and for a few seconds after any button-line change.
-  - Fault = power-sense line low, or no standby blink for >15 s while not generating.
+  - Fault = no standby blink for >15 s while not generating.
 - Expose Boolean State endpoints listed above.
 - **Exit:** boost cycle and power cycle produce correct states; button presses at the unit cause no false states.
 
