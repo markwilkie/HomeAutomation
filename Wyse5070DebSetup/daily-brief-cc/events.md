@@ -72,9 +72,8 @@ links for everything still ahead; this is an update, not a rewrite.
 
 1. Nextdoor: `outlook_email_search` for this Thursday's "Weekend events
    you'll love" from "Lake Forest Park Events"
-   (no-reply@rs.email.nextdoor.com). Outlook files it in Clutter, so
-   search `folderName` "Clutter" and also "Inbox". Read it with
-   `read_resource`. Add its events that fit our taste and aren't already
+   (no-reply@rs.email.nextdoor.com), looking where "Where to find mail"
+   below says. Read it with `read_resource`. Add its events that fit our taste and aren't already
    listed.
 2. Check for changes: one web search per event this weekend (Sat–Sun)
    for a cancellation, sell-out or new time.

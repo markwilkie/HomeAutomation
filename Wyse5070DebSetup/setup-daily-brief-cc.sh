@@ -64,7 +64,9 @@ fi
 
 echo "==> Copying run.sh + monarch_refresh.sh + parse_claude_result.py + send_mail.py + graph_login.py + mcp.json + prompt.md + requirements.txt + weekly_health_check.sh into ${APP_DIR}"
 cp "${LOCAL_APP_SRC}/run.sh" "${LOCAL_APP_SRC}/monarch_refresh.sh" "${LOCAL_APP_SRC}/parse_claude_result.py" "${LOCAL_APP_SRC}/send_mail.py" "${LOCAL_APP_SRC}/graph_login.py" \
-   "${LOCAL_APP_SRC}/mcp.json" "${LOCAL_APP_SRC}/prompt.md" "${LOCAL_APP_SRC}/requirements.txt" "${LOCAL_APP_SRC}/events.md" "${LOCAL_APP_SRC}/gcal_links.py" "${APP_DIR}/"
+   "${LOCAL_APP_SRC}/mcp.json" "${LOCAL_APP_SRC}/prompt.md" "${LOCAL_APP_SRC}/requirements.txt" "${LOCAL_APP_SRC}/events.md" "${LOCAL_APP_SRC}/gcal_links.py" "${LOCAL_APP_SRC}/mail_sources.json" "${LOCAL_APP_SRC}/mail_guide.py" "${APP_DIR}/"
+# Same mail-finding rules as daily-brief-oai (mail_sources.json), as a prompt section.
+for f in prompt.md events.md; do python3 "${APP_DIR}/mail_guide.py" >> "${APP_DIR}/${f}"; done
 cp "${SCRIPT_DIR}/weekly_health_check.sh" "${APP_DIR}/"
 chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/monarch_refresh.sh" "${APP_DIR}/weekly_health_check.sh"
 

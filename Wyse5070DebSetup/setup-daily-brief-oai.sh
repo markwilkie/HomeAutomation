@@ -52,7 +52,10 @@ fi
 echo "==> Copying brief.py + graph_login.py + run.sh + run_events.sh + requirements.txt, plus shared prompt.md + events.md + gcal_links.py + send_mail.py from daily-brief-cc"
 cp "${LOCAL_APP_SRC}/brief.py" "${LOCAL_APP_SRC}/graph_login.py" "${LOCAL_APP_SRC}/run.sh" "${LOCAL_APP_SRC}/run_events.sh" "${LOCAL_APP_SRC}/replies.py" \
    "${LOCAL_APP_SRC}/monarch_refresh.py" "${LOCAL_APP_SRC}/requirements.txt" "${APP_DIR}/"
-cp "${SHARED_SRC}/prompt.md" "${SHARED_SRC}/events.md" "${SHARED_SRC}/gcal_links.py" "${SHARED_SRC}/send_mail.py" "${APP_DIR}/"
+cp "${SHARED_SRC}/prompt.md" "${SHARED_SRC}/events.md" "${SHARED_SRC}/gcal_links.py" "${SHARED_SRC}/send_mail.py" "${SHARED_SRC}/mail_sources.json" "${SHARED_SRC}/mail_guide.py" "${APP_DIR}/"
+cp "${LOCAL_APP_SRC}/mail.py" "${APP_DIR}/"
+# One set of mail-finding rules (mail_sources.json) for the code (mail.py) and both prompts.
+for f in prompt.md events.md; do python3 "${APP_DIR}/mail_guide.py" >> "${APP_DIR}/${f}"; done
 chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/run_events.sh"
 
 echo "==> Creating/updating venv at ${APP_DIR}/venv"

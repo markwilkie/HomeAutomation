@@ -269,6 +269,12 @@ error, not a UI.
   note "Daily Brief Preferences" or "Events Taste Profile" (never the
   prompt); no model reads replies. Anything else gets a help email; every
   change gets a confirmation. State in `state/replies.json`.
+  Mail lookups: everything finds mail through one mechanism. Folders and
+  known senders live in `daily-brief-cc/mail_sources.json`; `mail.py` (the
+  brief's email tool, the USPS mail backstop, replies, and a CLI for the
+  email-lookup skill) checks Inbox, Deleted Items, Archive and Clutter;
+  `mail_guide.py` turns the same file into a "Where to find mail" section
+  appended to both deployed prompts, so the Claude fallback follows it too.
 - **daily-brief** (disabled 2026-09-22, kept for reference/rollback) — the
   original implementation: same idea, but driven by the Anthropic API
   directly (a metered `ANTHROPIC_API_KEY`, Sonnet 5, manual prompt-caching)

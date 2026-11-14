@@ -1,0 +1,43 @@
+{
+  "_about": "Where Mark's mail ends up and which senders we look for. One source for every mail lookup: daily-brief-oai/mail.py (code), the 'Where to find mail' section added to prompt.md and events.md at deploy (mail_guide.py, so the Claude fallback follows the same rules), and the email-lookup skill.",
+  "folders": [
+    {"name": "Inbox", "graph": "inbox"},
+    {"name": "Deleted Items", "graph": "deleteditems"},
+    {"name": "Archive", "graph": "archive"},
+    {"name": "Clutter", "graph": "clutter"}
+  ],
+  "senders": [
+    {
+      "key": "usps",
+      "what": "USPS Informed Delivery daily digest",
+      "address": "USPSInformeddelivery@email.informeddelivery.usps.com",
+      "subject": "Daily Digest",
+      "usually": "Deleted Items or Archive (read, then filed)",
+      "when": "daily around 7:15am, after the brief"
+    },
+    {
+      "key": "nextdoor-events",
+      "what": "Nextdoor \"Weekend events you'll love\" (Lake Forest Park Events)",
+      "address": "no-reply@rs.email.nextdoor.com",
+      "subject": "Weekend events you'll love",
+      "usually": "Clutter",
+      "when": "Thursdays around 8am"
+    },
+    {
+      "key": "third-place",
+      "what": "Third Place Commons newsletter",
+      "address": "director@thirdplacecommons.org",
+      "subject": "",
+      "usually": "Inbox",
+      "when": "about monthly"
+    },
+    {
+      "key": "brief",
+      "what": "Our own Daily Brief and Weekend & Ahead emails",
+      "address": "mark@wilkiefamily.net",
+      "subject": "",
+      "usually": "Inbox (also Sent Items)",
+      "when": "daily 6:30am; events Thu 5am and Sat 8am"
+    }
+  ]
+}

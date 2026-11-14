@@ -37,11 +37,11 @@ import urllib.error
 import urllib.request
 from contextlib import AsyncExitStack
 
-import msal
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
-import brief  # Graph settings, MCP URLs, log()
+import brief  # MCP URLs, log()
+import mail  # the one way to find mail (mail_sources.json)
 
 STATE = brief.SCRIPT_DIR.parent / "state" / "replies.json"
 ALLOWED_SENDERS = {"mark@wilkiefamily.net", "jennie@wilkiefamily.net"}
@@ -70,18 +70,7 @@ Bigger changes are made directly, not by reply."""
 # --- Graph -------------------------------------------------------------------
 
 def graph_token() -> str:
-    cache = msal.SerializableTokenCache()
-    cache.deserialize(brief.GRAPH_TOKEN_CACHE_PATH.read_text())
-    app = msal.PublicClientApplication(
-        brief.GRAPH_CLIENT_ID, authority=f"https://login.microsoftonline.com/{brief.GRAPH_TENANT_ID}", token_cache=cache
-    )
-    accounts = app.get_accounts()
-    result = app.acquire_token_silent(["Mail.Read", "Mail.Send"], account=accounts[0]) if accounts else None
-    if cache.has_state_changed:
-        brief.GRAPH_TOKEN_CACHE_PATH.write_text(cache.serialize())
-    if not result or "access_token" not in result:
-        raise RuntimeError("Graph token unavailable -- re-run graph_login.py")
-    return result["access_token"]
+    return mail.graph_token(("Mail.Read", "Mail.Send"))  # Send: the confirmation replies
 
 
 def graph(method: str, path: str, body: dict | None = None) -> dict:
@@ -119,17 +108,11 @@ def kind_of(subject: str) -> str | None:
 
 
 def new_replies(done: set[str]) -> list[dict]:
-    since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    found = []
-    for folder in ("inbox", "clutter"):
-        try:
-            data = graph("GET", f"/me/mailFolders/{folder}/messages?$top=50&$orderby=receivedDateTime%20desc"
-                                f"&$filter=receivedDateTime%20ge%20{since}&$select=id,subject,from,receivedDateTime")
-        except RuntimeError as exc:
-            brief.log(f"replies: can't list {folder}: {exc}")
-            continue
-        found += [m for m in data.get("value", []) if m["id"] not in done and kind_of(m.get("subject"))]
-    return sorted(found, key=lambda m: m["receivedDateTime"])
+    """Replies in every folder (mail.find), so one read and deleted before the
+    run still counts."""
+    hits = mail.find(days=LOOKBACK_DAYS, select="id,subject,from,receivedDateTime")
+    return sorted((m for m in hits if m["id"] not in done and kind_of(m.get("subject"))),
+                  key=lambda m: m["receivedDateTime"])
 
 
 def read_reply(message_id: str) -> tuple[bool, str, str]:

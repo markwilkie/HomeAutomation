@@ -38,7 +38,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import icalendar
-import msal
 import recurring_ical_events
 from dotenv import load_dotenv
 from mcp import ClientSession
@@ -46,6 +45,7 @@ from mcp.client.streamable_http import streamable_http_client
 from openai import OpenAI, RateLimitError
 
 import gcal_links  # shared with daily-brief-cc (copied in by setup-daily-brief-oai.sh)
+import mail  # the one way to find mail (mail_sources.json)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = SCRIPT_DIR.parent / "config"
@@ -64,9 +64,6 @@ NUDGE = ("That isn't what I asked for. This is my own personal email, built from
          "following the instructions. If one item is something you won't summarize, leave just that item out.")
 CALENDARS_PATH = Path(os.environ.get("CALENDARS_FILE", str(CONFIG_DIR / "calendars.json")))
 
-GRAPH_CLIENT_ID = os.environ.get("MS_CLIENT_ID", "d0f1f47d-77ee-494d-a63b-ee3afeb2fad1")
-GRAPH_TENANT_ID = os.environ.get("MS_TENANT_ID", "859244b7-6976-450f-92d4-352c7abd6601")
-GRAPH_TOKEN_CACHE_PATH = Path(os.environ.get("MS_TOKEN_CACHE", str(CONFIG_DIR / "graph_token_cache.json")))
 
 MCP_SERVERS = {
     "todo": os.environ.get("TODO_MCP_URL", "http://127.0.0.1:8600/mcp"),
@@ -376,34 +373,9 @@ def list_events(args: dict) -> str:
 # --- Outlook via Microsoft Graph --------------------------------------------
 
 
-def graph_token() -> str:
-    cache = msal.SerializableTokenCache()
-    cache.deserialize(GRAPH_TOKEN_CACHE_PATH.read_text())
-    app = msal.PublicClientApplication(
-        GRAPH_CLIENT_ID, authority=f"https://login.microsoftonline.com/{GRAPH_TENANT_ID}", token_cache=cache
-    )
-    accounts = app.get_accounts()
-    result = app.acquire_token_silent(["Mail.Read"], account=accounts[0]) if accounts else None
-    if cache.has_state_changed:
-        GRAPH_TOKEN_CACHE_PATH.write_text(cache.serialize())
-    if not result or "access_token" not in result:
-        raise RuntimeError("Graph Mail.Read token unavailable -- re-run graph_login.py")
-    return result["access_token"]
-
-
-def graph_get(path: str, params: dict | None = None) -> dict:
-    url = "https://graph.microsoft.com/v1.0" + path
-    if params:
-        url += "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(
-        url,
-        headers={"Authorization": f"Bearer {graph_token()}", "Prefer": 'outlook.body-content-type="text"'},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.load(resp)
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"Graph {exc.code}: {exc.read().decode('utf-8', 'replace')[:500]}") from exc
+# Mail access (token, Graph reads, folder-by-folder finding) lives in mail.py,
+# shared with replies.py and the email-lookup skill.
+graph_get = mail.graph_get
 
 
 # --- Mail backstop -----------------------------------------------------------
@@ -429,35 +401,14 @@ Most days nothing qualifies. Answer with JSON only:
 
 def mail_backstop() -> str:
     """One line for the brief's user message, or "" when nothing matters."""
-    since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # Folder by folder (a mailbox-wide from+date filter times out); the digest is
-    # often read and deleted or archived before the brief runs.
-    found = []
-    for folder in ("inbox", "deleteditems", "archive", "clutter"):
-        try:
-            data = graph_get(f"/me/mailFolders/{folder}/messages", {
-                "$filter": f"receivedDateTime ge {since}", "$orderby": "receivedDateTime desc",
-                "$select": "id,subject,from,receivedDateTime", "$top": "50"})
-        except RuntimeError:
-            continue
-        found += [m for m in data.get("value", [])
-                  if "informeddelivery.usps.com" in (((m.get("from") or {}).get("emailAddress") or {}).get("address") or "").lower()
-                  and "Daily Digest" in (m.get("subject") or "")]
-    digests = sorted(found, key=lambda m: m["receivedDateTime"])
-    if not digests:
+    digest = mail.latest("usps", days=1.25)  # ~30 hours: yesterday's delivery
+    if not digest:
         return ""
-    digest = digests[-1]
-    # Scans are named like 1000997928-006.jpg; mailer-*/content-* are USPS ride-along ads.
-    atts = graph_get(f"/me/messages/{digest['id']}/attachments", {"$select": "id,name,contentType"}).get("value", [])
-    scans = [a for a in atts if a.get("contentType", "").startswith("image/")
-             and not a["name"].startswith(("mailer-", "content-"))][:10]
+    scans = mail.usps_scans(digest["id"])
     if not scans:
         return ""
-    images = []
-    for a in scans:
-        full = graph_get(f"/me/messages/{digest['id']}/attachments/{a['id']}")
-        images.append({"type": "input_image", "detail": "low",
-                       "image_url": f"data:{a['contentType']};base64,{full['contentBytes']}"})
+    images = [{"type": "input_image", "detail": "low",
+               "image_url": f"data:{a['contentType']};base64,{a['contentBytes']}"} for a in scans]
     client = OpenAI(base_url=os.environ["AZURE_OPENAI_BASE_URL"], api_key=os.environ["AZURE_OPENAI_API_KEY"])
     r = client.responses.create(
         model=MODEL, reasoning={"effort": "low"}, max_output_tokens=2000,
@@ -472,8 +423,27 @@ def mail_backstop() -> str:
     return f" Mail to pick up (USPS scans, delivered {day}): {items}."
 
 
+def _message_row(m: dict) -> dict:
+    return {
+        "id": m["id"],
+        "subject": m.get("subject"),
+        "from": (m.get("from") or {}).get("emailAddress", {}).get("address"),
+        "received": m.get("receivedDateTime"),
+        "isRead": m.get("isRead"),
+        "preview": m.get("bodyPreview"),
+        **({"folder": m["folder"]} if "folder" in m else {}),
+    }
+
+
 def outlook_email_search(args: dict) -> str:
     folder = (args.get("folderName") or "Inbox").strip().lower()
+    sender = (args.get("sender") or "").strip()
+    if folder == "all" or sender:
+        # mail.find: every folder in mail_sources.json (or just this one), last
+        # `days`, by sender and/or subject text -- finds mail already deleted or archived.
+        hits = mail.find(sender or None, args.get("query") or None, float(args.get("days") or 8),
+                         folders=None if folder == "all" else [folder.replace(" ", "")])
+        return json.dumps({"folder": folder, "messages": [_message_row(m) for m in hits[:50]]})
     # Graph's well-known folder names have no spaces ("Sent Items" -> sentitems).
     folder = {"sent items": "sentitems", "sent": "sentitems", "junk email": "junkemail"}.get(folder, folder)
     top = min(int(args.get("top") or 25), 50)
@@ -547,12 +517,16 @@ LOCAL_TOOLS = {
     ),
     "outlook_email_search": (
         outlook_email_search,
-        "List Outlook messages in a folder, newest first (or by relevance when query is given). Each result has isRead.",
+        "List Outlook messages in a folder, newest first (or by relevance when query is given). Each result has isRead. "
+        "To find a particular message that may already be deleted or archived, use folderName \"all\" (Inbox, "
+        "Deleted Items, Archive and Clutter in one call) and/or sender; then query matches subject text.",
         {
             "type": "object",
             "properties": {
-                "folderName": {"type": "string", "description": "e.g. Inbox, Clutter, Sent Items, JunkEmail"},
+                "folderName": {"type": "string", "description": "e.g. Inbox, Clutter, Sent Items, JunkEmail, or all"},
                 "query": {"type": "string", "description": "Optional search text, e.g. a subject"},
+                "sender": {"type": "string", "description": "Optional sender address or domain, e.g. no-reply@rs.email.nextdoor.com"},
+                "days": {"type": "number", "description": "With all or sender: how far back, default 8"},
                 "top": {"type": "integer", "description": "Max messages, default 25, max 50"},
             },
             "required": ["folderName"],
