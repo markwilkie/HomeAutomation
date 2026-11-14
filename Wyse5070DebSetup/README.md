@@ -262,6 +262,12 @@ error, not a UI.
   Trilium note "Events Taste Profile"; calendar links are written as
   `gcal:` short forms and expanded by `gcal_links.py`. Falls back to
   daily-brief-cc's `run.sh` with the same prompt.
+  Replies: `replies.py` runs first in both `run.sh` and `run_events.sh`.
+  A reply from Mark or Jennie (sent from inside the tenant) to a "Daily
+  Brief" or "Weekend & Ahead" email updates the Trilium note "Daily Brief
+  Preferences" or "Events Taste Profile" (never the prompt), and a reply in
+  the thread confirms what changed. Processed ids in
+  `state/replies-processed.json`.
 - **daily-brief** (disabled 2026-09-22, kept for reference/rollback) — the
   original implementation: same idea, but driven by the Anthropic API
   directly (a metered `ANTHROPIC_API_KEY`, Sonnet 5, manual prompt-caching)

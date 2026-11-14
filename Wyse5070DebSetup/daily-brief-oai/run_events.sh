@@ -56,6 +56,9 @@ else
   SUBJECT="Weekend & Ahead (updated): $(date +'%a %b %-d')"
 fi
 
+# Replies to earlier emails first, so they shape this one. Never blocks the email.
+venv/bin/python replies.py ${DRY} || echo "[$(date -Iseconds)] replies.py failed; continuing" >&2
+
 echo "[$(date -Iseconds)] Events email (${MODE}) via Azure OpenAI; previous: ${PREVIOUS:-none}"
 
 set +e

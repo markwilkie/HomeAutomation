@@ -14,6 +14,13 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# Replies to earlier emails first, so they shape this one. Never blocks the brief.
+if [ "${1:-}" = "--dry-run" ]; then
+  venv/bin/python replies.py --dry-run || echo "[$(date -Iseconds)] replies.py failed; continuing" >&2
+else
+  venv/bin/python replies.py || echo "[$(date -Iseconds)] replies.py failed; continuing" >&2
+fi
+
 echo "[$(date -Iseconds)] Generating brief via Azure OpenAI..."
 
 ERR_LOG="$(mktemp)"

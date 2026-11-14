@@ -42,6 +42,13 @@ to follow.
 
 # Part A — Gather
 
+## Our preferences
+First, read the top-level Trilium note "Daily Brief Preferences"
+(`search_notes` for that title, then `get_note`). It holds what we've asked
+for more or less of, often from our replies to this email. Follow it when
+deciding what to include and what to leave out; it overrides the defaults
+below on content, but not the format or the section rules.
+
 ## Sober count
 If the user message gives a "Sober count", use its numbers exactly.
 Otherwise get the top-level Trilium note titled "Sober" (`search_notes`
