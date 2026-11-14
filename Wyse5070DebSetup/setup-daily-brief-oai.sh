@@ -56,14 +56,14 @@ python3 -m venv "${APP_DIR}/venv"
 # Tests run against the repo before anything is copied: a failure leaves the
 # deployed brief exactly as it was.
 echo "==> Running tests (daily-brief/tests)"
-if ! (cd "${BRIEF_SRC}" && "${APP_DIR}/venv/bin/python" -m pytest -q -p no:cacheprovider tests); then
+if ! (cd "${BRIEF_SRC}" && "${APP_DIR}/venv/bin/python" -B -m pytest -q -p no:cacheprovider tests); then
   echo "!! Tests failed -- nothing was deployed."
   exit 1
 fi
 
 echo "==> Copying daily-brief/azure + shared + prompts into ${APP_DIR}"
 cp "${BRIEF_SRC}"/azure/*.py "${BRIEF_SRC}"/azure/*.sh "${BRIEF_SRC}/azure/requirements.txt" "${APP_DIR}/"
-cp "${BRIEF_SRC}"/shared/* "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
+cp "${BRIEF_SRC}"/shared/*.py "${BRIEF_SRC}"/shared/*.json "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
 # Generated prompt file (jobs.json lists it after prompt.md / events.md): the same
 # mail-finding rules as mail.py, from mail_sources.json. Deployed prompts stay identical to the repo.
 python3 "${APP_DIR}/mail_guide.py" > "${APP_DIR}/mail_guide.md"

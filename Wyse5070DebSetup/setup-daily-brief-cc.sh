@@ -67,7 +67,7 @@ fi
 OAI_PY="/mnt/data/appdata/daily-brief-oai/app/venv/bin/python"
 if [ -x "${OAI_PY}" ] && "${OAI_PY}" -c "import pytest" 2>/dev/null; then
   echo "==> Running tests (daily-brief/tests)"
-  if ! (cd "${BRIEF_SRC}" && "${OAI_PY}" -m pytest -q -p no:cacheprovider tests); then
+  if ! (cd "${BRIEF_SRC}" && "${OAI_PY}" -B -m pytest -q -p no:cacheprovider tests); then
     echo "!! Tests failed -- nothing was deployed."
     exit 1
   fi
@@ -76,7 +76,8 @@ else
 fi
 
 echo "==> Copying daily-brief/claude + shared + prompts + weekly_health_check.sh into ${APP_DIR}"
-cp "${BRIEF_SRC}"/claude/* "${BRIEF_SRC}"/shared/* "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
+cp "${BRIEF_SRC}"/claude/*.sh "${BRIEF_SRC}"/claude/*.py "${BRIEF_SRC}"/claude/*.json "${BRIEF_SRC}"/claude/requirements.txt \
+   "${BRIEF_SRC}"/shared/*.py "${BRIEF_SRC}"/shared/*.json "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
 # Generated prompt file (jobs.json lists it after prompt.md / events.md): the same
 # mail-finding rules as mail.py, from mail_sources.json. Deployed prompts stay identical to the repo.
 python3 "${APP_DIR}/mail_guide.py" > "${APP_DIR}/mail_guide.md"
