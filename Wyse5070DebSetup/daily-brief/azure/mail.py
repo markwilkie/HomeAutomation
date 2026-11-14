@@ -36,7 +36,10 @@ GRAPH_CLIENT_ID = os.environ.get("MS_CLIENT_ID", "d0f1f47d-77ee-494d-a63b-ee3afe
 GRAPH_TENANT_ID = os.environ.get("MS_TENANT_ID", "859244b7-6976-450f-92d4-352c7abd6601")
 GRAPH_TOKEN_CACHE_PATH = Path(os.environ.get("MS_TOKEN_CACHE", str(CONFIG_DIR / "graph_token_cache.json")))
 
-SOURCES = json.loads((SCRIPT_DIR / "mail_sources.json").read_text(encoding="utf-8"))
+# Deployed next to this file; in the repo (tests) it's in ../shared.
+_SOURCES_PATH = next(p for p in (SCRIPT_DIR / "mail_sources.json", SCRIPT_DIR.parent / "shared" / "mail_sources.json")
+                     if p.exists())
+SOURCES = json.loads(_SOURCES_PATH.read_text(encoding="utf-8"))
 FOLDERS = [f["graph"] for f in SOURCES["folders"]]
 SENDERS = {s["key"]: s for s in SOURCES["senders"]}
 

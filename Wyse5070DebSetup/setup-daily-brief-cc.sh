@@ -62,6 +62,19 @@ if [ ! -f "${CONFIG_DIR}/.env" ]; then
   exit 1
 fi
 
+# Same tests as setup-daily-brief-oai.sh (the shared files deploy here too),
+# using that deploy's venv when it exists.
+OAI_PY="/mnt/data/appdata/daily-brief-oai/app/venv/bin/python"
+if [ -x "${OAI_PY}" ] && "${OAI_PY}" -c "import pytest" 2>/dev/null; then
+  echo "==> Running tests (daily-brief/tests)"
+  if ! (cd "${BRIEF_SRC}" && "${OAI_PY}" -m pytest -q -p no:cacheprovider tests); then
+    echo "!! Tests failed -- nothing was deployed."
+    exit 1
+  fi
+else
+  echo "    (tests skipped: run setup-daily-brief-oai.sh first to create the test venv)"
+fi
+
 echo "==> Copying daily-brief/claude + shared + prompts + weekly_health_check.sh into ${APP_DIR}"
 cp "${BRIEF_SRC}"/claude/* "${BRIEF_SRC}"/shared/* "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
 # Same mail-finding rules as daily-brief-oai (mail_sources.json), as a prompt section.

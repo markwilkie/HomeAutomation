@@ -48,17 +48,25 @@ if [ ! -f "${CONFIG_DIR}/.env" ]; then
   exit 1
 fi
 
+echo "==> Creating/updating venv at ${APP_DIR}/venv"
+python3 -m venv "${APP_DIR}/venv"
+"${APP_DIR}/venv/bin/pip" install --quiet --upgrade pip
+"${APP_DIR}/venv/bin/pip" install --quiet -r "${BRIEF_SRC}/azure/requirements.txt" pytest
+
+# Tests run against the repo before anything is copied: a failure leaves the
+# deployed brief exactly as it was.
+echo "==> Running tests (daily-brief/tests)"
+if ! (cd "${BRIEF_SRC}" && "${APP_DIR}/venv/bin/python" -m pytest -q -p no:cacheprovider tests); then
+  echo "!! Tests failed -- nothing was deployed."
+  exit 1
+fi
+
 echo "==> Copying daily-brief/azure + shared + prompts into ${APP_DIR}"
 cp "${BRIEF_SRC}"/azure/*.py "${BRIEF_SRC}"/azure/*.sh "${BRIEF_SRC}/azure/requirements.txt" "${APP_DIR}/"
 cp "${BRIEF_SRC}"/shared/* "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
 # One set of mail-finding rules (mail_sources.json) for the code (mail.py) and both prompts.
 for f in prompt.md events.md; do python3 "${APP_DIR}/mail_guide.py" >> "${APP_DIR}/${f}"; done
 chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/run_events.sh"
-
-echo "==> Creating/updating venv at ${APP_DIR}/venv"
-python3 -m venv "${APP_DIR}/venv"
-"${APP_DIR}/venv/bin/pip" install --quiet --upgrade pip
-"${APP_DIR}/venv/bin/pip" install --quiet -r "${APP_DIR}/requirements.txt"
 
 echo ""
 echo "==> Done."
