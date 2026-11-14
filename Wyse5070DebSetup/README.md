@@ -264,13 +264,11 @@ error, not a UI.
   daily-brief-cc's `run.sh` with the same prompt.
   Replies: `replies.py` runs first in both `run.sh` and `run_events.sh`.
   A reply from Mark or Jennie (sent from inside the tenant) to a "Daily
-  Brief" or "Weekend & Ahead" email updates the Trilium note "Daily Brief
-  Preferences" or "Events Taste Profile" (never the prompt), and a reply in
-  the thread confirms what changed. Replies asking for anything costlier,
-  structural, sweeping or odd (or that would rewrite more than 6 lines of
-  the note) are refused with a reply saying to make the change directly.
-  Processed ids in
-  `state/replies-processed.json`.
+  Brief" or "Weekend & Ahead" email can hold commands, one per line:
+  `skip <thing>`, `more <thing>`, `undo`, `show`. They edit the Trilium
+  note "Daily Brief Preferences" or "Events Taste Profile" (never the
+  prompt); no model reads replies. Anything else gets a help email; every
+  change gets a confirmation. State in `state/replies.json`.
 - **daily-brief** (disabled 2026-09-22, kept for reference/rollback) — the
   original implementation: same idea, but driven by the Anthropic API
   directly (a metered `ANTHROPIC_API_KEY`, Sonnet 5, manual prompt-caching)

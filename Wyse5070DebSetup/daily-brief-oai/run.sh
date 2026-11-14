@@ -45,6 +45,6 @@ if [ "${1:-}" = "--dry-run" ]; then
   echo ""
   echo "$BRIEF"
 else
-  FOOTER="_Want more or less of something? Reply to this email and say so (for example “less about Monarch reconnects”). Replies from Mark or Jennie update the brief from the next morning on. Replies are for small tweaks; bigger changes are made directly._"
+  FOOTER="_To adjust the brief, reply with one command per line: **skip** thing · **more** thing · **undo** · **show**. For example: “skip ice skating”. Bigger changes are made directly, not by reply._"
   printf '%s\n\n---\n\n%s\n' "$BRIEF" "$FOOTER" | venv/bin/python send_mail.py --subject "Daily Brief (OpenAI)" --also-to jennie@wilkiefamily.net
 fi
