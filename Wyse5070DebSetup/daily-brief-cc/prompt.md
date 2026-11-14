@@ -236,16 +236,20 @@ run-to-run):
 - Seattle-area general news (separate from events)
 - Seattle-area weekend/upcoming events (its own search — never collapse
   it into the news search)
-- One dedicated search each for Lake Forest Park, Edmonds, Woodinville,
-  Shoreline, and Lynnwood events (e.g. "Edmonds WA events this week") —
+- One dedicated search each for Lake Forest Park, Edmonds, Woodinville, Bothell,
+  Snohomish, Ballard, Shoreline, and Lynnwood events (e.g. "Edmonds WA events this week") —
   never fold two towns into one query or skip a town because the Seattle
   search mentioned it.
 - Today's weather: conditions plus the actual forecast high/low in °F
   (real numbers, not "low 60s").
 
-Include hyperlocal finds even if minor (farmers markets, community
-meetings, small festivals). Event window, by today's day of week (from
-the user message):
+Pick events by our taste, not everything found. Read the trilium note
+"Events Taste Profile" (`search_notes` for that title, then `get_note`)
+every run; it says which areas we go to, what we like and what we skip.
+Keep every event that fits it, with no cap on how many; drop the rest.
+For music, an artist in the "Music Taste Profile" note fits anywhere.
+If nothing fits, say "No events that fit." rather than
+padding. Event window, by today's day of week (from the user message):
 - Sunday through Wednesday: only events today or tomorrow.
 - Thursday through Saturday: only events from today through the end of
   this Sunday.
@@ -257,7 +261,7 @@ On Fridays and Saturdays, also `outlook_email_search` for this week's
 events. It arrives Thursday around 8am, after the brief, so Thursday's
 brief can't use it. Outlook files it in Clutter, so search `folderName`
 "Clutter" as well as "Inbox". Use it only if it arrived this Thursday;
-read it with `read_resource` and add its events that fall in the event
+read it with `read_resource` and add its events that fit our taste and the event
 window, skipping duplicates and obviously broken/spam entries.
 
 ## Concerts (Thursdays only)
