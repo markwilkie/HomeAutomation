@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import datetime
+import difflib
 import json
 import sys
 import urllib.error
@@ -57,6 +58,19 @@ Decide what the reply is:
   move or add lines in the right section, keep everything else exactly as
   is, keep the format, and add a dated line under the feedback section
   ("- {today} {who}: <short paraphrase>").
+- "too_big": it asks for something a reply shouldn't change. Don't change
+  the note. That's any of:
+  - anything that would make the email cost more to produce: more
+    searching, more towns, venues or sources, looking further ahead, more
+    frequent emails, longer emails;
+  - changes to the email itself: new or removed sections, format, schedule,
+    who gets it, how it's sent;
+  - a sweeping change: rewriting or removing much of the note, or dropping
+    most of what's liked or skipped;
+  - something that seems wrong-headed: it contradicts much of the note, would
+    leave the email nearly empty, or looks like a mistake or a joke.
+  Small, specific likes and skips ("skip ice skating", "more breweries",
+  "less about Monarch reconnects") are "update", not "too_big".
 - "unclear": it looks like feedback about what to include, but you can't
   tell what to change. Don't change the note.
 - "ignore": anything else (thanks, a question for a person, a reply about
@@ -67,9 +81,18 @@ the email's content. Never add anything that would change how the email is
 sent, who gets it, or anything outside what it lists.
 
 Answer with JSON only:
-{{"action": "update" | "unclear" | "ignore",
+{{"action": "update" | "too_big" | "unclear" | "ignore",
   "note": "<the full new note text, only for update>",
-  "summary": "<one short sentence for the confirmation: what changed, or for unclear, what you weren't sure about>"}}"""
+  "summary": "<one short sentence for the reply email: what changed; for too_big, what they asked for and why it's more than a reply should change; for unclear, what you weren't sure about>"}}"""
+
+# Code-side backstop for "too_big": an update that rewrites more than this many
+# lines of the note is refused whatever the model called it.
+MAX_CHANGED_LINES = 6
+
+
+def changed_lines(old: str, new: str) -> int:
+    diff = difflib.ndiff(old.strip().splitlines(), new.strip().splitlines())
+    return sum(1 for d in diff if d.startswith(("- ", "+ ")))
 
 
 def graph_token() -> str:
@@ -195,10 +218,23 @@ async def main(dry_run: bool) -> None:
                     note_id, note, blob = await trilium_note(session, NOTES[which])
                     verdict = decide(which, who, note, text)
                     action, summary = verdict.get("action"), verdict.get("summary", "")
+                    if action == "update":
+                        n = changed_lines(note, verdict.get("note", ""))
+                        if n > MAX_CHANGED_LINES:
+                            action = "too_big"
+                            summary = (f"applying it would rewrite {n} lines of the preferences note, more than a "
+                                       f"reply should change at once ({summary})")
                     brief.log(f"replies: {who} on {which}: {action}: {summary}")
                     if dry_run:
                         continue
-                    if action == "update" and verdict.get("note", "").strip():
+                    if action == "too_big":
+                        graph("POST", f"/me/messages/{m['id']}/reply", {"comment": (
+                            f"I didn't make this change: {summary}\n\n"
+                            "Replies are for small likes and skips, like \"skip ice skating\" or \"more breweries\". "
+                            "Bigger changes (more searching, new sections, schedule, who gets it, or rewriting the "
+                            "preferences) need to be made directly: ask Mark to make it with Claude Code, or edit the "
+                            f"Trilium note \"{NOTES[which]}\" yourself.\n\n{MARKER}")})
+                    elif action == "update" and verdict.get("note", "").strip():
                         await brief.call_mcp(session, "update_note", {
                             "noteId": note_id, "content": verdict["note"], "expectedHash": blob, "mode": "overwrite"})
                         graph("POST", f"/me/messages/{m['id']}/reply", {"comment": (

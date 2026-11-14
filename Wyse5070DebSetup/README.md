@@ -266,7 +266,10 @@ error, not a UI.
   A reply from Mark or Jennie (sent from inside the tenant) to a "Daily
   Brief" or "Weekend & Ahead" email updates the Trilium note "Daily Brief
   Preferences" or "Events Taste Profile" (never the prompt), and a reply in
-  the thread confirms what changed. Processed ids in
+  the thread confirms what changed. Replies asking for anything costlier,
+  structural, sweeping or odd (or that would rewrite more than 6 lines of
+  the note) are refused with a reply saying to make the change directly.
+  Processed ids in
   `state/replies-processed.json`.
 - **daily-brief** (disabled 2026-09-22, kept for reference/rollback) — the
   original implementation: same idea, but driven by the Anthropic API
