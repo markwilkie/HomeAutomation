@@ -406,6 +406,63 @@ def graph_get(path: str, params: dict | None = None) -> dict:
         raise RuntimeError(f"Graph {exc.code}: {exc.read().decode('utf-8', 'replace')[:500]}") from exc
 
 
+# --- Mail backstop -----------------------------------------------------------
+# USPS Informed Delivery scans, checked once a day as a backstop so important
+# paper mail doesn't sit in the mailbox (user, 2026-11-14). The digest arrives
+# ~7:15am, after the brief, so each morning looks at the latest digest from
+# the last ~30 hours: yesterday's mail. A separate small call with low-detail
+# images, not a tool in the brief's loop (images there would be re-sent every
+# turn). Most days it finds nothing and the brief says nothing.
+
+MAIL_BACKSTOP_PROMPT = """These are USPS scans of envelopes delivered to a household
+(Mark, Jennie, and their grown kids, e.g. Hannah). List only pieces someone should
+be sure to pick up and open soon:
+- personal mail: handwritten address, a card or letter from a person;
+- government or courts: IRS, Social Security, DMV, jury duty, tax forms, ballots;
+- real account mail: a statement, notice, check, new card or legal letter from a
+  bank, insurer, employer, doctor or utility (not an offer or ad from them).
+Everything else is junk and must be left out: ads, offers, catalogs, "pre-approved"
+or discount mailers, insurance or credit solicitations, donation requests.
+Most days nothing qualifies. Answer with JSON only:
+{"important": [{"to": "<addressee first name>", "what": "<few words, e.g. handwritten letter, postmarked Seattle>"}]}"""
+
+
+def mail_backstop() -> str:
+    """One line for the brief's user message, or "" when nothing matters."""
+    since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    data = graph_get("/me/messages", {
+        "$filter": f"from/emailAddress/address eq 'USPSInformeddelivery@email.informeddelivery.usps.com' and receivedDateTime ge {since}",
+        "$select": "id,subject,receivedDateTime", "$top": "5"})
+    digests = sorted((m for m in data.get("value", []) if "Daily Digest" in (m.get("subject") or "")),
+                     key=lambda m: m["receivedDateTime"])
+    if not digests:
+        return ""
+    digest = digests[-1]
+    # Scans are named like 1000997928-006.jpg; mailer-*/content-* are USPS ride-along ads.
+    atts = graph_get(f"/me/messages/{digest['id']}/attachments", {"$select": "id,name,contentType"}).get("value", [])
+    scans = [a for a in atts if a.get("contentType", "").startswith("image/")
+             and not a["name"].startswith(("mailer-", "content-"))][:10]
+    if not scans:
+        return ""
+    images = []
+    for a in scans:
+        full = graph_get(f"/me/messages/{digest['id']}/attachments/{a['id']}")
+        images.append({"type": "input_image", "detail": "low",
+                       "image_url": f"data:{a['contentType']};base64,{full['contentBytes']}"})
+    client = OpenAI(base_url=os.environ["AZURE_OPENAI_BASE_URL"], api_key=os.environ["AZURE_OPENAI_API_KEY"])
+    r = client.responses.create(
+        model=MODEL, reasoning={"effort": "low"}, max_output_tokens=2000,
+        input=[{"role": "user", "content": [{"type": "input_text", "text": MAIL_BACKSTOP_PROMPT}, *images]}])
+    text = (r.output_text or "").strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    important = json.loads(text).get("important") or []
+    day = digest["subject"].split("for ")[-1].split(" is")[0]  # "Sat, 11/14"
+    log(f"  mail backstop: {len(scans)} scans from {day}, {len(important)} important, usage={r.usage and (r.usage.input_tokens, r.usage.output_tokens)}")
+    if not important:
+        return ""
+    items = "; ".join(f"{i.get('what', 'mail')} for {i.get('to', '?')}" for i in important)
+    return f" Mail to pick up (USPS scans, delivered {day}): {items}."
+
+
 def outlook_email_search(args: dict) -> str:
     folder = (args.get("folderName") or "Inbox").strip().lower()
     # Graph's well-known folder names have no spaces ("Sent Items" -> sentitems).
@@ -592,6 +649,11 @@ async def generate_brief(prompt_text: str, request: str | None = None, sober: bo
                 next_input += await events_taste(sessions["trilium"])
             except Exception as exc:
                 log(f"WARN: could not read the taste notes: {exc}")
+        if sober:  # the daily brief, not the events email
+            try:
+                next_input += mail_backstop()
+            except Exception as exc:
+                log(f"WARN: mail backstop failed: {exc}")
         if sober and "trilium" in sessions:
             try:
                 sober = await sober_line(sessions["trilium"])

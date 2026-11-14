@@ -288,6 +288,9 @@ bullet ending or starting with the source in parentheses ("(text)",
 4. Other actions: RSVPs, cases waiting on me, homework/forms, real
    overdue bills, alerts I should act on (e.g. a budget overrun), and
    crew-event asks for events NOT in the ⛵ callout.
+5. If the user message has a "Mail to pick up" line, one bullet:
+   "Mailbox: <what> for <who> (delivered <day>) (USPS)". Otherwise never
+   mention postal mail or Informed Delivery anywhere in the brief.
 
 ### ⏳ Waiting on others
 Each bullet: who, then "you asked" and what in a few words, when I first
