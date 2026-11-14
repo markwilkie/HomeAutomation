@@ -430,11 +430,20 @@ Most days nothing qualifies. Answer with JSON only:
 def mail_backstop() -> str:
     """One line for the brief's user message, or "" when nothing matters."""
     since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    data = graph_get("/me/messages", {
-        "$filter": f"from/emailAddress/address eq 'USPSInformeddelivery@email.informeddelivery.usps.com' and receivedDateTime ge {since}",
-        "$select": "id,subject,receivedDateTime", "$top": "5"})
-    digests = sorted((m for m in data.get("value", []) if "Daily Digest" in (m.get("subject") or "")),
-                     key=lambda m: m["receivedDateTime"])
+    # Folder by folder (a mailbox-wide from+date filter times out); the digest is
+    # often read and deleted or archived before the brief runs.
+    found = []
+    for folder in ("inbox", "deleteditems", "archive", "clutter"):
+        try:
+            data = graph_get(f"/me/mailFolders/{folder}/messages", {
+                "$filter": f"receivedDateTime ge {since}", "$orderby": "receivedDateTime desc",
+                "$select": "id,subject,from,receivedDateTime", "$top": "50"})
+        except RuntimeError:
+            continue
+        found += [m for m in data.get("value", [])
+                  if "informeddelivery.usps.com" in (((m.get("from") or {}).get("emailAddress") or {}).get("address") or "").lower()
+                  and "Daily Digest" in (m.get("subject") or "")]
+    digests = sorted(found, key=lambda m: m["receivedDateTime"])
     if not digests:
         return ""
     digest = digests[-1]
