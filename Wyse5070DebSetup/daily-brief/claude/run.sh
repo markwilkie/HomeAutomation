@@ -41,14 +41,25 @@ unset CLAUDE_CODE_OAUTH_TOKEN
 TODAY="$(date +%Y-%m-%d)"
 WEEKDAY="$(date +%A)"
 
-# daily-brief/azure/run_events.sh reuses this script as the fallback for the
-# weekly events email by setting these; unset, it's the daily brief.
-PROMPT_FILE="${BRIEF_PROMPT_FILE:-prompt.md}"
+# daily-brief/azure/run.py hands any job here as its fallback by setting these
+# BRIEF_* variables; unset, it's the daily brief, from jobs.json's "brief" job.
+job() { python3 -c 'import json,sys; c=json.load(open("jobs.json")); j=c["jobs"]["brief"]
+v={"prompts":" ".join(j["prompts"]),"subject":j["fallback_subject"],"fail":j["fail_subject"],
+   "footer":c["footer"].format(what=j["footer_what"]),"also":" ".join(c["also_to"])}[sys.argv[1]]; print(v)' "$1"; }
+PROMPT_FILES="${BRIEF_PROMPT_FILES:-$(job prompts)}"
 REQUEST="Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}."
 REQUEST="${BRIEF_REQUEST:-${REQUEST}}"
-SUBJECT="${BRIEF_SUBJECT:-Daily Brief (Claude Code)}"
+SUBJECT="${BRIEF_SUBJECT:-$(job subject)}"
+FAIL_SUBJECT="${BRIEF_FAIL_SUBJECT:-$(job fail)}"
+FOOTER="${BRIEF_FOOTER:-$(job footer)}"
+ALSO_TO="${BRIEF_ALSO_TO:-$(job also)}"
 
-echo "[$(date -Iseconds)] Generating ${PROMPT_FILE} via Claude Code CLI..."
+# claude takes one system-prompt file: join the job's prompt files.
+PROMPT_FILE="$(mktemp)"
+trap 'rm -f "${PROMPT_FILE}"' EXIT
+for f in ${PROMPT_FILES}; do cat "${f}"; echo; done > "${PROMPT_FILE}"
+
+echo "[$(date -Iseconds)] Generating (${PROMPT_FILES}) via Claude Code CLI..."
 
 # No --bare: confirmed by testing that it forces API-key-only auth and
 # explicitly disables OAuth token auth ("OAuth and keychain are never
@@ -106,7 +117,7 @@ ${BRIEF}"
     echo ""
     echo "${FALLBACK}"
   else
-    echo "${FALLBACK}" | venv/bin/python send_mail.py --subject "Daily Brief FAILED - action needed"
+    echo "${FALLBACK}" | venv/bin/python send_mail.py --subject "${FAIL_SUBJECT}"
   fi
   exit 1
 fi
@@ -123,10 +134,7 @@ if [ "${1:-}" = "--dry-run" ]; then
   echo "$BRIEF"
 else
   if [ -n "${BRIEF_SAVE_TO:-}" ]; then echo "$BRIEF" > "${BRIEF_SAVE_TO}"; fi
-  if [ "${PROMPT_FILE}" = "events.md" ]; then
-    FOOTER="_To adjust these picks, reply with one command per line: **skip** thing · **more** thing · **undo** · **show**. For example: “skip ice skating”. Bigger changes are made directly, not by reply._"
-  else
-    FOOTER="_To adjust the brief, reply with one command per line: **skip** thing · **more** thing · **undo** · **show**. For example: “skip ice skating”. Bigger changes are made directly, not by reply._"
-  fi
-  printf '%s\n\n---\n\n%s\n' "$BRIEF" "$FOOTER" | venv/bin/python send_mail.py --subject "${SUBJECT}" --also-to jennie@wilkiefamily.net
+  ALSO_ARGS=()
+  for a in ${ALSO_TO}; do ALSO_ARGS+=(--also-to "$a"); done
+  printf '%s\n\n---\n\n%s\n' "$BRIEF" "$FOOTER" | venv/bin/python send_mail.py --subject "${SUBJECT}" "${ALSO_ARGS[@]}"
 fi

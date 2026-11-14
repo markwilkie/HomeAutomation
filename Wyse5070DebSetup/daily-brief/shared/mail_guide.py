@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Render the "Where to find mail" prompt section from mail_sources.json.
 
-The setup scripts append it to the deployed prompt.md and events.md, so the
-Azure brief and the Claude fallback follow the same folder rules as the code
+The setup scripts write it to mail_guide.md next to the deployed prompts (jobs.json
+lists it for each job), so the Azure brief and the Claude fallback follow the same folder rules as the code
 in daily-brief/azure/mail.py. Standard library only (runs with system python3).
 
-Usage: python3 mail_guide.py >> prompt.md
+Usage: python3 mail_guide.py > mail_guide.md
 """
 
 import json

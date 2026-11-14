@@ -21,7 +21,6 @@ Prints the brief (Markdown) on stdout; run.sh pipes it into send_mail.py.
 Per-turn token usage goes to stderr (the cron log) to track credit burn.
 """
 
-import argparse
 import asyncio
 import datetime
 import html
@@ -589,8 +588,24 @@ async def events_taste(session: ClientSession) -> str:
             + " · ".join(artists))
 
 
-async def generate_brief(prompt_text: str, request: str | None = None, sober: bool = True,
-                         taste_notes: bool = False) -> str:
+async def _prefetch(name: str, sessions: dict) -> str:
+    """Text added to the first message, gathered in code before the model runs
+    (jobs.json "prefetch"): cheaper and steadier than a tool call."""
+    if name == "mail_backstop":
+        return mail_backstop()
+    if name == "sober" and "trilium" in sessions:
+        sober = await sober_line(sessions["trilium"])
+        return f" Sober count: {sober}." if sober else ""
+    if name == "taste_notes" and "trilium" in sessions:
+        return await events_taste(sessions["trilium"])
+    return ""
+
+
+# Token totals of the last generate_brief call, for the runner's cost line.
+LAST_USAGE: dict = {}
+
+
+async def generate_brief(prompt_text: str, request: str | None = None, prefetch: tuple[str, ...] = ()) -> str:
     client = OpenAI(
         base_url=os.environ["AZURE_OPENAI_BASE_URL"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -627,23 +642,11 @@ async def generate_brief(prompt_text: str, request: str | None = None, sober: bo
         tools.append(web_search_tool())
 
         next_input = request or f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
-        if taste_notes and "trilium" in sessions:
+        for name in prefetch:
             try:
-                next_input += await events_taste(sessions["trilium"])
-            except Exception as exc:
-                log(f"WARN: could not read the taste notes: {exc}")
-        if sober:  # the daily brief, not the events email
-            try:
-                next_input += mail_backstop()
-            except Exception as exc:
-                log(f"WARN: mail backstop failed: {exc}")
-        if sober and "trilium" in sessions:
-            try:
-                sober = await sober_line(sessions["trilium"])
-                if sober:
-                    next_input += f" Sober count: {sober}."
-            except Exception as exc:
-                log(f"WARN: could not read the Sober note: {exc}")
+                next_input += await _prefetch(name, sessions)
+            except Exception as exc:  # a missing extra never stops the email
+                log(f"WARN: prefetch {name} failed: {exc}")
         previous_id = None
         nudged = False
         totals = {"input": 0, "cached": 0, "output": 0}
@@ -686,6 +689,8 @@ async def generate_brief(prompt_text: str, request: str | None = None, sober: bo
                     next_input = NUDGE
                     continue
                 log(f"  total tokens: {totals}")
+                LAST_USAGE.clear()
+                LAST_USAGE.update(totals)
                 return text
 
             outputs = []
@@ -720,49 +725,6 @@ def root_cause(exc: BaseException) -> BaseException:
     return exc
 
 
-# prompt.md is shared with daily-brief-cc. Two things this model needs
-# spelled out that Claude doesn't:
-#  - The Google connector sees more calendars (Birthdays, Vitality) than
-#    have iCal feeds here -- deliberately skipped (2026-10-08), so don't let
-#    the brief flag them as missing daily.
-#  - On the same prompt, the first side-by-side (2026-10-08) came back much
-#    thinner than Claude's: ~18 searches vs several dozen, 6 local events vs
-#    ~25, 4 concerts vs 11, 3 emails vs 8, intraday market quotes, and no
-#    cross-referencing in "Anything else". It stops once a section has something.
-PROMPT_ADDENDUM = """
-
-Notes for this run:
-
-- Calendar: list_calendars returns every calendar that's available. Check
-  those and only those -- calendars named above that it doesn't return are
-  intentionally not connected, so never mention them as missing.
-
-- Thoroughness: this brief is judged on coverage, not brevity of research.
-  Don't stop searching once a section has something in it. Aim for 15+ web
-  searches overall (events and concerts are in a separate weekly email now). In particular:
-  - Email: search both Inbox and Clutter every run. Judge each message
-    from its subject, sender and preview -- don't open messages with
-    read_resource. If a subject looks
-    important or relevant, include it, read or unread, whichever folder.
-    Include anything actionable or time-sensitive -- alerts (water,
-    security, data breach), bills and due dates, interview or appointment
-    changes. Only drop true newsletters/promotions.
-  - News: at least 5 distinct national/world stories, from 2+ searches.
-  - Market snapshot: use the most recent official closing prices (the
-    previous trading day's close if the market hasn't closed today), not
-    intraday quotes, and cite a source that actually shows each figure.
-  - To Do: the todo get-task-lists/get-tasks tools named above aren't
-    available here. Call todo_due_tasks once instead -- it already sweeps
-    every list. The To Do section is its overdue/today tasks plus the
-    Important list (tasks with important=true).
-  - Cross-reference what you gathered -- e.g. balances vs bills coming
-    due, an alert vs an open to-do, a cancelled plan still on the
-    calendar, account connections that need attention in Monarch -- and
-    put each finding in the one section where it belongs (there is no
-    "anything else" section).
-"""
-
-
 def events_request(mode: str, previous: Path | None) -> str:
     """The user message for the weekly events email (events.md)."""
     today = datetime.datetime.now(TZ).date()
@@ -773,25 +735,5 @@ def events_request(mode: str, previous: Path | None) -> str:
     return msg
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Daily brief, or the weekly events email (--events).")
-    parser.add_argument("--events", choices=["full", "refresh"], help="write the events email (events.md) instead of the brief")
-    parser.add_argument("--previous", type=Path, help="events: the earlier email to build on")
-    args = parser.parse_args()
-    try:
-        if args.events:
-            text = asyncio.run(generate_brief((SCRIPT_DIR / "events.md").read_text(),
-                                              events_request(args.events, args.previous), sober=False, taste_notes=True))
-        else:
-            text = asyncio.run(generate_brief((SCRIPT_DIR / "prompt.md").read_text() + PROMPT_ADDENDUM))
-    except BaseException as exc:
-        cause = root_cause(exc)
-        log(f"ERROR: {type(cause).__name__}: {cause}")
-        sys.exit(1)
-    if not text.strip():
-        raise RuntimeError("model returned an empty brief")
-    print(gcal_links.expand(text))
-
-
 if __name__ == "__main__":
-    main()
+    sys.exit("brief.py is a library now: run run.py (or run.sh / run_events.sh) instead.")

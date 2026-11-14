@@ -276,12 +276,19 @@ error, not a UI.
   `mail_guide.py` turns the same file into a "Where to find mail" section
   appended to both deployed prompts, so the Claude fallback follows it too.
 - **Source layout** (one folder since 2026-11-14): `daily-brief/prompts/`
-  (`prompt.md`, `events.md`), `daily-brief/shared/` (used by both deploys:
-  `send_mail.py`, `gcal_links.py`, `mail_sources.json`, `mail_guide.py`),
+  (`prompt.md`, `events.md`, `azure_notes.md`), `daily-brief/shared/` (used
+  by both deploys: `jobs.json`, `send_mail.py`, `gcal_links.py`,
+  `mail_sources.json`, `mail_guide.py`), `daily-brief/tests/` (pytest, run
+  by both setup scripts before anything is copied; a failure deploys nothing),
   `daily-brief/azure/` (the active brief, deployed by
   `setup-daily-brief-oai.sh` to `/mnt/data/appdata/daily-brief-oai`) and
   `daily-brief/claude/` (the fallback, deployed by `setup-daily-brief-cc.sh`
-  to `/mnt/data/appdata/daily-brief-cc`). The original Anthropic-API
+  to `/mnt/data/appdata/daily-brief-cc`). **One runner:** `azure/run.py
+  brief|events` does every job the same way (replies, prompt, Azure run,
+  Claude fallback, calendar links, footer, send, usage log in
+  `state/usage.csv`), configured in `shared/jobs.json` (each job's prompt
+  files, subjects, footer, recipients); `run.sh` / `run_events.sh` are the
+  crontab's thin wrappers. The original Anthropic-API
   version (disabled 2026-09-22) was removed from the repo then; it's in git
   history, and its files under `/mnt/data/appdata/daily-brief/` are untouched.
 

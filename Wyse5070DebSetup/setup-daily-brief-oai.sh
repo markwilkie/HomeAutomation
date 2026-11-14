@@ -64,8 +64,9 @@ fi
 echo "==> Copying daily-brief/azure + shared + prompts into ${APP_DIR}"
 cp "${BRIEF_SRC}"/azure/*.py "${BRIEF_SRC}"/azure/*.sh "${BRIEF_SRC}/azure/requirements.txt" "${APP_DIR}/"
 cp "${BRIEF_SRC}"/shared/* "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
-# One set of mail-finding rules (mail_sources.json) for the code (mail.py) and both prompts.
-for f in prompt.md events.md; do python3 "${APP_DIR}/mail_guide.py" >> "${APP_DIR}/${f}"; done
+# Generated prompt file (jobs.json lists it after prompt.md / events.md): the same
+# mail-finding rules as mail.py, from mail_sources.json. Deployed prompts stay identical to the repo.
+python3 "${APP_DIR}/mail_guide.py" > "${APP_DIR}/mail_guide.md"
 chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/run_events.sh"
 
 echo ""

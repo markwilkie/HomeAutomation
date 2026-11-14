@@ -1,0 +1,25 @@
+{
+  "_about": "The emails this project sends, in one place: which prompts each uses, subjects, footer, who gets it. Read by azure/run.py (the runner) and claude/run.sh (the fallback). Prompt files are in daily-brief/prompts (mail_guide.md is generated from mail_sources.json at deploy; azure_prompts are added on Azure runs only).",
+  "also_to": ["jennie@wilkiefamily.net"],
+  "footer": "_To adjust {what}, reply with one command per line: **skip** thing · **more** thing · **undo** · **show**. For example: “skip ice skating”. Bigger changes are made directly, not by reply._",
+  "jobs": {
+    "brief": {
+      "prompts": ["prompt.md", "mail_guide.md"],
+      "azure_prompts": ["azure_notes.md"],
+      "subject": "Daily Brief (OpenAI)",
+      "fallback_subject": "Daily Brief (Claude Code)",
+      "fail_subject": "Daily Brief FAILED - action needed",
+      "footer_what": "the brief",
+      "prefetch": ["mail_backstop", "sober"]
+    },
+    "events": {
+      "prompts": ["events.md", "mail_guide.md"],
+      "azure_prompts": [],
+      "subject": "Weekend & Ahead: {date}",
+      "refresh_subject": "Weekend & Ahead (updated): {date}",
+      "fail_subject": "Weekend & Ahead FAILED - action needed",
+      "footer_what": "these picks",
+      "prefetch": ["taste_notes"]
+    }
+  }
+}

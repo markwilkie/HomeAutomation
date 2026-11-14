@@ -77,8 +77,9 @@ fi
 
 echo "==> Copying daily-brief/claude + shared + prompts + weekly_health_check.sh into ${APP_DIR}"
 cp "${BRIEF_SRC}"/claude/* "${BRIEF_SRC}"/shared/* "${BRIEF_SRC}"/prompts/*.md "${APP_DIR}/"
-# Same mail-finding rules as daily-brief-oai (mail_sources.json), as a prompt section.
-for f in prompt.md events.md; do python3 "${APP_DIR}/mail_guide.py" >> "${APP_DIR}/${f}"; done
+# Generated prompt file (jobs.json lists it after prompt.md / events.md): the same
+# mail-finding rules as mail.py, from mail_sources.json. Deployed prompts stay identical to the repo.
+python3 "${APP_DIR}/mail_guide.py" > "${APP_DIR}/mail_guide.md"
 cp "${SCRIPT_DIR}/weekly_health_check.sh" "${APP_DIR}/"
 chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/monarch_refresh.sh" "${APP_DIR}/weekly_health_check.sh"
 
