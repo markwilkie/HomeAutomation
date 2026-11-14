@@ -1,5 +1,5 @@
 {
-  "_about": "Where Mark's mail ends up and which senders we look for. One source for every mail lookup: daily-brief-oai/mail.py (code), the 'Where to find mail' section added to prompt.md and events.md at deploy (mail_guide.py, so the Claude fallback follows the same rules), and the email-lookup skill.",
+  "_about": "Where Mark's mail ends up and which senders we look for. One source for every mail lookup: daily-brief/azure/mail.py (code), the 'Where to find mail' section added to prompt.md and events.md at deploy (mail_guide.py, so the Claude fallback follows the same rules), and the email-lookup skill.",
   "folders": [
     {"name": "Inbox", "graph": "inbox"},
     {"name": "Deleted Items", "graph": "deleteditems"},

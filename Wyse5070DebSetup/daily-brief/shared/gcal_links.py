@@ -3,8 +3,8 @@ into Google Calendar "add event" URLs.
 
 The model writes the short form (events.md, "Calendar links") because a
 hand-built, URL-encoded calendar link is easy to get wrong; this builds it
-in code. Used by daily-brief-oai/brief.py and, as a filter on stdin, by
-daily-brief-cc/run.sh's Claude fallback.
+in code. Used by daily-brief/azure/brief.py and, as a filter on stdin, by
+daily-brief/claude/run.sh (the Claude fallback).
 
 START/END: Pacific local time, YYYY-MM-DDTHH:MM, or YYYY-MM-DD for all day.
 A missing END means two hours after START (or one day for all-day).

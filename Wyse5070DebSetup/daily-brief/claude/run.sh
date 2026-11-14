@@ -41,7 +41,7 @@ unset CLAUDE_CODE_OAUTH_TOKEN
 TODAY="$(date +%Y-%m-%d)"
 WEEKDAY="$(date +%A)"
 
-# daily-brief-oai/run_events.sh reuses this script as the fallback for the
+# daily-brief/azure/run_events.sh reuses this script as the fallback for the
 # weekly events email by setting these; unset, it's the daily brief.
 PROMPT_FILE="${BRIEF_PROMPT_FILE:-prompt.md}"
 REQUEST="Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}."

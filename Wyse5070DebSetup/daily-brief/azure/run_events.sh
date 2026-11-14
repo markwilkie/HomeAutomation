@@ -9,7 +9,7 @@
 #                    (arrives Thu ~8am, after the full run), cancellations,
 #                    today's weather; Friday dropped. Jennie reads this one.
 # Each email's markdown is kept in ../state/events-<date>.md for the next run.
-# If brief.py fails, falls back to Claude Code (daily-brief-cc/run.sh with the
+# If brief.py fails, falls back to Claude Code (daily-brief/claude/run.sh, deployed under daily-brief-cc, with the
 # same events prompt), like run.sh does for the daily brief.
 #
 # Usage:

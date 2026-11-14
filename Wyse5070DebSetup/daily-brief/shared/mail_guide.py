@@ -3,7 +3,7 @@
 
 The setup scripts append it to the deployed prompt.md and events.md, so the
 Azure brief and the Claude fallback follow the same folder rules as the code
-in daily-brief-oai/mail.py. Standard library only (runs with system python3).
+in daily-brief/azure/mail.py. Standard library only (runs with system python3).
 
 Usage: python3 mail_guide.py >> prompt.md
 """
