@@ -71,6 +71,9 @@ def test_fallback_passes_the_job_to_claude(monkeypatch, tmp_path):
     assert env["BRIEF_FAIL_SUBJECT"].startswith("Weekend & Ahead FAILED")
     assert env["BRIEF_REQUEST"] == "REQUEST" and env["BRIEF_SAVE_TO"].endswith("e.md")
     assert "jennie@" in env["BRIEF_ALSO_TO"]
+    assert env["BRIEF_EVENTS_STATE"] == ""  # only the brief gets "Events today"
+    run.fallback("brief", run.CONFIG["jobs"]["brief"], None, "Daily Brief", None, dry=True)
+    assert seen["env"]["BRIEF_EVENTS_STATE"] == str(run.STATE)
 
 
 def test_events_request_includes_previous_email(tmp_path):

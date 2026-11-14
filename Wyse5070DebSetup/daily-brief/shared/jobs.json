@@ -10,7 +10,8 @@
       "fallback_subject": "Daily Brief (Claude Code)",
       "fail_subject": "Daily Brief FAILED - action needed",
       "footer_what": "the brief",
-      "prefetch": ["mail_backstop", "sober"]
+      "prefetch": ["mail_backstop", "sober"],
+      "todays_events": true
     },
     "events": {
       "prompts": ["events.md", "mail_guide.md"],

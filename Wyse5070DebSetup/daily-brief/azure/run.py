@@ -2,7 +2,7 @@
 """Run one of this project's emails end to end (user, 2026-11-14: one runner).
 
     run.py brief [--dry-run]                    the daily brief (cron 6:30am via run.sh)
-    run.py events [full|refresh] [--dry-run]    Weekend & Ahead (cron Thu 5:00 / Sat 8:00 via run_events.sh)
+    run.py events [full|refresh] [--dry-run]    Weekend & Ahead (cron Thu / Sat 5:00am via run_events.sh)
 
 Every job does the same steps, configured in shared/jobs.json:
   1. replies.py: apply reply commands sent since the last run (never blocks).
@@ -10,7 +10,9 @@ Every job does the same steps, configured in shared/jobs.json:
   3. Generate on Azure OpenAI (brief.generate_brief), with the job's prefetch.
   4. On failure, hand the same job to the Claude fallback (claude/run.sh,
      deployed in daily-brief-cc) and stop.
-  5. Expand calendar links, append the reply footer, send to Mark + also_to.
+  5. Expand calendar links; for the brief, add "🎉 Events today" from the
+     saved events emails (todays_events.py); append the reply footer, send
+     to Mark + also_to.
   6. Log the run's tokens and searches to ../state/usage.csv.
 
 Events state: each events email is kept in ../state/events-<date>.md; a
@@ -34,6 +36,7 @@ import brief
 import gcal_links
 import mail_guide
 import replies
+import todays_events
 
 APP = Path(__file__).resolve().parent
 STATE = APP.parent / "state"
@@ -112,7 +115,8 @@ def fallback(job_name: str, job: dict, request: str | None, subject: str, save_t
                BRIEF_SUBJECT=job.get("fallback_subject", subject),
                BRIEF_FAIL_SUBJECT=job["fail_subject"],
                BRIEF_FOOTER=footer(job),
-               BRIEF_ALSO_TO=" ".join(CONFIG.get("also_to", [])))
+               BRIEF_ALSO_TO=" ".join(CONFIG.get("also_to", [])),
+               BRIEF_EVENTS_STATE=str(STATE) if job.get("todays_events") else "")
     if request:
         env["BRIEF_REQUEST"] = request
     if save_to:
@@ -156,6 +160,8 @@ def main() -> None:
         return
 
     text = gcal_links.expand(text)
+    if job.get("todays_events"):
+        text = todays_events.insert(text, todays_events.section(STATE, today))
     log(f"Generated {args.job}: {len(text)} chars")
     if args.dry_run:
         print(f"\n----- {subject} (dry run, not emailed or saved) -----\n\n{text}")

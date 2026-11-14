@@ -103,8 +103,9 @@ Use only plain words in the four fields: no `|`, `(`, `)` or `]`.
 ### 🆕 New since Thursday (REFRESH only)
 First thing in the Saturday email. Nextdoor additions and changes
 (cancelled, sold out, moved), one bullet each, saying which. A new event
-gets its full entry here and nowhere else. If there's nothing, one bullet:
-"Nothing new since Thursday."
+gets one line here (name and day) and its full entry under its day in This
+weekend, starting with 🆕. If there's nothing, one bullet: "Nothing new
+since Thursday."
 
 ### 🌦️ Weekend weather
 One bullet per day (Fri–Sun on Thursday; Sat–Sun on Saturday):
@@ -119,8 +120,15 @@ bullet: **time**, name, place (town), a few words on why it fits us,
 Under each dinner pick, one sub-bullet: "Dinner nearby: <place>, <a few
 words>".
 
+An event on more than one day: full entry under its first day, and a
+short bullet (time, name, place, 📅 link) under each later day.
+
 ### 📆 Next week
-Mon–Thu after the weekend. Same bullet format.
+Mon–Thu after the weekend, under the same bold day labels ("**Mon Nov
+23**"; only days with picks). Same bullet format.
+
+The daily brief copies each day's bullets from these day labels, so keep
+each label on its own line, exactly as shown.
 
 ### 🎟️ Plan ahead
 Fitting events 2–6 weeks out. Lead with the date. Say when tickets are

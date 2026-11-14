@@ -45,7 +45,8 @@ WEEKDAY="$(date +%A)"
 # BRIEF_* variables; unset, it's the daily brief, from jobs.json's "brief" job.
 job() { python3 -c 'import json,sys; c=json.load(open("jobs.json")); j=c["jobs"]["brief"]
 v={"prompts":" ".join(j["prompts"]),"subject":j["fallback_subject"],"fail":j["fail_subject"],
-   "footer":c["footer"].format(what=j["footer_what"]),"also":" ".join(c["also_to"])}[sys.argv[1]]; print(v)' "$1"; }
+   "footer":c["footer"].format(what=j["footer_what"]),"also":" ".join(c["also_to"]),
+   "events":"/mnt/data/appdata/daily-brief-oai/state" if j.get("todays_events") else ""}[sys.argv[1]]; print(v)' "$1"; }
 PROMPT_FILES="${BRIEF_PROMPT_FILES:-$(job prompts)}"
 REQUEST="Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}."
 REQUEST="${BRIEF_REQUEST:-${REQUEST}}"
@@ -53,6 +54,8 @@ SUBJECT="${BRIEF_SUBJECT:-$(job subject)}"
 FAIL_SUBJECT="${BRIEF_FAIL_SUBJECT:-$(job fail)}"
 FOOTER="${BRIEF_FOOTER:-$(job footer)}"
 ALSO_TO="${BRIEF_ALSO_TO:-$(job also)}"
+# Saved events emails for the brief's "Events today" section; empty (set by run.py) for other jobs.
+EVENTS_STATE="${BRIEF_EVENTS_STATE-$(job events)}"
 
 # claude takes one system-prompt file: join the job's prompt files.
 PROMPT_FILE="$(mktemp)"
@@ -126,6 +129,9 @@ echo "[$(date -Iseconds)] Generated brief: ${#BRIEF} chars"
 
 # The events email writes calendar links in short form; build the real URLs.
 BRIEF="$(printf '%s\n' "${BRIEF}" | python3 gcal_links.py)"
+if [ -n "${EVENTS_STATE}" ]; then
+  BRIEF="$(printf '%s\n' "${BRIEF}" | python3 todays_events.py --state "${EVENTS_STATE}")"
+fi
 
 if [ "${1:-}" = "--dry-run" ]; then
   echo ""

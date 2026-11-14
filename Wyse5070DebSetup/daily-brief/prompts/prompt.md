@@ -245,7 +245,8 @@ Run each of these as its own search, every time:
 
 Local events and concerts are NOT part of this brief: they go in the
 separate weekly "Weekend & Ahead" email (Thursday, refreshed Saturday).
-Don't search for events and don't list any.
+Don't search for events and don't list any. A "🎉 Events today" section
+is added after 📅 Today by code, from that email; don't write one.
 
 # Part B — Write
 
