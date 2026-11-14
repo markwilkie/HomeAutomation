@@ -108,11 +108,11 @@ matching payment.
 
 ## Texts
 If you have a `texts_digest` tool, call it once (it covers every SMS/RCS
-conversation active in the last 7 days). Otherwise: `get_status` first
+conversation active in the last 14 days). Otherwise: `get_status` first
 (if its result starts with a TEXTS ACCESS PROBLEM block, that block is
 the `problem`), then `list_conversations` with `limit` 60, then
 `get_conversation` with `limit` 30 for each conversation whose last
-message is within 7 days. "→" marks a message I sent, "←" one I
+message is within 14 days. "→" marks a message I sent, "←" one I
 received.
 
 From these, find:
@@ -182,10 +182,10 @@ chats. Gather:
   with no answer after it.
 
 ## Waiting on others
-Questions or requests I sent in the last 7 days that nobody has answered
-yet. Sources:
+Questions or requests I sent that nobody has answered yet, kept for 10
+days after my latest ask (see "How long items stay"). Sources:
 - Email: `outlook_email_search` with `folderName` "Sent Items", newest
-  first, back 7 days. For each message of mine that asks something (a
+  first, back 10 days. For each message of mine that asks something (a
   question, a time or date to pin down, a document or decision I need),
   check Inbox and Clutter for a later message in the same thread (same
   subject, ignoring "Re:"/"RE:"). It's unanswered when no reply came
@@ -275,6 +275,16 @@ days' times, open crew asks (volunteers, waivers, availability), and the
 crew roster on one line at the end. Keep it to what concerns me: other
 crew members' lodging, rides or side plans only if they affect mine. Don't miss these: on those two days
 this is the most important thing in the brief.
+
+### How long items stay
+Applies to 🎯 Needs you and ⏳ Waiting on others, whatever the source:
+- Has a date (an RSVP, a webinar, "before Dec 9"): until that date passes.
+- Security or fraud alert (a sign-in, a new payee): 3 days.
+- A reply I owe or a request made to me, with no date: 14 days.
+- Connection problems: until fixed.
+- Waiting on others: 10 days from my latest ask (a follow-up restarts it).
+After that, drop it. Once an item is 7+ days old, end it with its age,
+e.g. "(9 days)".
 
 ### 🎯 Needs you
 Everything that needs an action or answer from me, from any source, each

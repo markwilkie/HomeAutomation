@@ -194,7 +194,7 @@ async def todo_due_tasks(session: ClientSession) -> str:
     return json.dumps({"today": today.isoformat(), "lists_checked": len(lists), "tasks": tasks, "errors": errors})
 
 
-TEXTS_OPEN_DAYS = 7  # how far back an unanswered text still counts as open
+TEXTS_OPEN_DAYS = 14  # how far back an unanswered text still counts as open (prompt.md: How long items stay)
 TEXTS_BUSY = 3  # messages since yesterday morning that make a thread "busy" (this many or more)
 TEXTS_BODY_CHARS = 280
 TEXTS_BUDGET_CHARS = MAX_TOOL_OUTPUT_CHARS - 500
