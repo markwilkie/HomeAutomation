@@ -146,7 +146,7 @@ def is_trusted(message_id: str) -> tuple[bool, str, str]:
 
 async def trilium_note(session: ClientSession, title: str) -> tuple[str, str, str]:
     """(note id, content, blobId) of the top-level note with this title."""
-    found = json.loads(await brief.call_mcp(session, "search_notes", {"text": title, "limit": 10}))
+    found = json.loads(await brief.call_mcp(session, "search_notes", {"searchCriteria": [{"type": "noteProperty", "property": "title", "op": "=", "value": title, "logic": "AND"}], "limit": 10}))
     match = next((n for n in found if n.get("title") == title), None)
     if not match:
         raise RuntimeError(f"Trilium note {title!r} not found")

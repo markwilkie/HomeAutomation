@@ -534,7 +534,7 @@ async def events_taste(session: ClientSession) -> str:
     events run (2026-11-14) spent four turns paging through it; artist names
     alone (~5 KB) are enough to match concerts against."""
     async def note(title: str) -> str:
-        found = json.loads(await call_mcp(session, "search_notes", {"text": title, "limit": 10}))
+        found = json.loads(await call_mcp(session, "search_notes", {"searchCriteria": [{"type": "noteProperty", "property": "title", "op": "=", "value": title, "logic": "AND"}], "limit": 10}))
         match = next((n for n in found if n.get("title") == title), None)
         if not match:
             return ""

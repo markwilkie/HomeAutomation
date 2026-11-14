@@ -18,7 +18,7 @@ to follow.
 
 Two trilium notes say what fits. On Azure runs they're already in the
 user message (the music one as artist names only); don't fetch them again.
-Otherwise read both (`search_notes` for the title, then `get_note`):
+Otherwise read both (`search_notes` with `searchCriteria` [{"type": "noteProperty", "property": "title", "op": "=", "value": "<the title>"}] (plain text search doesn't find these notes), then `get_note`):
 - "Events Taste Profile": the areas we go to, what we like and what we
   skip.
 - "Music Taste Profile": artists in our library, with genres and similar
