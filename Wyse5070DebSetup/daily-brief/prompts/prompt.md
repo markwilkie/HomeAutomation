@@ -285,6 +285,11 @@ Applies to 🎯 Needs you and ⏳ Waiting on others, whatever the source:
 - Waiting on others: 10 days from my latest ask (a follow-up restarts it).
 After that, drop it. Once an item is 7+ days old, end it with its age,
 e.g. "(9 days)".
+Before listing any item, check the other channels for the same request:
+drop it if I settled it anywhere, even with someone else (2026-11-14:
+Dorr's Oct 31 WhatsApp ask to fill in Main on the crew doc was listed,
+but Todd had texted the same ask Nov 1 and I replied "doc is updated"
+Nov 3).
 
 ### 🎯 Needs you
 Everything that needs an action or answer from me, from any source, each
