@@ -88,6 +88,24 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 - SmarterSpa ribbon → resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
 - Pump CT clamp → ADC1 pin (or comparator → digital input).
 
+
+### Pin assignment (ESP32-C6-DevKitM-1)
+| Signal | GPIO | Notes |
+|---|---|---|
+| pH (Gravity iso analog out) | GPIO2 | ADC1_CH2 |
+| ORP (Gravity iso analog out) | GPIO3 | ADC1_CH3 |
+| Pump CT clamp (conditioned) | GPIO4 | ADC1_CH4 (pad JTAG unused; USB-JTAG on 12/13) |
+| Spare analog | GPIO5, GPIO6 | ADC1_CH5/6 |
+| DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
+| SmarterSpa White LED (ribbon 1) | GPIO19 | 56k/100k divider, active-low |
+| SmarterSpa Red LED (ribbon 5) | GPIO20 | 56k/100k divider, active-low |
+| SmarterSpa Blue LED (ribbon 6) | GPIO21 | 56k/100k divider, active-low |
+| SmarterSpa Green LED (ribbon 7, "yellow") | GPIO22 | 56k/100k divider, active-low |
+| Spare digital (Phase 8 BOOST drive) | GPIO23 | |
+| SmarterSpa GND | GND | common ground |
+
+Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap), GPIO12/13 (USB), GPIO16/17 (UART0 console).
+
 ---
 
 ## 3. Phases
