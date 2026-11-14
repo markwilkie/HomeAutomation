@@ -251,10 +251,14 @@ the user message):
   this Sunday.
 Drop anything outside the window.
 
-On Thursdays only, also `outlook_email_search` (Inbox) for a message with
-subject "Weekend events you'll love" (a recurring Nextdoor digest) — if
-found, read it with `read_resource` and add its events, skipping exact
-duplicates and obviously broken/spam entries.
+On Fridays and Saturdays, also `outlook_email_search` for this week's
+"Weekend events you'll love" from "Lake Forest Park Events"
+(no-reply@rs.email.nextdoor.com), a weekly Nextdoor digest of Fri–Sun
+events. It arrives Thursday around 8am, after the brief, so Thursday's
+brief can't use it. Outlook files it in Clutter, so search `folderName`
+"Clutter" as well as "Inbox". Use it only if it arrived this Thursday;
+read it with `read_resource` and add its events that fall in the event
+window, skipping duplicates and obviously broken/spam entries.
 
 ## Concerts (Thursdays only)
 Call the trilium `search_notes` tool for my notes on artists/genres I
@@ -387,5 +391,5 @@ a ⭐ artist name other similar artists; for others explain why they're a
 plausible match.
 
 Today's date and day of the week are given in the user message — use them
-for the Thursday-only concert scan and Nextdoor digest, the event window,
+for the Thursday-only concert scan, the Fri/Sat Nextdoor digest, the event window,
 and "last 24 hours" framing.

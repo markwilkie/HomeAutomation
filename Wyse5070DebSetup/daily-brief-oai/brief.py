@@ -666,7 +666,7 @@ Notes for this run:
   searches overall. In particular:
   - Email: search both Inbox and Clutter every run. Judge each message
     from its subject, sender and preview -- don't open messages with
-    read_resource except the Thursday Nextdoor digest. If a subject looks
+    read_resource except the Fri/Sat Nextdoor digest. If a subject looks
     important or relevant, include it, read or unread, whichever folder.
     Include anything actionable or time-sensitive -- alerts (water,
     security, data breach), bills and due dates, interview or appointment
