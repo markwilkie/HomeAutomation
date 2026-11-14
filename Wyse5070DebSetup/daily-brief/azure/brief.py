@@ -238,9 +238,16 @@ async def texts_digest(session: ClientSession) -> str:
         if not messages:
             continue
         recent = [m for m in messages if m[0] >= yesterday_6am]
-        if messages[-1][1] and not recent:
-            continue  # I had the last word and it's gone quiet: nothing to report
-        shown = recent if len(recent) >= TEXTS_BUSY else messages[-6:]
+        # Busy: everything since yesterday. Quiet with my last word: kept
+        # (it may be an ask nobody answered -- Waiting on others; 2026-11-14
+        # these were dropped and "Dinner Friday the 20th?" was missed), with
+        # a little context. Otherwise the last few.
+        if len(recent) >= TEXTS_BUSY:
+            shown = recent
+        elif messages[-1][1] and not recent:
+            shown = messages[-3:]
+        else:
+            shown = messages[-6:]
         conversations.append(
             {
                 "name": name,
