@@ -97,12 +97,14 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 | Pump CT clamp (conditioned) | GPIO4 | ADC1_CH4 (pad JTAG unused; USB-JTAG on 12/13) |
 | Spare analog | GPIO5, GPIO6 | ADC1_CH5/6 |
 | DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
-| SmarterSpa White LED (ribbon 1) | GPIO19 | 56k/100k divider, active-low |
-| SmarterSpa Red LED (ribbon 5) | GPIO20 | 56k/100k divider, active-low |
-| SmarterSpa Blue LED (ribbon 6) | GPIO21 | 56k/100k divider, active-low |
-| SmarterSpa Green LED (ribbon 7, "yellow") | GPIO22 | 56k/100k divider, active-low |
+| SmarterSpa White LED (ribbon 1, **white** wire) | GPIO19 | 56k/100k divider, active-low |
+| SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO20 | 56k/100k divider, active-low |
+| SmarterSpa Blue LED (ribbon 6, **blue** wire) | GPIO21 | 56k/100k divider, active-low |
+| SmarterSpa Green LED (ribbon 7, **yellow** wire) | GPIO22 | 56k/100k divider, active-low |
 | Spare digital (Phase 8 BOOST drive) | GPIO23 | |
-| SmarterSpa GND | GND | common ground |
+| SmarterSpa GND (**green** wire) | GND | common ground |
+
+Harness (left→right): yellow, blue, red, white, green(GND). Color→LED mapping is inferred from color-matching — **verify** by watching each wire drop to ~0 V during the power-up sequence (white → red → blue → green); fix any mismatch in firmware pin config.
 
 Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap), GPIO12/13 (USB), GPIO16/17 (UART0 console).
 
