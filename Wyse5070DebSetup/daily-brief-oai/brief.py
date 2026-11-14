@@ -528,7 +528,29 @@ def create_with_rate_limit_retry(client: OpenAI, **kwargs):
             time.sleep(65)
 
 
-async def generate_brief(prompt_text: str, request: str | None = None, sober: bool = True) -> str:
+async def events_taste(session: ClientSession) -> str:
+    """Both taste notes for the events email, read in code. The Music Taste
+    Profile is ~50 KB, cut at MAX_TOOL_OUTPUT_CHARS per read, so the first
+    events run (2026-11-14) spent four turns paging through it; artist names
+    alone (~5 KB) are enough to match concerts against."""
+    async def note(title: str) -> str:
+        found = json.loads(await call_mcp(session, "search_notes", {"text": title, "limit": 10}))
+        match = next((n for n in found if n.get("title") == title), None)
+        if not match:
+            return ""
+        return json.loads(await call_mcp(session, "get_note", {"noteId": match["noteId"]})).get("content", "")
+
+    events = await note("Events Taste Profile")
+    music = await note("Music Taste Profile")
+    artists = sorted({line.split(" (")[0].split(" [")[0].strip() for line in music.splitlines()
+                      if " | genres:" in line})
+    return ("\n\nEvents Taste Profile note (already read for you; don't fetch it):\n\n" + events
+            + "\n\nArtists in the Music Taste Profile (names only; already read for you, don't fetch the note):\n"
+            + " · ".join(artists))
+
+
+async def generate_brief(prompt_text: str, request: str | None = None, sober: bool = True,
+                         taste_notes: bool = False) -> str:
     client = OpenAI(
         base_url=os.environ["AZURE_OPENAI_BASE_URL"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -565,6 +587,11 @@ async def generate_brief(prompt_text: str, request: str | None = None, sober: bo
         tools.append(web_search_tool())
 
         next_input = request or f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
+        if taste_notes and "trilium" in sessions:
+            try:
+                next_input += await events_taste(sessions["trilium"])
+            except Exception as exc:
+                log(f"WARN: could not read the taste notes: {exc}")
         if sober and "trilium" in sessions:
             try:
                 sober = await sober_line(sessions["trilium"])
@@ -709,7 +736,7 @@ def main():
     try:
         if args.events:
             text = asyncio.run(generate_brief((SCRIPT_DIR / "events.md").read_text(),
-                                              events_request(args.events, args.previous), sober=False))
+                                              events_request(args.events, args.previous), sober=False, taste_notes=True))
         else:
             text = asyncio.run(generate_brief((SCRIPT_DIR / "prompt.md").read_text() + PROMPT_ADDENDUM))
     except BaseException as exc:

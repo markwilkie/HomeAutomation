@@ -16,8 +16,9 @@ to follow.
 
 ## Taste: what goes in
 
-Read both trilium notes every run (`search_notes` for the title, then
-`get_note`):
+Two trilium notes say what fits. On Azure runs they're already in the
+user message (the music one as artist names only); don't fetch them again.
+Otherwise read both (`search_notes` for the title, then `get_note`):
 - "Events Taste Profile": the areas we go to, what we like and what we
   skip.
 - "Music Taste Profile": artists in our library, with genres and similar

@@ -2,7 +2,7 @@
 #
 # run_events.sh
 # The weekly "Weekend & Ahead" events email (events.md), to Mark and Jennie:
-#   Thursday 5:30am  FULL run: deep search -- this weekend, next week, plan
+#   Thursday 5:00am  FULL run: deep search -- this weekend, next week, plan
 #                    ahead (2-6 weeks), concerts. Builds on last Saturday's
 #                    email for the "Still running" line.
 #   Saturday 8:00am  REFRESH run: Thursday's email plus the Nextdoor digest
