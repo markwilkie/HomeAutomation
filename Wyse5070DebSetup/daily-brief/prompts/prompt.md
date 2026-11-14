@@ -279,7 +279,7 @@ this is the most important thing in the brief.
 ### How long items stay
 Applies to 🎯 Needs you and ⏳ Waiting on others, whatever the source:
 - Has a date (an RSVP, a webinar, "before Dec 9"): until that date passes.
-- Security or fraud alert (a sign-in, a new payee): 3 days.
+- ⚠️ Risk alert (a failed sign-in, a new payee): 3 days.
 - A reply I owe or a request made to me, with no date: 14 days.
 - Connection problems: until fixed.
 - Waiting on others: 10 days from my latest ask (a follow-up restarts it).
@@ -296,8 +296,13 @@ Everything that needs an action or answer from me, from any source, each
 bullet ending or starting with the source in parentheses ("(text)",
 "(email)", "(WhatsApp)"). Order:
 1. Connection problems with their fix steps (texts, WhatsApp, Monarch).
-2. ⚠️ Possibly urgent items (health, safety, fraud, family) — even if no
-   action is strictly required.
+2. ⚠️ Real risk signals: a failed or unrecognized sign-in, a new payee or
+   account change on money, fraud, health or safety. Test for everything
+   here: does skipping it have a consequence? A routine notice whose only
+   action is "check it was you" (a successful sign-in on a family
+   member's own device), or something optional ("register if
+   attending"), goes in 💬 Catch-up once instead (2026-11-14: Isaac's
+   successful Google sign-in and the Ridgeview webinar were listed here).
 3. Replies I owe (open text threads, WhatsApp questions aimed at me),
    oldest first, with who, what they need in a few words, and when they
    sent it ("Jennie — asked if you can pick up Sam Fri; Tue 4:10 PM").
