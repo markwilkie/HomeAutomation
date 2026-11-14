@@ -41,7 +41,7 @@ LOCAL_APP_SRC="${SCRIPT_DIR}/daily-brief-oai"
 SHARED_SRC="${SCRIPT_DIR}/daily-brief-cc"
 
 echo "==> Creating directory structure under ${APPDATA_ROOT}"
-mkdir -p "${APP_DIR}" "${CONFIG_DIR}"
+mkdir -p "${APP_DIR}" "${CONFIG_DIR}" "${APPDATA_ROOT}/state"   # state: events emails kept for the next run
 chmod 700 "${CONFIG_DIR}"
 
 if [ ! -f "${CONFIG_DIR}/.env" ]; then
@@ -49,11 +49,11 @@ if [ ! -f "${CONFIG_DIR}/.env" ]; then
   exit 1
 fi
 
-echo "==> Copying brief.py + graph_login.py + run.sh + requirements.txt, plus shared prompt.md + send_mail.py from daily-brief-cc"
-cp "${LOCAL_APP_SRC}/brief.py" "${LOCAL_APP_SRC}/graph_login.py" "${LOCAL_APP_SRC}/run.sh" \
+echo "==> Copying brief.py + graph_login.py + run.sh + run_events.sh + requirements.txt, plus shared prompt.md + events.md + gcal_links.py + send_mail.py from daily-brief-cc"
+cp "${LOCAL_APP_SRC}/brief.py" "${LOCAL_APP_SRC}/graph_login.py" "${LOCAL_APP_SRC}/run.sh" "${LOCAL_APP_SRC}/run_events.sh" \
    "${LOCAL_APP_SRC}/monarch_refresh.py" "${LOCAL_APP_SRC}/requirements.txt" "${APP_DIR}/"
-cp "${SHARED_SRC}/prompt.md" "${SHARED_SRC}/send_mail.py" "${APP_DIR}/"
-chmod +x "${APP_DIR}/run.sh"
+cp "${SHARED_SRC}/prompt.md" "${SHARED_SRC}/events.md" "${SHARED_SRC}/gcal_links.py" "${SHARED_SRC}/send_mail.py" "${APP_DIR}/"
+chmod +x "${APP_DIR}/run.sh" "${APP_DIR}/run_events.sh"
 
 echo "==> Creating/updating venv at ${APP_DIR}/venv"
 python3 -m venv "${APP_DIR}/venv"
@@ -68,3 +68,5 @@ echo "    Test: ${APP_DIR}/run.sh --dry-run"
 echo "    Cron:"
 echo "      0 6 * * * ${APP_DIR}/venv/bin/python ${APP_DIR}/monarch_refresh.py >> \$HOME/daily-brief-oai.log 2>&1"
 echo "      30 6 * * * ${APP_DIR}/run.sh >> \$HOME/daily-brief-oai.log 2>&1"
+echo "      30 5 * * 4 ${APP_DIR}/run_events.sh >> \$HOME/daily-brief-oai.log 2>&1   # events email, full"
+echo "      0 8 * * 6 ${APP_DIR}/run_events.sh >> \$HOME/daily-brief-oai.log 2>&1    # events email, refresh"

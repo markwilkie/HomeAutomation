@@ -21,6 +21,7 @@ Prints the brief (Markdown) on stdout; run.sh pipes it into send_mail.py.
 Per-turn token usage goes to stderr (the cron log) to track credit burn.
 """
 
+import argparse
 import asyncio
 import datetime
 import html
@@ -44,6 +45,8 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from openai import OpenAI, RateLimitError
 
+import gcal_links  # shared with daily-brief-cc (copied in by setup-daily-brief-oai.sh)
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = SCRIPT_DIR.parent / "config"
 load_dotenv(CONFIG_DIR / ".env")
@@ -56,9 +59,9 @@ RATE_LIMIT_RETRIES = int(os.environ.get("RATE_LIMIT_RETRIES", "5"))
 REASONING_EFFORT = os.environ.get("REASONING_EFFORT", "high")
 # A real brief is several thousand characters; anything shorter is a refusal or a stray remark.
 MIN_BRIEF_CHARS = int(os.environ.get("MIN_BRIEF_CHARS", "800"))
-NUDGE = ("That isn't the brief. This is my own personal daily brief, built from my own email, calendar, messages "
-         "and accounts, which I asked you to read. Write the full brief now from what you gathered, following the "
-         "instructions. If one item is something you won't summarize, leave just that item out.")
+NUDGE = ("That isn't what I asked for. This is my own personal email, built from my own email, calendar, messages, "
+         "accounts and local event listings, which I asked you to read. Write it in full now from what you gathered, "
+         "following the instructions. If one item is something you won't summarize, leave just that item out.")
 CALENDARS_PATH = Path(os.environ.get("CALENDARS_FILE", str(CONFIG_DIR / "calendars.json")))
 
 GRAPH_CLIENT_ID = os.environ.get("MS_CLIENT_ID", "d0f1f47d-77ee-494d-a63b-ee3afeb2fad1")
@@ -85,7 +88,8 @@ TOOL_ALLOWLIST = {
     "monarch": {"get_accounts", "get_transactions", "search_transactions"},
     # The one write: queues a background read of an upcoming trip's towns
     # (idempotent -- a town read this week just answers "ready").
-    "restaurants": {"trip"},
+    # options (read-only) is for the weekly events email's dinner pairings.
+    "restaurants": {"trip", "options"},
     # Read-only: the server also has send/react/group-admin tools, and
     # message text is untrusted input to the model.
     "whatsapp": {"get_status", "list_chats", "list_messages"},
@@ -524,7 +528,7 @@ def create_with_rate_limit_retry(client: OpenAI, **kwargs):
             time.sleep(65)
 
 
-async def generate_brief(prompt_text: str) -> str:
+async def generate_brief(prompt_text: str, request: str | None = None, sober: bool = True) -> str:
     client = OpenAI(
         base_url=os.environ["AZURE_OPENAI_BASE_URL"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -560,8 +564,8 @@ async def generate_brief(prompt_text: str) -> str:
             )
         tools.append(web_search_tool())
 
-        next_input = f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
-        if "trilium" in sessions:
+        next_input = request or f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
+        if sober and "trilium" in sessions:
             try:
                 sober = await sober_line(sessions["trilium"])
                 if sober:
@@ -662,11 +666,11 @@ Notes for this run:
   intentionally not connected, so never mention them as missing.
 
 - Thoroughness: this brief is judged on coverage, not brevity of research.
-  Don't stop searching once a section has something in it. Aim for 25+ web
-  searches overall. In particular:
+  Don't stop searching once a section has something in it. Aim for 15+ web
+  searches overall (events and concerts are in a separate weekly email now). In particular:
   - Email: search both Inbox and Clutter every run. Judge each message
     from its subject, sender and preview -- don't open messages with
-    read_resource except the Fri/Sat Nextdoor digest. If a subject looks
+    read_resource. If a subject looks
     important or relevant, include it, read or unread, whichever folder.
     Include anything actionable or time-sensitive -- alerts (water,
     security, data breach), bills and due dates, interview or appointment
@@ -675,12 +679,6 @@ Notes for this run:
   - Market snapshot: use the most recent official closing prices (the
     previous trading day's close if the market hasn't closed today), not
     intraday quotes, and cite a source that actually shows each figure.
-  - Local events: run every required search, then a second search for any
-    town that returned fewer than 2 events in the window. Expect 15-25
-    events in total on a Thursday.
-  - Concerts (Thursdays): at least 4 separate searches (two broad
-    Seattle-area scans plus each required venue); list every plausible
-    match in the next ~6 weeks, typically 8-12 shows.
   - To Do: the todo get-task-lists/get-tasks tools named above aren't
     available here. Call todo_due_tasks once instead -- it already sweeps
     every list. The To Do section is its overdue/today tasks plus the
@@ -693,17 +691,34 @@ Notes for this run:
 """
 
 
+def events_request(mode: str, previous: Path | None) -> str:
+    """The user message for the weekly events email (events.md)."""
+    today = datetime.datetime.now(TZ).date()
+    msg = f"This is the {mode.upper()} run of the events email. Today is {today.isoformat()}, a {today.strftime('%A')}."
+    if previous and previous.exists():
+        label = "Thursday's email" if mode == "refresh" else "Last Saturday's email"
+        msg += f"\n\n{label} ({previous.stem.removeprefix('events-')}):\n\n{previous.read_text()}"
+    return msg
+
+
 def main():
-    prompt_path = SCRIPT_DIR / "prompt.md"
+    parser = argparse.ArgumentParser(description="Daily brief, or the weekly events email (--events).")
+    parser.add_argument("--events", choices=["full", "refresh"], help="write the events email (events.md) instead of the brief")
+    parser.add_argument("--previous", type=Path, help="events: the earlier email to build on")
+    args = parser.parse_args()
     try:
-        brief = asyncio.run(generate_brief(prompt_path.read_text() + PROMPT_ADDENDUM))
+        if args.events:
+            text = asyncio.run(generate_brief((SCRIPT_DIR / "events.md").read_text(),
+                                              events_request(args.events, args.previous), sober=False))
+        else:
+            text = asyncio.run(generate_brief((SCRIPT_DIR / "prompt.md").read_text() + PROMPT_ADDENDUM))
     except BaseException as exc:
         cause = root_cause(exc)
         log(f"ERROR: {type(cause).__name__}: {cause}")
         sys.exit(1)
-    if not brief.strip():
+    if not text.strip():
         raise RuntimeError("model returned an empty brief")
-    print(brief)
+    print(gcal_links.expand(text))
 
 
 if __name__ == "__main__":

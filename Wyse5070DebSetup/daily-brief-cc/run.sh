@@ -41,7 +41,14 @@ unset CLAUDE_CODE_OAUTH_TOKEN
 TODAY="$(date +%Y-%m-%d)"
 WEEKDAY="$(date +%A)"
 
-echo "[$(date -Iseconds)] Generating brief via Claude Code CLI..."
+# daily-brief-oai/run_events.sh reuses this script as the fallback for the
+# weekly events email by setting these; unset, it's the daily brief.
+PROMPT_FILE="${BRIEF_PROMPT_FILE:-prompt.md}"
+REQUEST="Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}."
+REQUEST="${BRIEF_REQUEST:-${REQUEST}}"
+SUBJECT="${BRIEF_SUBJECT:-Daily Brief (Claude Code)}"
+
+echo "[$(date -Iseconds)] Generating ${PROMPT_FILE} via Claude Code CLI..."
 
 # No --bare: confirmed by testing that it forces API-key-only auth and
 # explicitly disables OAuth token auth ("OAuth and keychain are never
@@ -68,10 +75,10 @@ echo "[$(date -Iseconds)] Generating brief via Claude Code CLI..."
 # timers finishing and replied "nothing further to add" -- and that last
 # reply, not the brief, is the JSON `result` that got emailed.
 set +e
-CLAUDE_OUTPUT="$(claude -p "Generate today's brief. Today is ${TODAY}, a ${WEEKDAY}." \
-  --append-system-prompt-file prompt.md \
+CLAUDE_OUTPUT="$(claude -p "${REQUEST}" \
+  --append-system-prompt-file "${PROMPT_FILE}" \
   --mcp-config mcp.json \
-  --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,mcp__restaurants__trip,mcp__whatsapp__get_status,mcp__whatsapp__list_chats,mcp__whatsapp__list_messages,mcp__texts__get_status,mcp__texts__list_conversations,mcp__texts__get_conversation,mcp__texts__search_messages,mcp__claude_ai_Google_Calendar__list_calendars,mcp__claude_ai_Google_Calendar__list_events,mcp__claude_ai_Google_Calendar__search_events,mcp__claude_ai_Microsoft_365__outlook_email_search,mcp__claude_ai_Microsoft_365__get_me,WebSearch" \
+  --allowedTools "mcp__todo__get-task-lists,mcp__todo__get-task-lists-organized,mcp__todo__get-tasks,mcp__trilium__search_notes,mcp__trilium__list_children_notes,mcp__trilium__get_note,mcp__trilium__resolve_note_id,mcp__monarch__get_accounts,mcp__monarch__get_transactions,mcp__monarch__search_transactions,mcp__restaurants__trip,mcp__restaurants__options,mcp__whatsapp__get_status,mcp__whatsapp__list_chats,mcp__whatsapp__list_messages,mcp__texts__get_status,mcp__texts__list_conversations,mcp__texts__get_conversation,mcp__texts__search_messages,mcp__claude_ai_Google_Calendar__list_calendars,mcp__claude_ai_Google_Calendar__list_events,mcp__claude_ai_Google_Calendar__search_events,mcp__claude_ai_Microsoft_365__outlook_email_search,mcp__claude_ai_Microsoft_365__read_resource,mcp__claude_ai_Microsoft_365__get_me,WebSearch" \
   --tools "WebSearch" \
   --permission-mode dontAsk \
   --output-format json)"
@@ -106,11 +113,15 @@ fi
 
 echo "[$(date -Iseconds)] Generated brief: ${#BRIEF} chars"
 
+# The events email writes calendar links in short form; build the real URLs.
+BRIEF="$(printf '%s\n' "${BRIEF}" | python3 gcal_links.py)"
+
 if [ "${1:-}" = "--dry-run" ]; then
   echo ""
   echo "----- BRIEF (dry run, not emailed) -----"
   echo ""
   echo "$BRIEF"
 else
-  echo "$BRIEF" | venv/bin/python send_mail.py --subject "Daily Brief (Claude Code)" --also-to jennie@wilkiefamily.net
+  if [ -n "${BRIEF_SAVE_TO:-}" ]; then echo "$BRIEF" > "${BRIEF_SAVE_TO}"; fi
+  echo "$BRIEF" | venv/bin/python send_mail.py --subject "${SUBJECT}" --also-to jennie@wilkiefamily.net
 fi

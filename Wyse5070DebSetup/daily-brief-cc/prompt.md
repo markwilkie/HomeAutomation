@@ -230,50 +230,15 @@ tasks due today or overdue, and every open task marked important
   earlier).
 
 ## Local (web search)
-Run EVERY one of these searches every time, not a subset that feels
-sufficient (an incomplete subset has made this section vary wildly
-run-to-run):
-- Seattle-area general news (separate from events)
-- Seattle-area weekend/upcoming events (its own search — never collapse
-  it into the news search)
-- One dedicated search each for Lake Forest Park, Edmonds, Woodinville, Bothell,
-  Snohomish, Ballard, Shoreline, and Lynnwood events (e.g. "Edmonds WA events this week") —
-  never fold two towns into one query or skip a town because the Seattle
-  search mentioned it.
+Run each of these as its own search, every time:
+- Seattle-area general news, including traffic and road closures for the
+  next day or two (e.g. weekend highway closures, light rail outages).
 - Today's weather: conditions plus the actual forecast high/low in °F
   (real numbers, not "low 60s").
 
-Pick events by our taste, not everything found. Read the trilium note
-"Events Taste Profile" (`search_notes` for that title, then `get_note`)
-every run; it says which areas we go to, what we like and what we skip.
-Keep every event that fits it, with no cap on how many; drop the rest.
-For music, an artist in the "Music Taste Profile" note fits anywhere.
-If nothing fits, say "No events that fit." rather than
-padding. Event window, by today's day of week (from the user message):
-- Sunday through Wednesday: only events today or tomorrow.
-- Thursday through Saturday: only events from today through the end of
-  this Sunday.
-Drop anything outside the window.
-
-On Fridays and Saturdays, also `outlook_email_search` for this week's
-"Weekend events you'll love" from "Lake Forest Park Events"
-(no-reply@rs.email.nextdoor.com), a weekly Nextdoor digest of Fri–Sun
-events. It arrives Thursday around 8am, after the brief, so Thursday's
-brief can't use it. Outlook files it in Clutter, so search `folderName`
-"Clutter" as well as "Inbox". Use it only if it arrived this Thursday;
-read it with `read_resource` and add its events that fit our taste and the event
-window, skipping duplicates and obviously broken/spam entries.
-
-## Concerts (Thursdays only)
-Call the trilium `search_notes` tool for my notes on artists/genres I
-like (try a different query or `list_children_notes` if the first search
-comes up empty). Then scan the upcoming weeks (not just this weekend) for
-Seattle-area shows matching that taste, PLUS a dedicated search for each
-of:
-- Mt Baker Theatre (Bellingham — otherwise outside scope, but always
-  check this one venue)
-- Tractor Tavern (Ballard — always its own search; a general Seattle
-  search doesn't reliably surface it)
+Local events and concerts are NOT part of this brief: they go in the
+separate weekly "Weekend & Ahead" email (Thursday, refreshed Saturday).
+Don't search for events and don't list any.
 
 # Part B — Write
 
@@ -379,21 +344,8 @@ Sub-labels in this order, each omitted if empty:
   −4.4% / −4.8% · Dow … · Nasdaq … · MSFT $… · Gold $…". No links.
 
 ### 🏘️ Around town
-- First, one bullet per local headline (Seattle-area news, traffic),
-  with a source link.
-- Then events grouped by day, each day a bold sub-label ("**Tonight**",
-  "**Sat Nov 7**", "**Sun Nov 8**"). Each event bullet: time first, then
-  name, then place and town in parentheses when not obvious ("7pm Blue
-  Moon Jazz, Third Place Commons (LFP)"), with a source link. Within a day,
-  order by time.
-
-### 🎵 Concerts (Thursdays only)
-One bullet per show: date, artist, venue. Mark an artist directly in my
-taste notes with ⭐ at the start (don't also say so in words). Every show
-gets a few words on the artist's sound and who they're similar to — for
-a ⭐ artist name other similar artists; for others explain why they're a
-plausible match.
+One bullet per local headline (Seattle-area news, traffic and road
+closures), with a source link. No events.
 
 Today's date and day of the week are given in the user message — use them
-for the Thursday-only concert scan, the Fri/Sat Nextdoor digest, the event window,
-and "last 24 hours" framing.
+for "last 24 hours" framing and the Catch-up cutoff.

@@ -39,6 +39,7 @@ Scheduled jobs (no port):
 |---|---|---|
 | 6:00am daily | Monarch account refresh, ahead of the brief | crontab → `daily-brief-oai/monarch_refresh.py` |
 | 6:30am daily | Daily brief (see "daily-brief-oai" below) | crontab → `daily-brief-oai/run.sh` |
+| Thu 5:30am, Sat 8:00am | "Weekend & Ahead" events email to Mark and Jennie (Thursday full search; Saturday refresh with the Nextdoor digest). Prompt `daily-brief-cc/events.md`, taste from the Trilium note "Events Taste Profile" | crontab → `daily-brief-oai/run_events.sh` |
 | Sun 7:00am | Weekly health check email | crontab → `weekly_health_check.sh` (deployed under daily-brief-cc) |
 | 3:15am daily | Home Assistant config backup (local disk) | systemd `homeassistant-backup.timer` (`setup-homeassistant-backup.sh`) |
 | 3:00am daily | TripTracker database backup | crontab → `~/github/TripTracker/scripts/backup.sh` |
@@ -253,6 +254,14 @@ error, not a UI.
   Code run on that one call). Log: `~/daily-brief-oai.log`, including
   per-turn token usage. Rollback: re-enable daily-brief-cc's two commented
   crontab lines (backup: `~/crontab.bak.2026-10-09`).
+  Since 2026-11-14 the brief has no local events or concerts; those are in
+  the weekly **"Weekend & Ahead"** email (`run_events.sh` → `brief.py
+  --events full|refresh` with `events.md`): Thursday 5:30am deep search,
+  Saturday 8am refresh of Thursday's email (kept in `state/`) with the
+  Nextdoor digest, cancellations and weather. Events are picked by the
+  Trilium note "Events Taste Profile"; calendar links are written as
+  `gcal:` short forms and expanded by `gcal_links.py`. Falls back to
+  daily-brief-cc's `run.sh` with the same prompt.
 - **daily-brief** (disabled 2026-09-22, kept for reference/rollback) — the
   original implementation: same idea, but driven by the Anthropic API
   directly (a metered `ANTHROPIC_API_KEY`, Sonnet 5, manual prompt-caching)
