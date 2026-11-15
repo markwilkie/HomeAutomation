@@ -10,10 +10,26 @@ Not deployed yet: these need the commissioned device. Everything below runs on *
 
 ## 1. Commission the board
 
-Flash `SpaV2/firmware` (`.\build.ps1`, `.\flash.ps1`), read the pairing code from its serial log, then
-follow `Wyse5070DebSetup/README.md` → "Adding a new Matter-over-Thread device"
-(`commission-thread-device.sh <code>`). Don't use the phone (see `ThreadRouter/CLAUDE.md`).
-Check: `docker exec otbr ot-ctl router table` lists it, partition `0x2d2f19a4`.
+**First time only: this board was the ThreadRouter** (Matter node 42, "Thread Router" in HA), and its NVS
+still holds that commissioning. `flash.ps1` never erases NVS, so:
+
+1. Remove the old node from HA: Settings → Devices & services → Matter → *Thread Router* → ⋮ → Delete
+   device.
+2. Erase once: `idf.py -p COM4 erase-flash` (in `SpaV2/firmware`, with ESP-IDF 5.4.1 activated), then
+   `.\flash.ps1`. Later flashes keep NVS (commissioning, calibration, electrode hours).
+
+Then read the pairing code from the serial log (`Manual pairing code: [...]`; the example
+commissionable data gives `34970112332`, same as MiniSplit) and follow `Wyse5070DebSetup/README.md` →
+"Adding a new Matter-over-Thread device". Don't use the phone (see `ThreadRouter/CLAUDE.md`):
+
+```bash
+ssh mwilkie@192.168.15.30 git -C github/HomeAutomation pull
+ssh mwilkie@192.168.15.30 github/HomeAutomation/Wyse5070DebSetup/commission-thread-device.sh --check
+ssh mwilkie@192.168.15.30 github/HomeAutomation/Wyse5070DebSetup/commission-thread-device.sh 34970112332
+```
+
+The board must be in Bluetooth range of wyse. Check: `docker exec otbr ot-ctl router table` lists it,
+partition `0x2d2f19a4` (not `0x4d6f48d3`, the SmartThings network).
 
 ## 2. Stable entity ids
 
