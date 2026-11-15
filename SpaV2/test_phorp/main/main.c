@@ -18,9 +18,12 @@
 #include "driver/mcpwm_cap.h"
 #include "driver/gpio.h"
 #include "esp_timer.h"
+#include "onewire_bus.h"
+#include "ds18b20.h"
 
 #define PIN_PH   GPIO_NUM_4
 #define PIN_ORP  GPIO_NUM_5
+#define PIN_TEMP GPIO_NUM_6      // DS18B20 1-Wire (4.7k pull-up to 3.3 V)
 #define REPORT_MS 2000
 #define LIB_PULSES 3000          // atlas_gravity: volt_avg_len (1000) * 3
 
@@ -42,6 +45,61 @@ static chan_t s_ch[2] = {
 };
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t s_res_hz;
+
+// DS18B20: latest reading, written by temp_task
+static volatile float s_temp_c;
+static volatile bool s_temp_ok;
+static volatile bool s_temp_found;
+
+static void temp_task(void *arg)
+{
+    onewire_bus_handle_t bus;
+    onewire_bus_config_t bcfg = {
+        .bus_gpio_num = PIN_TEMP,
+        // Internal ~45k pull-up as a backstop; the 4.7k external one is what
+        // makes a long probe cable reliable.
+        .flags.en_pull_up = true,
+    };
+    onewire_bus_rmt_config_t rcfg = { .max_rx_bytes = 10 };
+    ESP_ERROR_CHECK(onewire_new_bus_rmt(&bcfg, &rcfg, &bus));
+
+    ds18b20_device_handle_t ds = NULL;
+    for (;;) {
+        if (!ds) {
+            onewire_device_iter_handle_t iter;
+            onewire_device_t dev;
+            ESP_ERROR_CHECK(onewire_new_device_iter(bus, &iter));
+            while (onewire_device_iter_get_next(iter, &dev) == ESP_OK) {
+                ds18b20_config_t cfg = {};
+                if (ds18b20_new_device_from_enumeration(&dev, &cfg, &ds) == ESP_OK) {
+                    printf("DS18B20 found on GPIO%d, address %016llX\n", PIN_TEMP, dev.address);
+                    s_temp_found = true;
+                    break;
+                }
+                printf("1-Wire device %016llX on GPIO%d is not a DS18B20\n", dev.address, PIN_TEMP);
+            }
+            onewire_del_device_iter(iter);
+            if (!ds) {
+                s_temp_ok = false;
+                vTaskDelay(pdMS_TO_TICKS(5000));   // retry: probe may be plugged in later
+                continue;
+            }
+        }
+        float t;
+        if (ds18b20_trigger_temperature_conversion(ds) == ESP_OK &&
+            ds18b20_get_temperature(ds, &t) == ESP_OK) {
+            s_temp_c = t;
+            s_temp_ok = true;
+        } else {
+            printf("DS18B20 read failed; searching again\n");
+            ds18b20_del_device(ds);
+            ds = NULL;
+            s_temp_found = false;
+            s_temp_ok = false;
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
 
 static bool IRAM_ATTR on_cap(mcpwm_cap_channel_handle_t cap, const mcpwm_capture_event_data_t *e, void *ctx)
 {
@@ -106,13 +164,15 @@ static void report_task(void *arg)
             if (nh == 0) printf(" [NO PULSES, pin %s]", gpio_get_level(c->gpio) ? "high" : "low");
             else if (nh < LIB_PULSES) printf(" [only %" PRIu32 " pulses, lib averages %d]", nh, LIB_PULSES);
         }
+        if (s_temp_ok) printf(" | Temp %.2f C (%.1f F)", s_temp_c, s_temp_c * 9 / 5 + 32);
+        else printf(" | Temp [%s]", s_temp_found ? "read failed" : "no DS18B20 on GPIO6");
         printf("\n");
     }
 }
 
 void app_main(void)
 {
-    printf("\nSpaV2 test_phorp -- Atlas Gravity pH (GPIO%d) / ORP (GPIO%d) via isolator PWM\n", PIN_PH, PIN_ORP);
+    printf("\nSpaV2 test_phorp -- Atlas Gravity pH (GPIO%d) / ORP (GPIO%d) via isolator PWM, DS18B20 (GPIO%d)\n", PIN_PH, PIN_ORP, PIN_TEMP);
     printf("mV = avg high time (us) x 35 (atlas_gravity iso). pH/ORP use library defaults, uncalibrated.\n");
     printf("Expect period ~80 us. Report every %d s.\n\n", REPORT_MS / 1000);
 
@@ -142,5 +202,6 @@ void app_main(void)
     ESP_ERROR_CHECK(mcpwm_capture_timer_enable(timer));
     ESP_ERROR_CHECK(mcpwm_capture_timer_start(timer));
 
+    xTaskCreate(temp_task, "temp", 4096, NULL, 4, NULL);
     xTaskCreate(report_task, "report", 4096, NULL, 5, NULL);
 }
