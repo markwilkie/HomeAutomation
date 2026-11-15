@@ -106,7 +106,7 @@ Rules MiniSplit learned the hard way:
 - **pH** → template sensor with `device_class: ph` showing plain **pH 7.45**.
 - **ORP** → hidden raw-mV template sensor (for history/graphs) plus a **Low / Good / High** chlorine
   label. Thresholds live in HA so they can be tuned without reflashing. Starting points: **Low < 650 mV,
-  Good 650–800, High > 800**. ORP falls as pH rises at the same chlorine, so tune once real data exists.
+  Good 650–800, High > 800**, tuned against test strips (see Phase 3, ORP label tuning).
 
 ### Hardware
 - ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features). Board MAC **58:8C:81:5D:89:1C**: the former `ThreadRouter` board, repurposed 2026-11-14 (`test_leds/flash.ps1` refuses any other board).
@@ -181,8 +181,16 @@ and ORP calibration stores one offset against a reference solution.
 - **Procedure:** rinse the probe, put it in the solution, wait for it to settle, press the button.
   - **pH:** order **7 first, then 4, then 10** (mid point sets the centre; 4 and 10 set each slope).
     Two points (7 + 4) are enough for a spa (normal range 7.2–7.8); 10 is optional.
-  - **ORP:** one point in a reference solution. The value comes from `ORP_CAL_REF_MV`, default **225 mV**
-    (Atlas's ORP calibration solution); `ORPCAL,<mV>` on serial uses another value.
+  - **ORP:** **optional**. It only corrects a fixed offset. If done: one point in a redox reference solution.
+    The value comes from `ORP_CAL_REF_MV`, default **225 mV** (Atlas's ORP calibration solution);
+    `ORPCAL,<mV>` on serial uses another value. ORP **cannot** be derived from pH (it depends mainly on
+    free chlorine, plus pH, stabilizer/CYA and temperature), so there is no buffer-based shortcut.
+  - **ORP label tuning (the step that matters):** the Low/Good/High boundaries are tuned in HA against test
+    strips, which absorbs any probe offset plus this spa's stabilizer and pH:
+    1. Run for 1–2 weeks. At each strip test, note free chlorine (ppm) next to the raw ORP mV in HA.
+    2. Set **Good** to the ORP range where strips read in range (spa target ~1–3 ppm free chlorine);
+       Low/High are below and above it.
+    3. Re-check after big changes (stabilizer top-up, water change, probe replacement).
 - **Guards, so a stray press can't wreck a good calibration:** the firmware only accepts a calibration point if
   - the reading has been **stable**: mV spread under ~3 mV for pH, ~5 mV for ORP, over the last 30 s;
   - it's **plausible** for that buffer: pH 7 within 1500 ± 300 mV, pH 4 above the pH 7 point, pH 10 below it,
