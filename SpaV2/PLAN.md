@@ -116,7 +116,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 | Spare digital (Phase 8 BOOST drive) | GPIO23 | |
 | SmarterSpa GND (**green** wire) | GND | common ground |
 
-Harness (left→right): yellow, blue, red, white, green(GND). Color→LED mapping **verified 2026-11-14** with `SpaV2/test_leds`: the power-up step printed WHITE → RED → BLUE → GREEN on GPIO19 → 20 → 21 → 22, so no swaps are needed.
+Harness (left→right): yellow, blue, red, white, green(GND). The ribbon→colour mapping above is correct, but the harness lands on the board **reversed** relative to that order: white → GPIO19, red → GPIO20, blue → GPIO21, yellow (green LED) → GPIO22. Wired that way, the mapping is **verified 2026-11-14** with `SpaV2/test_leds`: the power-up step printed WHITE → RED → BLUE → GREEN on GPIO19 → 20 → 21 → 22, so the firmware pin table needs no swaps.
 
 Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap), GPIO12/13 (USB), GPIO16/17 (UART0 console).
 
