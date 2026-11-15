@@ -97,7 +97,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 
 ### Hardware
 - ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features). Board MAC **58:8C:81:5D:89:1C**: the former `ThreadRouter` board, repurposed 2026-11-14 (`test_leds/flash.ps1` refuses any other board).
-- pH/ORP Gravity iso boards → GPIO4/GPIO5 (ADC1).
+- pH/ORP Gravity boards through the analog isolators → GPIO4/GPIO5 (ADC1). Isolator outputs are **3.3 V max**, so they connect directly (no divider).
 - DS18B20 (1-Wire) → any free GPIO, 4.7 kΩ pull-up.
 - SmarterSpa ribbon → 470k/470k resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
 - Pump CT clamp → ADC1 pin (or comparator → digital input).
@@ -106,8 +106,8 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 ### Pin assignment (ESP32-C6-DevKitM-1)
 | Signal | GPIO | Notes |
 |---|---|---|
-| pH (Gravity iso analog out) | GPIO4 | ADC1_CH4 |
-| ORP (Gravity iso analog out) | GPIO5 | ADC1_CH5 |
+| pH (Gravity, via isolator; 3.3 V max) | GPIO4 | ADC1_CH4, direct (no divider) |
+| ORP (Gravity, via isolator; 3.3 V max) | GPIO5 | ADC1_CH5, direct (no divider) |
 | Pump CT clamp (conditioned) | GPIO6 | ADC1_CH6 (pad JTAG unused; USB-JTAG on 12/13) |
 | Spare analog | GPIO2, GPIO3 | ADC1_CH2/3 |
 | DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
@@ -130,7 +130,7 @@ Each phase ends with a testable exit criterion.
 
 ### Phase 0 — Hardware prep
 - Build SmarterSpa interface: dividers on the 4 LED lines, common ground; verify LED-off lines read high at the GPIO with the divider attached. ✅ Done: 470k/470k on all 4 lines; levels and mapping verified with `test_leds` (see §1 measurements).
-- Verify Atlas Gravity pH/ORP output range vs. C6 ADC range at chosen supply voltage.
+- Verify Atlas Gravity pH/ORP output range vs. C6 ADC range: isolator outputs are 3.3 V max; C6 ADC at 12 dB attenuation reads ~0–3.1 V linearly, so check the top of the range. The isolator is described as PWM output: confirm with a scope. If GPIO4/5 see raw PWM rather than a DC level, add an RC low-pass (e.g. 10k + 10 µF) so the analog-read math below stays valid.
 - Source DS18B20, pump CT clamp, enclosure.
 - Rotate the Wi-Fi password exposed in the old sketch.
 - **Exit:** parts on bench; pin assignment table committed to this file.
@@ -147,8 +147,12 @@ Each phase ends with a testable exit criterion.
 - **Exit:** HA displays both. If not, choose fallback cluster here before writing sensor code.
 
 ### Phase 3 — Real pH & ORP
-- ESP-IDF ADC oneshot + curve-fitting calibration; average 32–64 samples per reading.
-- Port Atlas Gravity pH/ORP conversion + calibration math to C; persist cal in NVS.
+- **Use the existing Atlas Gravity libraries** (`ph_iso_grav`, `orp_iso_grav`, the same ones the old sketch's
+  `PS_Ph_Probe`/`PS_ORP_Probe` wrappers call; not vendored in this repo). They read the pin with `analogRead`,
+  average to mV, and convert with their own 1/2/3-point calibration. ESP-IDF has no Arduino core, so keep their
+  conversion + calibration math unchanged and swap only the pin read for ESP-IDF ADC oneshot with curve-fitting
+  calibration (`adc_cali_raw_to_voltage` → mV), averaging 32–64 samples per reading.
+- Persist calibration in NVS (the libraries use Arduino EEPROM).
 - Calibration via On/Off momentary endpoints; serial console as backup (same commands as original).
 - **Exit:** matches calibration solutions within tolerance; cal survives reboot.
 
