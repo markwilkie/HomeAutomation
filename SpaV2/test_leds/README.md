@@ -5,10 +5,10 @@ lines reach the ESP32-C6-DevKitM-1 through the 470k/470k dividers (see PLAN.md �
 
 | GPIO | LED | Wire |
 |---|---|---|
-| 19 | WHITE | white (ribbon 1) |
-| 20 | RED | red (ribbon 5) |
-| 21 | BLUE | blue (ribbon 6) |
-| 22 | GREEN | yellow (ribbon 7) |
+| 19 | GREEN | yellow (ribbon 7) |
+| 20 | BLUE | blue (ribbon 6) |
+| 21 | RED | red (ribbon 5) |
+| 22 | WHITE | white (ribbon 1) |
 
 Active-low (0 = LED lit), no internal pulls, common GND with the SmarterSpa. Boot output and
 every 60 s it prints a register dump of the 4 pins (`Pullup: 0, Pulldown: 0` expected).
@@ -37,7 +37,7 @@ On boot, the raw level of every pin. With the SmarterSpa powered and idle, all s
 below the C6's input-high threshold (see the ⚠️ in PLAN.md):
 
 ```
-Boot levels:  WHITE(GPIO19)=1[off]  RED(GPIO20)=1[off]  BLUE(GPIO21)=1[off]  GREEN(GPIO22)=1[off]
+Boot levels:  GREEN(GPIO19)=1[off]  BLUE(GPIO20)=1[off]  RED(GPIO21)=1[off]  WHITE(GPIO22)=1[off]
 ```
 
 Power-cycle the SmarterSpa. Each transition prints as `<ms since boot>  <LED> ON/OFF`:

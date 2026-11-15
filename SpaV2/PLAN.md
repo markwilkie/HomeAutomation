@@ -44,7 +44,7 @@ Decision: **resistor dividers, 470 kΩ top / 470 kΩ bottom**, on the **4 LED li
 **Measured 2026-11-14 (red line, `test_leds`):** the LED lines are *not* 0/5 V logic.
 - Unloaded at the ribbon: **5.5 V off, 3.4 V on**, a 2.1 V swing that never gets near 0 V.
 - **High source impedance.** The original 56k/100k divider dragged red's off level from 5.5 V down to ~2.7 V (on ~2.5 V), leaving almost no swing. Green reading stuck-ON with 56k/100k is probably the same loading problem (not measured).
-- With **470k/470k**, GPIO20 sits at **~2.7 V off and ~1.7–2.0 V on**, and the C6 reads it cleanly in steady state. Red chattered with 56k/100k because its on level landed near the C6's actual switching point (~2.2 V observed).
+- With **470k/470k**, the line measured as "red" (GPIO20) sits at **~2.7 V off and ~1.7–2.0 V on**, and the C6 reads it cleanly in steady state. Red chattered with 56k/100k because its on level landed near the C6's actual switching point (~2.2 V observed).
 - Margins are **empirical, not guaranteed**: the datasheet's V_IL ≤ 0.83 V / V_IH ≥ 2.48 V at 3.3 V are *not* met. If a line chatters in steady state, the guaranteed fix is an LM339 quad comparator at 3.3 V: high-value divider into IN+, ~1.1 V reference into IN−, 10k pull-up on the output (stays active-low). A 74LVC125A will **not** work, because it reads 3.4 V as high.
 - Pulls must stay **off** (a ~45k internal pull-up beats a 235k divider). `test_leds` confirms `Pullup: 0, Pulldown: 0` on GPIO19–22 via `gpio_dump_io_configuration`.
 - Red still chatters for ~1.4 s while the SmarterSpa powers up (slow supply ramp through the threshold). The decoder must filter this (Phase 5).
@@ -109,14 +109,14 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 | Pump CT clamp (conditioned) | GPIO6 | ADC1_CH6 (pad JTAG unused; USB-JTAG on 12/13) |
 | Spare analog | GPIO2, GPIO3 | ADC1_CH2/3 |
 | DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
-| SmarterSpa White LED (ribbon 1, **white** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |
-| SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO20 | 470k/470k divider, active-low, no pulls |
-| SmarterSpa Blue LED (ribbon 6, **blue** wire) | GPIO21 | 470k/470k divider, active-low, no pulls |
-| SmarterSpa Green LED (ribbon 7, **yellow** wire) | GPIO22 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Green LED (ribbon 7, **yellow** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Blue LED (ribbon 6, **blue** wire) | GPIO20 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO21 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa White LED (ribbon 1, **white** wire) | GPIO22 | 470k/470k divider, active-low, no pulls |
 | Spare digital (Phase 8 BOOST drive) | GPIO23 | |
 | SmarterSpa GND (**green** wire) | GND | common ground |
 
-Harness (left→right): yellow, blue, red, white, green(GND). The ribbon→colour mapping above is correct, but the harness lands on the board **reversed** relative to that order: white → GPIO19, red → GPIO20, blue → GPIO21, yellow (green LED) → GPIO22. Wired that way, the mapping is **verified 2026-11-14** with `SpaV2/test_leds`: the power-up step printed WHITE → RED → BLUE → GREEN on GPIO19 → 20 → 21 → 22, so the firmware pin table needs no swaps.
+Harness (left→right): yellow, blue, red, white, green(GND). The ribbon→colour mapping above is correct; on the board the GPIO order is **reversed** from the original plan: yellow (green LED) → GPIO19, blue → GPIO20, red → GPIO21, white → GPIO22 (per the board wiring, 2026-11-14). ⚠️ Not yet reconciled with the 2026-11-14 capture, which was decoded with the *old* table and printed WHITE → RED → BLUE → GREEN on GPIO19 → 20 → 21 → 22 (under this table: GREEN → BLUE → RED → WHITE, standby blink on GREEN, steady LED after boot = BLUE). Confirm by eye against `test_leds` output.
 
 Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap), GPIO12/13 (USB), GPIO16/17 (UART0 console).
 

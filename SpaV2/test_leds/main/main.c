@@ -24,10 +24,12 @@ typedef struct {
 } led_pin_t;
 
 static const led_pin_t PINS[] = {
-    { GPIO_NUM_19, "WHITE" },  // ribbon 1, white wire
-    { GPIO_NUM_20, "RED"   },  // ribbon 5, red wire
-    { GPIO_NUM_21, "BLUE"  },  // ribbon 6, blue wire
-    { GPIO_NUM_22, "GREEN" },  // ribbon 7, yellow wire
+    // Order as wired on the board (2026-11-14): reversed vs. the
+    // original PLAN.md table.
+    { GPIO_NUM_19, "GREEN" },  // ribbon 7, yellow wire
+    { GPIO_NUM_20, "BLUE"  },  // ribbon 6, blue wire
+    { GPIO_NUM_21, "RED"   },  // ribbon 5, red wire
+    { GPIO_NUM_22, "WHITE" },  // ribbon 1, white wire
 };
 #define NUM_PINS (sizeof(PINS) / sizeof(PINS[0]))
 
