@@ -1,0 +1,45 @@
+# SpaV2 spa monitor -- Matter over Thread on the ESP32-C6 DevKitM-1.
+# Network/Matter settings are MiniSplit's (see MiniSplit/sdkconfig.defaults for
+# the full story behind each one); only the reasons are abbreviated here.
+CONFIG_IDF_TARGET="esp32c6"
+
+# 4MB flash, 3MB factory app (Matter builds to ~1.8MB)
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# Matter crypto needs HKDF
+CONFIG_MBEDTLS_HKDF_C=y
+
+# Closure Control/Dimension clusters break the build (espressif/esp-matter#1604)
+CONFIG_SUPPORT_CLOSURE_CONTROL_CLUSTER=n
+CONFIG_SUPPORT_CLOSURE_DIMENSION_CLUSTER=n
+
+# Thread, not Wi-Fi; Full Thread Device (mains powered router)
+CONFIG_OPENTHREAD_ENABLED=y
+CONFIG_ENABLE_MATTER_OVER_THREAD=y
+# CONFIG_ENABLE_WIFI_STATION is not set
+CONFIG_OPENTHREAD_FTD=y
+CONFIG_OPENTHREAD_DNS64_CLIENT=y
+CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=180
+
+# Operational discovery via OpenThread SRP (minimal mDNS never crosses OTBR);
+# these two must change together.
+CONFIG_OPENTHREAD_SRP_CLIENT=y
+# CONFIG_USE_MINIMAL_MDNS is not set
+
+# BLE (NimBLE) for commissioning, advertising on power-up
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+# CONFIG_BT_BLUEDROID_ENABLED is not set
+CONFIG_CHIPOBLE_ENABLE_ADVERTISING_AUTOSTART=1
+
+# VendorName/ProductName
+CONFIG_CHIP_PROJECT_CONFIG="include/chip_project_config.h"
+
+# The DevKitM-1's only PC link is USB-Serial-JTAG: make it the primary console
+# so the serial calibration commands (PHCAL/ORPCAL) can be typed in.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y

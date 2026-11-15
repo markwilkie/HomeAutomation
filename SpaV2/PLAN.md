@@ -78,19 +78,25 @@ cycle shows electrode current (>160 too much salt, <125 + low output = add salt)
 ## 2. Target architecture
 
 ### Matter endpoint map
-| Endpoint | Device type / cluster | Value |
-|---|---|---|
-| Water temp | Temperature Sensor / Temperature Measurement | °C ×100 |
-| pH | **Humidity Sensor (repurposed)** / Relative Humidity Measurement | `MeasuredValue` = pH × 100 (7.45 → 745; HA shows "7.45 %") |
-| ORP | **Humidity Sensor (repurposed)** / Relative Humidity Measurement | `MeasuredValue` = ORP mV + 2000 (1 mV resolution; −570 mV → 1430, HA shows "14.30 %") |
-| Pump running | Contact Sensor / Boolean State | CT clamp |
-| SmarterSpa: Generating | Boolean State | |
-| SmarterSpa: Salt Low | Boolean State | |
-| SmarterSpa: Salt High | Boolean State | |
-| SmarterSpa: Salt Shutdown | Boolean State | alert |
-| SmarterSpa: Fault / no power | Boolean State | alert |
-| Calibration buttons: pH 7, pH 4, pH 10, ORP, Clear | On/Off Plug-in Unit (momentary) | firmware resets to off after acting (see Phase 3 calibration) |
-| Calibration status | Humidity Sensor (repurposed) | result code of the last cal press (see Phase 3) |
+Implemented in `SpaV2/firmware/src/matter_device.cpp`. **Endpoint order is fixed**: HA names entities by it, and
+`homeassistant/rename_entities.py` maps them to stable ids by endpoint number.
+
+| EP | Value | Device type / cluster | Encoding | HA (after rename + package) |
+|---|---|---|---|---|
+| 1 | Water temp | Temperature Sensor | °C ×100 | `sensor.spa_water_temperature` |
+| 2 | pH | Humidity Sensor (repurposed) | pH ×100 | `sensor.spa_ph` (device_class ph) |
+| 3 | ORP | Humidity Sensor (repurposed) | mV + 2000 | `sensor.spa_orp` (mV), `sensor.spa_chlorine` (Low/Good/High) |
+| 4 | pH/ORP readings live | Occupancy Sensor | 1 = current | `binary_sensor.spa_readings_live` |
+| 5 | Pump running | Occupancy Sensor | CT hysteresis | `binary_sensor.spa_pump_running` |
+| 6 | Pump current | Humidity Sensor (repurposed) | A ×100 | `sensor.spa_pump_current` |
+| 7 | SmarterSpa state | Humidity Sensor (repurposed) | `spa_state_t` ×100 | `sensor.smarterspa_state` + binary sensors generating / salt low / salt high / salt shutdown / fault |
+| 8 | Electrode hours | Humidity Sensor (repurposed) | whole hours | `sensor.spa_electrode_hours` |
+| 9 | Calibration status | Humidity Sensor (repurposed) | `cal_status_t` ×100 | `sensor.spa_calibration_status` |
+| 10–14 | Calibrate pH 7 / pH 4 / pH 10 / ORP / Clear | On/Off Plug-in Unit | momentary | `switch.spa_calibrate_*` (dashboard buttons) |
+
+The SmarterSpa booleans are derived in HA from the one state code (fewer endpoints; one source of truth).
+Booleans use **Occupancy Sensor**, not Contact/BooleanState: in this esp-matter version BooleanState's
+StateValue is managed internally and `attribute::update()` can't set it (MiniSplit, `matter_device.cpp`).
 
 **pH/ORP have no Matter cluster**, so they reuse MiniSplit's proven pattern: a **repurposed Humidity
 Sensor** endpoint per value, decoded by an HA template sensor. MiniSplit already does this for compressor
@@ -194,21 +200,29 @@ and ORP calibration stores one offset against a reference solution.
 - **Guards, so a stray press can't wreck a good calibration:** the firmware only accepts a calibration point if
   - the reading has been **stable**: mV spread under ~3 mV for pH, ~5 mV for ORP, over the last 30 s;
   - it's **plausible** for that buffer: pH 7 within 1500 ± 300 mV, pH 4 above the pH 7 point, pH 10 below it,
-    giving a slope of 40–70 mV/pH (healthy glass probe ≈ 59 mV/pH at 25 °C); ORP offset within ±200 mV.
+    giving a slope of **120–220 board-mV per pH** (the Gravity board amplifies the ~59 mV/pH glass electrode:
+    library defaults 2030 / 1500 / 975 mV at pH 4 / 7 / 10 ≈ 175 mV/pH); ORP offset within ±200 mV.
   - Otherwise it keeps the old calibration and reports why.
-- **Feedback:** the *Calibration status* endpoint (repurposed Humidity Sensor) reports a result code, decoded by an HA
-  template to text: OK / unstable / out of range / cleared. The serial log prints the stored mV and the
-  computed slope.
+- **Feedback:** the *Calibration status* endpoint reports *Calibrating...* at each press, then OK / unstable /
+  out of range / cleared / no signal (decoded by an HA template). Always changing state lets HA react to every
+  press. The serial log prints the stored mV and both slopes.
 - **Cal mode bypasses pump gating:** while calibrating, the probe is in a cup, not the spa. A cal press
   enables live pH/ORP publishing for 10 min regardless of the Phase 4 pump gate.
-- **Stored in NVS** with the date of each point, also logged and published so HA can show "last calibrated".
+- **Stored in NVS.** The board has no clock, so HA keeps the dates: an automation stamps
+  `input_datetime.spa_last_ph_calibration` / `_orp_` when a press ends in OK.
 - **Recommended interval:** pH monthly; ORP every 3 months, or whenever ORP drifts from what test strips suggest.
 - **Exit:** matches calibration solutions within tolerance (pH ±0.1, ORP ±10 mV); cal survives reboot; bad
   presses (unstable, wrong buffer) are rejected with a status.
 
 ### Phase 4 — Pump detection & gating
-- CT clamp → Pump Running Boolean State.
-- Publish pH/ORP only after pump has run ≥5 min; hold last good value otherwise.
+- CT clamp → Pump Running (Occupancy Sensor) + Pump current (A).
+- RMS of 1000 samples at 5 kHz (200 ms, 12 cycles), hysteresis `CT_ON_A` / `CT_OFF_A` in `firmware/src/spa_config.h`.
+  Heater test 2026-11-14: noise floor **0.30–0.34 A** (10 mV RMS); fan ~0.4 A; heater low 7.4 A, high 11.0 A.
+  The old 0.5 / 0.3 A thresholds sat in the noise (stuck ON after the load stopped).
+  **Pump measured 2026-11-15: low speed 2.6 A, high speed 8.0 A.** Thresholds **on > 1.5 A, off < 1.0 A**:
+  ~4× the noise floor, with margin below low speed. HA's *Spa pump speed* template reads Off / Low / High from
+  the current (Low/High split at 5 A, midway).
+- Publish pH/ORP only after pump has run ≥5 min; hold last good value otherwise (`binary_sensor.spa_readings_live`).
 - **Exit:** pH/ORP update only during pump runs.
 
 ### Phase 5 — SmarterSpa decoder
@@ -217,15 +231,21 @@ and ORP calibration stores one offset against a reference solution.
   chatter, which overflowed a 512-entry interrupt queue in `test_leds` (27k events dropped).
 - State machine: standby / generating-OK / generating-low / generating-high / salt-shutdown / fault.
   - Solid state accepted only after ~5 s steady.
-  - Ignore while WHITE solid (menu modes) and for a few seconds after any button-line change.
-  - Fault = no standby blink for >15 s while not generating.
-- Expose Boolean State endpoints listed above.
+  - Ignore while WHITE solid (menu modes) and for 5 s after it ends. (Button lines aren't wired, so no
+    button-change rule; counted-flash readouts and boost flashes never hold 5 s, so they're ignored anyway.)
+  - Fault = no standby blink for >15 s while not generating, **or all four lines "lit" for >15 s**: with the
+    SmarterSpa unpowered every line sits at 0 V, which reads as all LEDs on (seen in `test_leds`).
+  - Implemented in `firmware/src/spa_leds.c`; also keeps a lifetime electrode-hours counter in NVS (Phase 7 item).
+- Expose one SmarterSpa state code (endpoint 7); HA derives the booleans (see the endpoint map).
 - **Exit:** boost cycle and power cycle produce correct states; button presses at the unit cause no false states.
 
 ### Phase 6 — Home Assistant side
-- `history_stats`: generating hours (24 h), pump runtime (24 h).
-- Alerts: salt shutdown, fault, pH out of range, ORP label = **Low** for more than ~1 h of pump run.
-- Dashboard card.
+- All in `SpaV2/homeassistant/` (install steps in its README): `spa_package.yaml` (templates, threshold
+  helpers, `history_stats` generating + pump runtime 24 h, calibration date stamps, alerts) and
+  `dashboard_card.yaml`.
+- Alerts (persistent notifications): salt shutdown (5 min), fault / no power (10 min), salt low (30 min),
+  pH outside the helper range for 30 min while live, chlorine label **Low** for 1 h while live.
+- Dashboard card: tiles, pH gauge, 24 h graph, details, calibration buttons and threshold helpers.
 - **Exit:** alerts fire on test values.
 
 ### Phase 7 — Hardening & install
