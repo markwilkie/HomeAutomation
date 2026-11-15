@@ -83,7 +83,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 
 ### Hardware
 - ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features).
-- pH/ORP Gravity iso boards → ADC1 pins (GPIO0–6).
+- pH/ORP Gravity iso boards → GPIO4/GPIO5 (ADC1).
 - DS18B20 (1-Wire) → any free GPIO, 4.7 kΩ pull-up.
 - SmarterSpa ribbon → resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
 - Pump CT clamp → ADC1 pin (or comparator → digital input).
@@ -92,10 +92,10 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 ### Pin assignment (ESP32-C6-DevKitM-1)
 | Signal | GPIO | Notes |
 |---|---|---|
-| pH (Gravity iso analog out) | GPIO2 | ADC1_CH2 |
-| ORP (Gravity iso analog out) | GPIO3 | ADC1_CH3 |
-| Pump CT clamp (conditioned) | GPIO4 | ADC1_CH4 (pad JTAG unused; USB-JTAG on 12/13) |
-| Spare analog | GPIO5, GPIO6 | ADC1_CH5/6 |
+| pH (Gravity iso analog out) | GPIO4 | ADC1_CH4 |
+| ORP (Gravity iso analog out) | GPIO5 | ADC1_CH5 |
+| Pump CT clamp (conditioned) | GPIO6 | ADC1_CH6 (pad JTAG unused; USB-JTAG on 12/13) |
+| Spare analog | GPIO2, GPIO3 | ADC1_CH2/3 |
 | DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
 | SmarterSpa White LED (ribbon 1, **white** wire) | GPIO19 | 56k/100k divider, active-low |
 | SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO20 | 56k/100k divider, active-low |
