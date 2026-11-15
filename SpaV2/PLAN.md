@@ -81,19 +81,32 @@ cycle shows electrode current (>160 too much salt, <125 + low output = add salt)
 | Endpoint | Device type / cluster | Value |
 |---|---|---|
 | Water temp | Temperature Sensor / Temperature Measurement | °C ×100 |
-| ORP | Electrical Sensor / Electrical Power Measurement `Voltage` | mV |
-| pH | Electrical Sensor / Electrical Power Measurement `Voltage` | pH ×1000 (HA template rescales) |
+| pH | **Humidity Sensor (repurposed)** / Relative Humidity Measurement | `MeasuredValue` = pH × 100 (7.45 → 745; HA shows "7.45 %") |
+| ORP | **Humidity Sensor (repurposed)** / Relative Humidity Measurement | `MeasuredValue` = ORP mV + 2000 (1 mV resolution; −570 mV → 1430, HA shows "14.30 %") |
 | Pump running | Contact Sensor / Boolean State | CT clamp |
 | SmarterSpa: Generating | Boolean State | |
 | SmarterSpa: Salt Low | Boolean State | |
 | SmarterSpa: Salt High | Boolean State | |
 | SmarterSpa: Salt Shutdown | Boolean State | alert |
 | SmarterSpa: Fault / no power | Boolean State | alert |
-| Calibration buttons (pH4, pH7, pH10, ORP, Clear) | On/Off (momentary) | auto-reset to off |
+| Calibration buttons: pH 7, pH 4, pH 10, ORP, Clear | On/Off Plug-in Unit (momentary) | firmware resets to off after acting (see Phase 3 calibration) |
+| Calibration status | Humidity Sensor (repurposed) | result code of the last cal press (see Phase 3) |
 
-**Open risk:** pH/ORP have no standard Matter cluster that HA renders (not
-verified exhaustively). Mapping onto Electrical Power Measurement `Voltage` is
-unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
+**pH/ORP have no Matter cluster**, so they reuse MiniSplit's proven pattern: a **repurposed Humidity
+Sensor** endpoint per value, decoded by an HA template sensor. MiniSplit already does this for compressor
+load, outage reason and Thread RSSI (`MiniSplit/src/matter_device.cpp`; templates in
+`Wyse5070DebSetup/homeassistant-config/configuration.yaml`, e.g. `sensor.minisplit_thread_rssi`).
+Rules MiniSplit learned the hard way:
+- **Never repurpose a Temperature Sensor:** HA converts it °C→°F and corrupts the value. Humidity has no unit conversion.
+- **`MeasuredValue` is unsigned (uint16):** negative values need an offset (hence ORP + 2000). HA divides by 100 itself.
+- **Numeric template sensors render `none` for invalid, never the string `unknown`:** the string fails HA's
+  numeric check, and MiniSplit's RSSI sensor stuck on "unknown" for days because of it.
+
+**HA presentation (templates in the same `configuration.yaml`):**
+- **pH** → template sensor with `device_class: ph` showing plain **pH 7.45**.
+- **ORP** → hidden raw-mV template sensor (for history/graphs) plus a **Low / Good / High** chlorine
+  label. Thresholds live in HA so they can be tuned without reflashing. Starting points: **Low < 650 mV,
+  Good 650–800, High > 800**. ORP falls as pH rises at the same chlorine, so tune once real data exists.
 
 ### Hardware
 - ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features). Board MAC **58:8C:81:5D:89:1C**: the former `ThreadRouter` board, repurposed 2026-11-14 (`test_leds/flash.ps1` refuses any other board).
@@ -141,10 +154,11 @@ Each phase ends with a testable exit criterion.
 - Commission from wyse with `Wyse5070DebSetup/commission-thread-device.sh` (see `Wyse5070DebSetup/README.md`).
 - **Exit:** commissioned on `WilkieMatterNet`; water temp visible in HA.
 
-### Phase 2 — Matter de-risk spike (pH/ORP rendering)
-- Add ORP + pH endpoints on Electrical Power Measurement publishing fake values.
-- Add HA template sensor rescaling pH.
-- **Exit:** HA displays both. If not, choose fallback cluster here before writing sensor code.
+### Phase 2 — pH/ORP presentation check (short, the pattern is proven by MiniSplit)
+- Add the pH + ORP repurposed Humidity Sensor endpoints publishing fake values (pH 7.45; ORP stepping
+  600 → 700 → 850 mV).
+- Add the HA templates: pH (`device_class: ph`), ORP raw mV (hidden), ORP Low/Good/High label.
+- **Exit:** HA shows pH 7.45, and the ORP label steps Low → Good → High as the fake value crosses the thresholds.
 
 ### Phase 3 — Real pH & ORP
 - **Use the existing Atlas Gravity libraries** (`atlas_gravity`: `ph_iso_grav`, `orp_iso_grav`, MIT, Atlas Scientific 2020;
@@ -159,8 +173,30 @@ Each phase ends with a testable exit criterion.
   MCPWM capture on GPIO4/5 (hardware edge timestamps; average the high-pulse width over 3000 pulses, ~0.25 s).
   Also log the period as a sanity check. `EEPROM` becomes NVS.
 - Persist calibration in NVS (the libraries use Arduino EEPROM).
-- Calibration via On/Off momentary endpoints; serial console as backup (same commands as original).
-- **Exit:** matches calibration solutions within tolerance; cal survives reboot.
+
+**Calibration plan.** The library math stays as is: pH calibration stores the probe's mV at pH 7 / 4 / 10,
+and ORP calibration stores one offset against a reference solution.
+- **Triggers:** HA buttons (momentary On/Off endpoints: *pH 7*, *pH 4*, *pH 10*, *ORP*, *Clear*). The
+  serial console accepts the original commands as backup: `PHCAL,7|4|10|CLEAR`, `ORPCAL,<mV>|CLEAR`.
+- **Procedure:** rinse the probe, put it in the solution, wait for it to settle, press the button.
+  - **pH:** order **7 first, then 4, then 10** (mid point sets the centre; 4 and 10 set each slope).
+    Two points (7 + 4) are enough for a spa (normal range 7.2–7.8); 10 is optional.
+  - **ORP:** one point in a reference solution. The value comes from `ORP_CAL_REF_MV`, default **225 mV**
+    (Atlas's ORP calibration solution); `ORPCAL,<mV>` on serial uses another value.
+- **Guards, so a stray press can't wreck a good calibration:** the firmware only accepts a calibration point if
+  - the reading has been **stable**: mV spread under ~3 mV for pH, ~5 mV for ORP, over the last 30 s;
+  - it's **plausible** for that buffer: pH 7 within 1500 ± 300 mV, pH 4 above the pH 7 point, pH 10 below it,
+    giving a slope of 40–70 mV/pH (healthy glass probe ≈ 59 mV/pH at 25 °C); ORP offset within ±200 mV.
+  - Otherwise it keeps the old calibration and reports why.
+- **Feedback:** the *Calibration status* endpoint (repurposed Humidity Sensor) reports a result code, decoded by an HA
+  template to text: OK / unstable / out of range / cleared. The serial log prints the stored mV and the
+  computed slope.
+- **Cal mode bypasses pump gating:** while calibrating, the probe is in a cup, not the spa. A cal press
+  enables live pH/ORP publishing for 10 min regardless of the Phase 4 pump gate.
+- **Stored in NVS** with the date of each point, also logged and published so HA can show "last calibrated".
+- **Recommended interval:** pH monthly; ORP every 3 months, or whenever ORP drifts from what test strips suggest.
+- **Exit:** matches calibration solutions within tolerance (pH ±0.1, ORP ±10 mV); cal survives reboot; bad
+  presses (unstable, wrong buffer) are rejected with a status.
 
 ### Phase 4 — Pump detection & gating
 - CT clamp → Pump Running Boolean State.
@@ -180,7 +216,7 @@ Each phase ends with a testable exit criterion.
 
 ### Phase 6 — Home Assistant side
 - `history_stats`: generating hours (24 h), pump runtime (24 h).
-- Alerts: salt shutdown, fault, pH out of range, ORP low.
+- Alerts: salt shutdown, fault, pH out of range, ORP label = **Low** for more than ~1 h of pump run.
 - Dashboard card.
 - **Exit:** alerts fire on test values.
 
