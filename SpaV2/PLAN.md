@@ -100,7 +100,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 - pH/ORP Gravity boards through the Atlas analog isolators (GRV-ISO, now sold as SRV-ISO) → GPIO4/GPIO5 as **digital PWM inputs** (no ADC). Isolator outputs are **3.3 V max**, so they connect directly (no divider, no filter), as on the old ESP32 (GPIO34/35).
 - DS18B20 (1-Wire) → GPIO6, 4.7 kΩ pull-up.
 - SmarterSpa ribbon → 470k/470k resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
-- Pump CT clamp → ADC1 pin (or comparator → digital input).
+- Pump CT clamp (SCT-013-030) → GPIO2 (ADC1), AC-coupled around a 1.65 V bias.
 
 
 ### Pin assignment (ESP32-C6-DevKitM-1)
@@ -108,7 +108,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 |---|---|---|
 | pH (Gravity via isolator, PWM, 3.3 V) | GPIO4 | digital input, high-pulse timing (MCPWM capture); direct, no divider/filter |
 | ORP (Gravity via isolator, PWM, 3.3 V) | GPIO5 | digital input, high-pulse timing (MCPWM capture); direct, no divider/filter |
-| Pump CT clamp (conditioned) | GPIO2 | ADC1_CH2 (moved from GPIO6, now used by the DS18B20) |
+| Pump CT clamp, SCT-013-030 (30 A → 1 V RMS, burden built in) | GPIO2 | ADC1_CH2; 10k/10k bias to 1.65 V + 10 µF; one conductor only; RMS over 200 ms (moved from GPIO6) |
 | Spare analog | GPIO3 (GPIO4/5/6 are ADC-capable too but used as digital) | ADC1_CH3 |
 | DS18B20 data | GPIO6 | 1-Wire via RMT (`espressif/ds18b20`); 4.7 kΩ pull-up to 3.3 V |
 | SmarterSpa Yellow LED, manual's "green" (ribbon 7, **yellow** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |

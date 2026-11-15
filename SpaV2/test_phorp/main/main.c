@@ -20,10 +20,22 @@
 #include "esp_timer.h"
 #include "onewire_bus.h"
 #include "ds18b20.h"
+#include <math.h>
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 
 #define PIN_PH   GPIO_NUM_4
 #define PIN_ORP  GPIO_NUM_5
 #define PIN_TEMP GPIO_NUM_6      // DS18B20 1-Wire (4.7k pull-up to 3.3 V)
+// Pump CT: SCT-013-030 (30 A -> 1 V RMS, burden built in) on GPIO2 = ADC1_CH2,
+// biased to ~1.65 V by a 10k/10k divider + 10 uF.
+#define CT_CHANNEL     ADC_CHANNEL_2
+#define CT_A_PER_V     30.0f
+#define CT_SAMPLES     1000      // at 5 kHz = 200 ms = 12 mains cycles at 60 Hz
+#define CT_PERIOD_US   200
+#define CT_ON_A        0.5f      // provisional thresholds, tune from real readings
+#define CT_OFF_A       0.3f
 #define REPORT_MS 2000
 #define LIB_PULSES 3000          // atlas_gravity: volt_avg_len (1000) * 3
 
@@ -45,6 +57,49 @@ static chan_t s_ch[2] = {
 };
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t s_res_hz;
+
+// Pump CT: latest window, written by ct_task
+static volatile float s_ct_bias_mv, s_ct_rms_mv;
+static volatile bool s_ct_valid, s_pump_on;
+
+static void ct_task(void *arg)
+{
+    adc_oneshot_unit_handle_t adc;
+    adc_oneshot_unit_init_cfg_t ucfg = { .unit_id = ADC_UNIT_1 };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&ucfg, &adc));
+    adc_oneshot_chan_cfg_t ccfg = { .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_DEFAULT };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, CT_CHANNEL, &ccfg));
+    adc_cali_handle_t cali;
+    adc_cali_curve_fitting_config_t kcfg = {
+        .unit_id = ADC_UNIT_1, .chan = CT_CHANNEL,
+        .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&kcfg, &cali));
+
+    static int mv[CT_SAMPLES];
+    for (;;) {
+        int64_t next = esp_timer_get_time();
+        for (int i = 0; i < CT_SAMPLES; i++) {
+            int raw = 0;
+            adc_oneshot_read(adc, CT_CHANNEL, &raw);
+            adc_cali_raw_to_voltage(cali, raw, &mv[i]);
+            next += CT_PERIOD_US;
+            while (esp_timer_get_time() < next) { }
+        }
+        double sum = 0, sq = 0;
+        for (int i = 0; i < CT_SAMPLES; i++) sum += mv[i];
+        double mean = sum / CT_SAMPLES;
+        for (int i = 0; i < CT_SAMPLES; i++) { double d = mv[i] - mean; sq += d * d; }
+        float rms = (float)sqrt(sq / CT_SAMPLES);
+        float amps = rms / 1000.0f * CT_A_PER_V;
+        s_ct_bias_mv = (float)mean;
+        s_ct_rms_mv = rms;
+        if (amps > CT_ON_A) s_pump_on = true;
+        else if (amps < CT_OFF_A) s_pump_on = false;
+        s_ct_valid = true;
+        vTaskDelay(pdMS_TO_TICKS(800));
+    }
+}
 
 // DS18B20: latest reading, written by temp_task
 static volatile float s_temp_c;
@@ -166,6 +221,12 @@ static void report_task(void *arg)
         }
         if (s_temp_ok) printf(" | Temp %.2f C (%.1f F)", s_temp_c, s_temp_c * 9 / 5 + 32);
         else printf(" | Temp [%s]", s_temp_found ? "read failed" : "no DS18B20 on GPIO6");
+        if (s_ct_valid) {
+            float bias = s_ct_bias_mv;
+            printf(" | CT bias=%4.0fmV rms=%6.1fmV ~%5.2fA pump=%s", bias, s_ct_rms_mv,
+                   s_ct_rms_mv / 1000.0f * CT_A_PER_V, s_pump_on ? "ON" : "off");
+            if (bias < 1300 || bias > 2000) printf(" [bias not ~1650 mV: check 10k/10k divider]");
+        }
         printf("\n");
     }
 }
@@ -203,5 +264,6 @@ void app_main(void)
     ESP_ERROR_CHECK(mcpwm_capture_timer_start(timer));
 
     xTaskCreate(temp_task, "temp", 4096, NULL, 4, NULL);
+    xTaskCreate(ct_task, "ct", 4096, NULL, 3, NULL);
     xTaskCreate(report_task, "report", 4096, NULL, 5, NULL);
 }
