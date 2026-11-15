@@ -48,7 +48,7 @@ Decision: **resistor dividers, 470 kΩ top / 470 kΩ bottom**, on the **4 LED li
 - Margins are **empirical, not guaranteed**: the datasheet's V_IL ≤ 0.83 V / V_IH ≥ 2.48 V at 3.3 V are *not* met. If a line chatters in steady state, the guaranteed fix is an LM339 quad comparator at 3.3 V: high-value divider into IN+, ~1.1 V reference into IN−, 10k pull-up on the output (stays active-low). A 74LVC125A will **not** work, because it reads 3.4 V as high.
 - Pulls must stay **off** (a ~45k internal pull-up beats a 235k divider). `test_leds` confirms `Pullup: 0, Pulldown: 0` on GPIO19–22 via `gpio_dump_io_configuration`.
 - Red still chatters for ~1.4 s while the SmarterSpa powers up (slow supply ramp through the threshold). The decoder must filter this (Phase 5).
-- **TODO:** confirm white/blue/green are also on 470k/470k (only red was measured and swapped).
+- All 4 lines are on 470k/470k (red measured; white/blue/green confirmed same values and read cleanly in `test_leds`).
 
 ### SmarterSpa LED semantics (ControlOMatic manual, ver. 06/27/16)
 | Pattern | Meaning |
@@ -127,7 +127,7 @@ Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap
 Each phase ends with a testable exit criterion.
 
 ### Phase 0 — Hardware prep
-- Build SmarterSpa interface: dividers on the 4 LED lines, common ground; verify LED-off lines read high at the GPIO with the divider attached. ✅ Done for red with 470k/470k, and all 4 lines + mapping verified with `test_leds` (see §1 measurements). Remaining: confirm the divider values on white/blue/green.
+- Build SmarterSpa interface: dividers on the 4 LED lines, common ground; verify LED-off lines read high at the GPIO with the divider attached. ✅ Done: 470k/470k on all 4 lines; levels and mapping verified with `test_leds` (see §1 measurements).
 - Verify Atlas Gravity pH/ORP output range vs. C6 ADC range at chosen supply voltage.
 - Source DS18B20, pump CT clamp, enclosure.
 - Rotate the Wi-Fi password exposed in the old sketch.
