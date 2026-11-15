@@ -5,8 +5,8 @@ Weekend & Ahead emails: no model, no searches (user, 2026-11-14).
 The events email lists its picks under bold day labels ("**Fri Nov 20**",
 "**Today, Sat Nov 21**") in This weekend and Next week; this takes today's
 bullets from the newest saved email (state/events-<date>.md, last 8 days)
-that has today's label, and puts the section right after the brief's
-📅 Today section. On an events-email morning it points to that email
+that has today's label, and puts the section at the end of the brief
+(user, 2026-11-15). On an events-email morning it points to that email
 instead: Saturday's email opens with today, so just the pointer; Thursday's
 starts on Friday, so today's picks from last week's email, then the pointer.
 
@@ -77,17 +77,10 @@ def section(state: Path, day: datetime.date) -> str:
 
 
 def insert(brief: str, block: str) -> str:
-    """Put `block` after the brief's 📅 Today section (or at the end)."""
+    """Put `block` at the end of the brief (the reply footer goes after it)."""
     if HEADING in brief:
         return brief
-    lines = brief.split("\n")
-    start = next((i for i, l in enumerate(lines) if re.match(r"#+ *📅", l)), None)
-    if start is None:
-        return brief.rstrip("\n") + "\n\n" + block + "\n"
-    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("#")), len(lines))
-    while end > start + 1 and not lines[end - 1].strip():
-        end -= 1
-    return "\n".join(lines[:end] + ["", block] + lines[end:])
+    return brief.rstrip("\n") + "\n\n" + block + "\n"
 
 
 def main() -> None:

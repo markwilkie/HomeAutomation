@@ -103,11 +103,7 @@ def test_nov_2_does_not_match_nov_20():
     assert te.day_items("**Fri Nov 20**\n- x\n", datetime.date(2026, 11, 2)) == []
 
 
-def test_insert_after_today_section():
+def test_insert_at_the_end():
     out = te.insert(BRIEF, f"{te.HEADING}\n- a")
-    assert out.index("- 10am Breakfast") < out.index(te.HEADING) < out.index("## 💵 Money")
-    assert "Breakfast\n\n## 🎉" in out and te.insert(out, "again") == out
-
-
-def test_insert_without_today_section_appends():
-    assert te.insert("## 🎯 Needs you\n- x\n", "BLOCK").endswith("- x\n\nBLOCK\n")
+    assert out.endswith(f"- BECU\n\n{te.HEADING}\n- a\n")
+    assert te.insert(out, "again") == out
