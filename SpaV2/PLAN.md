@@ -51,22 +51,22 @@ Decision: **resistor dividers, 470 kΩ top / 470 kΩ bottom**, on the **4 LED li
 - All 4 lines are on 470k/470k (red measured; white/blue/yellow confirmed same values and read cleanly in `test_leds`).
 
 ### SmarterSpa LED semantics (ControlOMatic manual, ver. 06/27/16)
-"GREEN" below is the manual's name; on this unit it is the physical **yellow** LED (GPIO19).
+This unit has **no green LED**: where the manual says green, it means the **yellow** LED (GPIO19).
 
 | Pattern | Meaning |
 |---|---|
-| Single flash every 10 s | Standby (manual says GREEN; **captured unit flashes WHITE**, a ~10 ms pulse; trust the capture) |
+| Single flash every 10 s | Standby (manual says green, i.e. yellow; **captured unit flashes WHITE**, a ~10 ms pulse; trust the capture) |
 | Solid BLUE | Generating, salt normal |
 | Solid RED | Generating, salt low |
-| Solid GREEN | Generating, salt high |
-| Solid RED + GREEN | Shut down — salt over max |
+| Solid YELLOW | Generating, salt high |
+| Solid RED + YELLOW | Shut down — salt over max |
 | No lights (no standby blink) | No power / GFCI / supply fault |
 | WHITE solid | User in power-change or zero-point edit mode (ignore) |
-| GREEN+BLUE flash | Boost confirmation (ignore) |
-| Counted flashes (G×100 + B×10 + R) | Numeric readout after button press (ignore, or decode in Phase 8) |
+| YELLOW+BLUE flash | Boost confirmation (ignore) |
+| Counted flashes (Y×100 + B×10 + R) | Numeric readout after button press (ignore, or decode in Phase 8) |
 
 **Observed power-up (2026-11-14, `test_leds`):** WHITE+BLUE flash **together** ×5 (158 ms on / 477 ms period;
-the manual says WHITE ×2), then WHITE → RED → BLUE → GREEN (yellow) at 528 ms each, then standby WHITE blinks
+the manual says WHITE ×2), then WHITE → RED → BLUE → YELLOW at 528 ms each, then standby WHITE blinks
 every 10 s. Ignore the whole sequence in the decoder.
 
 Other facts: cycle starts when sensor < zero point; cycle length by power level
