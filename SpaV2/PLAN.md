@@ -36,21 +36,23 @@ running** state.
 | 4 | 9 | Button (BOOST?) | low = not pressed |
 | 5 | 2 | Red LED | active-low |
 | 6 | 3 | Blue LED | active-low |
-| 7 | 4 | "Yellow" LED — actually the **GREEN** LED (matches manual power-up order W,R,B,G) | active-low |
+| 7 | 4 | **Yellow** LED (physically yellow on the panel; the manual calls it **GREEN**) | active-low |
 | 8 | 5 | +5 V | — |
 
 Decision: **resistor dividers, 470 kΩ top / 470 kΩ bottom**, on the **4 LED lines only** (no power sense, no button inputs) (menu activity is filtered by white-solid + 5 s steady rule). Shared GND with SmarterSpa low-voltage side.
 
 **Measured 2026-11-14 (red line, `test_leds`):** the LED lines are *not* 0/5 V logic.
 - Unloaded at the ribbon: **5.5 V off, 3.4 V on**, a 2.1 V swing that never gets near 0 V.
-- **High source impedance.** The original 56k/100k divider dragged red's off level from 5.5 V down to ~2.7 V (on ~2.5 V), leaving almost no swing. Green reading stuck-ON with 56k/100k is probably the same loading problem (not measured).
+- **High source impedance.** The original 56k/100k divider dragged red's off level from 5.5 V down to ~2.7 V (on ~2.5 V), leaving almost no swing. Yellow reading stuck-ON with 56k/100k is probably the same loading problem (not measured).
 - With **470k/470k**, the line measured as "red" (GPIO20) sits at **~2.7 V off and ~1.7–2.0 V on**, and the C6 reads it cleanly in steady state. Red chattered with 56k/100k because its on level landed near the C6's actual switching point (~2.2 V observed).
 - Margins are **empirical, not guaranteed**: the datasheet's V_IL ≤ 0.83 V / V_IH ≥ 2.48 V at 3.3 V are *not* met. If a line chatters in steady state, the guaranteed fix is an LM339 quad comparator at 3.3 V: high-value divider into IN+, ~1.1 V reference into IN−, 10k pull-up on the output (stays active-low). A 74LVC125A will **not** work, because it reads 3.4 V as high.
 - Pulls must stay **off** (a ~45k internal pull-up beats a 235k divider). `test_leds` confirms `Pullup: 0, Pulldown: 0` on GPIO19–22 via `gpio_dump_io_configuration`.
 - Red still chatters for ~1.4 s while the SmarterSpa powers up (slow supply ramp through the threshold). The decoder must filter this (Phase 5).
-- All 4 lines are on 470k/470k (red measured; white/blue/green confirmed same values and read cleanly in `test_leds`).
+- All 4 lines are on 470k/470k (red measured; white/blue/yellow confirmed same values and read cleanly in `test_leds`).
 
 ### SmarterSpa LED semantics (ControlOMatic manual, ver. 06/27/16)
+"GREEN" below is the manual's name; on this unit it is the physical **yellow** LED (GPIO19).
+
 | Pattern | Meaning |
 |---|---|
 | Single flash every 10 s | Standby (manual says GREEN; **captured unit flashes WHITE**, a ~10 ms pulse; trust the capture) |
@@ -64,7 +66,7 @@ Decision: **resistor dividers, 470 kΩ top / 470 kΩ bottom**, on the **4 LED li
 | Counted flashes (G×100 + B×10 + R) | Numeric readout after button press (ignore, or decode in Phase 8) |
 
 **Observed power-up (2026-11-14, `test_leds`):** WHITE+BLUE flash **together** ×5 (158 ms on / 477 ms period;
-the manual says WHITE ×2), then WHITE → RED → BLUE → GREEN at 528 ms each, then standby WHITE blinks
+the manual says WHITE ×2), then WHITE → RED → BLUE → GREEN (yellow) at 528 ms each, then standby WHITE blinks
 every 10 s. Ignore the whole sequence in the decoder.
 
 Other facts: cycle starts when sensor < zero point; cycle length by power level
@@ -109,7 +111,7 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 | Pump CT clamp (conditioned) | GPIO6 | ADC1_CH6 (pad JTAG unused; USB-JTAG on 12/13) |
 | Spare analog | GPIO2, GPIO3 | ADC1_CH2/3 |
 | DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
-| SmarterSpa Green LED (ribbon 7, **yellow** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Yellow LED, manual's "green" (ribbon 7, **yellow** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |
 | SmarterSpa Blue LED (ribbon 6, **blue** wire) | GPIO20 | 470k/470k divider, active-low, no pulls |
 | SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO21 | 470k/470k divider, active-low, no pulls |
 | SmarterSpa White LED (ribbon 1, **white** wire) | GPIO22 | 470k/470k divider, active-low, no pulls |

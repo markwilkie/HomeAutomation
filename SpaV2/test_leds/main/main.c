@@ -26,7 +26,7 @@ typedef struct {
 static const led_pin_t PINS[] = {
     // Order as wired on the board (2026-11-14): reversed vs. the
     // original PLAN.md table.
-    { GPIO_NUM_19, "GREEN" },  // ribbon 7, yellow wire
+    { GPIO_NUM_19, "YELLOW"},  // ribbon 7, yellow wire (manual calls it GREEN)
     { GPIO_NUM_20, "BLUE"  },  // ribbon 6, blue wire
     { GPIO_NUM_21, "RED"   },  // ribbon 5, red wire
     { GPIO_NUM_22, "WHITE" },  // ribbon 1, white wire
@@ -202,7 +202,7 @@ static void led_task(void *arg)
 void app_main(void)
 {
     printf("\nSpaV2 test_leds -- SmarterSpa LED line check (active-low: 0 = LED lit)\n");
-    printf("Expected on SmarterSpa power-up: WHITE x2, then WHITE, RED, BLUE, GREEN one at a time,\n"
+    printf("Expected on SmarterSpa power-up: WHITE x2, then WHITE, RED, BLUE, YELLOW one at a time,\n"
            "then a single short WHITE flash every 10 s (standby).\n\n");
 
     s_queue = xQueueCreate(QUEUE_LEN, sizeof(edge_evt_t));

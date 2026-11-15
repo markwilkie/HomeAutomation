@@ -5,7 +5,7 @@ lines reach the ESP32-C6-DevKitM-1 through the 470k/470k dividers (see PLAN.md �
 
 | GPIO | LED | Wire |
 |---|---|---|
-| 19 | GREEN | yellow (ribbon 7) |
+| 19 | YELLOW (manual: "green") | yellow (ribbon 7) |
 | 20 | BLUE | blue (ribbon 6) |
 | 21 | RED | red (ribbon 5) |
 | 22 | WHITE | white (ribbon 1) |
@@ -37,7 +37,7 @@ On boot, the raw level of every pin. With the SmarterSpa powered and idle, all s
 below the C6's input-high threshold (see the ⚠️ in PLAN.md):
 
 ```
-Boot levels:  GREEN(GPIO19)=1[off]  BLUE(GPIO20)=1[off]  RED(GPIO21)=1[off]  WHITE(GPIO22)=1[off]
+Boot levels:  YELLOW(GPIO19)=1[off]  BLUE(GPIO20)=1[off]  RED(GPIO21)=1[off]  WHITE(GPIO22)=1[off]
 ```
 
 Power-cycle the SmarterSpa. Each transition prints as `<ms since boot>  <LED> ON/OFF`:
@@ -47,7 +47,7 @@ Power-cycle the SmarterSpa. Each transition prints as `<ms since boot>  <LED> ON
    12290  WHITE OFF (on for 256 ms)
    12540  WHITE ON
    12795  WHITE OFF (on for 255 ms)
-   13050  WHITE ON          <- then WHITE, RED, BLUE, GREEN one at a time
+   13050  WHITE ON          <- then WHITE, RED, BLUE, YELLOW one at a time
    ...
    14100  RED ON
    ...
@@ -58,10 +58,10 @@ Power-cycle the SmarterSpa. Each transition prints as `<ms since boot>  <LED> ON
 (Timings above are illustrative.) Every 10 s there's a summary line:
 
 ```
-   30000  --- 10 s summary:  WHITE=off tr=2  RED=off tr=0 <-- NO TRANSITIONS  BLUE=off tr=0 <-- NO TRANSITIONS  GREEN=off tr=0 <-- NO TRANSITIONS
+   30000  --- 10 s summary:  WHITE=off tr=2  RED=off tr=0 <-- NO TRANSITIONS  BLUE=off tr=0 <-- NO TRANSITIONS  YELLOW=off tr=0 <-- NO TRANSITIONS
 ```
 
-In standby only WHITE should move, so `NO TRANSITIONS` on RED/BLUE/GREEN is normal
+In standby only WHITE should move, so `NO TRANSITIONS` on RED/BLUE/YELLOW is normal
 there. It matters during the power-up sequence: any LED that stays at zero then isn't
 reaching its GPIO.
 
@@ -75,7 +75,7 @@ Other messages:
 
 ## If the order is wrong
 
-The expected power-up order is WHITE+BLUE together ×5 (this unit; the manual says WHITE ×2), then WHITE → RED → BLUE → GREEN.
+The expected power-up order is WHITE+BLUE together ×5 (this unit; the manual says WHITE ×2), then WHITE → RED → BLUE → YELLOW.
 Verified correct on 2026-11-14. The app does
 **not** remap pins. If, say, the line printed as `RED` lights third and the one printed as
 `BLUE` lights second, those two wires are swapped. Fix that deliberately in the harness or
