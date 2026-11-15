@@ -8,8 +8,8 @@ boards through their analog isolators, the way Atlas's `atlas_gravity` library
 |---|---|
 | 4 | pH isolator PWM out (3.3 V, direct) |
 | 5 | ORP isolator PWM out (3.3 V, direct) |
-| 2 | Pump CT, SCT-013-030 (30 A → 1 V RMS), biased to ~1.65 V by 10k/10k + 10 µF |
-| 6 | DS18B20 data (4.7k pull-up to 3.3 V; internal pull-up also on as a backstop) |
+| 6 | Pump CT, SCT-013-030 (30 A → 1 V RMS), biased to ~1.65 V by 10k/10k + 10 µF |
+| 7 | DS18B20 data (4.7k pull-up to 3.3 V; internal pull-up also on as a backstop) |
 
 The isolator PWM's high time is measured with MCPWM capture (12.5 ns). The library's
 conversions are used unchanged: `mV = avg high µs × 35`, then pH (cleared defaults
@@ -31,7 +31,7 @@ cd SpaV2\test_phorp
 ```
 
 (First run, 2026-11-14, probes in storage solution.) The period should be about 80 µs,
-because the library's ×35 assumes it. `NO PULSES` means the isolator output isn't reaching the pin. `Temp [no DS18B20 on GPIO6]`
-means the 1-Wire search found nothing; it retries every 5 s. The CT section samples GPIO2 at 5 kHz
+because the library's ×35 assumes it. `NO PULSES` means the isolator output isn't reaching the pin. `Temp [no DS18B20 on GPIO7]`
+means the 1-Wire search found nothing; it retries every 5 s. The CT section samples GPIO6 at 5 kHz
 for 200 ms and prints the bias (should be ~1650 mV), RMS, amps (RMS × 30) and pump ON/OFF
 (provisional thresholds: on > 0.5 A, off < 0.3 A).

@@ -27,10 +27,10 @@
 
 #define PIN_PH   GPIO_NUM_4
 #define PIN_ORP  GPIO_NUM_5
-#define PIN_TEMP GPIO_NUM_6      // DS18B20 1-Wire (4.7k pull-up to 3.3 V)
-// Pump CT: SCT-013-030 (30 A -> 1 V RMS, burden built in) on GPIO2 = ADC1_CH2,
+#define PIN_TEMP GPIO_NUM_7      // DS18B20 1-Wire (4.7k pull-up to 3.3 V)
+// Pump CT: SCT-013-030 (30 A -> 1 V RMS, burden built in) on GPIO6 = ADC1_CH6,
 // biased to ~1.65 V by a 10k/10k divider + 10 uF.
-#define CT_CHANNEL     ADC_CHANNEL_2
+#define CT_CHANNEL     ADC_CHANNEL_6
 #define CT_A_PER_V     30.0f
 #define CT_SAMPLES     1000      // at 5 kHz = 200 ms = 12 mains cycles at 60 Hz
 #define CT_PERIOD_US   200
@@ -220,7 +220,7 @@ static void report_task(void *arg)
             else if (nh < LIB_PULSES) printf(" [only %" PRIu32 " pulses, lib averages %d]", nh, LIB_PULSES);
         }
         if (s_temp_ok) printf(" | Temp %.2f C (%.1f F)", s_temp_c, s_temp_c * 9 / 5 + 32);
-        else printf(" | Temp [%s]", s_temp_found ? "read failed" : "no DS18B20 on GPIO6");
+        else printf(" | Temp [%s]", s_temp_found ? "read failed" : "no DS18B20 on GPIO7");
         if (s_ct_valid) {
             float bias = s_ct_bias_mv;
             printf(" | CT bias=%4.0fmV rms=%6.1fmV ~%5.2fA pump=%s", bias, s_ct_rms_mv,
