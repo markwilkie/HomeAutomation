@@ -165,9 +165,21 @@ static void print_summary(void)
     }
 }
 
+// Prints the hardware IO_MUX state of the 4 pins (pull-up/pull-down, input
+// enable, ...) straight from the registers, to prove the pulls are really off.
+// The 470k dividers are weak enough that a ~45k internal pull-up would win.
+static void dump_pin_config(void)
+{
+    uint64_t mask = 0;
+    for (int i = 0; i < NUM_PINS; i++) mask |= 1ULL << PINS[i].gpio;
+    gpio_dump_io_configuration(stdout, mask);
+    print_levels("Levels");
+}
+
 static void led_task(void *arg)
 {
     TickType_t next_summary = xTaskGetTickCount() + pdMS_TO_TICKS(SUMMARY_PERIOD_MS);
+    uint32_t summaries = 0;
     edge_evt_t e;
     for (;;) {
         TickType_t now = xTaskGetTickCount();
@@ -177,6 +189,9 @@ static void led_task(void *arg)
         }
         if ((int32_t)(xTaskGetTickCount() - next_summary) >= 0) {
             print_summary();
+            // Boot output is usually lost while USB re-enumerates after a
+            // flash, so repeat the pin-config dump every 60 s.
+            if (++summaries % 6 == 1) dump_pin_config();
             next_summary += pdMS_TO_TICKS(SUMMARY_PERIOD_MS);
         }
     }
@@ -202,6 +217,7 @@ void app_main(void)
     ESP_ERROR_CHECK(gpio_config(&cfg));
 
     print_levels("Boot levels");
+    dump_pin_config();
     int64_t now = esp_timer_get_time();
     for (int i = 0; i < NUM_PINS; i++) {
         s_state[i].on = is_on(gpio_get_level(PINS[i].gpio));

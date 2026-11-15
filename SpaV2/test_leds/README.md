@@ -1,7 +1,7 @@
 # SpaV2 test_leds — SmarterSpa LED line check
 
 Standalone ESP-IDF app (no Matter/Thread/Wi-Fi) that checks the 4 SmarterSpa LED
-lines reach the ESP32-C6-DevKitM-1 through the 56k/100k dividers (Phase 0 in `../PLAN.md`).
+lines reach the ESP32-C6-DevKitM-1 through the 470k/470k dividers (see PLAN.md §1 for why) (Phase 0 in `../PLAN.md`).
 
 | GPIO | LED | Wire |
 |---|---|---|
@@ -10,7 +10,8 @@ lines reach the ESP32-C6-DevKitM-1 through the 56k/100k dividers (Phase 0 in `..
 | 21 | BLUE | blue (ribbon 6) |
 | 22 | GREEN | yellow (ribbon 7) |
 
-Active-low (0 = LED lit), no internal pulls, common GND with the SmarterSpa.
+Active-low (0 = LED lit), no internal pulls, common GND with the SmarterSpa. Boot output and
+every 60 s it prints a register dump of the 4 pins (`Pullup: 0, Pulldown: 0` expected).
 
 ## Build / flash / monitor (Windows PowerShell)
 
@@ -20,10 +21,9 @@ Uses the same plain-upstream ESP-IDF v5.4.1 as MiniSplit (`C:\esp\v5.4.1\esp-idf
 cd SpaV2\test_leds
 .\build.ps1
 
-# flash.ps1 only flashes the board whose MAC you pass (it refuses the MiniSplit
-# bridge and ThreadRouter). With only the SpaV2 board plugged in, read its MAC:
-#   . C:\esp\v5.4.1\esp-idf\export.ps1; python -m esptool --chip esp32c6 read_mac
-.\flash.ps1 -Mac XX:XX:XX:XX:XX:XX          # optional: -Port COMn
+# flash.ps1 refuses any board but SpaV2's (MAC 58:8C:81:5D:89:1C, the former
+# ThreadRouter board).
+.\flash.ps1                  # optional: -Port COMn
 
 # Monitor (needs an interactive terminal; Ctrl+] to exit)
 . C:\esp\v5.4.1\esp-idf\export.ps1
@@ -75,7 +75,8 @@ Other messages:
 
 ## If the order is wrong
 
-The expected power-up order is WHITE ×2, then WHITE → RED → BLUE → GREEN. The app does
+The expected power-up order is WHITE+BLUE together ×5 (this unit; the manual says WHITE ×2), then WHITE → RED → BLUE → GREEN.
+Verified correct on 2026-11-14. The app does
 **not** remap pins. If, say, the line printed as `RED` lights third and the one printed as
 `BLUE` lights second, those two wires are swapped. Fix that deliberately in the harness or
 in PLAN.md's pin table, not here by accident.

@@ -39,13 +39,21 @@ running** state.
 | 7 | 4 | "Yellow" LED — actually the **GREEN** LED (matches manual power-up order W,R,B,G) | active-low |
 | 8 | 5 | +5 V | — |
 
-Signals are **5 V**. Decision: **resistor dividers** (56 kΩ top / 100 kΩ bottom → ~3.2 V) on the **4 LED lines only** (no power sense, no button inputs) (menu activity is filtered by white-solid + 5 s steady rule). Shared GND with SmarterSpa low-voltage side.
-⚠️ If the LED lines are open-drain with the LED as the only pull-up, the divider can sag an "off" line below the C6's input-high threshold and read as lit — measure each line at the GPIO with the LED off; if marginal, go to 100 kΩ/220 kΩ or a 3.3 V 74LVC125A.
+Decision: **resistor dividers, 470 kΩ top / 470 kΩ bottom**, on the **4 LED lines only** (no power sense, no button inputs) (menu activity is filtered by white-solid + 5 s steady rule). Shared GND with SmarterSpa low-voltage side.
+
+**Measured 2026-11-14 (red line, `test_leds`):** the LED lines are *not* 0/5 V logic.
+- Unloaded at the ribbon: **5.5 V off, 3.4 V on**, a 2.1 V swing that never gets near 0 V.
+- **High source impedance.** The original 56k/100k divider dragged red's off level from 5.5 V down to ~2.7 V (on ~2.5 V), leaving almost no swing. Green reading stuck-ON with 56k/100k is probably the same loading problem (not measured).
+- With **470k/470k**, GPIO20 sits at **~2.7 V off and ~1.7–2.0 V on**, and the C6 reads it cleanly in steady state. Red chattered with 56k/100k because its on level landed near the C6's actual switching point (~2.2 V observed).
+- Margins are **empirical, not guaranteed**: the datasheet's V_IL ≤ 0.83 V / V_IH ≥ 2.48 V at 3.3 V are *not* met. If a line chatters in steady state, the guaranteed fix is an LM339 quad comparator at 3.3 V: high-value divider into IN+, ~1.1 V reference into IN−, 10k pull-up on the output (stays active-low). A 74LVC125A will **not** work, because it reads 3.4 V as high.
+- Pulls must stay **off** (a ~45k internal pull-up beats a 235k divider). `test_leds` confirms `Pullup: 0, Pulldown: 0` on GPIO19–22 via `gpio_dump_io_configuration`.
+- Red still chatters for ~1.4 s while the SmarterSpa powers up (slow supply ramp through the threshold). The decoder must filter this (Phase 5).
+- **TODO:** confirm white/blue/green are also on 470k/470k (only red was measured and swapped).
 
 ### SmarterSpa LED semantics (ControlOMatic manual, ver. 06/27/16)
 | Pattern | Meaning |
 |---|---|
-| Single flash every 10 s | Standby (manual says GREEN; **captured unit flashes WHITE** — trust the capture) |
+| Single flash every 10 s | Standby (manual says GREEN; **captured unit flashes WHITE**, a ~10 ms pulse; trust the capture) |
 | Solid BLUE | Generating, salt normal |
 | Solid RED | Generating, salt low |
 | Solid GREEN | Generating, salt high |
@@ -54,6 +62,10 @@ Signals are **5 V**. Decision: **resistor dividers** (56 kΩ top / 100 kΩ botto
 | WHITE solid | User in power-change or zero-point edit mode (ignore) |
 | GREEN+BLUE flash | Boost confirmation (ignore) |
 | Counted flashes (G×100 + B×10 + R) | Numeric readout after button press (ignore, or decode in Phase 8) |
+
+**Observed power-up (2026-11-14, `test_leds`):** WHITE+BLUE flash **together** ×5 (158 ms on / 477 ms period;
+the manual says WHITE ×2), then WHITE → RED → BLUE → GREEN at 528 ms each, then standby WHITE blinks
+every 10 s. Ignore the whole sequence in the decoder.
 
 Other facts: cycle starts when sensor < zero point; cycle length by power level
 (L3 default = 2 h); electrode life ~7,000–10,000 production hours; DOWN during a
@@ -82,10 +94,10 @@ verified exhaustively). Mapping onto Electrical Power Measurement `Voltage` is
 unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 
 ### Hardware
-- ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features).
+- ESP32-C6 DevKitM-1, Thread **FTD/router** (mains powered, no sleepy features). Board MAC **58:8C:81:5D:89:1C**: the former `ThreadRouter` board, repurposed 2026-11-14 (`test_leds/flash.ps1` refuses any other board).
 - pH/ORP Gravity iso boards → GPIO4/GPIO5 (ADC1).
 - DS18B20 (1-Wire) → any free GPIO, 4.7 kΩ pull-up.
-- SmarterSpa ribbon → resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
+- SmarterSpa ribbon → 470k/470k resistor dividers (shared GND) → 4 GPIO inputs (LEDs only).
 - Pump CT clamp → ADC1 pin (or comparator → digital input).
 
 
@@ -97,14 +109,14 @@ unconfirmed for a sensor-only device in HA — Phase 2 de-risks this.
 | Pump CT clamp (conditioned) | GPIO6 | ADC1_CH6 (pad JTAG unused; USB-JTAG on 12/13) |
 | Spare analog | GPIO2, GPIO3 | ADC1_CH2/3 |
 | DS18B20 data | GPIO18 | 4.7 kΩ pull-up to 3.3 V |
-| SmarterSpa White LED (ribbon 1, **white** wire) | GPIO19 | 56k/100k divider, active-low |
-| SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO20 | 56k/100k divider, active-low |
-| SmarterSpa Blue LED (ribbon 6, **blue** wire) | GPIO21 | 56k/100k divider, active-low |
-| SmarterSpa Green LED (ribbon 7, **yellow** wire) | GPIO22 | 56k/100k divider, active-low |
+| SmarterSpa White LED (ribbon 1, **white** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Red LED (ribbon 5, **red** wire) | GPIO20 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Blue LED (ribbon 6, **blue** wire) | GPIO21 | 470k/470k divider, active-low, no pulls |
+| SmarterSpa Green LED (ribbon 7, **yellow** wire) | GPIO22 | 470k/470k divider, active-low, no pulls |
 | Spare digital (Phase 8 BOOST drive) | GPIO23 | |
 | SmarterSpa GND (**green** wire) | GND | common ground |
 
-Harness (left→right): yellow, blue, red, white, green(GND). Color→LED mapping is inferred from color-matching — **verify** by watching each wire drop to ~0 V during the power-up sequence (white → red → blue → green); fix any mismatch in firmware pin config.
+Harness (left→right): yellow, blue, red, white, green(GND). Color→LED mapping **verified 2026-11-14** with `SpaV2/test_leds`: the power-up step printed WHITE → RED → BLUE → GREEN on GPIO19 → 20 → 21 → 22, so no swaps are needed.
 
 Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap), GPIO12/13 (USB), GPIO16/17 (UART0 console).
 
@@ -115,7 +127,7 @@ Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap
 Each phase ends with a testable exit criterion.
 
 ### Phase 0 — Hardware prep
-- Build SmarterSpa interface: dividers on the 4 LED lines, common ground; verify LED-off lines read high at the GPIO with the divider attached.
+- Build SmarterSpa interface: dividers on the 4 LED lines, common ground; verify LED-off lines read high at the GPIO with the divider attached. ✅ Done for red with 470k/470k, and all 4 lines + mapping verified with `test_leds` (see §1 measurements). Remaining: confirm the divider values on white/blue/green.
 - Verify Atlas Gravity pH/ORP output range vs. C6 ADC range at chosen supply voltage.
 - Source DS18B20, pump CT clamp, enclosure.
 - Rotate the Wi-Fi password exposed in the old sketch.
@@ -144,7 +156,9 @@ Each phase ends with a testable exit criterion.
 - **Exit:** pH/ORP update only during pump runs.
 
 ### Phase 5 — SmarterSpa decoder
-- GPIO interrupts (the standby blink is very short).
+- **Timer-sampled inputs, not edge interrupts:** read GPIO19–22 every 1 ms with a short majority/
+  debounce filter (e.g. 3–5 consistent samples). Catches the ~10 ms standby blink; ignores power-up
+  chatter, which overflowed a 512-entry interrupt queue in `test_leds` (27k events dropped).
 - State machine: standby / generating-OK / generating-low / generating-high / salt-shutdown / fault.
   - Solid state accepted only after ~5 s steady.
   - Ignore while WHITE solid (menu modes) and for a few seconds after any button-line change.

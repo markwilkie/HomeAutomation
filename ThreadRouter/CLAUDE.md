@@ -1,5 +1,10 @@
 # ThreadRouter
 
+> **No board as of 2026-11-14.** The router board (MAC 58:8C:81:5D:89:1C) was
+> repurposed as the SpaV2 board and now runs `SpaV2/test_leds`. The router is no longer
+> on the Thread mesh. To rebuild it on a new board, pass that board's MAC to
+> `flash.ps1 -Mac ...` and hard-code it there; it has to be commissioned again.
+
 ## What this is
 A minimal ESP32-C6 Matter-over-Thread endpoint (`src/main.cpp`) whose only
 real job is to join the household Thread mesh as a Full Thread Device
