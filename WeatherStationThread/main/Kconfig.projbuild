@@ -1,0 +1,16 @@
+menu "Weather station"
+
+choice WS_BOARD
+    prompt "Board"
+    default WS_BOARD_DEVKITC
+    help
+        Set by build.ps1 -Board through sdkconfig.defaults.<board>.
+        Pins are the same on both; this picks the LED, console and battery sense.
+
+config WS_BOARD_DEVKITC
+    bool "ESP32-C6-DevKitC-1 (development)"
+config WS_BOARD_FIREBEETLE
+    bool "DFRobot FireBeetle 2 ESP32-C6 (deploy)"
+endchoice
+
+endmenu

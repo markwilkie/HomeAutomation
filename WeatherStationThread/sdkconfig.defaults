@@ -1,0 +1,15 @@
+# Weather station (Thread rewrite) -- settings shared by both boards.
+# Board files (sdkconfig.defaults.<board>) are layered on top by build.ps1.
+# Later milestones add LP core (M3), OpenThread SED (M4), PM (M5) here.
+CONFIG_IDF_TARGET="esp32c6"
+
+# Build for 4 MB everywhere, so the image always fits the FireBeetle.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# OTA rollback from day one (PLAN.md): a new image is marked valid only after
+# it has joined Thread and delivered one report.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

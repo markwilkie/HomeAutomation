@@ -1,0 +1,4 @@
+## IDF Component Manager Manifest File
+dependencies:
+  # DevKitC's status LED is an addressable RGB LED (WS2812 on GPIO8).
+  espressif/led_strip: "==2.5.5"

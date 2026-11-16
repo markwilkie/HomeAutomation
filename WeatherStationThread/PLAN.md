@@ -253,6 +253,11 @@ Done 2026-11-16 (see Decisions). M1 can start.
 - `board.h`, the three sdkconfig.defaults files, build/flash scripts.
 - Blink + log over both consoles; confirm the secondary USB-Serial/JTAG
   console setting so the same build logs on the FireBeetle.
+- **Status 2026-11-16:** scaffold written and built for the DevKitC
+  (`build.ps1`; `-Board firebeetle` for the deploy board). App image 182 KB
+  of a 1920 KB slot. Not flashed yet — no board attached; pass `-Mac` to
+  `flash.ps1` the first time and record the MAC there. Still to check on
+  hardware: blink, and the log on both DevKitC ports.
 
 ### M2 — Sensors, awake (DevKitC)
 - BME280 over I2C (forced mode). Dew point and heat index ported from the

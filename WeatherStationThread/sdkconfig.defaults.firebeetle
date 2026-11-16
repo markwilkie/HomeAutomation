@@ -1,0 +1,4 @@
+# DFRobot FireBeetle 2 ESP32-C6 (deploy). Its only USB link is the C6's own
+# USB-Serial-JTAG, so that is the console.
+CONFIG_WS_BOARD_FIREBEETLE=y
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y

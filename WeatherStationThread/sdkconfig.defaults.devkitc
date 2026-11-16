@@ -1,0 +1,6 @@
+# ESP32-C6-DevKitC-1-N8 (development). Console on UART0 (the UART bridge
+# port), which survives sleep/wake; USB-Serial-JTAG (the native USB port,
+# used for flashing) mirrors it as a secondary console.
+CONFIG_WS_BOARD_DEVKITC=y
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y
