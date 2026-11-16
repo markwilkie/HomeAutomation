@@ -142,21 +142,19 @@ static void hist_push(hist_t *h, float mv, bool pulses)
     h->pulses = pulses;
 }
 
-// Mean of the newest n samples; spread (max-min) written if wanted.
-static float hist_mean(const hist_t *h, int n, float *spread)
+// Mean of n samples, starting `skip` samples back from the newest.
+static float hist_mean_at(const hist_t *h, int skip, int n)
 {
-    if (n > h->count) n = h->count;
-    if (n == 0) { if (spread) *spread = INFINITY; return 0; }
-    float sum = 0, lo = INFINITY, hi = -INFINITY;
-    for (int i = 0; i < n; i++) {
-        float v = h->mv[(h->head - 1 - i + PROBE_WINDOW) % PROBE_WINDOW];
-        sum += v;
-        if (v < lo) lo = v;
-        if (v > hi) hi = v;
-    }
-    if (spread) *spread = hi - lo;
+    if (skip + n > h->count) n = h->count - skip;
+    if (n <= 0) return 0;
+    float sum = 0;
+    for (int i = skip; i < skip + n; i++)
+        sum += h->mv[(h->head - 1 - i + 2 * PROBE_WINDOW) % PROBE_WINDOW];
     return sum / n;
 }
+
+// Mean of the newest n samples.
+static float hist_mean(const hist_t *h, int n) { return hist_mean_at(h, 0, n); }
 
 static void sampler_task(void *arg)
 {
@@ -177,8 +175,8 @@ probe_reading_t probes_read(void)
 {
     probe_reading_t r = {0};
     xSemaphoreTake(s_lock, portMAX_DELAY);
-    r.ph_raw_mv = hist_mean(&s_hist[0], 10, NULL);
-    r.orp_raw_mv = hist_mean(&s_hist[1], 10, NULL);
+    r.ph_raw_mv = hist_mean(&s_hist[0], 10);
+    r.orp_raw_mv = hist_mean(&s_hist[1], 10);
     r.valid = s_hist[0].pulses && s_hist[1].pulses && s_hist[0].count > 0;
     r.ph = lib_ph(r.ph_raw_mv);
     r.orp_mv = lib_orp(r.orp_raw_mv);
@@ -188,14 +186,10 @@ probe_reading_t probes_read(void)
 
 // ---------------- guarded calibration ----------------
 
-// The Gravity pH board amplifies the probe: library defaults put pH 4 / 7 / 10
-// at 2030 / 1500 / 975 mV, i.e. ~175 mV per pH unit (vs ~59 mV/pH at the bare
-// glass electrode). Accept 120-220 mV/pH; outside that is a wrong buffer or a
-// worn-out probe.
-#define PH_SLOPE_MIN 120.0f
-#define PH_SLOPE_MAX 220.0f
-#define PH_MID_TOL   300.0f      // pH 7 point must be within 1500 +/- this
-#define ORP_OFF_MAX  200.0f
+// No stability or plausibility limits (owner's decision 2026-11-15: the spa is
+// electrically noisy and a rejected press is worse than an imperfect one).
+// A press stores the 30 s mean as-is; the log prints the drift and slopes so a
+// bad point is visible. Only "no signal from the isolator" is refused.
 
 cal_status_t probes_calibrate(cal_cmd_t cmd, float ref_mv)
 {
@@ -218,37 +212,26 @@ cal_status_t probes_calibrate(cal_cmd_t cmd, float ref_mv)
     }
 
     int idx = (cmd == CAL_CMD_ORP) ? 1 : 0;
-    float spread;
-    float mv = hist_mean(&s_hist[idx], PROBE_WINDOW, &spread);
-    float max_spread = idx ? ORP_STABLE_SPREAD_MV : PH_STABLE_SPREAD_MV;
+    const hist_t *h = &s_hist[idx];
+    float mv = hist_mean(h, PROBE_WINDOW);
+    float drift = hist_mean_at(h, 0, 10) - hist_mean_at(h, PROBE_WINDOW - 10, 10);
 
-    if (!s_hist[idx].pulses) {
+    if (!h->pulses || h->count == 0) {
         st = CAL_STATUS_NO_SIGNAL;
-    } else if (s_hist[idx].count < PROBE_WINDOW || spread > max_spread) {
-        st = CAL_STATUS_UNSTABLE;
     } else {
         switch (cmd) {
         case CAL_CMD_PH7:
-            if (fabsf(mv - 1500.0f) > PH_MID_TOL) st = CAL_STATUS_OUT_OF_RANGE;
-            else s_cal.ph_mid = mv;
+            s_cal.ph_mid = mv;
             break;
-        case CAL_CMD_PH4: {
-            float slope = (mv - s_cal.ph_mid) / 3.0f;
-            if (slope < PH_SLOPE_MIN || slope > PH_SLOPE_MAX) st = CAL_STATUS_OUT_OF_RANGE;
-            else s_cal.ph_low = mv;
+        case CAL_CMD_PH4:
+            s_cal.ph_low = mv;
             break;
-        }
-        case CAL_CMD_PH10: {
-            float slope = (s_cal.ph_mid - mv) / 3.0f;
-            if (slope < PH_SLOPE_MIN || slope > PH_SLOPE_MAX) st = CAL_STATUS_OUT_OF_RANGE;
-            else s_cal.ph_high = mv;
+        case CAL_CMD_PH10:
+            s_cal.ph_high = mv;
             break;
-        }
         case CAL_CMD_ORP: {
             float ref = ref_mv > 0 ? ref_mv : ORP_CAL_REF_MV;
-            float off = mv - (ref + 1500.0f);           // orp_grav.cpp cal()
-            if (fabsf(off) > ORP_OFF_MAX) st = CAL_STATUS_OUT_OF_RANGE;
-            else s_cal.orp_offset = off;
+            s_cal.orp_offset = mv - (ref + 1500.0f);    // orp_grav.cpp cal()
             break;
         }
         default:
@@ -259,8 +242,8 @@ cal_status_t probes_calibrate(cal_cmd_t cmd, float ref_mv)
     xSemaphoreGive(s_lock);
 
     static const char *names[] = { "pH 7", "pH 4", "pH 10", "ORP", "clear", "pH clear", "ORP clear" };
-    ESP_LOGI(TAG, "Calibrate %s: %s (window mean %.1f mV, spread %.1f mV)",
-             names[cmd], cal_status_name(st), mv, spread);
+    ESP_LOGI(TAG, "Calibrate %s: %s (30 s mean %.1f mV, drift %+.1f mV over 20 s)",
+             names[cmd], cal_status_name(st), mv, drift);
     probes_log_calibration();
     return st;
 }

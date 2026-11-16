@@ -35,8 +35,8 @@ match the original sketch:
 | `ORPCAL,CLEAR` | ORP offset to 0 |
 | `STATUS` | print stored calibration and pH slopes |
 
-A calibration point is rejected (status *unstable* / *out of range* / *no signal*) unless the last 30 s are
-steady and plausible for that solution (PLAN.md Phase 3).
+A calibration press stores the last 30 s mean with no stability or range limits (PLAN.md Phase 3); only *no
+signal* is refused. Check the logged mean, drift and slopes, and redo or clear a bad point.
 
 ## Known provisional values
 

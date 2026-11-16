@@ -197,22 +197,25 @@ and ORP calibration stores one offset against a reference solution.
     2. Set **Good** to the ORP range where strips read in range (spa target ~1–3 ppm free chlorine);
        Low/High are below and above it.
     3. Re-check after big changes (stabilizer top-up, water change, probe replacement).
-- **Guards, so a stray press can't wreck a good calibration:** the firmware only accepts a calibration point if
-  - the reading has been **stable**: mV spread under ~3 mV for pH, ~5 mV for ORP, over the last 30 s;
-  - it's **plausible** for that buffer: pH 7 within 1500 ± 300 mV, pH 4 above the pH 7 point, pH 10 below it,
-    giving a slope of **120–220 board-mV per pH** (the Gravity board amplifies the ~59 mV/pH glass electrode:
-    library defaults 2030 / 1500 / 975 mV at pH 4 / 7 / 10 ≈ 175 mV/pH); ORP offset within ±200 mV.
-  - Otherwise it keeps the old calibration and reports why.
-- **Feedback:** the *Calibration status* endpoint reports *Calibrating...* at each press, then OK / unstable /
-  out of range / cleared / no signal (decoded by an HA template). Always changing state lets HA react to every
-  press. The serial log prints the stored mV and both slopes.
+- **No calibration limits (decided 2026-11-15).** Stability and plausibility guards were built and then removed
+  at the owner's call: the spa is electrically noisy and a rejected press was worse than an imperfect one. A press
+  stores the 30 s mean as-is; only "no signal from the isolator" is refused. The serial log prints the 30 s mean,
+  the drift over the window and the resulting slopes, so a bad point is visible and can be redone or cleared
+  (`PHCAL,CLEAR` / the Clear button). Sanity reference: library defaults are 2030 / 1500 / 975 mV at
+  pH 4 / 7 / 10 (≈175 board-mV per pH; the Gravity board amplifies the ~59 mV/pH glass electrode), and pH 4 must
+  read above pH 7.
+- **2026-11-15 first calibration:** ORP stored offset −356 mV (new probe read 1369 mV raw in 225 mV solution;
+  steady). pH could not be calibrated: the pH channel swung 1435–2596 mV in buffer (pH 4 read *below* the pH 7
+  point), so pH was cleared back to factory values pending the BNC-short test (probe vs board/isolator).
+- **Feedback:** the *Calibration status* endpoint reports *Calibrating...* at each press, then OK / cleared /
+  no signal (decoded by an HA template; the unused *unstable* / *out of range* codes stay reserved). Always
+  changing state lets HA react to every press.
 - **Cal mode bypasses pump gating:** while calibrating, the probe is in a cup, not the spa. A cal press
   enables live pH/ORP publishing for 10 min regardless of the Phase 4 pump gate.
 - **Stored in NVS.** The board has no clock, so HA keeps the dates: an automation stamps
   `input_datetime.spa_last_ph_calibration` / `_orp_` when a press ends in OK.
 - **Recommended interval:** pH monthly; ORP every 3 months, or whenever ORP drifts from what test strips suggest.
-- **Exit:** matches calibration solutions within tolerance (pH ±0.1, ORP ±10 mV); cal survives reboot; bad
-  presses (unstable, wrong buffer) are rejected with a status.
+- **Exit:** matches calibration solutions within tolerance (pH ±0.1, ORP ±10 mV); cal survives reboot.
 
 ### Phase 4 — Pump detection & gating
 - CT clamp → Pump Running (Occupancy Sensor) + Pump current (A).

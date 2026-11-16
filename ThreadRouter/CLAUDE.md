@@ -1,9 +1,11 @@
 # ThreadRouter
 
-> **No board as of 2026-11-14.** The router board (MAC 58:8C:81:5D:89:1C) was
-> repurposed as the SpaV2 board and now runs `SpaV2/test_leds`. The router is no longer
-> on the Thread mesh. To rebuild it on a new board, pass that board's MAC to
-> `flash.ps1 -Mac ...` and hard-code it there; it has to be commissioned again.
+> **New board since 2026-11-15: MAC 10:51:DB:0D:27:88** (hard-coded in `flash.ps1`), commissioned from
+> wyse as "Thread Router". The original board (MAC 58:8C:81:5D:89:1C, Matter node 42) became the SpaV2
+> board on 2026-11-14; node 42 was removed. Notes below that mention node 42 describe the old board.
+> Commissioning gotcha (2026-11-15): a first attempt out of wyse's Bluetooth range left matter-server's BLE
+> layer holding the board's address in state "error", so every retry failed ("Can not connect to peripheral
+> ... unexpected state error") even in range. `docker restart matter-server` cleared it.
 
 ## What this is
 A minimal ESP32-C6 Matter-over-Thread endpoint (`src/main.cpp`) whose only

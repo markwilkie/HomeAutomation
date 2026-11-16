@@ -9,9 +9,7 @@
 #define PIN_ORP             GPIO_NUM_5
 #define ORP_CAL_REF_MV      225.0f      // Atlas ORP calibration solution
 #define PROBE_SAMPLE_MS     1000        // one averaged mV sample per probe per second
-#define PROBE_WINDOW        30          // seconds of history for the stability check
-#define PH_STABLE_SPREAD_MV 3.0f        // max-min over the window to accept a pH cal point
-#define ORP_STABLE_SPREAD_MV 5.0f
+#define PROBE_WINDOW        30          // seconds averaged for a calibration point
 
 // ---- DS18B20 water temperature ----
 #define PIN_TEMP            GPIO_NUM_7

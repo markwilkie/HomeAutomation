@@ -12,7 +12,10 @@ param(
     [Parameter(Mandatory)] [string]$ProjectDir,
     [Parameter(Mandatory)] [string]$ExpectedMac,
     [Parameter(Mandatory)] [string]$IdfActivate,
-    [string]$Port
+    [string]$Port,
+    # Cap on parallel compiles: idf.py has no job limit, and a full-parallel
+    # esp-matter build (~800-2000 files) runs this PC out of memory.
+    [int]$Jobs = 4
 )
 # No global ErrorActionPreference=Stop: Windows PowerShell 5.1 turns any
 # native-tool stderr (ESP-IDF's activation, idf.py progress) into a
@@ -61,7 +64,11 @@ if (-not $target) {
 Write-Host "Flashing $ProjectDir to $($target.Port) (MAC $($target.Mac))"
 Push-Location $ProjectDir
 try {
-    idf.py -p $target.Port flash
+    if (Test-Path builduild.ninja) {
+        ninja -C build -j $Jobs
+        if ($LASTEXITCODE -ne 0) { throw "build failed ($LASTEXITCODE)" }
+    }
+    idf.py -p $target.Port flash          # nothing left to compile when the build above ran
     if ($LASTEXITCODE -ne 0) { throw "idf.py flash failed ($LASTEXITCODE)" }
 } finally {
     Pop-Location
