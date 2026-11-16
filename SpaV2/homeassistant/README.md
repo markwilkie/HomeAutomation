@@ -6,7 +6,7 @@
 | `../../Wyse5070DebSetup/homeassistant-config/packages/spa.yaml` | The HA package, deployed with the rest of the HA config: templates (pH, ORP, chlorine Low/Good/High, SmarterSpa state, pump current, electrode hours, calibration status), threshold helpers, 24 h stats, calibration date stamps, alerts. |
 | `spa_dashboard.yaml` + `create_dashboard.py` | The **Spa** sidebar dashboard (`/spa-dashboard`): now, 24 h graphs, calibration buttons and thresholds. |
 
-Not deployed yet: these need the commissioned device. Everything below runs on **wyse**.
+Deployed 2026-11-15 (node 43). Everything below runs on **wyse**; rerun it after a re-commission.
 
 ## 1. Commission the board
 

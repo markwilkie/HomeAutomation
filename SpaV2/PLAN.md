@@ -127,7 +127,7 @@ Rules MiniSplit learned the hard way:
 |---|---|---|
 | pH (Gravity via isolator, PWM, 3.3 V) | GPIO4 | digital input, high-pulse timing (MCPWM capture); direct, no divider/filter |
 | ORP (Gravity via isolator, PWM, 3.3 V) | GPIO5 | digital input, high-pulse timing (MCPWM capture); direct, no divider/filter |
-| Pump CT clamp, SCT-013-030 (30 A → 1 V RMS, burden built in) | GPIO6 | ADC1_CH6; 10k/10k bias to 1.65 V + 10 µF; one conductor only; RMS over 200 ms |
+| Pump CT clamp, SCT-013-030 (30 A → 1 V RMS, burden built in) | GPIO6 | ADC1_CH6; CT **red** lead (extended by a **purple** wire) → GPIO6; CT **white** lead (extended by a **blue** wire) → 1.65 V bias midpoint (10k/10k + 10 µF), never GND; one conductor only; RMS over 200 ms |
 | Spare analog | GPIO2, GPIO3 (C6 ADC is GPIO0–6 only; GPIO4/5 are used as digital) | ADC1_CH2/3 |
 | DS18B20 data | GPIO7 | 1-Wire via RMT (`espressif/ds18b20`); 4.7 kΩ pull-up to 3.3 V |
 | SmarterSpa Yellow LED, manual's "green" (ribbon 7, **yellow** wire) | GPIO19 | 470k/470k divider, active-low, no pulls |
