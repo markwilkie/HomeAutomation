@@ -1,0 +1,6 @@
+## IDF Component Manager Manifest File
+dependencies:
+  # Pinned to MiniSplit's/ThreadRouter's known-good version (see ThreadRouter/src/idf_component.yml).
+  espressif/esp_matter: "1.5.0"
+  # DS18B20 driver over 1-Wire/RMT; same pin as SpaV2/test_phorp.
+  espressif/ds18b20: "==0.3.1"

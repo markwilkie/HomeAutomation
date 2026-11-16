@@ -1,0 +1,4 @@
+CONFIG_IDF_TARGET="esp32c6"
+# The DevKitM-1's only PC link is the chip's native USB-Serial-JTAG; make it
+# the primary console (same as MiniSplit/test_apps/ir_live_test).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
