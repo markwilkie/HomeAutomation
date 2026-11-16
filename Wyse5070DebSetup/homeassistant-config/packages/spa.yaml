@@ -180,7 +180,7 @@ template:
 
 sensor:
   - platform: history_stats
-    name: "SmarterSpa generating (24 h)"
+    name: "SmarterSpa generating 24h"   # name sets the id: sensor.smarterspa_generating_24h
     unique_id: smarterspa_generating_24h
     entity_id: binary_sensor.smarterspa_generating
     state: "on"
@@ -188,7 +188,7 @@ sensor:
     start: "{{ now() - timedelta(hours=24) }}"
     end: "{{ now() }}"
   - platform: history_stats
-    name: "Spa pump runtime (24 h)"
+    name: "Spa pump runtime 24h"   # name sets the id: sensor.spa_pump_runtime_24h
     unique_id: spa_pump_runtime_24h
     entity_id: binary_sensor.spa_pump_running
     state: "on"
