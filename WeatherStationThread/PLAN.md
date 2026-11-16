@@ -1,4 +1,4 @@
-# Weather Station — Thread Rewrite Plan (v1, 2026-11-16)
+# Weather Station — Thread Rewrite Plan (v2, 2026-11-16)
 
 Rewrite of [../SmartThings_Edge/Arduino/WeatherStation/](../SmartThings_Edge/Arduino/WeatherStation/)
 (original ESP32 FireBeetle, Arduino, Wi-Fi → SmartThings Edge driver) as an
@@ -10,9 +10,11 @@ The old Arduino project stays in place, untouched, as the reference for
 calibration constants, wind-direction thresholds, and wiring until this
 project is deployed and verified. Do not delete it as part of this work.
 
-**Before writing code, read "Open questions" at the bottom.** Q1 (transport)
-decides the shape of Milestone 4 and the OTA approach. Do not pick an
-answer for Mark; ask him.
+**Decisions (Mark, 2026-11-16) — see "Decisions" at the bottom:**
+plain Thread + MQTT (no Matter); wind in knots, rain in inches; same
+anemometer/vane/rain gauge as the old station; add a cold-charge cutoff;
+keep all three UV sensors and the moisture sensor. Remaining open items are
+listed at the bottom — ask Mark, don't guess.
 
 ---
 
@@ -75,7 +77,7 @@ mode plus sensor quiescent current, not by bursts of 5V load.
    battery connector. Budget check (calculated, not measured): a Thread SED
    in light sleep at ~0.25 mA average is ~6 mAh/day → months of autonomy
    with zero sun. Even at 1 mA average it is ~40 days. Capacity is not the
-   constraint; cold-weather charging is (see Q5).
+   constraint; cold-weather charging is (see §6).
 3. **Solar: keep the 10 W / 12 V panel and add a small buck converter to
    ~5.0 V into FireBeetle VIN.** The FireBeetle's solar input is 4.5–6 V, so
    the 12 V panel cannot connect directly. A buck keeps the existing panel
@@ -89,9 +91,26 @@ mode plus sensor quiescent current, not by bursts of 5V load.
    draw hundreds of µA depending on direction (verify against the vane's
    resistor table) — power it from a GPIO-driven high-side switch and only
    enable it during the read. Keep the existing PNP-gated MUX/UV/LDR supply
-   (EN low = on). Anemometer quiescent current is unknown — measure it (Q4);
+   (EN low = on). Anemometer quiescent current is unknown — measure it (Decision 3);
    it must stay powered because it is counted in sleep.
-5. **Measure, don't assume:** final average current is measured on the
+6. **Cold-charge cutoff (decided: add it).** LiPo must not charge below
+   0 °C, and charging is hardware-driven by the CN3165, so cut the solar
+   input instead:
+   - Choose the 12 V→5 V buck with an **EN pin**, and drive EN from a GPIO.
+     Disabling the buck removes FireBeetle VIN, which stops charging; the
+     board keeps running from the battery.
+   - Sense **battery** temperature with an NTC thermistor taped to the LiPo,
+     in a divider on ADC GPIO6. Don't use the BME280: it measures air in the
+     radiation shield, not the battery. Gate the divider's supply from a
+     GPIO (or use a high-value NTC) so it doesn't drain the battery.
+   - Firmware: disable the buck below **2 °C**, re-enable above **5 °C**
+     (hysteresis). Check every report cycle.
+   - **Fail-safe default:** pull EN to the *enabled* state in hardware, so
+     if firmware hangs, charging continues rather than the station dying.
+     This means the cutoff only works while firmware runs — accepted
+     tradeoff; a hardware NTC cutoff would remove it (open item C).
+   - Report battery temperature and the cutoff state over MQTT.
+7. **Measure, don't assume:** final average current is measured on the
    FireBeetle running from battery (Milestone 7). DevKitC readings are only
    useful for relative comparisons — its UART bridge and LEDs swamp the chip.
 
@@ -116,19 +135,27 @@ ota_1,    app,  ota_1,   0x200000, 0x1E0000
 
 That is ~1.875 MB per slot. **Note: none of the existing 4 MB C6 projects in
 this repo (MiniSplit, MiniSplitIR, ThreadRouter) use OTA** — they all use a
-single 3 MB `factory` partition. So "Matter + OTA fits in 4 MB" is unproven
-here. If Q1 lands on Matter, check the image size at the end of M2 before
-committing to this table. A plain-Thread build (no Matter stack) should be
-far smaller, but measure it.
+single 3 MB `factory` partition. This project has no Matter stack, so the
+image should be well under a slot, but measure it at the end of M2.
 
-**Mechanism (depends on Q1):**
-- Plain Thread: `esp_https_ota` (or plain HTTP on the LAN) from a file
-  served on wyse, over the Thread interface. An "OTA pending" flag in the
-  normal report acknowledgment tells the device to stay awake (rx-on-when-idle,
-  short poll) for the download, then reboot. Same idea as the old
-  `wifionly_flag`.
-- Matter: Matter OTA requires an OTA Provider on the fabric. Confirm what
-  HA's matter-server offers before relying on it.
+**Mechanism (plain Thread + MQTT):**
+- The device subscribes to a retained command topic
+  `weatherstation/cmd/ota` on each wake. Payload: firmware version + URL +
+  SHA-256.
+- If the version is newer, the device switches to rx-on-when-idle (stays
+  awake, no SED polling delay), downloads with `esp_https_ota` (plain HTTP is
+  acceptable on the LAN) over the Thread interface, verifies the hash,
+  reboots, then clears the retained topic after it marks the image valid.
+  Same idea as the old `wifionly_flag`.
+- **The file has to be served from somewhere on wyse.** Before adding a new
+  container, check whether an existing one (Caddy, the dashboard's web
+  server) can serve a static `firmware/` directory on the LAN. If a new
+  service is needed, follow repo `CLAUDE.md`: compose file written by a
+  checked-in setup script, `restart: unless-stopped`, dashboard card and a
+  port-table row in the same change. Decide this with Mark (open item B).
+- Alternative that avoids any file server: send the image in chunks over
+  MQTT. More firmware code and slower; only if the file-server route is
+  rejected.
 
 Always enable app rollback (`CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`):
 mark the new image valid only after it has joined Thread and delivered one
@@ -158,7 +185,9 @@ wiring** — taken from memory and from the FireBeetle schematic extract):
 | MUX common: LDR / UV (ADC) | 3 | ADC1, free on both |
 | Wind pulse (LP IO) | 4 | LP IO; FireBeetle label LP_RX (LP UART unused) |
 | Rain pulse (LP IO) | 5 | LP IO; FireBeetle label LP_TX |
-| Spare LP IO | 6, 7 | Reserve for a future pulse input |
+| Battery thermistor (ADC) | 6 | Cold-charge cutoff, see Power §6. FireBeetle: GDI connector pin, free with no display |
+| Spare LP IO | 7 | Reserve for a future pulse input |
+| Buck converter EN (cold cutoff) | TBD | Any free digital GPIO, see Power §6 |
 | I2C SDA / SCL (BME280) | TBD | Pick from header pins exposed on **both** boards, outside the above — check the FireBeetle pinout |
 | MUX EN, SEL0, SEL1 | TBD | Any free digital GPIO exposed on both |
 | Moisture (digital) | TBD | Any free digital GPIO |
@@ -190,8 +219,8 @@ Board selection: `idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defa
 
 ## Milestones
 
-### M0 — Answer the open questions
-Blocking for M4 and the OTA mechanism. M1–M3 can start without them.
+### M0 — Resolve "Still open" items
+A–F affect M4–M7 details only; M1–M3 can start now.
 
 ### M1 — Scaffold (DevKitC)
 - ESP-IDF project, target esp32c6, 4 MB flash, partition table above.
@@ -227,14 +256,43 @@ Blocking for M4 and the OTA mechanism. M1–M3 can start without them.
 - Verify counting continues across **both** light sleep and deep sleep.
 - Bench test with a function generator or a second board toggling pins.
 
-### M4 — Thread transport (DevKitC)
-Depends on Q1.
-- Join OTBR's `WilkieMatterNet` as a **Sleepy End Device**, not Mark's
-  SmartThings network.
-- Report every `CYCLETIME` (default 600 s, revisit — Q3). Payload: the
-  fields from the old `/weather`, `/wind`, `/rain` posts minus PMS, plus
-  battery voltage, firmware version, reset reason, RSSI/LQI, parent RLOC.
-- Entities show up in Home Assistant with units and device classes.
+### M4 — Thread + MQTT transport (DevKitC)
+Decided: plain OpenThread (no Matter), MQTT to the existing `mosquitto`
+broker on wyse (port 1883, already in the `Wyse5070DebSetup/README.md` port
+table — no new service needed for telemetry).
+
+- **Join Thread:** OTBR's `WilkieMatterNet` (confirm — open item D) as a
+  **Sleepy End Device**. Provision the network once by writing the active
+  dataset TLVs to NVS (from `ot-ctl dataset active -x` in the `otbr`
+  container on wyse), via a one-time console command or an
+  `nvs_partition_gen` image. Never commit the dataset — it contains the
+  network key.
+- **Reach the broker:** over IPv6 if wyse is reachable from the Thread
+  mesh, otherwise via OTBR's NAT64 to `192.168.15.30:1883`. Verify which
+  path works from a Thread node before writing the client (check from wyse
+  with `ot-ctl` and an existing Thread device).
+- **MQTT client:** `esp-mqtt` over the OpenThread lwIP interface. Each
+  report cycle: connect → publish (QoS 1) → check `weatherstation/cmd/#` →
+  disconnect, rather than holding a TCP session open across SED sleep.
+  Measure connect time and current; if it's costly, revisit keeping the
+  session open with a long keepalive.
+- **Credentials:** mosquitto requires a username/password (see
+  `setup-mosquitto.sh`). Create a dedicated broker user for the station.
+  Store credentials in NVS or a gitignored `secrets` sdkconfig fragment —
+  never in the repo, never placeholders.
+- **Home Assistant:** MQTT discovery. Publish retained config to
+  `homeassistant/sensor/weatherstation/<id>/config` for every field, with
+  device class and units (wind in **knots**, rain in **inches**, pressure,
+  temperature, humidity, lux, UV index, battery V, battery temp), all
+  grouped under one HA device. State on `weatherstation/state` as one JSON
+  object. Set `expire_after` so stale data shows as unavailable.
+- **Payload:** the fields from the old `/weather`, `/wind`, `/rain`, `/admin`
+  posts minus PMS and cap/boost fields, plus battery voltage, battery
+  temperature, charge-cutoff state, firmware version, reset reason, Thread
+  RSSI/LQI and parent RLOC16.
+- **Report interval:** `CYCLETIME` configurable via Kconfig and overridable
+  by a retained `weatherstation/cmd/interval` message. Default 600 s until
+  Mark confirms (open item A).
 
 ### M5 — Sleep strategy and power (DevKitC, relative numbers)
 - Default: light sleep + automatic power management with the LP core
@@ -245,7 +303,7 @@ Depends on Q1.
   Record both numbers here.
 
 ### M6 — OTA (DevKitC)
-- Implement per the OTA section and Q1. Test: update, bad image rollback,
+- Implement per the OTA section (and open item B). Test: update, bad image rollback,
   power loss mid-download.
 
 ### M7 — Port to FireBeetle
@@ -267,46 +325,32 @@ Depends on Q1.
 
 ---
 
-## Open questions (ask Mark before M4)
+## Decisions (Mark, 2026-11-16)
 
-1. **Transport: Matter, or plain Thread + MQTT/CoAP?** As far as I could
-   find, Matter has standard clusters for temperature, humidity, pressure,
-   illuminance and battery (Power Source), but I could not find standard
-   clusters for wind speed, wind direction, rain or UV — those would be
-   vendor-specific and likely invisible in HA's Matter integration (verify).
-   Options:
-   - (a) Matter over Thread for the standard sensors + vendor clusters for
-     the rest. Uses the existing commissioning script. Biggest image; OTA in
-     4 MB unproven.
-   - (b) Plain OpenThread SED sending UDP/CoAP or MQTT to wyse (mosquitto
-     already runs there; NAT64 is on OTBR) and HA MQTT discovery for all
-     entities. Smallest image, easiest OTA, all fields first-class in HA.
-     Needs a way to give the device the Thread dataset (NVS-provisioned or
-     Thread joiner/commissioner).
-   - (c) ESPHome over Thread. Would need a custom external component for
-     LP-core counting; ESPHome Thread + deep sleep has known rough edges.
-   Tentative lean: (b), moderate confidence — confirm with Mark.
-2. **Units.** Old firmware reports wind in knots. Keep knots (sailing use),
-   or mph/m/s? Rain per tip `0.0102` — inches? Confirm.
-3. **Report interval.** Keep 600 s, or shorten now that Thread is cheap per
-   message (e.g. 60–120 s for wind)? Shorter = more radio time.
-4. **Anemometer and rain gauge hardware:** same units as the old station
-   (Makerfabs anemometer, existing vane and bucket)? Anemometer quiescent
-   current and supply range (does it run at 3.3 V)? Vane resistor table?
-5. **Cold-weather charging.** Li-ion/LiPo must not charge below 0 °C, and
-   the CN3165 has no battery temperature input as far as the schematic
-   extract shows (verify). Charging is hardware-driven, so firmware alone
-   can't stop it. Options: accept the risk (freezes are infrequent here);
-   switch VIN with a GPIO-driven MOSFET and cut solar input when the BME280
-   (or a thermistor at the battery) reads below ~0 °C; or add a hardware
-   NTC cutoff.
-6. **UV sensors:** keep all three GY-8511s, or one? (Old code reported the
-   max of three.)
-7. **Moisture sensor:** still installed and useful?
-8. **Gust definition:** keep the shortest-pulse method, or switch to the
-   standard 3-second-average peak? The latter needs periodic LP-core
-   sampling, not just per-pulse timestamps.
-9. **Power-saver mode:** the old firmware stretched sleep to 1.5 h below
-   3.55 V. Keep an equivalent low-battery mode?
-10. **Which Thread network** — confirm OTBR's `WilkieMatterNet`, not the
-    SmartThings hub's network.
+1. **Transport: plain Thread + MQTT** to the existing mosquitto broker, with
+   HA MQTT discovery. No Matter. (See M4.)
+2. **Units:** wind in knots, rain in inches (`RAINFACTOR 0.0102` per tip).
+3. **Hardware:** same anemometer, wind vane and rain gauge as the old
+   station. Their quiescent current, 3.3 V operation and the vane resistor
+   table still have to be **measured** in M2/M3. Record the results here.
+4. **Cold-charge cutoff: add it.** Buck EN + battery NTC (Power §6).
+5. **Sensors:** keep all three GY-8511 UV sensors (report each, plus the
+   max as `uv`) and the moisture sensor.
+
+## Still open (ask Mark, don't guess)
+
+A. **Report interval.** Keep 600 s, or report more often now that a Thread
+   message is cheap (e.g. 60–120 s)? Mark's reply ("2-4 yes") was ambiguous
+   on this one. Default 600 s and make it configurable until confirmed.
+B. **Where the OTA file is served from on wyse:** reuse an existing web
+   server (preferred) or add a small static file container (dashboard card
+   + port-table row required). Or MQTT-chunked OTA with no file server.
+C. **Cold cutoff fail-safe:** accept a firmware-only cutoff (EN defaults to
+   charging if firmware hangs), or add a hardware NTC cutoff?
+D. **Thread network:** confirm OTBR's `WilkieMatterNet`, not the SmartThings
+   hub's `ST-3011356111`.
+E. **Gust definition:** keep the old shortest-pulse method (default), or
+   switch to the standard 3-second-average peak?
+F. **Low-battery mode:** the old firmware stretched sleep to 1.5 h below
+   3.55 V. Keep an equivalent (default: yes, longer report interval below a
+   threshold; LP-core counting continues regardless)?

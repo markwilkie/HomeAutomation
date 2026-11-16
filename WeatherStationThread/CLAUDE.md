@@ -3,9 +3,9 @@
 Plan: [PLAN.md](PLAN.md). Read it fully before writing code.
 
 ## Blocking prerequisite
-Milestone 4 (Thread transport) and the OTA mechanism depend on the
-"Open questions" in PLAN.md, especially Q1 (Matter vs plain Thread). Do not
-choose for Mark — ask. M1–M3 can proceed.
+M1–M4 are unblocked (transport decided: Thread + MQTT). Items in
+PLAN.md "Still open" (A–F) need Mark's answer before the parts they affect. Do not
+choose for Mark — ask.
 
 ## Rules
 - Build for 4 MB flash on every board, including the 8 MB DevKitC.
