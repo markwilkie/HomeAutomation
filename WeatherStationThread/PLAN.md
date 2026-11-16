@@ -1,4 +1,4 @@
-# Weather Station — Thread Rewrite Plan (v5, 2026-11-16)
+# Weather Station — Thread Rewrite Plan (v6, 2026-11-16)
 
 Rewrite of [../SmartThings_Edge/Arduino/WeatherStation/](../SmartThings_Edge/Arduino/WeatherStation/)
 (original ESP32 FireBeetle, Arduino, Wi-Fi → SmartThings Edge driver) as an
@@ -17,8 +17,8 @@ Matter (direct MQTT failed in MiniSplit at the name-lookup step); wind in knots,
 anemometer/vane/rain gauge as the old station; add a cold-charge cutoff;
 keep all three UV sensors and the moisture sensor; serve OTA images from an
 existing web server on wyse; firmware-only cold cutoff accepted; Thread network
-is `WilkieMatterNet`. Remaining open items (A, E, F) are listed at the bottom —
-ask Mark, don't guess.
+is `WilkieMatterNet`; report every 120 s by day, less often 22:00–06:00 and
+on low battery; keep the old gust method. No open items remain.
 
 ---
 
@@ -245,8 +245,8 @@ Board selection: `idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defa
 
 ## Milestones
 
-### M0 — Resolve "Still open" items
-A, E and F affect M4–M7 details only; M1–M3 can start now.
+### M0 — Resolve open items
+Done 2026-11-16 (see Decisions). M1 can start.
 
 ### M1 — Scaffold (DevKitC)
 - ESP-IDF project, target esp32c6, 4 MB flash, partition table above.
@@ -271,7 +271,13 @@ A, E and F affect M4–M7 details only; M1–M3 can start now.
 - LP core program in C, based on `gpio_intr_pulse_counter`:
   - Wind (GPIO4): count falling edges; record the **shortest interval**
     between edges since last read (LP timer timestamps) for gust, matching
-    the old `wind_low_tick_cnt` approach.
+    the old `wind_low_tick_cnt` approach (Decision 9).
+  - **Gust factor:** the old code had two fudge factors. `ULP.h`'s
+    `GUSTFACTOR 2.3` turned ULP loop ticks (`ULPSLEEP` 40 µs) into real time —
+    it corrected the old ULP loop's actual period, so **drop it**: LP timer
+    timestamps are already real µs. Keep `WindRain.h`'s `GUSTFACTOR .225`
+    (one pulse → rev/s) as the starting value, then check gusts against the
+    old station side by side in M8 and retune.
   - Rain (GPIO5): count rising edges.
   - **Debounce in ms, not µs.** The example's debounce is ~0.6 µs; reed
     switches bounce for milliseconds. Ignore edges within N ms of the last
@@ -339,7 +345,20 @@ before concluding a failure is a routing problem.
   RSSI/LQI and parent RLOC16.
 - **Report interval:** `CYCLETIME` configurable via Kconfig and overridable
   remotely (retained `weatherstation/cmd/interval` in B1, relay reply in
-  B2). Default 600 s until Mark confirms (open item A).
+  B2). **Default 120 s** (Decision 8).
+- **Night interval (Decision 8):** 22:00–06:00 local, report every
+  **600 s**. The device has no reliable clock (no SNTP: same name-lookup
+  problem as MQTT), so **Home Assistant owns the schedule**: an automation
+  publishes the retained interval topic at 22:00 (600) and 06:00 (120), and
+  once at HA start for whichever period it is. B2: the relay applies the
+  same schedule in its reply. Matter fallback: HA writes the interval
+  attribute instead. The device just uses the latest interval it was given.
+- **Low-battery mode (Decision 10):** below a battery-voltage threshold
+  (old firmware: 3.55 V → 1.5 h sleep), stretch the report interval; start
+  with 3.55 V / 3600 s, hysteresis back to normal ~0.1 V higher, both
+  Kconfig. The interval used is the **longest** of the remote (day/night)
+  interval and the low-battery interval. LP-core counting continues regardless, so no wind/rain pulses
+  are lost — they're reported in the next (longer) cycle. Report the mode.
 - **Credentials:** dedicated mosquitto user for the station (see
   `setup-mosquitto.sh`; password from wyse's `.env`, never the repo or a
   placeholder). Stored in NVS or a gitignored sdkconfig fragment.
@@ -436,13 +455,15 @@ before concluding a failure is a routing problem.
 7. **Thread network:** OTBR's `WilkieMatterNet`, the one HA uses (was open
    item D). The SmartThings hub's `ST-3011356111` is not an option.
 
-## Still open (ask Mark, don't guess)
+8. **Report interval:** 120 s by day; less often 22:00–06:00 (600 s, set by
+   an HA automation) and on low battery (Decision 10); the longest applies.
+   Was open item A; if the measured battery draw in M7 is too high, raise
+   the day value.
+9. **Gust:** keep the old shortest-pulse method (Mark: "it's working pretty
+   good now"); recalibrate the factor per M3. Was open item E.
+10. **Low-battery mode:** yes, longer report interval below a threshold (M4
+    shared requirements). Was open item F.
 
-A. **Report interval.** Keep 600 s, or report more often now that a Thread
-   message is cheap (e.g. 60–120 s)? Mark's reply ("2-4 yes") was ambiguous
-   on this one. Default 600 s and make it configurable until confirmed.
-E. **Gust definition:** keep the old shortest-pulse method (default), or
-   switch to the standard 3-second-average peak?
-F. **Low-battery mode:** the old firmware stretched sleep to 1.5 h below
-   3.55 V. Keep an equivalent (default: yes, longer report interval below a
-   threshold; LP-core counting continues regardless)?
+## Still open
+
+None. New questions go here — ask Mark, don't guess.

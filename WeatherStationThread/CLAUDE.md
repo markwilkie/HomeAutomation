@@ -8,8 +8,8 @@ any M4 transport code.** Direct MQTT from a Thread-only C6 already failed in
 `../MiniSplit/` at the name-lookup step (esp-tls → `getaddrinfo()` on an IP
 literal), so never use esp-mqtt's built-in `mqtt://` transport or any
 hostname-based connection here — only the custom IPv6-literal transport
-described in PLAN.md M4 Option B1. Items in PLAN.md "Still open" (A, E, F) need Mark's
-answer before the parts they affect. Do not choose for Mark — ask.
+described in PLAN.md M4 Option B1. New questions go in PLAN.md "Still open"; Mark answers them. Do not
+choose for Mark — ask.
 
 ## Rules
 - Build for 4 MB flash on every board, including the 8 MB DevKitC.
