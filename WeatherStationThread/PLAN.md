@@ -1,4 +1,4 @@
-# Weather Station — Thread Rewrite Plan (v4, 2026-11-16)
+# Weather Station — Thread Rewrite Plan (v5, 2026-11-16)
 
 Rewrite of [../SmartThings_Edge/Arduino/WeatherStation/](../SmartThings_Edge/Arduino/WeatherStation/)
 (original ESP32 FireBeetle, Arduino, Wi-Fi → SmartThings Edge driver) as an
@@ -15,8 +15,10 @@ transport **not final** — a reachability test (M4a) picks, in order of
 preference: direct MQTT over a custom DNS-free transport, a UDP relay, or
 Matter (direct MQTT failed in MiniSplit at the name-lookup step); wind in knots, rain in inches; same
 anemometer/vane/rain gauge as the old station; add a cold-charge cutoff;
-keep all three UV sensors and the moisture sensor. Remaining open items are
-listed at the bottom — ask Mark, don't guess.
+keep all three UV sensors and the moisture sensor; serve OTA images from an
+existing web server on wyse; firmware-only cold cutoff accepted; Thread network
+is `WilkieMatterNet`. Remaining open items (A, E, F) are listed at the bottom —
+ask Mark, don't guess.
 
 ---
 
@@ -29,7 +31,7 @@ listed at the bottom — ask Mark, don't guess.
 | BME280 (temp, humidity, pressure; dew point, heat index computed) | I2C | SDA 21, SCL 22 | Use forced mode, read once per cycle |
 | Anemometer (wind speed) | Pulse, LP core | GPIO14 | NPN output, active low. 20 pulses/rev, `WINDFACTOR 3.914639` (see `WindRain.h`) |
 | Wind gust | Derived from shortest wind-pulse interval | — | Old logic: `ULP::getULPShortestWindPulseTime()` + `GUSTFACTOR`. Keep, see Milestone 3 |
-| Rain gauge (tipping bucket) | Pulse, LP core | GPIO26 | Active high with 10K pulldown. `RAINFACTOR 0.0102` per tip |
+| Rain gauge (tipping bucket) | Pulse, LP core | GPIO26 | Active high with 10K pulldown. `RAINFACTOR 0.0102` per tip. **Raise the pulldown** (≥1M, or the pin's internal pull-down): a bucket resting with the switch closed draws 330 µA through 10K, more than the whole sleep budget |
 | Wind direction (vane) | ADC | GPIO36 | 8-point threshold table in `WindRainHandler.ino` `calcWindDirection()` — port the thresholds verbatim, then recalibrate on the C6's ADC |
 | LDR (lux) + 3x GY-8511 UV | ADC via 74HC4051 MUX | MUX out GPIO34, EN 27 (active low), SEL 2/5 | Lux formula and UV-index conversion in `ADCHandler` |
 | Moisture (wet/dry) | Digital | GPIO13 | 1M pulldown |
@@ -79,7 +81,7 @@ mode plus sensor quiescent current, not by bursts of 5V load.
    battery connector. Budget check (calculated, not measured): a Thread SED
    in light sleep at ~0.25 mA average is ~6 mAh/day → months of autonomy
    with zero sun. Even at 1 mA average it is ~40 days. Capacity is not the
-   constraint; cold-weather charging is (see §6).
+   constraint; cold-weather charging is (see §5).
 3. **Solar: keep the 10 W / 12 V panel and add a small buck converter to
    ~5.0 V into FireBeetle VIN.** The FireBeetle's solar input is 4.5–6 V, so
    the 12 V panel cannot connect directly. A buck keeps the existing panel
@@ -95,10 +97,24 @@ mode plus sensor quiescent current, not by bursts of 5V load.
    enable it during the read. Keep the existing PNP-gated MUX/UV/LDR supply
    (EN low = on). Anemometer quiescent current is unknown — measure it (Decision 3);
    it must stay powered because it is counted in sleep.
-6. **Cold-charge cutoff (decided: add it).** LiPo must not charge below
+   **Every power-control line must hold its state through sleep.** In deep
+   sleep (and in light sleep with peripheral power-down) ordinary digital
+   GPIOs fall back to their reset state and can float:
+   - **MUX/UV/LDR enable (PNP, active low):** a floating line can switch the
+     sensors on for the whole sleep. Add an external pull-up (100K) so the
+     default is *off*, and `gpio_hold_en()` it high before sleeping.
+   - **Vane power enable:** external pull-down (default off), held off in sleep.
+   - Check each line's sleep state with a meter in M5, not just on paper.
+5. **Cold-charge cutoff (decided: add it).** LiPo must not charge below
    0 °C, and charging is hardware-driven by the CN3165, so cut the solar
    input instead:
-   - Choose the 12 V→5 V buck with an **EN pin**, and drive EN from a GPIO.
+   - Choose the 12 V→5 V buck with an **EN pin**, and drive EN from
+     **GPIO7 (an LP IO pin)**. The cutoff matters most while the station
+     sleeps, which is nearly all the time, so EN must be driven *during*
+     sleep: hold it with `rtc_gpio_hold_en()` / `gpio_hold_en()` before
+     every sleep and release it after waking to change it. A normal digital
+     GPIO would fall back to its reset state in sleep, and the hardware
+     pull would turn charging back on.
      Disabling the buck removes FireBeetle VIN, which stops charging; the
      board keeps running from the battery.
    - Sense **battery** temperature with an NTC thermistor taped to the LiPo,
@@ -109,10 +125,11 @@ mode plus sensor quiescent current, not by bursts of 5V load.
      (hysteresis). Check every report cycle.
    - **Fail-safe default:** pull EN to the *enabled* state in hardware, so
      if firmware hangs, charging continues rather than the station dying.
-     This means the cutoff only works while firmware runs — accepted
-     tradeoff; a hardware NTC cutoff would remove it (open item C).
+     This means the cutoff only works while firmware runs (including sleep,
+     thanks to the hold) — **accepted by Mark 2026-11-16**; no hardware NTC
+     cutoff.
    - Report battery temperature and the cutoff state in every report.
-7. **Measure, don't assume:** final average current is measured on the
+6. **Measure, don't assume:** final average current is measured on the
    FireBeetle running from battery (Milestone 7). DevKitC readings are only
    useful for relative comparisons — its UART bridge and LEDs swamp the chip.
 
@@ -163,7 +180,9 @@ unproven — measure the image (`idf.py size`) before committing to this table.
   server) can serve a static `firmware/` directory on the LAN. If a new
   service is needed, follow repo `CLAUDE.md`: compose file written by a
   checked-in setup script, `restart: unless-stopped`, dashboard card and a
-  port-table row in the same change. Decide this with Mark (open item B).
+  port-table row in the same change. **Decided (Mark, 2026-11-16): reuse an
+  existing web server** — check Caddy and the dashboard's server first; only
+  add a container if neither can serve a static LAN-only `firmware/` dir.
 
 Always enable app rollback (`CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`):
 mark the new image valid only after it has joined Thread and delivered one
@@ -193,13 +212,12 @@ wiring** — taken from memory and from the FireBeetle schematic extract):
 | MUX common: LDR / UV (ADC) | 3 | ADC1, free on both |
 | Wind pulse (LP IO) | 4 | LP IO; FireBeetle label LP_RX (LP UART unused) |
 | Rain pulse (LP IO) | 5 | LP IO; FireBeetle label LP_TX |
-| Battery thermistor (ADC) | 6 | Cold-charge cutoff, see Power §6. FireBeetle: GDI connector pin, free with no display |
-| Spare LP IO | 7 | Reserve for a future pulse input |
-| Buck converter EN (cold cutoff) | TBD | Any free digital GPIO, see Power §6 |
+| Battery thermistor (ADC) | 6 | Cold-charge cutoff, see Power §5. FireBeetle: GDI connector pin, free with no display |
+| Buck converter EN (cold cutoff) | 7 | LP IO so it can be held through sleep, see Power §5. Hardware pull to *enabled* |
 | I2C SDA / SCL (BME280) | TBD | Pick from header pins exposed on **both** boards, outside the above — check the FireBeetle pinout |
-| MUX EN, SEL0, SEL1 | TBD | Any free digital GPIO exposed on both |
+| MUX EN, SEL0, SEL1 | TBD | Any free digital GPIO exposed on both. EN: external 100K pull-up (off), held in sleep — Power §4 |
 | Moisture (digital) | TBD | Any free digital GPIO |
-| Vane power enable | TBD | New, see Power §4 |
+| Vane power enable | TBD | New; external pull-down (off), held in sleep — Power §4 |
 
 ---
 
@@ -228,7 +246,7 @@ Board selection: `idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defa
 ## Milestones
 
 ### M0 — Resolve "Still open" items
-A–F affect M4–M7 details only; M1–M3 can start now.
+A, E and F affect M4–M7 details only; M1–M3 can start now.
 
 ### M1 — Scaffold (DevKitC)
 - ESP-IDF project, target esp32c6, 4 MB flash, partition table above.
@@ -377,7 +395,7 @@ before concluding a failure is a routing problem.
   Record both numbers here.
 
 ### M6 — OTA (DevKitC)
-- Implement per the OTA section (and open item B). Test: update, bad image rollback,
+- Implement per the OTA section (image served by an existing web server on wyse). Test: update, bad image rollback,
   power loss mid-download.
 
 ### M7 — Port to FireBeetle
@@ -410,22 +428,19 @@ before concluding a failure is a routing problem.
 3. **Hardware:** same anemometer, wind vane and rain gauge as the old
    station. Their quiescent current, 3.3 V operation and the vane resistor
    table still have to be **measured** in M2/M3. Record the results here.
-4. **Cold-charge cutoff: add it.** Buck EN + battery NTC (Power §6).
+4. **Cold-charge cutoff: add it.** Buck EN on held LP IO GPIO7 + battery NTC
+   (Power §5). Firmware-only cutoff accepted, no hardware NTC cutoff.
 5. **Sensors:** keep all three GY-8511 UV sensors (report each, plus the
    max as `uv`) and the moisture sensor.
+6. **OTA images:** served by an existing web server on wyse (was open item B).
+7. **Thread network:** OTBR's `WilkieMatterNet`, the one HA uses (was open
+   item D). The SmartThings hub's `ST-3011356111` is not an option.
 
 ## Still open (ask Mark, don't guess)
 
 A. **Report interval.** Keep 600 s, or report more often now that a Thread
    message is cheap (e.g. 60–120 s)? Mark's reply ("2-4 yes") was ambiguous
    on this one. Default 600 s and make it configurable until confirmed.
-B. **Where the OTA file is served from on wyse:** reuse an existing web
-   server (preferred) or add a small static file container (dashboard card
-   + port-table row required).
-C. **Cold cutoff fail-safe:** accept a firmware-only cutoff (EN defaults to
-   charging if firmware hangs), or add a hardware NTC cutoff?
-D. **Thread network:** confirm OTBR's `WilkieMatterNet`, not the SmartThings
-   hub's `ST-3011356111`.
 E. **Gust definition:** keep the old shortest-pulse method (default), or
    switch to the standard 3-second-average peak?
 F. **Low-battery mode:** the old firmware stretched sleep to 1.5 h below
