@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy configuration.yaml / automations.yaml to the live Home Assistant on
+# Deploy configuration.yaml / automations.yaml / packages/*.yaml to the live Home Assistant on
 # wyse from GitHub: pull ~/github/HomeAutomation on wyse, refuse if the live
 # file was edited outside this script, back up, copy in from that clone,
 # config-check (rolling back on failure), then reload -- or restart with
@@ -19,7 +19,11 @@ set -euo pipefail
 HOST="${WYSE_HOST:-mwilkie@192.168.15.30}"
 REMOTE_REPO="~/github/HomeAutomation"
 REMOTE_DIR="${REMOTE_REPO}/Wyse5070DebSetup/homeassistant-config"
-FILES=(configuration.yaml automations.yaml)
+cd "$(dirname "$0")"
+# packages/<name>.yaml -> /config/packages/<name>.yaml (configuration.yaml's
+# `packages: !include_dir_named packages`). Removing a package here does not
+# delete it on the box: delete it there by hand in the same change.
+FILES=(configuration.yaml automations.yaml packages/*.yaml)
 RESTART=0
 FORCE=0
 for arg in "$@"; do
@@ -29,7 +33,6 @@ for arg in "$@"; do
         *) echo "unknown option: $arg" >&2; exit 2 ;;
     esac
 done
-cd "$(dirname "$0")"
 
 remote() { ssh "$HOST" "$@"; }
 sha() { sha256sum | cut -d' ' -f1; }
@@ -55,8 +58,13 @@ done
 stamp=$(date +%Y%m%d-%H%M%S)
 changed=()
 for f in "${FILES[@]}"; do
-    live_sha=$(remote "docker exec homeassistant cat /config/$f" | sha)
     local_sha=$(sha < "$f")
+    if ! remote "docker exec homeassistant test -f /config/$f"; then
+        echo "$f: new"
+        changed+=("$f")
+        continue
+    fi
+    live_sha=$(remote "docker exec homeassistant cat /config/$f" | sha)
     if [[ "$live_sha" == "$local_sha" ]]; then
         echo "$f: unchanged"
         continue
@@ -80,9 +88,15 @@ if [[ ${#changed[@]} -eq 0 ]]; then
 fi
 
 for f in "${changed[@]}"; do
-    remote "docker exec homeassistant cp /config/$f /config/$f.bak-$stamp \
-        && docker cp $REMOTE_DIR/$f homeassistant:/config/$f"
-    echo "$f: deployed (backup: $f.bak-$stamp)"
+    if remote "docker exec homeassistant test -f /config/$f"; then
+        remote "docker exec homeassistant cp /config/$f /config/$f.bak-$stamp"
+        note="backup: $f.bak-$stamp"
+    else
+        remote "docker exec homeassistant mkdir -p /config/$(dirname "$f")"
+        note="new file"
+    fi
+    remote "docker cp $REMOTE_DIR/$f homeassistant:/config/$f"
+    echo "$f: deployed ($note)"
 done
 
 # check_config exits 0 even on "Incorrect config" (an invalid platform just
@@ -94,13 +108,14 @@ echo "$check_out"
 if [[ $check_rc -ne 0 ]] || grep -qE "Incorrect config|Invalid config|partial\)" <<<"$check_out"; then
     echo "Config check FAILED -- rolling back." >&2
     for f in "${changed[@]}"; do
-        remote "docker exec homeassistant cp /config/$f.bak-$stamp /config/$f"
+        # no backup = the file was new: remove it again
+        remote "docker exec homeassistant sh -c 'if [ -f /config/$f.bak-$stamp ]; then cp /config/$f.bak-$stamp /config/$f; else rm -f /config/$f; fi'"
     done
     exit 1
 fi
 
 for f in "${changed[@]}"; do
-    remote "docker exec homeassistant sh -c 'mkdir -p /config/.deployed && sha256sum /config/$f | cut -d\" \" -f1 > /config/.deployed/$f.sha256'"
+    remote "docker exec homeassistant sh -c 'mkdir -p /config/.deployed/$(dirname "$f") && sha256sum /config/$f | cut -d\" \" -f1 > /config/.deployed/$f.sha256'"
 done
 
 # The token stays on the host: read and used in the same remote shell.

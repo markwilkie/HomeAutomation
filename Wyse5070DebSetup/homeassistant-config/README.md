@@ -5,7 +5,8 @@ with its live config at `/mnt/data/appdata/homeassistant/config` on the server �
 backup of any kind (no `backup:` integration configured, no Supervisor, no cron/systemd job covering it).
 
 This directory is a **manually-updated copy** of the two files most worth having history and documentation
-for: `automations.yaml` and `configuration.yaml`. It is not live-synced — editing here does nothing to the
+for: `automations.yaml` and `configuration.yaml`, plus `packages/*.yaml` (one file per feature, e.g. `packages/spa.yaml`
+for SpaV2, loaded by `configuration.yaml`'s `packages: !include_dir_named packages`). `deploy.sh` deploys all of them. It is not live-synced — editing here does nothing to the
 running instance, and editing the live files does nothing here. After changing either live file, re-copy it
 here and commit, so the change and its rationale (commit message) are preserved.
 

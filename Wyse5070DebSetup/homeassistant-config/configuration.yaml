@@ -25,6 +25,8 @@ scene: !include scenes.yaml
 # without it; the duplicate node's entities were deleted from the registry
 # directly), so there's nothing left for those entries to hide.
 homeassistant:
+  # One file per feature under packages/, deployed by deploy.sh like this file.
+  packages: !include_dir_named packages
   customize:
     sensor.bedroom_mini_split_ac_bridge_humidity_8:
       friendly_name: "MiniSplit Outage Reason (raw code)"

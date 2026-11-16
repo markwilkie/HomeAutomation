@@ -1,7 +1,8 @@
 """Give the Spa Monitor's Matter entities stable entity ids.
 
 HA names Matter entities by type and endpoint ("sensor.spa_monitor_humidity_3"),
-and the exact ids depend on naming history, so the templates in spa_package.yaml
+and the exact ids depend on naming history, so the templates in
+Wyse5070DebSetup/homeassistant-config/packages/spa.yaml
 refer to stable ids instead. This maps each entity by its Matter endpoint number
 (from the unique_id, "...-MatterNodeDevice-<endpoint>-<Kind>-...") to the ids in
 MAP below, and hides the raw/plumbing entities. Safe to re-run.

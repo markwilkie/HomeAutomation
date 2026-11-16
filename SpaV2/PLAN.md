@@ -240,12 +240,13 @@ and ORP calibration stores one offset against a reference solution.
 - **Exit:** boost cycle and power cycle produce correct states; button presses at the unit cause no false states.
 
 ### Phase 6 — Home Assistant side
-- All in `SpaV2/homeassistant/` (install steps in its README): `spa_package.yaml` (templates, threshold
-  helpers, `history_stats` generating + pump runtime 24 h, calibration date stamps, alerts) and
-  `dashboard_card.yaml`.
+- Package `Wyse5070DebSetup/homeassistant-config/packages/spa.yaml` (templates, threshold helpers,
+  `history_stats` generating + pump runtime 24 h, calibration date stamps, alerts), deployed by that folder's
+  `deploy.sh`. Entity renames and the dashboard: `SpaV2/homeassistant/` (steps in its README).
 - Alerts (persistent notifications): salt shutdown (5 min), fault / no power (10 min), salt low (30 min),
   pH outside the helper range for 30 min while live, chlorine label **Low** for 1 h while live.
-- Dashboard card: tiles, pH gauge, 24 h graph, details, calibration buttons and threshold helpers.
+- **Spa** sidebar dashboard (`/spa-dashboard`, from `spa_dashboard.yaml`): tiles, pH gauge, 24 h graphs, details,
+  calibration buttons and threshold helpers.
 - **Exit:** alerts fire on test values.
 
 ### Phase 7 — Hardening & install
