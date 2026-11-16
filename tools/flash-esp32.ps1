@@ -64,7 +64,7 @@ if (-not $target) {
 Write-Host "Flashing $ProjectDir to $($target.Port) (MAC $($target.Mac))"
 Push-Location $ProjectDir
 try {
-    if (Test-Path builduild.ninja) {
+    if (Test-Path build\build.ninja) {
         ninja -C build -j $Jobs
         if ($LASTEXITCODE -ne 0) { throw "build failed ($LASTEXITCODE)" }
     }
