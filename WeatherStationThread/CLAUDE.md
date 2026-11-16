@@ -3,10 +3,12 @@
 Plan: [PLAN.md](PLAN.md). Read it fully before writing code.
 
 ## Blocking prerequisite
-M1–M3 are unblocked. **M4a (UDP reachability test) must run before any
-M4 transport code** — direct MQTT from a Thread-only C6 already failed in
-`../MiniSplit/` (DNS/esp-tls bug), so don't reintroduce esp-mqtt or
-hostname-based connections. Items in PLAN.md "Still open" (A–F) need Mark's
+M1–M3 are unblocked. **M4a (TCP/UDP reachability test) must run before
+any M4 transport code.** Direct MQTT from a Thread-only C6 already failed in
+`../MiniSplit/` at the name-lookup step (esp-tls → `getaddrinfo()` on an IP
+literal), so never use esp-mqtt's built-in `mqtt://` transport or any
+hostname-based connection here — only the custom IPv6-literal transport
+described in PLAN.md M4 Option B1. Items in PLAN.md "Still open" (A–F) need Mark's
 answer before the parts they affect. Do not choose for Mark — ask.
 
 ## Rules

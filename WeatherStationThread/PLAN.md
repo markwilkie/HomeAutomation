@@ -1,4 +1,4 @@
-# Weather Station — Thread Rewrite Plan (v3, 2026-11-16)
+# Weather Station — Thread Rewrite Plan (v4, 2026-11-16)
 
 Rewrite of [../SmartThings_Edge/Arduino/WeatherStation/](../SmartThings_Edge/Arduino/WeatherStation/)
 (original ESP32 FireBeetle, Arduino, Wi-Fi → SmartThings Edge driver) as an
@@ -11,9 +11,9 @@ calibration constants, wind-direction thresholds, and wiring until this
 project is deployed and verified. Do not delete it as part of this work.
 
 **Decisions (Mark, 2026-11-16) — see "Decisions" at the bottom:**
-transport **not final** — a reachability test (M4a) decides between plain
-Thread + UDP relay and Matter, because direct MQTT from a Thread-only C6
-already failed in MiniSplit; wind in knots, rain in inches; same
+transport **not final** — a reachability test (M4a) picks, in order of
+preference: direct MQTT over a custom DNS-free transport, a UDP relay, or
+Matter (direct MQTT failed in MiniSplit at the name-lookup step); wind in knots, rain in inches; same
 anemometer/vane/rain gauge as the old station; add a cold-charge cutoff;
 keep all three UV sensors and the moisture sensor. Remaining open items are
 listed at the bottom — ask Mark, don't guess.
@@ -143,8 +143,10 @@ unproven — measure the image (`idf.py size`) before committing to this table.
 
 **Mechanism:**
 - **Trigger** (depends on the M4a transport):
-  - Plain Thread + relay: the relay's reply to a report carries an
-    "update available" flag with firmware version + URL + SHA-256.
+  - B1 (direct MQTT): retained `weatherstation/cmd/ota` topic with firmware
+    version + URL + SHA-256, read each wake; cleared by the device after it
+    marks the new image valid.
+  - B2 (relay): the relay's reply carries the same fields.
   - Matter: Matter OTA needs an OTA Provider on the fabric. Confirm what
     HA's matter-server offers before relying on it.
 - **Download:** on an update, the device switches to rx-on-when-idle (stays
@@ -267,59 +269,93 @@ A–F affect M4–M7 details only; M1–M3 can start now.
 was built and never connected (see `../MiniSplit/PLAN.md`, "Architecture
 change, 2026-09-07"): esp-tls/lwIP did a DNS lookup even for IP literals
 (`getaddrinfo()` returned `EAI_FAIL`), and OTBR's DNS64 only resolves public
-names. So plain MQTT is off the table unless that bug is fixed. This test
-checks whether a path that avoids DNS entirely works.
+names. Both failures were in the **name-lookup step**, not the network path.
+This test checks whether the network path works when that step is skipped.
 
 **Test:** a minimal ESP-IDF app on the DevKitC that joins `WilkieMatterNet`
 (dataset from `ot-ctl dataset active -x` in the `otbr` container, written to
-NVS, never committed) and sends one UDP datagram with a **raw lwIP socket**
-(`socket()`/`sendto()` with a `sockaddr_in6` filled in by `inet6_aton` — no
-`getaddrinfo`, no esp-tls) to wyse, in this order:
-1. wyse's own IPv6 address on the LAN/infrastructure link (find it with
-   `ip -6 addr` on wyse; prefer a stable ULA or the OMR-routable address).
+NVS, never committed). It uses **raw lwIP sockets** only — `sockaddr_in6`
+filled by `inet6_aton`, no `getaddrinfo`, no esp-tls — and tries, against
+each target address below:
+- **TCP:** `connect()` to port **1883** (mosquitto). Success = connection
+  established; then send a hand-built MQTT CONNECT packet and check for a
+  CONNACK (that also proves the broker credentials).
+- **UDP:** one datagram to a test port, plus a reply back to the device.
+
+Target addresses, in this order:
+1. **wyse's own IPv6 address** on the LAN/infrastructure link (`ip -6 addr`
+   on wyse; prefer a stable ULA or another address routable from the
+   Thread mesh). Try this first — it needs no NAT64.
 2. The NAT64-embedded form of `192.168.15.30` (`c0a8:0f1e` appended to the
    NAT64 /96 prefix). The prefix is **not** the well-known `64:ff9b::/96` —
    otbr-agent computes it and `setup-nat64-jool.sh` re-publishes it; read the
-   live value with `docker exec otbr sh -c "ot-ctl netdata show"`.
-3. The OpenThread CLI `ping` to the same addresses, as a control.
+   live value with `docker exec otbr sh -c "ot-ctl netdata show"`. Note this
+   translates back to wyse itself (hairpin); whether Jool delivers that
+   locally is unverified — that's what the test finds out.
+3. The OpenThread CLI `ping` to both addresses, as a control.
 
-On wyse, listen with `nc -u -l -6 <port>` (or `socat`) and record what
-arrives. Also check the reverse direction (a reply datagram back to the
-device), because the relay reply carries the OTA flag.
+On wyse: watch `docker logs mosquitto` (or `mosquitto_sub -v -t '#'`) for
+the TCP/MQTT test, `nc -u -l -6 <port>` for UDP. Mosquitto must be listening
+on IPv6 for target 1 — check its listener config in `setup-mosquitto.sh`
+before concluding a failure is a routing problem.
 
-**Record the result in this file.** Then:
-- **If (1) or (2) works →** M4 Option B (plain Thread + UDP relay).
-- **If neither works →** stop and tell Mark; default to M4 Option A (Matter),
-  which is the proven route in this house.
+**Record the result in this file**, then pick the transport:
+- **TCP to 1883 works (either address) →** M4 Option B1: direct MQTT with a
+  custom esp-mqtt transport. Preferred.
+- **TCP fails but UDP works →** M4 Option B2: UDP relay on wyse.
+- **Neither works →** stop and tell Mark; default to M4 Option A (Matter),
+  the proven route in this house.
 
-### M4 Option B — Plain Thread + UDP relay (if M4a passes)
-- **Device:** OpenThread SED on `WilkieMatterNet`. Each report cycle: build
-  one JSON payload, send it as a UDP datagram (raw lwIP socket, IPv6 literal
-  from M4a, no DNS), wait briefly for the relay's reply, retry up to N times
-  on no reply, then sleep. Payload stays under one datagram (no
-  fragmentation surprises — measure the size).
-- **Relay on wyse:** small service (Python, pinned versions) that receives the
-  datagram, validates a shared key (HMAC in the payload — the Thread mesh is
-  encrypted, but the relay port is on the LAN), publishes to mosquitto, and
-  replies with an ack + "update available" flag. Credentials for mosquitto
-  come from the host's `.env`, never the repo.
-  - Follow repo `CLAUDE.md` for deploys: compose file written by a
-    checked-in setup script, `restart: unless-stopped`, dashboard card and a
-    port-table row in the same change; verify with logs before calling it
-    live.
-- **Home Assistant:** MQTT discovery, published by the relay (not the
-  device). Retained config at `homeassistant/sensor/weatherstation/<id>/config`
-  for every field, with device class and units (wind in **knots**, rain in
-  **inches**, pressure, temperature, humidity, lux, UV index, battery V,
-  battery temp), grouped under one HA device. State on
-  `weatherstation/state`. Set `expire_after` so stale data shows
-  unavailable.
+### M4 shared requirements (B1 and B2)
+- **Thread:** OpenThread SED on `WilkieMatterNet`.
+- **Home Assistant:** MQTT discovery. Retained config at
+  `homeassistant/sensor/weatherstation/<id>/config` for every field, with
+  device class and units (wind in **knots**, rain in **inches**, pressure,
+  temperature, humidity, lux, UV index, battery V, battery temp), grouped
+  under one HA device. State on `weatherstation/state` as one JSON object.
+  Set `expire_after` so stale data shows unavailable. Republish discovery
+  config on boot and when the firmware version changes, not every cycle.
 - **Payload:** the fields from the old `/weather`, `/wind`, `/rain`, `/admin`
   posts minus PMS and cap/boost fields, plus battery voltage, battery
   temperature, charge-cutoff state, firmware version, reset reason, Thread
   RSSI/LQI and parent RLOC16.
 - **Report interval:** `CYCLETIME` configurable via Kconfig and overridable
-  by the relay's reply. Default 600 s until Mark confirms (open item A).
+  remotely (retained `weatherstation/cmd/interval` in B1, relay reply in
+  B2). Default 600 s until Mark confirms (open item A).
+- **Credentials:** dedicated mosquitto user for the station (see
+  `setup-mosquitto.sh`; password from wyse's `.env`, never the repo or a
+  placeholder). Stored in NVS or a gitignored sdkconfig fragment.
+
+### M4 Option B1 — Direct MQTT, custom transport (preferred)
+- Use `esp-mqtt`, but **not** its built-in `mqtt://` transport (that path
+  goes through esp-tls → `getaddrinfo()` → the MiniSplit failure).
+- Create a custom transport: `esp_transport_init()`, then
+  `esp_transport_set_func()` with your own connect/read/write/poll/close
+  callbacks. `connect` opens an `AF_INET6` socket and `connect()`s straight
+  to the M4a-proven IPv6 literal (kept in Kconfig/NVS), no name lookup.
+  Pass the handle in `esp_mqtt_client_config_t.network.transport`.
+  Note: the client takes ownership and destroys it in
+  `esp_mqtt_client_destroy()` — don't free it yourself. Verify the exact
+  callback signatures against the ESP-IDF version in use.
+- Per report cycle: connect → publish state (QoS 1) → read retained
+  `weatherstation/cmd/#` (interval, OTA) → disconnect → sleep. Don't hold
+  the TCP session across SED sleep. Measure how long the connect/publish
+  cycle keeps the radio awake (it's several round trips over a sleepy
+  link — temporarily raise the SED poll rate during the exchange if it's
+  slow).
+- Device publishes its own HA discovery config. No new service on wyse.
+
+### M4 Option B2 — UDP relay (fallback if only UDP works)
+- **Device:** each report cycle, send one JSON datagram (raw lwIP socket,
+  IPv6 literal from M4a), wait briefly for the relay's reply, retry up to N
+  times, then sleep. Keep the payload within one datagram — measure it.
+- **Relay on wyse:** small service (Python, pinned versions) that receives
+  the datagram, validates an HMAC in the payload (the relay port is on the
+  LAN), publishes to mosquitto (including HA discovery), and replies with an
+  ack + interval + "update available" flag.
+- Deploy per repo `CLAUDE.md`: compose file written by a checked-in setup
+  script, `restart: unless-stopped`, dashboard card and a port-table row in
+  the same change; show logs before calling it live.
 
 ### M4 Option A — Matter over Thread (fallback if M4a fails)
 - Commission with `Wyse5070DebSetup/commission-thread-device.sh`, not the
@@ -367,8 +403,9 @@ device), because the relay reply carries the OTA flag.
 
 1. **Transport:** originally "plain Thread + MQTT". Revised the same day
    after reviewing MiniSplit's failed direct-MQTT attempt: M4a reachability
-   test decides between plain Thread + UDP relay (preferred, if it works) and
-   Matter (fallback). Mark approved adding the test.
+   test decides. Order of preference (Mark, 2026-11-16): direct MQTT with a
+   custom esp-mqtt transport that connects to an IPv6 literal (skips the
+   failing lookup) → UDP relay → Matter.
 2. **Units:** wind in knots, rain in inches (`RAINFACTOR 0.0102` per tip).
 3. **Hardware:** same anemometer, wind vane and rain gauge as the old
    station. Their quiescent current, 3.3 V operation and the vane resistor
