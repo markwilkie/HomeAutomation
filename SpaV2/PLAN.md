@@ -137,7 +137,7 @@ Rules MiniSplit learned the hard way:
 | Spare digital (Phase 8 BOOST drive) | GPIO23 | |
 | SmarterSpa GND (**green** wire) | GND | common ground |
 
-Harness (left→right): yellow, blue, red, white, green(GND). The ribbon→colour mapping above is correct; on the board the GPIO order is **reversed** from the original plan: yellow (green LED) → GPIO19, blue → GPIO20, red → GPIO21, white → GPIO22 (per the board wiring, 2026-11-14). ⚠️ Not yet reconciled with the 2026-11-14 capture, which was decoded with the *old* table and printed WHITE → RED → BLUE → GREEN on GPIO19 → 20 → 21 → 22 (under this table: GREEN → BLUE → RED → WHITE, standby blink on GREEN, steady LED after boot = BLUE). Confirm by eye against `test_leds` output.
+Harness (left→right): yellow, blue, red, white, green(GND). The ribbon→colour mapping above is correct; on the board the GPIO order is **reversed** from the original plan: yellow (green LED) → GPIO19, blue → GPIO20, red → GPIO21, white → GPIO22 (per the board wiring, 2026-11-14). **Confirmed 2026-11-15** with `test_leds` on this table: power-up W+B ×5, then lamp test white → red → blue → yellow (530 ms each), standby 10 ms blink on white every 10 s, then red steady (as seen by eye). Clean edges, no chatter.
 
 Avoid: GPIO8 (strap + onboard RGB LED), GPIO9 (strap/BOOT button), GPIO15 (strap), GPIO12/13 (USB), GPIO16/17 (UART0 console).
 

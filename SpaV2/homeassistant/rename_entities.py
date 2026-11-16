@@ -22,7 +22,7 @@ DEVICE_NAMES = {"Spa Monitor"}          # node label / product name in matter_de
 # (endpoint, kind) -> (entity_id, friendly name, hidden)
 # Endpoint table: SpaV2/firmware/src/matter_device.cpp.
 MAP = {
-    (1, "TemperatureSensor"): ("sensor.spa_water_temperature", "Spa water temperature", False),
+    (1, "TemperatureSensor"): ("sensor.spa_water_temperature_raw", "Spa water temperature (raw)", True),
     (2, "HumiditySensor"): ("sensor.spa_ph_raw", "Spa pH (raw)", True),
     (3, "HumiditySensor"): ("sensor.spa_orp_raw", "Spa ORP (raw)", True),
     (4, "OccupancySensor"): ("binary_sensor.spa_readings_live", "Spa pH/ORP readings live", False),

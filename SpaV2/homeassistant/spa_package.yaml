@@ -55,12 +55,25 @@ input_datetime:
 
 template:
   - sensor:
+      - name: "Spa water temperature"
+        unique_id: spa_water_temperature
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°F"
+        # The firmware sends -273.15 C (shown here already converted to HA's
+        # unit) when the DS18B20 has no reading, never null (matter_device.cpp).
+        state: >-
+          {% set v = states('sensor.spa_water_temperature_raw') | float(-999) %}
+          {% set c = state_attr('sensor.spa_water_temperature_raw', 'unit_of_measurement') == '°C' %}
+          {% if v < -100 %}{{ none }}
+          {% else %}{{ (v * 9 / 5 + 32 if c else v) | round(1) }}{% endif %}
+
       - name: "Spa pH"
         unique_id: spa_ph
         device_class: ph
         state_class: measurement
         icon: mdi:ph
-        # firmware sends pH x100; HA's /100 gives pH directly
+        # firmware sends pH x100 (0 = no reading yet); HA's /100 gives pH directly
         state: >-
           {% set v = states('sensor.spa_ph_raw') | float(-1) %}
           {{ v | round(2) if 0 < v < 14 else none }}
@@ -71,10 +84,10 @@ template:
         device_class: voltage
         state_class: measurement
         icon: mdi:flash-triangle-outline
-        # firmware sends mV + 2000 (unsigned); HA's /100 -> x100 - 2000
+        # firmware sends mV + 2000 (unsigned, 0 = no reading yet); HA's /100 -> x100 - 2000
         state: >-
-          {% set v = states('sensor.spa_orp_raw') | float(-1) %}
-          {{ (v * 100 - 2000) | round(0) if v >= 0 else none }}
+          {% set v = states('sensor.spa_orp_raw') | float(0) %}
+          {{ (v * 100 - 2000) | round(0) if v > 0 else none }}
 
       - name: "Spa chlorine"
         unique_id: spa_chlorine

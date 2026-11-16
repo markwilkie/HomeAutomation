@@ -87,10 +87,17 @@ static esp_err_t attribute_cb(attribute::callback_type_t type, uint16_t endpoint
     return ESP_OK;
 }
 
+// "No reading" for the temperature endpoint: -273.15 C, the lowest value Matter
+// allows. Not null, for the reason in add_humidity(); HA's template hides it.
+#define TEMP_NO_READING (-27315)
+
 static uint16_t add_humidity(node_t *node)
 {
     endpoint::humidity_sensor::config_t cfg;
-    cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>();
+    // Never null: HA's Matter integration skips a sensor whose value is null when
+    // it discovers the node (HA start / commissioning), and doesn't add it later.
+    // 0 = "no reading yet"; the HA templates treat 0 as none for pH and ORP.
+    cfg.relative_humidity_measurement.measured_value = nullable<uint16_t>(0);
     endpoint_t *ep = endpoint::humidity_sensor::create(node, &cfg, ENDPOINT_FLAG_NONE, nullptr);
     return ep ? endpoint::get_id(ep) : 0;
 }
@@ -125,7 +132,7 @@ esp_err_t matter_device_start(cal_button_cb_t cb)
     if (!node) return ESP_FAIL;
 
     endpoint::temperature_sensor::config_t tcfg;
-    tcfg.temperature_measurement.measured_value = nullable<int16_t>();
+    tcfg.temperature_measurement.measured_value = nullable<int16_t>(TEMP_NO_READING);
     endpoint_t *tep = endpoint::temperature_sensor::create(node, &tcfg, ENDPOINT_FLAG_NONE, nullptr);
     s_ep[EP_TEMP] = tep ? endpoint::get_id(tep) : 0;
     s_ep[EP_PH] = add_humidity(node);
@@ -172,7 +179,7 @@ esp_err_t matter_device_start(cal_button_cb_t cb)
 
 void matter_publish_water_temp(bool valid, float celsius)
 {
-    nullable<int16_t> v = valid ? nullable<int16_t>((int16_t)(celsius * 100.0f)) : nullable<int16_t>();
+    nullable<int16_t> v((int16_t)(valid ? celsius * 100.0f : TEMP_NO_READING));
     update(EP_TEMP, TemperatureMeasurement::Id, TemperatureMeasurement::Attributes::MeasuredValue::Id,
            esp_matter_nullable_int16(v));
 }
