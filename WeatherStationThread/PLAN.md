@@ -1,4 +1,4 @@
-# Weather Station — Thread Rewrite Plan (v2, 2026-11-16)
+# Weather Station — Thread Rewrite Plan (v3, 2026-11-16)
 
 Rewrite of [../SmartThings_Edge/Arduino/WeatherStation/](../SmartThings_Edge/Arduino/WeatherStation/)
 (original ESP32 FireBeetle, Arduino, Wi-Fi → SmartThings Edge driver) as an
@@ -11,7 +11,9 @@ calibration constants, wind-direction thresholds, and wiring until this
 project is deployed and verified. Do not delete it as part of this work.
 
 **Decisions (Mark, 2026-11-16) — see "Decisions" at the bottom:**
-plain Thread + MQTT (no Matter); wind in knots, rain in inches; same
+transport **not final** — a reachability test (M4a) decides between plain
+Thread + UDP relay and Matter, because direct MQTT from a Thread-only C6
+already failed in MiniSplit; wind in knots, rain in inches; same
 anemometer/vane/rain gauge as the old station; add a cold-charge cutoff;
 keep all three UV sensors and the moisture sensor. Remaining open items are
 listed at the bottom — ask Mark, don't guess.
@@ -109,7 +111,7 @@ mode plus sensor quiescent current, not by bursts of 5V load.
      if firmware hangs, charging continues rather than the station dying.
      This means the cutoff only works while firmware runs — accepted
      tradeoff; a hardware NTC cutoff would remove it (open item C).
-   - Report battery temperature and the cutoff state over MQTT.
+   - Report battery temperature and the cutoff state in every report.
 7. **Measure, don't assume:** final average current is measured on the
    FireBeetle running from battery (Milestone 7). DevKitC readings are only
    useful for relative comparisons — its UART bridge and LEDs swamp the chip.
@@ -135,27 +137,31 @@ ota_1,    app,  ota_1,   0x200000, 0x1E0000
 
 That is ~1.875 MB per slot. **Note: none of the existing 4 MB C6 projects in
 this repo (MiniSplit, MiniSplitIR, ThreadRouter) use OTA** — they all use a
-single 3 MB `factory` partition. This project has no Matter stack, so the
-image should be well under a slot, but measure it at the end of M2.
+single 3 MB `factory` partition. If M4a picks plain Thread, the image should
+be well under a slot; if it picks Matter, "Matter + two OTA slots in 4 MB" is
+unproven — measure the image (`idf.py size`) before committing to this table.
 
-**Mechanism (plain Thread + MQTT):**
-- The device subscribes to a retained command topic
-  `weatherstation/cmd/ota` on each wake. Payload: firmware version + URL +
-  SHA-256.
-- If the version is newer, the device switches to rx-on-when-idle (stays
-  awake, no SED polling delay), downloads with `esp_https_ota` (plain HTTP is
-  acceptable on the LAN) over the Thread interface, verifies the hash,
-  reboots, then clears the retained topic after it marks the image valid.
-  Same idea as the old `wifionly_flag`.
+**Mechanism:**
+- **Trigger** (depends on the M4a transport):
+  - Plain Thread + relay: the relay's reply to a report carries an
+    "update available" flag with firmware version + URL + SHA-256.
+  - Matter: Matter OTA needs an OTA Provider on the fabric. Confirm what
+    HA's matter-server offers before relying on it.
+- **Download:** on an update, the device switches to rx-on-when-idle (stays
+  awake, no SED polling delay), downloads over HTTP from wyse on the
+  Thread interface, verifies the hash, reboots. Same idea as the old
+  `wifionly_flag`.
+- **DNS warning (from MiniSplit):** `esp_https_ota` goes through esp-tls,
+  the same layer that failed to connect to an IP literal in MiniSplit
+  (`getaddrinfo()` → `EAI_FAIL`). If it hits the same bug, fetch the image
+  with a raw lwIP socket (or via the relay) and write it with the lower-level
+  `esp_ota_begin/write/end` API, which needs no networking of its own.
 - **The file has to be served from somewhere on wyse.** Before adding a new
   container, check whether an existing one (Caddy, the dashboard's web
   server) can serve a static `firmware/` directory on the LAN. If a new
   service is needed, follow repo `CLAUDE.md`: compose file written by a
   checked-in setup script, `restart: unless-stopped`, dashboard card and a
   port-table row in the same change. Decide this with Mark (open item B).
-- Alternative that avoids any file server: send the image in chunks over
-  MQTT. More firmware code and slower; only if the file-server route is
-  rejected.
 
 Always enable app rollback (`CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`):
 mark the new image valid only after it has joined Thread and delivered one
@@ -256,43 +262,75 @@ A–F affect M4–M7 details only; M1–M3 can start now.
 - Verify counting continues across **both** light sleep and deep sleep.
 - Bench test with a function generator or a second board toggling pins.
 
-### M4 — Thread + MQTT transport (DevKitC)
-Decided: plain OpenThread (no Matter), MQTT to the existing `mosquitto`
-broker on wyse (port 1883, already in the `Wyse5070DebSetup/README.md` port
-table — no new service needed for telemetry).
+### M4a — Transport reachability test (do this first, before any M4 code)
+**Why:** in MiniSplit, a direct MQTT client from a Thread-only C6 to mosquitto
+was built and never connected (see `../MiniSplit/PLAN.md`, "Architecture
+change, 2026-09-07"): esp-tls/lwIP did a DNS lookup even for IP literals
+(`getaddrinfo()` returned `EAI_FAIL`), and OTBR's DNS64 only resolves public
+names. So plain MQTT is off the table unless that bug is fixed. This test
+checks whether a path that avoids DNS entirely works.
 
-- **Join Thread:** OTBR's `WilkieMatterNet` (confirm — open item D) as a
-  **Sleepy End Device**. Provision the network once by writing the active
-  dataset TLVs to NVS (from `ot-ctl dataset active -x` in the `otbr`
-  container on wyse), via a one-time console command or an
-  `nvs_partition_gen` image. Never commit the dataset — it contains the
-  network key.
-- **Reach the broker:** over IPv6 if wyse is reachable from the Thread
-  mesh, otherwise via OTBR's NAT64 to `192.168.15.30:1883`. Verify which
-  path works from a Thread node before writing the client (check from wyse
-  with `ot-ctl` and an existing Thread device).
-- **MQTT client:** `esp-mqtt` over the OpenThread lwIP interface. Each
-  report cycle: connect → publish (QoS 1) → check `weatherstation/cmd/#` →
-  disconnect, rather than holding a TCP session open across SED sleep.
-  Measure connect time and current; if it's costly, revisit keeping the
-  session open with a long keepalive.
-- **Credentials:** mosquitto requires a username/password (see
-  `setup-mosquitto.sh`). Create a dedicated broker user for the station.
-  Store credentials in NVS or a gitignored `secrets` sdkconfig fragment —
-  never in the repo, never placeholders.
-- **Home Assistant:** MQTT discovery. Publish retained config to
-  `homeassistant/sensor/weatherstation/<id>/config` for every field, with
-  device class and units (wind in **knots**, rain in **inches**, pressure,
-  temperature, humidity, lux, UV index, battery V, battery temp), all
-  grouped under one HA device. State on `weatherstation/state` as one JSON
-  object. Set `expire_after` so stale data shows as unavailable.
+**Test:** a minimal ESP-IDF app on the DevKitC that joins `WilkieMatterNet`
+(dataset from `ot-ctl dataset active -x` in the `otbr` container, written to
+NVS, never committed) and sends one UDP datagram with a **raw lwIP socket**
+(`socket()`/`sendto()` with a `sockaddr_in6` filled in by `inet6_aton` — no
+`getaddrinfo`, no esp-tls) to wyse, in this order:
+1. wyse's own IPv6 address on the LAN/infrastructure link (find it with
+   `ip -6 addr` on wyse; prefer a stable ULA or the OMR-routable address).
+2. The NAT64-embedded form of `192.168.15.30` (`c0a8:0f1e` appended to the
+   NAT64 /96 prefix). The prefix is **not** the well-known `64:ff9b::/96` —
+   otbr-agent computes it and `setup-nat64-jool.sh` re-publishes it; read the
+   live value with `docker exec otbr sh -c "ot-ctl netdata show"`.
+3. The OpenThread CLI `ping` to the same addresses, as a control.
+
+On wyse, listen with `nc -u -l -6 <port>` (or `socat`) and record what
+arrives. Also check the reverse direction (a reply datagram back to the
+device), because the relay reply carries the OTA flag.
+
+**Record the result in this file.** Then:
+- **If (1) or (2) works →** M4 Option B (plain Thread + UDP relay).
+- **If neither works →** stop and tell Mark; default to M4 Option A (Matter),
+  which is the proven route in this house.
+
+### M4 Option B — Plain Thread + UDP relay (if M4a passes)
+- **Device:** OpenThread SED on `WilkieMatterNet`. Each report cycle: build
+  one JSON payload, send it as a UDP datagram (raw lwIP socket, IPv6 literal
+  from M4a, no DNS), wait briefly for the relay's reply, retry up to N times
+  on no reply, then sleep. Payload stays under one datagram (no
+  fragmentation surprises — measure the size).
+- **Relay on wyse:** small service (Python, pinned versions) that receives the
+  datagram, validates a shared key (HMAC in the payload — the Thread mesh is
+  encrypted, but the relay port is on the LAN), publishes to mosquitto, and
+  replies with an ack + "update available" flag. Credentials for mosquitto
+  come from the host's `.env`, never the repo.
+  - Follow repo `CLAUDE.md` for deploys: compose file written by a
+    checked-in setup script, `restart: unless-stopped`, dashboard card and a
+    port-table row in the same change; verify with logs before calling it
+    live.
+- **Home Assistant:** MQTT discovery, published by the relay (not the
+  device). Retained config at `homeassistant/sensor/weatherstation/<id>/config`
+  for every field, with device class and units (wind in **knots**, rain in
+  **inches**, pressure, temperature, humidity, lux, UV index, battery V,
+  battery temp), grouped under one HA device. State on
+  `weatherstation/state`. Set `expire_after` so stale data shows
+  unavailable.
 - **Payload:** the fields from the old `/weather`, `/wind`, `/rain`, `/admin`
   posts minus PMS and cap/boost fields, plus battery voltage, battery
   temperature, charge-cutoff state, firmware version, reset reason, Thread
   RSSI/LQI and parent RLOC16.
 - **Report interval:** `CYCLETIME` configurable via Kconfig and overridable
-  by a retained `weatherstation/cmd/interval` message. Default 600 s until
-  Mark confirms (open item A).
+  by the relay's reply. Default 600 s until Mark confirms (open item A).
+
+### M4 Option A — Matter over Thread (fallback if M4a fails)
+- Commission with `Wyse5070DebSetup/commission-thread-device.sh`, not the
+  phone (repo `CLAUDE.md`).
+- Standard clusters: Temperature, Relative Humidity, Pressure, Illuminance
+  Measurement, Power Source (battery).
+- No standard clusters for wind speed, wind direction, rain or UV (as far as
+  the M0 research found — re-verify against the current Matter spec). Ask
+  Mark how to carry them before building: e.g. the MiniSplit trick of
+  borrowing a writable numeric cluster per value, or HA template sensors.
+- Check image size immediately; this decides whether OTA fits (OTA section).
 
 ### M5 — Sleep strategy and power (DevKitC, relative numbers)
 - Default: light sleep + automatic power management with the LP core
@@ -327,8 +365,10 @@ table — no new service needed for telemetry).
 
 ## Decisions (Mark, 2026-11-16)
 
-1. **Transport: plain Thread + MQTT** to the existing mosquitto broker, with
-   HA MQTT discovery. No Matter. (See M4.)
+1. **Transport:** originally "plain Thread + MQTT". Revised the same day
+   after reviewing MiniSplit's failed direct-MQTT attempt: M4a reachability
+   test decides between plain Thread + UDP relay (preferred, if it works) and
+   Matter (fallback). Mark approved adding the test.
 2. **Units:** wind in knots, rain in inches (`RAINFACTOR 0.0102` per tip).
 3. **Hardware:** same anemometer, wind vane and rain gauge as the old
    station. Their quiescent current, 3.3 V operation and the vane resistor
@@ -344,7 +384,7 @@ A. **Report interval.** Keep 600 s, or report more often now that a Thread
    on this one. Default 600 s and make it configurable until confirmed.
 B. **Where the OTA file is served from on wyse:** reuse an existing web
    server (preferred) or add a small static file container (dashboard card
-   + port-table row required). Or MQTT-chunked OTA with no file server.
+   + port-table row required).
 C. **Cold cutoff fail-safe:** accept a firmware-only cutoff (EN defaults to
    charging if firmware hangs), or add a hardware NTC cutoff?
 D. **Thread network:** confirm OTBR's `WilkieMatterNet`, not the SmartThings

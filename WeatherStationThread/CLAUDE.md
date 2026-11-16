@@ -3,9 +3,11 @@
 Plan: [PLAN.md](PLAN.md). Read it fully before writing code.
 
 ## Blocking prerequisite
-M1–M4 are unblocked (transport decided: Thread + MQTT). Items in
-PLAN.md "Still open" (A–F) need Mark's answer before the parts they affect. Do not
-choose for Mark — ask.
+M1–M3 are unblocked. **M4a (UDP reachability test) must run before any
+M4 transport code** — direct MQTT from a Thread-only C6 already failed in
+`../MiniSplit/` (DNS/esp-tls bug), so don't reintroduce esp-mqtt or
+hostname-based connections. Items in PLAN.md "Still open" (A–F) need Mark's
+answer before the parts they affect. Do not choose for Mark — ask.
 
 ## Rules
 - Build for 4 MB flash on every board, including the 8 MB DevKitC.
