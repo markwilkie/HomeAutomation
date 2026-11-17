@@ -142,8 +142,8 @@ template:
         # firmware spa_state_t (src/spa_leds.h) x100; HA's /100 gives the code
         state: >-
           {% set v = states('sensor.spa_smarterspa_state_raw') %}
-          {% set names = {0: 'Unknown', 1: 'Standby', 2: 'Generating', 3: 'Generating (salt low)',
-                          4: 'Generating (salt high)', 5: 'Shut down (salt over max)', 6: 'Fault / no power'} %}
+          {% set names = {0: 'Unknown', 1: 'Standby', 2: 'Generating', 3: 'Salt low',
+                          4: 'Salt high', 5: 'Shut down (salt over max)', 6: 'Fault / no power'} %}
           {{ names.get(v | float | round(0) | int, 'Unknown') if is_number(v) else none }}
 
       - name: "Spa electrode hours"
