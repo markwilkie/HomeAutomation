@@ -261,3 +261,16 @@ and ORP calibration stores one offset against a reference solution.
 ### Phase 8 (optional) — Active control
 - Drive buttons via high-side switches (P-FET/PNP from 5 V, or opto across contacts): DOWN during a cycle → decode flash count → electrode current (real salt proxy).
 - BOOST from HA.
+
+## 4. Data log (read before judging pH/ORP trends)
+
+All times PST. Values before each change aren't comparable with values after it.
+
+| When | Change | Effect on history |
+|---|---|---|
+| 2026-11-16 ~8:45 pm | Drained and refilled with fresh (unchlorinated) water; salt added that night | Water chemistry reset |
+| 2026-11-16 8:52 pm | HA pH offset +3.9 set to 0 | `sensor.spa_ph` stops being raw + 3.9 |
+| 2026-11-17 ~7:55 am | **pH and ORP isolator wires swapped at GPIO4/GPIO5** (they had been reversed since install). Readings resumed 7:55:56 | Before: "pH" was really the ORP probe and "ORP" the pH probe. Firmware ORP cal (offset −357 mV) was taken on the pH probe and is still stored |
+| 2026-11-17 8:04:30 am | HA offsets set to match a strip: pH −0.6 (strip ~7.1 vs 7.72), ORP +265 mV (usual strip sanitizer level → mid "Good", 725). ORP "low" threshold reset 895 → 650 | ORP history shows a few seconds of −541 at 8:04:20–28 (helper created at its minimum) |
+
+Pending: proper buffer calibration (clear cal, pH 7/4, ORP 225 mV), then both HA offsets back to 0. Add a row here when it's done.
