@@ -104,6 +104,8 @@ views:
                 name: Status
               - entity: input_datetime.spa_last_ph_calibration
                 name: pH last calibrated
+              - entity: input_number.spa_ph_offset
+                name: pH offset (added to the probe's pH)
               - entity: input_datetime.spa_last_orp_calibration
                 name: ORP last calibrated
               - type: section
