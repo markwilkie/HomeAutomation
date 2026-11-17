@@ -38,14 +38,23 @@ input_number:
     max: 9.0
     step: 0.05
     icon: mdi:ph
-  # Added to the firmware's pH. Stopgap while the probe reads ~4 pH low in the
-  # spa (2026-11-16: strip ~8.3, sensor 4.38 -> +3.9). Retune against a strip;
-  # set back to 0 once the probe is fixed or properly calibrated.
+  # Added to the firmware's pH / ORP. Stopgaps until the probes are properly
+  # calibrated (then set both back to 0). 2026-11-17, after swapping the
+  # pH/ORP wires and a fresh fill: strip pH ~7.1 vs probe 7.72 -> -0.6; ORP
+  # shifted so the strip's usual sanitizer level reads mid "Good".
   spa_ph_offset:
     name: "Spa pH offset"
     min: -6.0
     max: 6.0
     step: 0.05
+    mode: box
+    icon: mdi:plus-minus-variant
+  spa_orp_offset:
+    name: "Spa ORP offset"
+    min: -1000
+    max: 1000
+    step: 5
+    unit_of_measurement: mV
     mode: box
     icon: mdi:plus-minus-variant
 
@@ -98,7 +107,8 @@ template:
         # firmware sends mV + 2000 (unsigned, 0 = no reading yet); HA's /100 -> x100 - 2000
         state: >-
           {% set v = states('sensor.spa_orp_raw') | float(0) %}
-          {{ (v * 100 - 2000) | round(0) if v > 0 else none }}
+          {% set off = states('input_number.spa_orp_offset') | float(0) %}
+          {{ (v * 100 - 2000 + off) | round(0) if v > 0 else none }}
 
       - name: "Spa chlorine"
         unique_id: spa_chlorine
@@ -220,7 +230,8 @@ automation:
             - { entity: input_number.spa_orp_high_mv, min: 400, value: 800 }
             - { entity: input_number.spa_ph_low, min: 6.0, value: 7.2 }
             - { entity: input_number.spa_ph_high, min: 6.5, value: 7.8 }
-            - { entity: input_number.spa_ph_offset, min: -6.0, value: 3.9 }
+            - { entity: input_number.spa_ph_offset, min: -6.0, value: 0 }
+            - { entity: input_number.spa_orp_offset, min: -1000, value: 0 }
           sequence:
             - if:
                 - condition: template

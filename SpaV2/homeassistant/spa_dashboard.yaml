@@ -108,6 +108,8 @@ views:
                 name: pH offset (added to the probe's pH)
               - entity: input_datetime.spa_last_orp_calibration
                 name: ORP last calibrated
+              - entity: input_number.spa_orp_offset
+                name: ORP offset (added to the probe's ORP)
               - type: section
                 label: "Probe in solution, wait ~1 min, then press. pH: 7 first, then 4 (10 optional)."
               - type: button
