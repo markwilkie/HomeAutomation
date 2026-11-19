@@ -3,11 +3,16 @@
 // The four LED lines are sampled every 1 ms and debounced (5 consistent
 // samples), not edge-interrupt driven: power-up chatter overflowed a 512-entry
 // interrupt queue in test_leds. A white pulse shorter than 200 ms is the
-// standby blink (~10 ms on this unit). A pattern of red/blue/yellow must hold
-// for 5 s before it is accepted; white solid means the user is in a menu, so
-// the previous state is held until 5 s after it ends. Counted-flash readouts,
-// boost confirmations and the power-up sequence never hold still for 5 s, so
-// they are ignored by construction. All four lines low (all "lit") means the
+// standby blink (~10 ms on this unit). A red/blue/yellow line that was lit
+// within the last LED_FLASH_HOLD_MS counts as on, so a flashing colour reads
+// the same as a solid one: the manual (p. 10) says a cycle started with Boost
+// flashes its salt light instead of holding it solid. A pattern of
+// red/blue/yellow must hold for 5 s before it is accepted; white solid means
+// the user is in a menu, so the previous state is held until 5 s after it
+// ends. Boost confirmations and the power-up sequence never hold still for
+// 5 s, so they are ignored by construction; a counted-flash readout with many
+// flashes of one colour could briefly pass as that colour's state (flash
+// timing not yet measured). All four lines low (all "lit") means the
 // SmarterSpa has no power; no lights and no standby blink is also a fault.
 
 #include "spa_leds.h"
@@ -31,6 +36,7 @@ static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 static bool s_on[L_COUNT];
 static uint8_t s_run[L_COUNT];          // consecutive samples disagreeing with s_on
 static int64_t s_on_since_ms[L_COUNT];
+static int64_t s_last_lit_ms[L_COUNT];  // last time each line was lit (flash hold)
 static int64_t s_last_blink_ms = -1;
 static int64_t s_pattern_since_ms;      // last change of {red, blue, yellow, white-solid}
 static uint8_t s_pattern;               // bit0 red, bit1 blue, bit2 yellow, bit3 white solid
@@ -40,7 +46,9 @@ static uint32_t s_gen_seconds;          // lifetime, persisted as hours granular
 
 static uint8_t pattern_now(int64_t now)
 {
-    uint8_t p = (s_on[L_RED] ? 1 : 0) | (s_on[L_BLUE] ? 2 : 0) | (s_on[L_YELLOW] ? 4 : 0);
+    #define ACTIVE(i) (s_on[i] || now - s_last_lit_ms[i] < LED_FLASH_HOLD_MS)
+    uint8_t p = (ACTIVE(L_RED) ? 1 : 0) | (ACTIVE(L_BLUE) ? 2 : 0) | (ACTIVE(L_YELLOW) ? 4 : 0);
+    #undef ACTIVE
     if (s_on[L_WHITE] && now - s_on_since_ms[L_WHITE] >= LED_BLINK_MAX_MS) p |= 8;
     return p;
 }
@@ -61,6 +69,7 @@ static void sample_cb(void *arg)
             s_last_blink_ms = now;                        // standby blink
         }
     }
+    for (int i = 0; i < L_COUNT; i++) if (s_on[i]) s_last_lit_ms[i] = now;
     uint8_t p = pattern_now(now);
     if (p != s_pattern) {
         s_pattern = p;
@@ -170,6 +179,7 @@ esp_err_t spa_leds_init(void)
     for (int i = 0; i < L_COUNT; i++) {
         s_on[i] = gpio_get_level(PINS[i]) == 0;
         s_on_since_ms[i] = now;
+        s_last_lit_ms[i] = -LED_FLASH_HOLD_MS;
         ESP_LOGI(TAG, "%s (GPIO%d) boot level %s", NAMES[i], PINS[i], s_on[i] ? "ON" : "off");
     }
     s_pattern = pattern_now(now);

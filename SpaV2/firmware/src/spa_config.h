@@ -43,3 +43,4 @@
 #define LED_BLINK_MAX_MS    200             // a white pulse shorter than this is the standby blink
 #define LED_STANDBY_GAP_MS  15000           // no standby blink for this long while idle = fault
 #define LED_MENU_HOLD_MS    5000            // keep ignoring after white-solid (menu) ends
+#define LED_FLASH_HOLD_MS   2500            // a colour lit within this long counts as on (flashing = boost cycle)

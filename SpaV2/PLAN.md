@@ -60,6 +60,7 @@ This unit has **no green LED**: where the manual says green, it means the **yell
 | Solid RED | Generating, salt low |
 | Solid YELLOW | Generating, salt high |
 | Solid RED + YELLOW | Shut down — salt over max |
+| RED / BLUE / YELLOW **flashing** | Same as solid, in a cycle started with **Boost** (manual p. 10: "the above lights may flash instead of being solid"). Firmware counts a colour lit within the last 2.5 s as on (`LED_FLASH_HOLD_MS`) |
 | No lights (no standby blink) | No power / GFCI / supply fault |
 | WHITE solid | User in power-change or zero-point edit mode (ignore) |
 | YELLOW+BLUE flash | Boost confirmation (ignore) |
