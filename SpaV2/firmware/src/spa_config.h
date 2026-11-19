@@ -44,3 +44,9 @@
 #define LED_STANDBY_GAP_MS  15000           // no standby blink for this long while idle = fault
 #define LED_MENU_HOLD_MS    5000            // keep ignoring after white-solid (menu) ends
 #define LED_FLASH_HOLD_MS   2500            // a colour lit within this long counts as on (flashing = boost cycle)
+// Counted-flash readouts (yellow x100 + blue x10 + red x1, manual p. 14). Provisional until the
+// SmarterSpa's flash timing is measured: the serial log prints each sequence's timings for that.
+#define LED_READOUT_GAP_MS       1500       // no red/blue/yellow flash for this long ends a sequence
+#define LED_READOUT_FLASH_MAX_MS 1000       // a flash lit longer than this is not part of a readout
+#define LED_READOUT_MAX_MS       15000      // a sequence still going after this is a boost flash train
+#define LED_READOUT_MAX_FLASHES  27         // 9 + 9 + 9 is the largest 3-digit readout

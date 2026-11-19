@@ -33,6 +33,7 @@ void matter_publish_pump(bool running, float amps);
 void matter_publish_spa_state(int code);
 void matter_publish_electrode_hours(uint32_t hours);
 void matter_publish_cal_status(int code);
+void matter_publish_spa_readout(int value);
 void matter_reset_button(cal_button_t button);
 
 #ifdef __cplusplus

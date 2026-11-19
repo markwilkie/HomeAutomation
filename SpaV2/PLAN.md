@@ -64,7 +64,7 @@ This unit has **no green LED**: where the manual says green, it means the **yell
 | No lights (no standby blink) | No power / GFCI / supply fault |
 | WHITE solid | User in power-change or zero-point edit mode (ignore) |
 | YELLOW+BLUE flash | Boost confirmation (ignore) |
-| Counted flashes (Y×100 + B×10 + R) | Numeric readout after button press (ignore, or decode in Phase 8) |
+| Counted flashes (Y×100 + B×10 + R) | Numeric readout after a button press (manual p. 14). Decoded by the firmware (`readout_poll()` in `spa_leds.c`) and published on endpoint 15; meaning depends on the button (DOWN in standby = chlorine voltage, mV). Every sequence's timings are logged on serial for tuning |
 
 **Observed power-up (2026-11-14, `test_leds`):** WHITE+BLUE flash **together** ×5 (158 ms on / 477 ms period;
 the manual says WHITE ×2), then WHITE → RED → BLUE → YELLOW at 528 ms each, then standby WHITE blinks
@@ -94,6 +94,7 @@ Implemented in `SpaV2/firmware/src/matter_device.cpp`. **Endpoint order is fixed
 | 8 | Electrode hours | Humidity Sensor (repurposed) | whole hours | `sensor.spa_electrode_hours` |
 | 9 | Calibration status | Humidity Sensor (repurposed) | `cal_status_t` ×100 | `sensor.spa_calibration_status` |
 | 10–14 | Calibrate pH 7 / pH 4 / pH 10 / ORP / Clear | On/Off Plug-in Unit | momentary | `switch.spa_calibrate_*` (dashboard buttons) |
+| 15 | SmarterSpa readout | Humidity Sensor (repurposed) | counted-flash value (0–999) | HA side pending: needs a re-interview after the firmware update |
 
 The SmarterSpa booleans are derived in HA from the one state code (fewer endpoints; one source of truth).
 Booleans use **Occupancy Sensor**, not Contact/BooleanState: in this esp-matter version BooleanState's

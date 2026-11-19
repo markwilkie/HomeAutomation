@@ -14,6 +14,11 @@
 // flashes of one colour could briefly pass as that colour's state (flash
 // timing not yet measured). All four lines low (all "lit") means the
 // SmarterSpa has no power; no lights and no standby blink is also a fault.
+//
+// Counted-flash readouts are decoded separately: a burst of short red/blue/
+// yellow flashes, ended by a LED_READOUT_GAP_MS pause, is yellow x100 + blue x10
+// + red x1 (manual p. 14: 1 green, 3 blue, 4 red = 134). Every sequence is
+// logged with its timings, accepted or not, so the limits can be tuned.
 
 #include "spa_leds.h"
 #include "spa_config.h"
@@ -41,6 +46,14 @@ static int64_t s_last_blink_ms = -1;
 static int64_t s_pattern_since_ms;      // last change of {red, blue, yellow, white-solid}
 static uint8_t s_pattern;               // bit0 red, bit1 blue, bit2 yellow, bit3 white solid
 
+// Counted-flash sequence being collected (sampler writes, decoder closes; under s_mux).
+static bool s_seq_open;
+static int s_seq_n[L_COUNT];            // rising edges per line (white is logged, not used)
+static int64_t s_seq_start_ms, s_seq_last_edge_ms, s_seq_longest_ms;
+
+static uint32_t s_readout_seq;
+static int s_readout_value = -1;
+
 static spa_state_t s_state = SPA_UNKNOWN;
 static uint32_t s_gen_seconds;          // lifetime, persisted as hours granularity below
 
@@ -63,6 +76,22 @@ static void sample_cb(void *arg)
         if (++s_run[i] < LED_DEBOUNCE) continue;
         s_run[i] = 0;
         s_on[i] = lit;
+        if (i != L_WHITE) {
+            if (lit) {
+                if (!s_seq_open) {
+                    s_seq_open = true;
+                    s_seq_start_ms = now;
+                    s_seq_longest_ms = 0;
+                    for (int k = 0; k < L_COUNT; k++) s_seq_n[k] = 0;
+                }
+                s_seq_n[i]++;
+                s_seq_last_edge_ms = now;
+            } else if (s_seq_open && now - s_on_since_ms[i] > s_seq_longest_ms) {
+                s_seq_longest_ms = now - s_on_since_ms[i];
+            }
+        } else if (lit && s_seq_open) {
+            s_seq_n[L_WHITE]++;
+        }
         if (lit) {
             s_on_since_ms[i] = now;
         } else if (i == L_WHITE && now - s_on_since_ms[i] < LED_BLINK_MAX_MS) {
@@ -104,6 +133,45 @@ static void hours_save(void)
     nvs_close(h);
 }
 
+static bool generating(spa_state_t s)
+{
+    return s == SPA_GEN_OK || s == SPA_GEN_SALT_LOW || s == SPA_GEN_SALT_HIGH;
+}
+
+// Close the counted-flash sequence once it has gone quiet (or run too long), and
+// accept it as a readout if it looks like one. Called from the decoder task.
+static void readout_poll(int64_t now)
+{
+    portENTER_CRITICAL(&s_mux);
+    bool lit = s_on[L_RED] || s_on[L_BLUE] || s_on[L_YELLOW];
+    bool quiet = s_seq_open && !lit && now - s_seq_last_edge_ms >= LED_READOUT_GAP_MS;
+    bool too_long = s_seq_open && now - s_seq_start_ms > LED_READOUT_MAX_MS;
+    if (!quiet && !too_long) {
+        portEXIT_CRITICAL(&s_mux);
+        return;
+    }
+    int y = s_seq_n[L_YELLOW], b = s_seq_n[L_BLUE], r = s_seq_n[L_RED], w = s_seq_n[L_WHITE];
+    int64_t dur = s_seq_last_edge_ms - s_seq_start_ms, longest = s_seq_longest_ms;
+    for (int k = L_RED; k <= L_YELLOW; k++) {                 // a light still on counts too
+        if (s_on[k] && now - s_on_since_ms[k] > longest) longest = now - s_on_since_ms[k];
+    }
+    s_seq_open = false;
+    portEXIT_CRITICAL(&s_mux);
+
+    const char *why = NULL;
+    if (longest > LED_READOUT_FLASH_MAX_MS) why = "a light stayed on too long (solid, not a readout)";
+    else if (too_long) why = "still flashing at the time limit (boost flash train)";
+    else if (y + b + r > LED_READOUT_MAX_FLASHES || y > 9 || b > 9 || r > 9) why = "too many flashes for a digit";
+    else if (y + b + r == 1 && generating(s_state)) why = "single flash during a cycle (boost flashing)";
+    int value = y * 100 + b * 10 + r;
+    ESP_LOGI(TAG, "Flash sequence: %d yellow, %d blue, %d red (+%d white) over %lld ms, longest flash %lld ms"
+             " -> %s %d%s%s", y, b, r, w, dur, longest, why ? "ignored" : "READOUT", value,
+             why ? ": " : "", why ? why : "");
+    if (why) return;
+    s_readout_value = value;
+    s_readout_seq++;
+}
+
 static void decoder_task(void *arg)
 {
     int64_t last_menu_ms = -LED_MENU_HOLD_MS;
@@ -117,6 +185,8 @@ static void decoder_task(void *arg)
         int64_t since = s_pattern_since_ms;
         int64_t blink = s_last_blink_ms;
         portEXIT_CRITICAL(&s_mux);
+
+        readout_poll(now);
 
         spa_state_t next = s_state;
         if (p == 15) {
@@ -146,7 +216,7 @@ static void decoder_task(void *arg)
         if (now - last_tick_ms >= 1000) {
             uint32_t secs = (uint32_t)((now - last_tick_ms) / 1000);
             last_tick_ms += secs * 1000;
-            if (s_state == SPA_GEN_OK || s_state == SPA_GEN_SALT_LOW || s_state == SPA_GEN_SALT_HIGH) {
+            if (generating(s_state)) {
                 s_gen_seconds += secs;
                 unsaved_s += secs;
                 if (unsaved_s >= 600) { hours_save(); unsaved_s = 0; }   // NVS write every 10 min of generating
@@ -197,6 +267,15 @@ esp_err_t spa_leds_init(void)
 
 spa_state_t spa_leds_state(void) { return s_state; }
 uint32_t spa_leds_generating_hours(void) { return s_gen_seconds / 3600; }
+
+bool spa_leds_last_readout(uint32_t *seq, int *value)
+{
+    portENTER_CRITICAL(&s_mux);
+    *seq = s_readout_seq;
+    *value = s_readout_value;
+    portEXIT_CRITICAL(&s_mux);
+    return *value >= 0;
+}
 
 const char *spa_state_name(spa_state_t s)
 {

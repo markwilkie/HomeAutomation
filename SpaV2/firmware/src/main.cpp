@@ -111,7 +111,7 @@ static void app_task(void *arg)
     float last_temp = NAN;
     bool last_temp_ok = false, last_live = false, last_pump = false, first = true;
     int last_spa = -1;
-    uint32_t last_hours = UINT32_MAX;
+    uint32_t last_hours = UINT32_MAX, last_readout_seq = 0;
     int64_t last_probe_pub = 0, last_temp_pub = 0, last_amps_pub = 0, last_log = 0;
 
     for (;;) {
@@ -158,6 +158,12 @@ static void app_task(void *arg)
         if (spa != last_spa) { matter_publish_spa_state(spa); last_spa = spa; }
         uint32_t hours = spa_leds_generating_hours();
         if (hours != last_hours) { matter_publish_electrode_hours(hours); last_hours = hours; }
+        uint32_t rseq;
+        int rval;
+        if (spa_leds_last_readout(&rseq, &rval) && rseq != last_readout_seq) {
+            matter_publish_spa_readout(rval);
+            last_readout_seq = rseq;
+        }
 
         if (first) matter_publish_cal_status(CAL_STATUS_NONE);
         first = false;

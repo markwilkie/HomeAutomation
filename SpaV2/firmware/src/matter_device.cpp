@@ -21,7 +21,8 @@
 //   8  Electrode hours        Humidity (repurposed) hours (HA shows hours/100)
 //   9  Calibration status     Humidity (repurposed) cal_status_t x100
 //   10-14 Calibrate pH 7 / pH 4 / pH 10 / ORP / Clear   On/Off Plug-in Unit
-// (endpoint 0 is the root node, so these are Matter endpoints 1-14.)
+//   15 SmarterSpa readout     Humidity (repurposed) counted-flash value (HA shows value/100)
+// (endpoint 0 is the root node, so these are Matter endpoints 1-15.)
 
 #include "matter_device.h"
 
@@ -45,7 +46,7 @@ static const char *TAG = "matter";
 
 enum {
     EP_TEMP, EP_PH, EP_ORP, EP_LIVE, EP_PUMP, EP_PUMP_A, EP_SPA_STATE, EP_HOURS, EP_CAL_STATUS,
-    EP_BTN0, EP_COUNT = EP_BTN0 + BTN_COUNT,
+    EP_BTN0, EP_READOUT = EP_BTN0 + BTN_COUNT, EP_COUNT,
 };
 static uint16_t s_ep[EP_COUNT];
 static bool s_started;
@@ -144,6 +145,7 @@ esp_err_t matter_device_start(cal_button_cb_t cb)
     s_ep[EP_HOURS] = add_humidity(node);
     s_ep[EP_CAL_STATUS] = add_humidity(node);
     for (int b = 0; b < BTN_COUNT; b++) s_ep[EP_BTN0 + b] = add_button(node);
+    s_ep[EP_READOUT] = add_humidity(node);      // after the buttons, so endpoints 1-14 keep their ids
 
     for (int i = 0; i < EP_COUNT; i++) {
         if (!s_ep[i]) {
@@ -190,6 +192,7 @@ void matter_publish_readings_live(bool live)  { update_occupancy(EP_LIVE, live);
 void matter_publish_spa_state(int code)       { update_humidity(EP_SPA_STATE, code * 100); }
 void matter_publish_electrode_hours(uint32_t h) { update_humidity(EP_HOURS, (int32_t)h); }
 void matter_publish_cal_status(int code)      { update_humidity(EP_CAL_STATUS, code * 100); }
+void matter_publish_spa_readout(int value)    { update_humidity(EP_READOUT, value); }
 
 void matter_publish_pump(bool running, float amps)
 {

@@ -23,6 +23,10 @@ typedef enum {
 esp_err_t spa_leds_init(void);
 spa_state_t spa_leds_state(void);
 uint32_t spa_leds_generating_hours(void);   // lifetime electrode-hours (NVS)
+// Last counted-flash readout (yellow x100 + blue x10 + red x1). What it means depends on the
+// button pressed (chlorine voltage, zero point, electrode life %, ...). *seq increments with
+// every new readout, so a repeat of the same value is still seen. False until the first one.
+bool spa_leds_last_readout(uint32_t *seq, int *value);
 const char *spa_state_name(spa_state_t s);
 
 #ifdef __cplusplus
