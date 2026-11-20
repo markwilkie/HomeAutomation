@@ -274,5 +274,7 @@ All times PST. Values before each change aren't comparable with values after it.
 | 2026-11-16 8:52 pm | HA pH offset +3.9 set to 0 | `sensor.spa_ph` stops being raw + 3.9 |
 | 2026-11-17 ~7:55 am | **pH and ORP isolator wires swapped at GPIO4/GPIO5** (they had been reversed since install). Readings resumed 7:55:56 | Before: "pH" was really the ORP probe and "ORP" the pH probe. Firmware ORP cal (offset −357 mV) was taken on the pH probe and is still stored |
 | 2026-11-17 8:04:30 am | HA offsets set to match a strip: pH −0.6 (strip ~7.1 vs 7.72), ORP +265 mV (usual strip sanitizer level → mid "Good", 725). ORP "low" threshold reset 895 → 650 | pH/ORP/chlorine history before 8:04:31 am was deleted from HA (2026-11-17); HA trends start here |
+| 2026-11-19 ~8:40–11 pm | **Leak; pump stopped; partial refill with cold water.** Last normal pump run 7:56–8:37 pm at ~101 °F; by the next pump run (11:13 pm) the water was ~88–90 °F | Temperature drop is the cold top-up, not a heater fault. Salt, pH and sanitizer diluted |
+| 2026-11-19 11:13 pm – 11-20 1:28 am | Pump short-cycled (on 20 s–5 min every ~15 min, ~7.9 A), then stopped; panel showed FLO (low flow) | No pH/ORP readings after 11:52 pm (gated on pump) |
 
 Pending: proper buffer calibration (clear cal, pH 7/4, ORP 225 mV), then both HA offsets back to 0. Add a row here when it's done.
