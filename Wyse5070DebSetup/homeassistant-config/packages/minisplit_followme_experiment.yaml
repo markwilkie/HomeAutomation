@@ -19,6 +19,13 @@
 # Guards: stop is held back as hold until the compressor has run 8 min;
 # heat as hold until it has been off 10 min. If the unit ignores heat or
 # stop for 6 min, it escalates one more degree C.
+# Start budget (2026-11-20, owner's limit): at most 3 compressor starts in
+# any rolling 60 minutes. Once the last 3 starts all fall within the past
+# hour, heat is held back as hold until the oldest of them is 60 min old.
+# Pioneer documents only a 3-min restart delay (enforced by the unit
+# itself); 3 starts/hour is the usual HVAC rule of thumb. Starts are
+# recorded in input_text.minisplit_compressor_starts whether or not an arm
+# is active, so the budget is right from the first tick of a run.
 # While an arm is active, the normal relay ("MiniSplit FollowMe temp relay
 # to firmware") and the setpoint automation stand down -- the spoofed value
 # can trip binary_sensor.minisplit_followme_engaged, which would make the
@@ -46,7 +53,47 @@ input_number:
     mode: box
     icon: mdi:thermometer-lines
 
+input_text:
+  # Unix times of the most recent compressor starts, newest first,
+  # comma-separated (kept to 6). Feeds the start budget above.
+  minisplit_compressor_starts:
+    name: "MiniSplit Compressor Starts (log)"
+    max: 100
+    icon: mdi:counter
+
+template:
+  - sensor:
+      - name: "MiniSplit Compressor Starts Last Hour"
+        unique_id: minisplit_compressor_starts_last_hour
+        icon: mdi:counter
+        state_class: measurement
+        state: >-
+          {% set raw = states('input_text.minisplit_compressor_starts') %}
+          {% set ts = raw.split(',') | reject('eq', '') | map('int', 0) | list if raw not in ['unknown', 'unavailable'] else [] %}
+          {{ ts | select('gt', now().timestamp() - 3600) | list | count }}
+
 automation:
+  - id: minisplit_compressor_start_log
+    alias: MiniSplit compressor start log
+    description: >-
+      Records each compressor start in input_text.minisplit_compressor_starts
+      for the start budget (packages/minisplit_followme_experiment.yaml).
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
+        from: "off"
+        to: "on"
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.minisplit_compressor_starts
+        data:
+          value: >-
+            {% set raw = states('input_text.minisplit_compressor_starts') %}
+            {% set ts = raw.split(',') | reject('eq', '') | list if raw not in ['unknown', 'unavailable'] else [] %}
+            {{ ([now().timestamp() | int | string] + ts)[:6] | join(',') }}
+    mode: queued
+
   - id: minisplit_followme_experiment_control
     alias: MiniSplit Follow-Me experiment control
     description: >-
@@ -88,6 +135,13 @@ automation:
           heat_c: "{{ (sp_c - 1) | round(0, 'floor') | int }}"
           stop_c: "{{ (sp_c + 1) | round(0, 'ceil') | int }}"
           hold_c: "{{ (sp_c + 0.01) | round(0) | int }}"
+          # Start budget: 3rd most recent start, or 0 if fewer than 3 logged.
+          starts_raw: "{{ states('input_text.minisplit_compressor_starts') }}"
+          third_start: >-
+            {% set ts = starts_raw.split(',') | reject('eq', '') | map('int', 0) | list if starts_raw not in ['unknown', 'unavailable'] else [] %}
+            {{ ts[2] if ts | count >= 3 else 0 }}
+          budget_ok: "{{ now().timestamp() - third_start >= 3600 }}"
+          budget_free_in_min: "{{ ((third_start + 3600 - now().timestamp()) / 60) | round(0) | int }}"
           desired_c: >-
             {% if wanted == 'stop' %}
               {% if comp_on and comp_age_min < 8 %}{{ hold_c }}
@@ -96,6 +150,7 @@ automation:
               {% else %}{{ stop_c }}{% endif %}
             {% elif wanted == 'heat' %}
               {% if not comp_on and comp_age_min < 10 %}{{ hold_c }}
+              {% elif not comp_on and not budget_ok %}{{ hold_c }}
               {% elif not comp_on and prev_c <= heat_c and prev_age_min >= 6 %}{{ heat_c - 1 }}
               {% elif prev_c == heat_c - 1 %}{{ heat_c - 1 }}
               {% else %}{{ heat_c }}{% endif %}
@@ -116,7 +171,8 @@ automation:
               name: "Follow-Me experiment"
               message: >-
                 {{ arm }}: sent {{ desired_c | int }}C (room {{ room }}F, target {{ target }}F,
-                wanted {{ wanted }}, compressor {{ 'on' if comp_on else 'off' }} {{ comp_age_min }} min)
+                wanted {{ wanted }}, compressor {{ 'on' if comp_on else 'off' }} {{ comp_age_min }} min{{
+                '' if budget_ok or comp_on or wanted != 'heat' else ', start budget used -- next start in ' ~ budget_free_in_min ~ ' min' }})
               entity_id: input_number.minisplit_followme_sent_c
       # Also resends when thermostat_10 doesn't hold the value (dropped write).
       - if:
