@@ -106,8 +106,9 @@ automation:
         to: "on"
     actions:
       - variables:
-          prev_raw: "{{ states('input_text.minisplit_compressor_starts') }}"
+          # Read inside the template (a "a,b,c" variable becomes a tuple).
           prev_start: >-
+            {% set prev_raw = states('input_text.minisplit_compressor_starts') %}
             {% set ts = prev_raw.split(',') | reject('eq', '') | map('int', 0) | list if prev_raw not in ['unknown', 'unavailable'] else [] %}
             {{ ts[0] if ts | count > 0 else 0 }}
           gap_min: "{{ ((now().timestamp() - prev_start) / 60) | round(1) }}"
@@ -184,8 +185,10 @@ automation:
           stop_c: "{{ (sp_c + 1) | round(0, 'ceil') | int }}"
           hold_c: "{{ (sp_c + 0.01) | round(0) | int }}"
           # Start budget: 3rd most recent start, or 0 if fewer than 3 logged.
-          starts_raw: "{{ states('input_text.minisplit_compressor_starts') }}"
+          # Read the list inside the template: as its own variable, HA's native
+          # typing turns "a,b,c" into a tuple and .split() fails.
           third_start: >-
+            {% set starts_raw = states('input_text.minisplit_compressor_starts') %}
             {% set ts = starts_raw.split(',') | reject('eq', '') | map('int', 0) | list if starts_raw not in ['unknown', 'unavailable'] else [] %}
             {{ ts[2] if ts | count >= 3 else 0 }}
           budget_ok: "{{ now().timestamp() - third_start >= 3600 }}"
