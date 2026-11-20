@@ -195,15 +195,16 @@ automation:
             override {{ states('binary_sensor.minisplit_manual_override') }}.
     mode: single
 
-  # 2026-11-20 schedule: band from deploy (~10:30), soft_hold 14:00-17:15,
-  # then real readings (end baseline); 18:45 hard stop before the 19:00 night
-  # ramp. Date-gated so it never fires on another day.
+  # 2026-11-20 schedule: band 10:02-17:15, then real readings (end
+  # baseline); 18:45 hard stop before the 19:00 night ramp. Date-gated so it
+  # never fires on another day. The soft_hold slot (14:00) was dropped the
+  # same day: band already sends hold during its 8-min minimum run and the
+  # room rose at the baseline rate, so the inverter doesn't throttle on a
+  # small gap -- and the owner doesn't want shorter-run tests stressing the
+  # compressor, so band ran all day for a firmer number instead.
   - id: minisplit_followme_experiment_schedule
     alias: MiniSplit Follow-Me experiment schedule
     triggers:
-      - trigger: time
-        at: "14:00:00"
-        id: soft_hold
       - trigger: time
         at: "17:15:00"
         id: "off"

@@ -16,14 +16,27 @@ Implementation: `packages/minisplit_followme_experiment.yaml`.
 
 | Time | Phase |
 |---|---|
-| until ~10:30 | baseline (real relay) |
-| ~10:30-14:00 | band: 20 at <= target-0.3F, 22 at >= target+0.5F, else 21 |
-| 14:00-17:15 | soft_hold: 20 at <= target-0.3F, 22 at >= target+1.5F, else 21 |
+| until 10:02 | baseline (real relay) |
+| 10:02-17:15 | band: heat (19) at <= target-0.3F, stop (22) at >= target+0.5F, else hold (21); 8-min min run, 10-min min off |
 | 17:15-18:45 | end baseline (real relay) |
 | 18:45 | hard stop before the 19:00 night ramp |
 
-Arm B kill criterion: if after 2 cycles the room still rises at the baseline
-~0.28F/min while it's at 21, switch back to band until 17:15.
+Changes during the day:
+- First start at 09:58 used fixed 20/21/22 and a 67F safety floor; the floor
+  stopped it at once (room 66.6F after the morning ramp) and the unit sat at
+  20 for an hour without heating -- its band is setpoint +/- 1C, and today's
+  setpoint was 20.5C (69F), not yesterday's 21C. Fixed to setpoint-relative
+  values and a target +/- 4F safety band; restarted 10:01, compressor on 10:03.
+- The planned soft_hold arm (14:00-17:15) was dropped at ~12:00: band already
+  sends hold during the 8-min minimum run and the room rose at the baseline
+  rate (0.25-0.33F/min), so the inverter doesn't throttle on a small gap.
+  Shorter minimum runs (5/6 min, est. ~1.6-2F swing at ~2.5-3 starts/hour)
+  were also considered and rejected to avoid extra compressor stress.
+- Open question: the normal relay was sending 19 from ~09:36 but the unit
+  didn't act on it until the experiment's own write at 10:01.
+
+Early read (2 cycles, 10:35-11:50): 68.4-71.1F (~2.7F, -33%), ~1.6
+starts/hour, 12-13 min runs.
 
 Success: swing down >= 30% (<= 2.8F), <= 2.5 compressor starts/hour, no run
 under 6 min.
