@@ -44,7 +44,13 @@ under 6 min.
 
 ## Results
 
-(to fill in)
+(to fill in tonight)
+
+Mid-afternoon read (6-min min run, 12:31-14:10): starts 12:37, 13:11, 13:46
+(34-35 min gaps, ~1.7 starts/hour), runs 9-10 min, room 68.4-70.5F (~2.2F,
+~-45% vs baseline; 8-min cycles were ~2.7F). Adaptive min run stayed at 6
+(gaps in the 24-40 min "leave it" range). Control outage 12:04-12:14
+(TupleWrapper split error, unit held stop) -- fixed, no errors since.
 
 Minimum run 8 -> 6 min at ~12:10 (owner's call, keeping <= 3 starts/hour):
 8-min cycles ran ~1.6 starts/hour (34-40 min periods, room rises ~0.29F/min,
@@ -59,3 +65,12 @@ line -- worst on cold days), each start during an arm adjusts the minimum run
 by the gap since the previous start: < 24 min -> +1, 24-40 -> unchanged,
 40-90 -> -1, bounds 6-10 min, 90+ min gaps ignored. Expected not to move
 this afternoon (~30 min gaps at 6 min); it's there for colder conditions.
+
+## For cooling (not built)
+
+Start log, 3-starts/hour guard and adaptive min run carry over unchanged.
+Needs mode-awareness: run at room >= target+0.3F, stop at <= target-0.5F;
+start value setpoint+1C, stop value setpoint-1C; step-up direction reversed;
+safety stop must allow Cool. Verify the unit's cool band first (assumed
+mirror of heat's setpoint +/- 1C). Use longer min runs (10-15 min) and a
+slightly wider band for dehumidification.
