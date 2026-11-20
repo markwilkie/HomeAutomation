@@ -9,14 +9,16 @@
 #
 # What: while input_select.minisplit_followme_experiment isn't "off", HA
 # stops relaying the real room temperature to the bridge's Follow-Me
-# endpoint (thermostat_10) and instead sends a chosen 20/21/22 so HA decides
+# endpoint (thermostat_10) and instead sends a chosen whole C so HA decides
 # when the unit heats and stops, inside a band it picks:
-#   band       20 at <= target-0.3F, 22 at >= target+0.5F, else 21
-#   soft_hold  20 at <= target-0.3F, 22 at >= target+1.5F, else 21 (tests
-#              whether the inverter throttles down while it sees 21)
-# Guards: 22 (stop) is held back as 21 until the compressor has run 8 min;
-# 20 (start) as 21 until it has been off 10 min. If the unit ignores a 20 or
-# 22 for 6 min, it escalates to 19 / 23.
+#   band       heat at <= target-0.3F, stop at >= target+0.5F, else hold
+#   soft_hold  heat at <= target-0.3F, stop at >= target+1.5F, else hold (tests
+#              whether the inverter throttles down while it holds)
+# heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil), setpoint (rounded):
+# 19/22/21 at the 20.5C (69F) setpoint, 20/22/21 at 21C (70F).
+# Guards: stop is held back as hold until the compressor has run 8 min;
+# heat as hold until it has been off 10 min. If the unit ignores heat or
+# stop for 6 min, it escalates one more degree C.
 # While an arm is active, the normal relay ("MiniSplit FollowMe temp relay
 # to firmware") and the setpoint automation stand down -- the spoofed value
 # can trip binary_sensor.minisplit_followme_engaged, which would make the
@@ -79,18 +81,25 @@ automation:
           off_at: "{{ target + (0.5 if arm == 'band' else 1.5) }}"
           wanted: >-
             {{ 'heat' if room <= target - 0.3 else ('stop' if room >= off_at else 'hold') }}
+          # The unit's own band is its setpoint +/- 1C (found 2026-11-20: at a
+          # 21C setpoint 20 starts it, at 20.5C it needs 19), so the commands
+          # are relative to the setpoint it holds (Desired, 0.5C steps).
+          sp_c: "{{ (((state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') | float(69)) - 32) / 1.8 * 2) | round(0) / 2 }}"
+          heat_c: "{{ (sp_c - 1) | round(0, 'floor') | int }}"
+          stop_c: "{{ (sp_c + 1) | round(0, 'ceil') | int }}"
+          hold_c: "{{ (sp_c + 0.01) | round(0) | int }}"
           desired_c: >-
             {% if wanted == 'stop' %}
-              {% if comp_on and comp_age_min < 8 %}21
-              {% elif comp_on and prev_c in [22, 23] and prev_age_min >= 6 %}23
-              {% elif prev_c == 23 %}23
-              {% else %}22{% endif %}
+              {% if comp_on and comp_age_min < 8 %}{{ hold_c }}
+              {% elif comp_on and prev_c >= stop_c and prev_age_min >= 6 %}{{ stop_c + 1 }}
+              {% elif prev_c == stop_c + 1 %}{{ stop_c + 1 }}
+              {% else %}{{ stop_c }}{% endif %}
             {% elif wanted == 'heat' %}
-              {% if not comp_on and comp_age_min < 10 %}21
-              {% elif not comp_on and prev_c in [19, 20] and prev_age_min >= 6 %}19
-              {% elif prev_c == 19 %}19
-              {% else %}20{% endif %}
-            {% else %}21{% endif %}
+              {% if not comp_on and comp_age_min < 10 %}{{ hold_c }}
+              {% elif not comp_on and prev_c <= heat_c and prev_age_min >= 6 %}{{ heat_c - 1 }}
+              {% elif prev_c == heat_c - 1 %}{{ heat_c - 1 }}
+              {% else %}{{ heat_c }}{% endif %}
+            {% else %}{{ hold_c }}{% endif %}
           desired_f: "{{ (desired_c | int * 1.8 + 32) | round(1) }}"
           relayed_f: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_10', 'temperature') | float(0) }}"
       - if:
@@ -148,7 +157,7 @@ automation:
   - id: minisplit_followme_experiment_safety
     alias: MiniSplit Follow-Me experiment safety stop
     description: >-
-      Ends the experiment if the room leaves 67-73.5F, the Zigbee sensor is
+      Ends the experiment if the room is more than 4F from the target, the Zigbee sensor is
       gone for 10 min, the unit leaves Heat, or a manual override starts.
     triggers:
       - trigger: time_pattern
@@ -166,8 +175,9 @@ automation:
       - condition: template
         value_template: >-
           {% set r = states('sensor.0x18690afffe5602f1_temperature') %}
+          {% set t = states('sensor.minisplit_computed_setpoint') | float(69) %}
           {{ (trigger.platform == 'state')
-             or (has_value('sensor.0x18690afffe5602f1_temperature') and (r | float < 67 or r | float > 73.5))
+             or (has_value('sensor.0x18690afffe5602f1_temperature') and (r | float < t - 4 or r | float > t + 4))
              or states('climate.bedroom_mini_split_ac_bridge_thermostat_6') != 'heat'
              or is_state('binary_sensor.minisplit_manual_override', 'on') }}
     actions:
