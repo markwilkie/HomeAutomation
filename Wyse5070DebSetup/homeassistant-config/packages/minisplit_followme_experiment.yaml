@@ -16,9 +16,10 @@
 #              whether the inverter throttles down while it holds)
 # heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil), setpoint (rounded):
 # 19/22/21 at the 20.5C (69F) setpoint, 20/22/21 at 21C (70F).
-# Guards: stop is held back as hold until the compressor has run 6 min (8
-# until 12:10 on 2026-11-20 -- see the history file);
-# heat as hold until it has been off 10 min. If the unit ignores heat or
+# Guards: stop is held back as hold until the compressor has run
+# input_number.minisplit_followme_min_run_min (6-10 min, adaptive -- see
+# below; a fixed 8 until 12:06 and 6 until the adaptive version on
+# 2026-11-20); heat as hold until it has been off 10 min. If the unit ignores heat or
 # stop for 6 min, it escalates one more degree C.
 # Start budget (2026-11-20, owner's limit): at most 3 compressor starts in
 # any rolling 60 minutes. Once the last 3 starts all fall within the past
@@ -27,6 +28,16 @@
 # itself); 3 starts/hour is the usual HVAC rule of thumb. Starts are
 # recorded in input_text.minisplit_compressor_starts whether or not an arm
 # is active, so the budget is right from the first tick of a run.
+# Adaptive minimum run (2026-11-20): the guard holds the room off below the
+# start line, which hurts most on cold days when the room cools fastest, so
+# starts are kept in line by run length first and the guard is only the
+# backstop. At each start during an arm, the gap since the previous start
+# adjusts the minimum run by 1 min (bounds 6-10): under 24 min (heading
+# above 2.5 starts/hour) -> +1, longer runs store more heat and space
+# starts out at the cost of a warmer peak; 24-40 min -> unchanged; 40-90 min
+# -> -1. Gaps of 90+ min (an idle spell, an arm just starting) are ignored.
+# Driven by measured cycling, not outdoor temperature, so wind, sun, open
+# doors and cold-weather capacity loss are all covered without calibration.
 # While an arm is active, the normal relay ("MiniSplit FollowMe temp relay
 # to firmware") and the setpoint automation stand down -- the spoofed value
 # can trip binary_sensor.minisplit_followme_engaged, which would make the
@@ -53,6 +64,15 @@ input_number:
     unit_of_measurement: "°C"
     mode: box
     icon: mdi:thermometer-lines
+  # Adaptive minimum compressor run while an arm is active (see above).
+  minisplit_followme_min_run_min:
+    name: "MiniSplit Follow-Me Experiment Min Run"
+    min: 6
+    max: 10
+    step: 1
+    unit_of_measurement: "min"
+    mode: box
+    icon: mdi:timer-cog
 
 input_text:
   # Unix times of the most recent compressor starts, newest first,
@@ -85,6 +105,33 @@ automation:
         from: "off"
         to: "on"
     actions:
+      - variables:
+          prev_raw: "{{ states('input_text.minisplit_compressor_starts') }}"
+          prev_start: >-
+            {% set ts = prev_raw.split(',') | reject('eq', '') | map('int', 0) | list if prev_raw not in ['unknown', 'unavailable'] else [] %}
+            {{ ts[0] if ts | count > 0 else 0 }}
+          gap_min: "{{ ((now().timestamp() - prev_start) / 60) | round(1) }}"
+          cur_run: "{{ states('input_number.minisplit_followme_min_run_min') | int(6) }}"
+          new_run: >-
+            {% if gap_min < 24 %}{{ [cur_run + 1, 10] | min }}
+            {% elif 40 < gap_min < 90 %}{{ [cur_run - 1, 6] | max }}
+            {% else %}{{ cur_run }}{% endif %}
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('input_select.minisplit_followme_experiment') in ['band', 'soft_hold']
+                 and prev_start > 0 and new_run | int != cur_run }}
+        then:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.minisplit_followme_min_run_min
+            data:
+              value: "{{ new_run | int }}"
+          - action: logbook.log
+            data:
+              name: "Follow-Me experiment"
+              message: "minimum run {{ cur_run }} -> {{ new_run | int }} min ({{ gap_min }} min since the previous start)"
+              entity_id: input_number.minisplit_followme_min_run_min
       - action: input_text.set_value
         target:
           entity_id: input_text.minisplit_compressor_starts
@@ -145,7 +192,7 @@ automation:
           budget_free_in_min: "{{ ((third_start + 3600 - now().timestamp()) / 60) | round(0) | int }}"
           desired_c: >-
             {% if wanted == 'stop' %}
-              {% if comp_on and comp_age_min < 6 %}{{ hold_c }}
+              {% if comp_on and comp_age_min < states('input_number.minisplit_followme_min_run_min') | int(6) %}{{ hold_c }}
               {% elif comp_on and prev_c >= stop_c and prev_age_min >= 6 %}{{ stop_c + 1 }}
               {% elif prev_c == stop_c + 1 %}{{ stop_c + 1 }}
               {% else %}{{ stop_c }}{% endif %}

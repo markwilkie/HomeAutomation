@@ -17,8 +17,8 @@ Implementation: `packages/minisplit_followme_experiment.yaml`.
 | Time | Phase |
 |---|---|
 | until 10:02 | baseline (real relay) |
-| 10:02-12:10 | band: heat (19) at <= target-0.3F, stop (22) at >= target+0.5F, else hold (21); 8-min min run, 10-min min off |
-| 12:10-17:15 | band, same but 6-min min run; max 3 starts per rolling hour (guard added 12:04) |
+| 10:02-12:06 | band: heat (19) at <= target-0.3F, stop (22) at >= target+0.5F, else hold (21); 8-min min run, 10-min min off |
+| 12:06-17:15 | band, same but 6-min min run (adaptive 6-10 from ~12:15); max 3 starts per rolling hour (guard added 12:04) |
 | 17:15-18:45 | end baseline (real relay) |
 | 18:45 | hard stop before the 19:00 night ramp |
 
@@ -52,3 +52,10 @@ falls ~0.1F/min, ~4 min from stop sent to compressor off). Estimate for 6
 min: ~10 min runs, peak ~70.4F, ~2.0F swing, ~2.0 starts/hour (~2.3-2.5 on
 a colder day); 5 min was rejected (runs under 10 min, ~2.6-2.8 starts/hour
 when cold, for ~0.2F more).
+
+Adaptive minimum run (deployed ~12:15, owner's suggestion): instead of
+relying on the 3-starts/hour guard (which holds the room off below the start
+line -- worst on cold days), each start during an arm adjusts the minimum run
+by the gap since the previous start: < 24 min -> +1, 24-40 -> unchanged,
+40-90 -> -1, bounds 6-10 min, 90+ min gaps ignored. Expected not to move
+this afternoon (~30 min gaps at 6 min); it's there for colder conditions.
