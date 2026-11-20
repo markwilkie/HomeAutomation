@@ -17,7 +17,8 @@ Implementation: `packages/minisplit_followme_experiment.yaml`.
 | Time | Phase |
 |---|---|
 | until 10:02 | baseline (real relay) |
-| 10:02-17:15 | band: heat (19) at <= target-0.3F, stop (22) at >= target+0.5F, else hold (21); 8-min min run, 10-min min off |
+| 10:02-12:10 | band: heat (19) at <= target-0.3F, stop (22) at >= target+0.5F, else hold (21); 8-min min run, 10-min min off |
+| 12:10-17:15 | band, same but 6-min min run; max 3 starts per rolling hour (guard added 12:04) |
 | 17:15-18:45 | end baseline (real relay) |
 | 18:45 | hard stop before the 19:00 night ramp |
 
@@ -44,3 +45,10 @@ under 6 min.
 ## Results
 
 (to fill in)
+
+Minimum run 8 -> 6 min at ~12:10 (owner's call, keeping <= 3 starts/hour):
+8-min cycles ran ~1.6 starts/hour (34-40 min periods, room rises ~0.29F/min,
+falls ~0.1F/min, ~4 min from stop sent to compressor off). Estimate for 6
+min: ~10 min runs, peak ~70.4F, ~2.0F swing, ~2.0 starts/hour (~2.3-2.5 on
+a colder day); 5 min was rejected (runs under 10 min, ~2.6-2.8 starts/hour
+when cold, for ~0.2F more).

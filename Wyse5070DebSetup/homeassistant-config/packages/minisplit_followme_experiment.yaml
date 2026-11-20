@@ -16,7 +16,8 @@
 #              whether the inverter throttles down while it holds)
 # heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil), setpoint (rounded):
 # 19/22/21 at the 20.5C (69F) setpoint, 20/22/21 at 21C (70F).
-# Guards: stop is held back as hold until the compressor has run 8 min;
+# Guards: stop is held back as hold until the compressor has run 6 min (8
+# until 12:10 on 2026-11-20 -- see the history file);
 # heat as hold until it has been off 10 min. If the unit ignores heat or
 # stop for 6 min, it escalates one more degree C.
 # Start budget (2026-11-20, owner's limit): at most 3 compressor starts in
@@ -144,7 +145,7 @@ automation:
           budget_free_in_min: "{{ ((third_start + 3600 - now().timestamp()) / 60) | round(0) | int }}"
           desired_c: >-
             {% if wanted == 'stop' %}
-              {% if comp_on and comp_age_min < 8 %}{{ hold_c }}
+              {% if comp_on and comp_age_min < 6 %}{{ hold_c }}
               {% elif comp_on and prev_c >= stop_c and prev_age_min >= 6 %}{{ stop_c + 1 }}
               {% elif prev_c == stop_c + 1 %}{{ stop_c + 1 }}
               {% else %}{{ stop_c }}{% endif %}
