@@ -75,6 +75,11 @@
   - condition: state
     entity_id: binary_sensor.minisplit_manual_override
     state: "off"
+  # 2026-11-20: stands down during the Follow-Me experiment -- its spoofed
+  # values can trip followme_engaged and drop this into the predictive
+  # controller mid-run (packages/minisplit_followme_experiment.yaml).
+  - condition: template
+    value_template: "{{ states('input_select.minisplit_followme_experiment') not in ['band', 'soft_hold'] }}"
   actions:
   - variables:
       target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(66) }}"
@@ -432,6 +437,10 @@
   conditions:
     - condition: template
       value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable', 'none'] }}"
+    # 2026-11-20: the Follow-Me experiment sends its own values while active
+    # (packages/minisplit_followme_experiment.yaml).
+    - condition: template
+      value_template: "{{ states('input_select.minisplit_followme_experiment') not in ['band', 'soft_hold'] }}"
     - condition: template
       value_template: >-
         {% set to_c = (((trigger.to_state.state | float - 32) * 5 / 9) + 0.5) | round(0, 'floor') %}

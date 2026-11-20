@@ -1,0 +1,214 @@
+# MiniSplit Follow-Me spoofing experiment (2026-11-20).
+#
+# Why: in Heat the unit only ever sees whole degrees C over IR (state[11]),
+# and around its ~20.5C setpoint it behaves like a fixed thermostat --
+# Follow-Me 20 = heat, 21 = keep doing whatever it's doing, 22 = stop. That
+# 2C (3.6F) deadband plus the bridge's 3-minute heartbeat is the ~4F
+# room swing seen every daytime cycle (2026-11-18/19: on at ~68.7F, off at
+# ~72.0-72.5F, peak ~72.7-73.0F, ~1 cycle/hour).
+#
+# What: while input_select.minisplit_followme_experiment isn't "off", HA
+# stops relaying the real room temperature to the bridge's Follow-Me
+# endpoint (thermostat_10) and instead sends a chosen 20/21/22 so HA decides
+# when the unit heats and stops, inside a band it picks:
+#   band       20 at <= target-0.3F, 22 at >= target+0.5F, else 21
+#   soft_hold  20 at <= target-0.3F, 22 at >= target+1.5F, else 21 (tests
+#              whether the inverter throttles down while it sees 21)
+# Guards: 22 (stop) is held back as 21 until the compressor has run 8 min;
+# 20 (start) as 21 until it has been off 10 min. If the unit ignores a 20 or
+# 22 for 6 min, it escalates to 19 / 23.
+# While an arm is active, the normal relay ("MiniSplit FollowMe temp relay
+# to firmware") and the setpoint automation stand down -- the spoofed value
+# can trip binary_sensor.minisplit_followme_engaged, which would make the
+# setpoint automation fall back to its predictive controller mid-experiment.
+#
+# Results / log: history/followme-experiment-2026-11-20.md.
+
+input_select:
+  minisplit_followme_experiment:
+    name: "MiniSplit Follow-Me Experiment"
+    options:
+      - "off"
+      - "band"
+      - "soft_hold"
+    icon: mdi:flask
+
+input_number:
+  # Whole C the experiment last sent (its history is the experiment's log).
+  minisplit_followme_sent_c:
+    name: "MiniSplit Follow-Me Experiment Sent"
+    min: 15
+    max: 30
+    step: 1
+    unit_of_measurement: "°C"
+    mode: box
+    icon: mdi:thermometer-lines
+
+automation:
+  - id: minisplit_followme_experiment_control
+    alias: MiniSplit Follow-Me experiment control
+    description: >-
+      Sends the experiment's chosen Follow-Me value to thermostat_10 while
+      input_select.minisplit_followme_experiment is band or soft_hold. See
+      packages/minisplit_followme_experiment.yaml.
+    triggers:
+      - trigger: state
+        entity_id: sensor.0x18690afffe5602f1_temperature
+      - trigger: state
+        entity_id: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
+      - trigger: state
+        entity_id: input_select.minisplit_followme_experiment
+      - trigger: time_pattern
+        minutes: /1
+    conditions:
+      - condition: template
+        value_template: "{{ states('input_select.minisplit_followme_experiment') in ['band', 'soft_hold'] }}"
+      - condition: template
+        value_template: "{{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_computed_setpoint') }}"
+    actions:
+      - variables:
+          arm: "{{ states('input_select.minisplit_followme_experiment') }}"
+          room: "{{ states('sensor.0x18690afffe5602f1_temperature') | float }}"
+          target: "{{ states('sensor.minisplit_computed_setpoint') | float }}"
+          comp_on: "{{ is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'on') }}"
+          comp_age_min: >-
+            {{ ((now() - states.binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4.last_changed).total_seconds() / 60) | round(1) }}
+          prev_c: "{{ states('input_number.minisplit_followme_sent_c') | int(21) }}"
+          prev_age_min: >-
+            {{ ((now() - states.input_number.minisplit_followme_sent_c.last_changed).total_seconds() / 60) | round(1) }}
+          off_at: "{{ target + (0.5 if arm == 'band' else 1.5) }}"
+          wanted: >-
+            {{ 'heat' if room <= target - 0.3 else ('stop' if room >= off_at else 'hold') }}
+          desired_c: >-
+            {% if wanted == 'stop' %}
+              {% if comp_on and comp_age_min < 8 %}21
+              {% elif comp_on and prev_c in [22, 23] and prev_age_min >= 6 %}23
+              {% elif prev_c == 23 %}23
+              {% else %}22{% endif %}
+            {% elif wanted == 'heat' %}
+              {% if not comp_on and comp_age_min < 10 %}21
+              {% elif not comp_on and prev_c in [19, 20] and prev_age_min >= 6 %}19
+              {% elif prev_c == 19 %}19
+              {% else %}20{% endif %}
+            {% else %}21{% endif %}
+          desired_f: "{{ (desired_c | int * 1.8 + 32) | round(1) }}"
+          relayed_f: "{{ state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_10', 'temperature') | float(0) }}"
+      - if:
+          - condition: template
+            value_template: "{{ desired_c | int != prev_c }}"
+        then:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.minisplit_followme_sent_c
+            data:
+              value: "{{ desired_c | int }}"
+          - action: logbook.log
+            data:
+              name: "Follow-Me experiment"
+              message: >-
+                {{ arm }}: sent {{ desired_c | int }}C (room {{ room }}F, target {{ target }}F,
+                wanted {{ wanted }}, compressor {{ 'on' if comp_on else 'off' }} {{ comp_age_min }} min)
+              entity_id: input_number.minisplit_followme_sent_c
+      # Also resends when thermostat_10 doesn't hold the value (dropped write).
+      - if:
+          - condition: template
+            value_template: "{{ (relayed_f - desired_f) | abs >= 0.5 }}"
+        then:
+          - action: climate.set_temperature
+            target:
+              entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_10
+            data:
+              temperature: "{{ desired_f }}"
+    mode: single
+    max_exceeded: silent
+
+  # Back to the real reading the moment the experiment ends, however it ends.
+  - id: minisplit_followme_experiment_restore
+    alias: MiniSplit Follow-Me experiment restore
+    triggers:
+      - trigger: state
+        entity_id: input_select.minisplit_followme_experiment
+        to: "off"
+    conditions:
+      - condition: template
+        value_template: "{{ has_value('sensor.0x18690afffe5602f1_temperature') }}"
+    actions:
+      - action: climate.set_temperature
+        target:
+          entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_10
+        data:
+          temperature: "{{ states('sensor.0x18690afffe5602f1_temperature') | float }}"
+      - action: logbook.log
+        data:
+          name: "Follow-Me experiment"
+          message: "ended -- relaying the real reading again ({{ states('sensor.0x18690afffe5602f1_temperature') }}F)"
+          entity_id: input_number.minisplit_followme_sent_c
+    mode: single
+
+  - id: minisplit_followme_experiment_safety
+    alias: MiniSplit Follow-Me experiment safety stop
+    description: >-
+      Ends the experiment if the room leaves 67-73.5F, the Zigbee sensor is
+      gone for 10 min, the unit leaves Heat, or a manual override starts.
+    triggers:
+      - trigger: time_pattern
+        minutes: /1
+      - trigger: state
+        entity_id: sensor.0x18690afffe5602f1_temperature
+        to: ["unavailable", "unknown"]
+        for: "00:10:00"
+      - trigger: state
+        entity_id: binary_sensor.minisplit_manual_override
+        to: "on"
+    conditions:
+      - condition: template
+        value_template: "{{ states('input_select.minisplit_followme_experiment') in ['band', 'soft_hold'] }}"
+      - condition: template
+        value_template: >-
+          {% set r = states('sensor.0x18690afffe5602f1_temperature') %}
+          {{ (trigger.platform == 'state')
+             or (has_value('sensor.0x18690afffe5602f1_temperature') and (r | float < 67 or r | float > 73.5))
+             or states('climate.bedroom_mini_split_ac_bridge_thermostat_6') != 'heat'
+             or is_state('binary_sensor.minisplit_manual_override', 'on') }}
+    actions:
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.minisplit_followme_experiment
+        data:
+          option: "off"
+      - action: persistent_notification.create
+        data:
+          title: "Follow-Me experiment stopped"
+          message: >-
+            Safety stop at {{ now().strftime('%H:%M') }}: room {{ states('sensor.0x18690afffe5602f1_temperature') }}F,
+            mode {{ states('climate.bedroom_mini_split_ac_bridge_thermostat_6') }},
+            override {{ states('binary_sensor.minisplit_manual_override') }}.
+    mode: single
+
+  # 2026-11-20 schedule: band from deploy (~10:30), soft_hold 14:00-17:15,
+  # then real readings (end baseline); 18:45 hard stop before the 19:00 night
+  # ramp. Date-gated so it never fires on another day.
+  - id: minisplit_followme_experiment_schedule
+    alias: MiniSplit Follow-Me experiment schedule
+    triggers:
+      - trigger: time
+        at: "14:00:00"
+        id: soft_hold
+      - trigger: time
+        at: "17:15:00"
+        id: "off"
+      - trigger: time
+        at: "18:45:00"
+        id: "off"
+    conditions:
+      - condition: template
+        value_template: "{{ now().strftime('%Y-%m-%d') == '2026-11-20' }}"
+      - condition: template
+        value_template: "{{ trigger.id == 'off' or is_state('input_select.minisplit_followme_experiment', 'band') }}"
+    actions:
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.minisplit_followme_experiment
+        data:
+          option: "{{ trigger.id }}"
+    mode: single
