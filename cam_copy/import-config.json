@@ -1,0 +1,16 @@
+{
+  "_about": "Settings for Import-Photos.ps1 (see IMPROVEMENT_PLAN.md). Every setting here is used; unknown ones are rejected.",
+  "CameraName": "X-T5",
+  "Library": { "raw": "P:\\Xt5\\raw", "jpg": "P:\\Xt5\\jpg" },
+  "Extensions": { "raw": [".RAF"], "jpg": [".JPG"] },
+  "FolderFormat": "yyyy\\MM-dd",
+  "Share": { "Drive": "P:", "Unc": "\\\\192.168.15.10\\photo" },
+  "LocalStaging": "C:\\Photos\\.staging",
+  "LightroomInbox": { "Path": "C:\\Photos\\Lightroom Inbox", "KeepDays": 14 },
+  "ExportOutbox": "C:\\Photos\\Export Outbox",
+  "Edited": "P:\\Xt5\\Edited",
+  "Manifest": "P:\\Xt5\\.import\\manifest.csv",
+  "MaxPasses": 5,
+  "LogDir": "logs",
+  "StatusUrl": "http://192.168.15.30:8085/photo-status.json"
+}

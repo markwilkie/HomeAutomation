@@ -161,7 +161,6 @@ class OAuthClient:
         }
         
         print(f"Token exchange endpoint: {self.TOKEN_URL}")
-        print(f"Token exchange request data: {data}")  # Debug output
 
         response = requests.post(self.TOKEN_URL, data=data, headers=headers)
 

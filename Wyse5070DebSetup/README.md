@@ -43,6 +43,8 @@ Scheduled jobs (no port):
 | Sun 7:00am | Weekly health check email (host health, plus whether the brief's Claude fallback is still logged in and the week's brief/events token use) | crontab → `weekly_health_check.sh` (deployed under daily-brief-cc) |
 | 3:15am daily | Home Assistant config backup (local disk) | systemd `homeassistant-backup.timer` (`setup-homeassistant-backup.sh`) |
 | 3:00am daily | TripTracker database backup | crontab → `~/github/TripTracker/scripts/backup.sh` |
+| 1:00am daily | Lightroom edit saver: full-size JPEG of every edited or Pick photo → `\\192.168.15.10\photo\Xt5\Edited` (status on the dashboard card; daily brief warns on problems and 3 days before the 14-day Lightroom sign-in expires — renew with `lightroom/Renew-LightroomSignIn.ps1` on the PC) | crontab → `setup-photo-sync.sh --run-edits`; log `~/photo-sync.log` |
+| 2:00am daily | Photo backup: `\\192.168.15.10\photo\Xt5` → work OneDrive `Backups/Photos/Xt5` (deleted/replaced files kept 90 days in `Backups/Photos/_deleted`) | crontab → `setup-photo-sync.sh --run-backup`; log `~/photo-sync.log` |
 | Every 5 min | Email Mark when anyone else logs in to RaceTimes | crontab → `/mnt/data/appdata/racetimes/racetimes-login-alert.sh` (installed by RaceTimes' `deploy/setup-racetimes.sh`); log `~/racetimes-login-alert.log` |
 | 4:00am daily | Kill stale ad-hoc processes (orphaned `ssh … bash -c` loops/watchers older than 24h) | crontab → `cleanup_stale_processes.sh` (`setup-stale-process-cleanup.sh`); log `~/stale-process-cleanup.log` |
 

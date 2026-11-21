@@ -316,6 +316,9 @@ else
   STATUS_LINE="**Status: NEEDS ATTENTION** (${ISSUES} item(s) flagged below)"
 fi
 
+# Photo workflow (setup-photo-sync.sh): one line, always -- photo_check.py is copied here with shared/*.py
+PHOTOS_LINE="$(python3 photo_check.py --weekly 2>/dev/null || echo 'Photos: check failed to run')"
+
 REPORT="$(cat <<EOF
 # Weekly Wyse Health Report -- ${REPORT_DATE}
 
@@ -337,6 +340,9 @@ $( [ -n "$REBOOT_LINES" ] && printf '%s' "$REBOOT_LINES" )
 - Now: ${DISK_NOW}
 - Trend: ${DISK_TREND}
 - ${DISK_FLAG}
+
+## Photos
+- ${PHOTOS_LINE}
 
 ## Containers
 - ${CONTAINER_TOTAL} total, ${CONTAINER_FLAGGED} flagged

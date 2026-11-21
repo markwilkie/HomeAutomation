@@ -451,6 +451,18 @@
         <div class="desc">Backs up TripTracker's database</div>
         <div class="meta"><code>~/github/TripTracker/scripts/backup.sh</code> · log <code>~/backup.log</code></div>
       </div>
+      <div class="card disabled" id="photo-sync-card">
+        <div class="row"><span class="name">Photo backup + edit saver</span><span class="badge ok" id="photo-sync-badge">1am / 2am daily</span></div>
+        <div class="desc">1am: saves a full-size JPEG of every edited or Pick Lightroom photo to
+          <code>\\192.168.15.10\photo\Xt5\Edited</code>. 2am: syncs <code>Xt5</code> to the work OneDrive
+          (deleted files kept 90 days).</div>
+        <div class="desc" id="photo-sync-status">Status: loading…</div>
+        <div class="meta">crontab · <code>/mnt/data/appdata/photo-sync</code> · log <code>~/photo-sync.log</code></div>
+        <div class="links">
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/Wyse5070DebSetup/setup-photo-sync.sh" target="_blank" rel="noopener">Setup &amp; notes</a>
+          <a href="https://github.com/markwilkie/HomeAutomation/blob/master/cam_copy/IMPROVEMENT_PLAN.md" target="_blank" rel="noopener">Plan</a>
+        </div>
+      </div>
       <div class="card disabled">
         <div class="row"><span class="name">Stale process cleanup</span><span class="badge ok">4am daily</span></div>
         <div class="desc">Kills orphaned ad-hoc loops and watchers (<code>bash -c</code>, <code>docker logs</code>,
@@ -584,5 +596,23 @@
   </footer>
 
 </div>
+<script>
+// Photo backup + edit saver status (photo-status.json is written by setup-photo-sync.sh after each run)
+fetch('photo-status.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(d => {
+  const el = document.getElementById('photo-sync-status'), badge = document.getElementById('photo-sync-badge');
+  if (!d) { el.textContent = 'Status: not run yet'; return; }
+  const ago = t => t ? Math.round((Date.now() - Date.parse(t)) / 36e5) + ' h ago' : 'never';
+  const b = d.backup || {}, e = d.edits || {}, parts = [];
+  parts.push('Backup: ' + (b.ok ? 'OK ' : 'FAILED ') + ago(b.last_success) + (b.files ? ' (' + b.files + ' files)' : ''));
+  parts.push('Edits on NAS: ' + (e.saved_total ?? '?') + ' of ' + (e.edited_total ?? '?'));
+  if (e.sign_in_expires) {
+    const days = Math.floor((Date.parse(e.sign_in_expires) - Date.now()) / 864e5);
+    parts.push(days < 0 ? 'Lightroom sign-in EXPIRED' : 'Lightroom sign-in: ' + days + ' days left');
+    if (days < 3) badge.className = 'badge warn';
+  }
+  if (b.ok === false || e.ok === false) badge.className = 'badge warn';
+  el.textContent = parts.join(' · ');
+}).catch(() => {});
+</script>
 </body>
 </html>

@@ -1,4 +1,24 @@
-# Camera Copy PowerShell Project
+# Import Photos (current) and Camera Copy (old)
+
+## Import Photos: use this
+
+Double-click **Import Photos** on the desktop (runs `Import-Photos.ps1`) with the X-T5 plugged in over USB and switched on, or a Fujifilm card in a reader.
+
+- Copies every photo that isn't on the NAS yet, checks every file's size, repeats until nothing is missing, and ends with **✔ All N RAF + N JPG safe on NAS** or **✘ INCOMPLETE: don't format the cards, run again**.
+- RAF goes to `P:\Xt5\raw\YYYY\MM-DD\` and JPG to `P:\Xt5\jpg\YYYY\MM-DD\`, by **date taken**, whichever card or slot they're on.
+- New JPGs also land in `C:\Photos\Lightroom Inbox\YYYY-MM-DD\`: in Lightroom, **Add Photos** from there (seconds, instead of ~20 minutes over Wi-Fi from the NAS). Inbox folders are cleared after 14 days, only once every file is verified on the NAS.
+- Files anything in `C:\Photos\Export Outbox\` (Lightroom "To NAS" export preset) into `P:\Xt5\Edited\YYYY\YYYY-MM Month\`. Normally edits are saved there automatically every night by the edit saver on wyse.
+- Never deletes anything from the camera or a card. **Format both cards in the camera before your next shoot**, once the verdict is ✔ (ideally after that night's OneDrive backup).
+- Remembers what's been imported in `P:\Xt5\.import\manifest.csv` (name + size), so old photos left on a card are skipped.
+- `.\Import-Photos.ps1 -Preview` lists what would be copied; `-Rescan` rebuilds the manifest. Settings: `import-config.json`. Logs: `logs\`. Tests: `Invoke-Pester .\tests`.
+
+Whole workflow (camera → NAS → Lightroom → OneDrive, edit saver, daily-brief checks): [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).
+
+The old Camera Copy scripts below stay until Import Photos has been used with the camera a few times; then they'll be deleted (tagged `cam_copy-v1` first).
+
+---
+
+# Camera Copy PowerShell Project (old)
 
 Automatically detect camera insertion and copy files to network shares based on file type.
 

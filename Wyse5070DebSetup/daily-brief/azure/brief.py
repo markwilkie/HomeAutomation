@@ -605,6 +605,11 @@ async def _prefetch(name: str, sessions: dict) -> str:
         return f" Sober count: {sober}." if sober else ""
     if name == "taste_notes" and "trilium" in sessions:
         return await events_taste(sessions["trilium"])
+    if name == "photos":
+        import photo_check  # shared/; reads the photo-sync status files on this host
+
+        lines = photo_check.brief_lines()
+        return (" Photo problems (put each in Needs you exactly as written): " + " | ".join(lines) + ".") if lines else ""
     return ""
 
 

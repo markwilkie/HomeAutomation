@@ -7,6 +7,7 @@ import click
 from lightroom_tool.auth import auth_commands
 from lightroom_tool.photos import photo_commands
 from lightroom_tool.cleanup_commands import cleanup
+from lightroom_tool.edit_saver import save_edits
 
 
 @click.group()
@@ -27,6 +28,7 @@ def cli(ctx, verbose):
 cli.add_command(auth_commands.auth)
 cli.add_command(photo_commands.photos)
 cli.add_command(cleanup)
+cli.add_command(save_edits)
 
 
 if __name__ == '__main__':

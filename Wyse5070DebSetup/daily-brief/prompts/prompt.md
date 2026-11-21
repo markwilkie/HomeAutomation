@@ -296,6 +296,9 @@ Everything that needs an action or answer from me, from any source, each
 bullet ending or starting with the source in parentheses ("(text)",
 "(email)", "(WhatsApp)"). Order:
 1. Connection problems with their fix steps (texts, WhatsApp, Monarch).
+   If the user message has "Photo problems", add each one as its own
+   bullet here, word for word, ending "(photos)". Never mention photos,
+   the NAS, backups or Lightroom otherwise.
 2. ⚠️ Real risk signals: a failed or unrecognized sign-in, a new payee or
    account change on money, fraud, health or safety. Test for everything
    here: does skipping it have a consequence? A routine notice whose only

@@ -22,7 +22,10 @@ class TokenManager:
     
     def __init__(self, config: Config):
         self.config = config
-        self._encryption_key = self._get_or_create_encryption_key()
+        # Headless hosts (wyse) have no OS keyring: LIGHTROOM_TOKEN_FILE points at a plain
+        # JSON file readable only by its owner (chmod 600), and the keyring is never touched.
+        self._plain_file = os.environ.get('LIGHTROOM_TOKEN_FILE') or None
+        self._encryption_key = None if self._plain_file else self._get_or_create_encryption_key()
         # Fallback file path (used only if keyring write fails)
         self._fallback_dir = os.path.join(os.path.expanduser('~'), '.lightroom_tool')
         self._fallback_file = os.path.join(self._fallback_dir, 'tokens.enc')
@@ -98,6 +101,14 @@ class TokenManager:
             expires_at = datetime.utcnow() + timedelta(seconds=token_data['expires_in'])
             token_data['expires_at'] = expires_at.isoformat()
         
+        if self._plain_file:
+            tmp = self._plain_file + '.tmp'
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'w') as f:
+                json.dump(token_data, f)
+            os.replace(tmp, self._plain_file)
+            return
+
         # Encrypt and store tokens
         encrypted_data = self._encrypt_data(json.dumps(token_data))
         try:
@@ -123,6 +134,12 @@ class TokenManager:
     
     def get_tokens(self) -> Optional[Dict[str, Any]]:
         """Retrieve stored authentication tokens"""
+        if self._plain_file:
+            try:
+                with open(self._plain_file) as f:
+                    return json.load(f)
+            except (OSError, ValueError):
+                return None
         encrypted_data = None
         # If a fallback file exists, prefer enabling fallback immediately (covers new process start)
         if not self._fallback_enabled and os.path.isfile(self._fallback_file):
@@ -150,6 +167,10 @@ class TokenManager:
     
     def clear_tokens(self) -> None:
         """Clear stored authentication tokens"""
+        if self._plain_file:
+            if os.path.isfile(self._plain_file):
+                os.remove(self._plain_file)
+            return
         if self._fallback_enabled:
             try:
                 if os.path.isfile(self._fallback_file):

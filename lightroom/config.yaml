@@ -36,7 +36,7 @@ settings:
   default_output_format: "table"
   
   # Date filtering defaults
-  default_date_type: "import"  # import, sync, or capture
+  default_date_type: "capture"  # import, sync, or capture. capture: photos are filed by date taken (cam_copy Import-Photos.ps1)
   
   # File matching options
   filename_only_matching: false  # Set to true for faster network drive operations

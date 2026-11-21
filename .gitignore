@@ -73,3 +73,7 @@ Sprinter/Arduino/ArduinoOutput/
 /Sprinter/Arduino/SprinterDash/TripDisplay/.vscode
 #Editor settings at the repo root (e.g. VS Code Remote-SSH on wyse)
 /.vscode/
+
+# Import Photos run logs
+cam_copy/logs/
+cam_copy/CameraCopy.log
