@@ -49,6 +49,12 @@ BRIEF_SRC="${SCRIPT_DIR}/daily-brief"   # prompts/, shared/, claude/ (this deplo
 echo "==> Creating directory structure under ${APPDATA_ROOT}"
 mkdir -p "${APP_DIR}" "${CONFIG_DIR}"
 
+# claude is installed via nvm-managed npm, which only lands on PATH in interactive shells
+# (.bashrc). Load nvm here like run.sh does, so this also works over a non-interactive ssh.
+export NVM_DIR="$HOME/.nvm"
+# shellcheck disable=SC1091
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 if ! command -v claude >/dev/null 2>&1; then
   echo "!! Claude Code CLI not found on this host."
   echo "   See prerequisites 1-2 in this script's header comment, then re-run."
