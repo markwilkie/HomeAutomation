@@ -100,6 +100,32 @@ the "experiment" names so history carries on. Changes from the trial:
   the bridge keeps sending the last value. A Follow-Me staleness timeout in
   the bridge firmware would close it.
 
+## First night permanent (2026-11-20/21)
+
+- 22:07 band took over (room 66.4F, target 65F, 32F outside overnight).
+- 23:04 and 06:22 the unit's setpoint slipped 65 -> 64F on its own (owner
+  confirmed: not the remote). The bridge adopted each as a remote change
+  and HA held the schedule -- and band -- off until 06:00 / 19:00. Same
+  thing 2026-11-18 18:04 (70->71), 22:21 (66->67), 2026-11-19 17:03
+  (70->71): always exactly half a degree C, before band control existed.
+  Mechanism: the unit reports a value one step off; the bridge's heartbeat
+  is built from the reported status so it re-sends it; the next poll
+  "confirms" it and the bridge adopts it into Desired. Suspected trigger:
+  the unit misreading the IR half-degree bit (state[12] 0x04) -- unconfirmed
+  without the bridge's serial log.
+- Fixes 2026-11-21: HA puts a non-HA change of <= 1F back to the schedule
+  instead of holding it (logged as source "slip" in overrides.csv);
+  firmware 1.3.2 resends a 1F move instead of adopting it. Remote changes
+  of 2F+ still count as overrides.
+- 04:52-05:07 (relay, override active): 63.3 -> 67.5F, the old ~4F swing.
+- 06:13 band start overshot: 64.4 -> 68.0F (target 65.5, stop line 66),
+  ~0.5F/min vs ~0.29F/min the day before. Heat had been stepped 17 -> 16C
+  after 6 min "ignored", but values take 3-6 min to reach the unit (it got
+  17 at ~06:13), so the step fired on lag and may have pushed full output.
+  Heat step-down removed 2026-11-21. Still open: the 6-min minimum run on
+  fast cold-morning heat-ups (early stop at target+1.5F after 4 min was
+  floated, not built -- watch a few more cold mornings first).
+
 ## For cooling (not built)
 
 Start log, 3-starts/hour guard and adaptive min run carry over unchanged.
