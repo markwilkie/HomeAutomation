@@ -24,8 +24,12 @@
 # 5-7 min.
 # Guards: stop is held back as hold until the compressor has run
 # input_number.minisplit_followme_min_run_min (6-10 min, adaptive -- see
-# below); heat as hold until it has been off 10 min. If the unit ignores heat or
-# stop for 6 min, it escalates one more degree C.
+# below); heat as hold until it has been off 10 min. If the unit ignores
+# stop for 6 min, stop goes one degree C higher. Heat never steps lower
+# (2026-11-21): a new value takes 3-6 min to show up at the unit (the bridge
+# sends Follow-Me with its poll), so "ignored for 6 min" was mostly that lag,
+# and the extra degree looked to make the unit start at full output
+# (64.4 -> 68.0F in 7 min on the 2026-11-21 06:13 start).
 # Start budget (owner's limit): at most 3 compressor starts in any rolling
 # 60 minutes. Once the last 3 starts all fall within the past hour, heat is
 # held back as hold until the oldest of them is 60 min old. Pioneer
@@ -243,8 +247,6 @@ automation:
             {% elif wanted == 'heat' %}
               {% if not comp_on and comp_age_min < 10 %}{{ hold_c }}
               {% elif not comp_on and not budget_ok %}{{ hold_c }}
-              {% elif not comp_on and prev_c <= heat_c and prev_age_min >= 6 %}{{ heat_c - 1 }}
-              {% elif prev_c == heat_c - 1 %}{{ heat_c - 1 }}
               {% else %}{{ heat_c }}{% endif %}
             {% else %}{{ hold_c }}{% endif %}
           desired_f: "{{ (desired_c | int * 1.8 + 32) | round(1) }}"
