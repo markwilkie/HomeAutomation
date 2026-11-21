@@ -76,6 +76,12 @@ def brief_lines(now: dt.datetime | None = None, backup=None, edits=None) -> list
         if late:
             shown = ", ".join(late[:5]) + (f" and {len(late) - 5} more" if len(late) > 5 else "")
             out.append(f"📷 {len(late)} edited photo{'s' if len(late) != 1 else ''} not saved to the NAS: {shown}")
+        no_layers = [m["name"] for m in edits.get("photoshop_layers_missing", [])
+                     if (_when(m.get("since")) or now) <= now - dt.timedelta(hours=MISSING_GRACE_H)]
+        if no_layers:
+            shown = ", ".join(no_layers[:5]) + (f" and {len(no_layers) - 5} more" if len(no_layers) > 5 else "")
+            out.append(f"📷 {len(no_layers)} Photoshop edit{'s have' if len(no_layers) != 1 else ' has'} no layered copy on the NAS: "
+                       f"{shown} (in Photoshop: File > Save a Copy to C:\\Photos\\Export Outbox, then run Import Photos)")
     return out
 
 

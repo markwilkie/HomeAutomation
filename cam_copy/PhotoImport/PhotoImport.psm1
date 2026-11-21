@@ -299,7 +299,7 @@ function Move-ExportOutbox {
     # Fallback path for edits: files exported from Lightroom to the outbox -> Edited\YYYY\YYYY-MM Month\.
     param($Config)
     $files = @(Get-ChildItem -LiteralPath $Config.ExportOutbox -File -ErrorAction SilentlyContinue |
-               Where-Object { $_.Extension -match '^\.(jpe?g|xmp)$' })
+               Where-Object { $_.Extension -match '^\.(jpe?g|xmp|psd|psb|tiff?)$' })
     foreach ($f in $files) {
         $taken = $f.LastWriteTime
         try {
@@ -311,6 +311,7 @@ function Move-ExportOutbox {
         } catch { }
         $rel = Get-EditedRelPath $taken $f.BaseName
         if ($f.Extension -eq '.xmp') { $rel = Join-Path (Join-Path $taken.ToString('yyyy') '_recipes') $f.Name }
+        if ($f.Extension -match '^\.(psd|psb|tiff?)$') { $rel = Join-Path '_photoshop' $f.Name }   # layered Photoshop copies
         $final = Join-Path $Config.Edited $rel
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $final) | Out-Null
         Copy-Item -LiteralPath $f.FullName -Destination "$final.part" -Force

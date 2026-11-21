@@ -41,6 +41,16 @@ OneDrive (work)  Backups/Photos/Xt5
 3. Let Lightroom finish syncing (cloud icon, top right) before shutting down.
    That night, every edited or Pick photo appears in `P:\Xt5\Edited\YYYY\YYYY-MM Month\YYYY-MM-DD NAME.jpg`.
 
+### Photoshop (when Lightroom isn't enough)
+
+1. Do the basic edits in Lightroom first.
+2. In Lightroom: right-click the photo → **Edit in Photoshop** (Ctrl+E). Photoshop opens a copy with the Lightroom edits applied.
+3. Work in Photoshop, then **File → Save** (Ctrl+S) and close. Lightroom adds the result as a new photo next to the original (usually `NAME-Edit`), layers intact, synced to Adobe's cloud.
+4. **Keep the layers on the NAS:** in Photoshop also **File → Save a Copy** (as PSD) into `C:\Photos\Export Outbox\`. The next Import Photos files it into `P:\Xt5\Edited\_photoshop\`. (Adobe's API won't hand out original files, so this one step stays manual.)
+5. That night the edit saver saves the flattened full-size JPEG of the Photoshop version to `Edited\YYYY\YYYY-MM Month\YYYY-MM-DD NAME-Edit.jpg` by itself (no Pick needed). If a Photoshop photo still has no layered copy in `_photoshop` after 2 nights, the daily brief names it.
+
+For a file that never goes through Lightroom: save the finished JPEG (and the PSD if you want the layers) into `C:\Photos\Export Outbox\`; Import Photos files them.
+
 ### Before the next shoot
 
 1. Format **both** cards **in the camera** (MENU → User Setting → Format), once the import said ✔ (ideally after that night's backup).
@@ -55,7 +65,7 @@ OneDrive (work)  Backups/Photos/Xt5
 | What | Where |
 |---|---|
 | Originals | `P:\Xt5\raw\YYYY\MM-DD\*.RAF`, `P:\Xt5\jpg\YYYY\MM-DD\*.JPG` (`P:` = `\\192.168.15.10\photo`). By date taken from 2026-11-21; older folders are by copy date and stay that way |
-| Edited photos | `P:\Xt5\Edited\YYYY\YYYY-MM Month\YYYY-MM-DD NAME.jpg` (full size, edits applied); edit settings in `Edited\YYYY\_recipes\NAME.json` |
+| Edited photos | `P:\Xt5\Edited\YYYY\YYYY-MM Month\YYYY-MM-DD NAME.jpg` (full size, edits applied); edit settings in `Edited\YYYY\_recipes\NAME.json`; layered Photoshop files in `Edited\_photoshop\` |
 | Lightroom inbox | `C:\Photos\Lightroom Inbox\YYYY-MM-DD\` (cleared after 14 days, only once every file is verified on the NAS) |
 | Manual export fallback | Lightroom export to `C:\Photos\Export Outbox\`; Import Photos files it into `Edited` |
 | Off-site backup | Work OneDrive → `Backups/Photos/Xt5` (mirror), `Backups/Photos/_deleted/YYYY-MM-DD/` (90 days) |
@@ -75,7 +85,7 @@ OneDrive (work)  Backups/Photos/Xt5
 
 - **Import Photos**: the ✔ / ✘ last line, a Windows notification, and a log per run in `cam_copy\logs\`.
 - **Dashboard** (http://192.168.15.30:8085, card "Photo backup + edit saver"): last backup, files in OneDrive, "Edits on NAS: N of N", days left on the Lightroom sign-in. Amber badge = needs attention.
-- **Daily brief**: a 📷 line in 🎯 Needs you only when something's wrong: backup failed or not run in 48 h, photos missing from OneDrive, edited photos not saved after 2 nights, edit saver not run in 48 h, sign-in expiring within 3 days or expired.
+- **Daily brief**: a 📷 line in 🎯 Needs you only when something's wrong: backup failed or not run in 48 h, photos missing from OneDrive, edited photos not saved after 2 nights, a Photoshop edit with no layered copy after 2 nights, edit saver not run in 48 h, sign-in expiring within 3 days or expired.
 - **Sunday health check email**: "Photos: backed up nightly ✔ …; edits N of N ✔; Lightroom sign-in good until …".
 
 ## When something's wrong

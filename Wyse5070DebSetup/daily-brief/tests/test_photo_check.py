@@ -64,3 +64,11 @@ def test_weekly_summary():
     assert line.startswith("Photos: backed up nightly ✔") and "edits 70 of 70 ✔" in line and "good until" in line
     bad = pc.weekly_line(NOW, dict(GOOD_BACKUP, ok=False), dict(GOOD_EDITS, sign_in_expires=ago(days=1)))
     assert "backup NOT OK ✘" in bad and "EXPIRED" in bad
+
+
+def test_photoshop_without_layers_after_grace():
+    fresh = dict(GOOD_EDITS, photoshop_layers_missing=[{"name": "WJD01472-Edit", "since": ago(hours=10)}])
+    assert pc.brief_lines(NOW, GOOD_BACKUP, fresh) == []
+    old = dict(GOOD_EDITS, photoshop_layers_missing=[{"name": "WJD01472-Edit", "since": ago(hours=40)}])
+    (line,) = pc.brief_lines(NOW, GOOD_BACKUP, old)
+    assert "1 Photoshop edit has no layered copy" in line and "WJD01472-Edit" in line and "Export Outbox" in line

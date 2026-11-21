@@ -32,6 +32,8 @@ from typing import Optional
 import click
 
 VOLATILE_DEVELOP_KEYS = {"device", "needsUpdateAISettings"}
+PHOTOSHOP_EXTS = (".psd", ".psb", ".tif", ".tiff")  # what Lightroom gets back from "Edit in Photoshop"
+LAYERS_DIR = "_photoshop"  # <dest>/_photoshop/: layered copies, saved by hand via the Export Outbox
 RENDER_TIMEOUT_S = 180
 FULL_SIZE_TOLERANCE = 0.98
 
@@ -56,18 +58,40 @@ def is_edited(develop: dict) -> bool:
     return bool(develop.get("userUpdated"))
 
 
+def is_photoshop(payload: dict) -> bool:
+    """A photo that came back from Photoshop: its edits are in the pixels, not in Lightroom settings."""
+    name = (payload.get("importSource") or {}).get("fileName", "")
+    return name.lower().endswith(PHOTOSHOP_EXTS)
+
+
 def wanted(payload: dict) -> bool:
-    """Edited or Pick, and not Reject."""
+    """Edited, Pick, or back from Photoshop -- and not Reject."""
     flag = flag_of(payload)
     if flag == "reject":
         return False
-    return is_edited(payload.get("develop") or {}) or flag == "pick"
+    return is_edited(payload.get("develop") or {}) or flag == "pick" or is_photoshop(payload)
+
+
+def camera_number(name: str) -> str:
+    """'WJD01472-Edit' -> 'WJD01472' (the X-T5's file number); otherwise the name itself."""
+    m = re.match(r"([A-Z_]{3,4}\d{4,5})", name.upper())
+    return m.group(1) if m else name.upper()
+
+
+def has_layered_copy(name: str, layered_files: list[str]) -> bool:
+    """Is there a .psd/.psb/.tif in _photoshop for this photo? Matched on the camera number, since
+    Photoshop's 'Save a Copy' names vary ('WJD01472-Edit copy.psd', 'WJD01472.psd', ...)."""
+    key = camera_number(name)
+    return any(f.lower().endswith(PHOTOSHOP_EXTS) and camera_number(os.path.basename(f)) == key for f in layered_files)
 
 
 def fingerprint(payload: dict) -> str:
     """Changes when the edit (or the Pick flag) changes; ignores keys Adobe touches on its own."""
     develop = {k: v for k, v in (payload.get("develop") or {}).items() if k not in VOLATILE_DEVELOP_KEYS}
-    blob = json.dumps({"develop": develop, "flag": flag_of(payload)}, sort_keys=True, default=str)
+    parts = {"develop": develop, "flag": flag_of(payload)}
+    if is_photoshop(payload):  # only these: adding it to every photo would mark all saved photos re-edited
+        parts["original"] = (payload.get("importSource") or {}).get("sha256")  # changes when Photoshop re-saves
+    blob = json.dumps(parts, sort_keys=True, default=str)
     return hashlib.sha1(blob.encode()).hexdigest()[:16]
 
 
@@ -176,6 +200,10 @@ class LocalSink:
         os.replace(incoming, final)
         return os.path.getsize(final)
 
+    def list_dir(self, rel: str) -> list[str]:
+        d = os.path.join(self.root, *rel.split("/"))
+        return sorted(os.listdir(d)) if os.path.isdir(d) else []
+
 
 class RcloneSink:
     """Destination reached through an rclone remote (e.g. nas:photo/Xt5/Edited on wyse)."""
@@ -200,6 +228,10 @@ class RcloneSink:
         if size != os.path.getsize(local_file):
             raise IOError(f"size mismatch after upload: {rel} ({size} vs {os.path.getsize(local_file)})")
         return size
+
+    def list_dir(self, rel: str) -> list[str]:
+        r = subprocess.run([self.rclone, "lsf", "--files-only", f"{self.root}/{rel}"], capture_output=True, text=True, timeout=300)
+        return sorted(line.strip() for line in r.stdout.splitlines() if line.strip()) if r.returncode == 0 else []
 
 
 # --- Lightroom API --------------------------------------------------------------------------------
@@ -324,12 +356,25 @@ def run(lr: Lightroom, sink, state_path: str, status_path: str, tokens: Optional
         if aid not in wanted_ids or aid not in missing:
             state["missing_since"].pop(aid)
     names = {a.asset_id: a.name for a in actions}
+    layered = sink.list_dir(LAYERS_DIR) if not dry_run else []
+    lm = state.setdefault("layers_missing_since", {})
+    ps_ids = {a.asset_id for a in actions if is_photoshop(a.payload)}
+    for aid in ps_ids:
+        if has_layered_copy(names[aid], layered):
+            lm.pop(aid, None)
+        else:
+            lm.setdefault(aid, now)
+    for aid in list(lm):
+        if aid not in ps_ids:
+            lm.pop(aid)
     status = dict(
         last_run=now, ok=not missing, edited_total=len(actions),
         saved_total=len(actions) - len(missing), saved_this_run=saved_now,
         missing=[dict(name=names[aid], since=state["missing_since"].get(aid, now), error=failed.get(aid))
                  for aid in sorted(missing, key=lambda x: names[x])],
         removed_in_lightroom=[r.get("photo_path") for r in removed],
+        photoshop_total=len(ps_ids),
+        photoshop_layers_missing=[dict(name=names[aid], since=lm[aid]) for aid in sorted(lm, key=lambda x: names[x])],
         sign_in_expires=token_expiry(tokens),
     )
     if not dry_run:

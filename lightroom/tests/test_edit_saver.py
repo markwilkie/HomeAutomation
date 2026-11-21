@@ -1,7 +1,7 @@
 import datetime as dt
 
-from lightroom_tool.edit_saver import (clean_name, fingerprint, full_size_ok, plan, target_paths,
-                                       token_expiry, wanted)
+from lightroom_tool.edit_saver import (camera_number, clean_name, fingerprint, full_size_ok, has_layered_copy,
+                                       is_photoshop, plan, target_paths, token_expiry, wanted)
 
 
 def asset(aid, name="WJD01503.JPG", capture="2026-11-21T09:12:33", edited=True, flag=None, crop=(5115, 7672)):
@@ -90,3 +90,23 @@ def test_token_expiry_reads_jwt():
     body = base64.urlsafe_b64encode(json.dumps({"created_at": "1795284535000", "expires_in": "1209600000"}).encode()).decode().rstrip("=")
     assert token_expiry({"refresh_token": f"h.{body}.s"}).startswith("2026-12-05")
     assert token_expiry(None) is None
+
+
+def test_photoshop_round_trip_is_wanted_without_edits_or_pick():
+    p = asset("ps", name="WJD01472-Edit.psd", edited=False)["payload"]
+    assert is_photoshop(p) and wanted(p)
+    p["ratings"] = {"u": {"flag": "reject"}}
+    assert not wanted(p)
+
+
+def test_photoshop_re_save_changes_fingerprint():
+    a, b = asset("ps", name="WJD01472-Edit.tif", edited=False)["payload"], asset("ps", name="WJD01472-Edit.tif", edited=False)["payload"]
+    a["importSource"]["sha256"], b["importSource"]["sha256"] = "aaa", "bbb"
+    assert fingerprint(a) != fingerprint(b)
+
+
+def test_layered_copy_matching():
+    assert camera_number("WJD01472-Edit") == "WJD01472"
+    assert has_layered_copy("WJD01472-Edit", ["WJD01472-Edit copy.psd"])
+    assert has_layered_copy("WJD01472-Edit", ["wjd01472.PSB"])
+    assert not has_layered_copy("WJD01472-Edit", ["WJD01473-Edit.psd", "WJD01472.jpg"])
