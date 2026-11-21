@@ -236,6 +236,18 @@ input_number:
     icon: mdi:calendar-clock
     mode: box
 
+  # The setpoint a manual override chose (2026-11-21), set by "MiniSplit
+  # Manual Override Detect". Band control holds the room at it during the
+  # override, and a 1F slip during an override goes back to it.
+  minisplit_override_setpoint:
+    name: "MiniSplit Override Setpoint"
+    min: 50
+    max: 90
+    step: 0.5
+    unit_of_measurement: "°F"
+    icon: mdi:hand-back-right
+    mode: box
+
   # minisplit_mode_w_hallway / _w_outdoor (predictor weights) and
   # minisplit_mode_cool_outdoor_min / _heat_outdoor_max (fixed outdoor
   # gates) removed 2026-10-05 with the shadow-rule simplification -- see the

@@ -10,13 +10,15 @@
 # ~72.0-72.5F, peak ~72.7-73.0F, ~1 cycle/hour).
 #
 # What: while binary_sensor.minisplit_follow_me_band_active is on
-# (input_select.minisplit_followme_experiment = band, unit in Heat, no
-# manual override, sensors available), HA doesn't relay the real room
+# (input_select.minisplit_followme_experiment = band, unit in Heat, sensors
+# available), HA doesn't relay the real room
 # temperature to the bridge's Follow-Me endpoint (thermostat_10); it sends
 # a chosen whole C so HA decides when the unit heats and stops:
 #   heat at <= target-0.3F, stop at >= target+0.5F, else hold
-# (target = sensor.minisplit_computed_setpoint, so the day/night ramps
-# carry over). heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil),
+# (target = sensor.minisplit_follow_me_band_target: the schedule's
+# sensor.minisplit_computed_setpoint, so the day/night ramps carry over, or
+# during a manual override the setpoint the override chose -- owner's call
+# 2026-11-21, band keeps running through overrides). heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil),
 # setpoint (rounded): 19/22/21 at the 20.5C (69F) setpoint.
 # Latch (2026-11-20): once heat is sent it's kept until the compressor
 # starts, and stop until it stops -- the sensor's 0.18F steps straddle the
@@ -45,7 +47,7 @@
 # min (an idle spell) are ignored. Driven by measured cycling, not outdoor
 # temperature, so wind, sun, open doors and cold-weather capacity loss are
 # all covered without calibration.
-# Pauses (unit not in Heat, manual override, sensor gone): band_active goes
+# Pauses (unit not in Heat, sensor gone): band_active goes
 # off (2 min delay), the real reading is sent again and the normal relay
 # ("MiniSplit FollowMe temp relay to firmware") takes over. While active, the
 # setpoint automation is forced onto its "direct" strategy (Desired =
@@ -115,6 +117,18 @@ template:
         state: >-
           {% set c = states('input_number.minisplit_followme_sent_c') %}
           {{ ((c | float * 1.8) + 32) | round(1) if is_number(c) else none }}
+      # What band control holds the room at: the schedule, or a manual
+      # override's own setpoint while one is on.
+      - name: "MiniSplit Follow-Me Band Target"
+        unique_id: minisplit_followme_band_target
+        icon: mdi:target
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >-
+          {% set ov = state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') %}
+          {% if is_state('binary_sensor.minisplit_manual_override', 'on') and ov is not none %}{{ ov | float }}
+          {% elif has_value('sensor.minisplit_computed_setpoint') %}{{ states('sensor.minisplit_computed_setpoint') | float }}
+          {% else %}{{ none }}{% endif %}
   - binary_sensor:
       # On while band control is sending the Follow-Me value. delay_off rides
       # out a brief Matter/Zigbee blip instead of handing back and forth.
@@ -125,9 +139,8 @@ template:
         state: >-
           {{ is_state('input_select.minisplit_followme_experiment', 'band')
              and is_state('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'heat')
-             and is_state('binary_sensor.minisplit_manual_override', 'off')
              and has_value('sensor.0x18690afffe5602f1_temperature')
-             and has_value('sensor.minisplit_computed_setpoint')
+             and has_value('sensor.minisplit_follow_me_band_target')
              and state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') is not none }}
 
 automation:
@@ -203,12 +216,12 @@ automation:
         state: "on"
       - condition: template
         value_template: >-
-          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_computed_setpoint')
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_follow_me_band_target')
              and states('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4') in ['on', 'off'] }}
     actions:
       - variables:
           room: "{{ states('sensor.0x18690afffe5602f1_temperature') | float }}"
-          target: "{{ states('sensor.minisplit_computed_setpoint') | float }}"
+          target: "{{ states('sensor.minisplit_follow_me_band_target') | float }}"
           comp_on: "{{ is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'on') }}"
           comp_age_min: >-
             {{ ((now() - states.binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4.last_changed).total_seconds() / 60) | round(1) }}
@@ -323,9 +336,9 @@ automation:
       - condition: template
         value_template: >-
           {% set r = states('sensor.0x18690afffe5602f1_temperature') | float(0) %}
-          {% set t = states('sensor.minisplit_computed_setpoint') | float(0) %}
+          {% set t = states('sensor.minisplit_follow_me_band_target') | float(0) %}
           {% set off_min = ((now() - states.binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4.last_changed).total_seconds() / 60) %}
-          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_computed_setpoint')
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_follow_me_band_target')
              and (r > t + 4
                   or (r < t - 4 and is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'off') and off_min >= 30)) }}
     actions:
@@ -339,7 +352,7 @@ automation:
           title: "Follow-Me band control stopped"
           message: >-
             Safety stop at {{ now().strftime('%H:%M') }}: room {{ states('sensor.0x18690afffe5602f1_temperature') }}F,
-            target {{ states('sensor.minisplit_computed_setpoint') }}F, compressor
+            target {{ states('sensor.minisplit_follow_me_band_target') }}F, compressor
             {{ states('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4') }}. Back on the normal relay;
             turn MiniSplit Follow-Me Band Control back to band once it's sorted.
     mode: single

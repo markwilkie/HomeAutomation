@@ -613,7 +613,8 @@
            and trigger.from_state.attributes.temperature is not none
            and trigger.to_state.attributes.temperature is not none
            and ((trigger.to_state.attributes.temperature | float)
-                - states('input_number.minisplit_schedule_setpoint') | float(0)) | abs >= 0.5 }}
+                - (states('input_number.minisplit_override_setpoint') if is_state('binary_sensor.minisplit_manual_override', 'on')
+                   else states('input_number.minisplit_schedule_setpoint')) | float(0)) | abs >= 0.5 }}
   actions:
     # 2026-11-21: a 1F "remote" change is the unit's setpoint slipping half
     # a degree C on its own (5 times 2026-11-18..21, none by hand -- see
@@ -625,11 +626,15 @@
           value_template: >-
             {{ not trigger.to_state.context.user_id
                and ((trigger.to_state.attributes.temperature | float)
-                    - states('input_number.minisplit_schedule_setpoint') | float(0)) | abs <= 1 }}
+                    - (states('input_number.minisplit_override_setpoint') if is_state('binary_sensor.minisplit_manual_override', 'on')
+                       else states('input_number.minisplit_schedule_setpoint')) | float(0)) | abs <= 1 }}
       then:
+        # During an override the slip goes back to the override's value.
         - variables:
             slipped: "{{ trigger.to_state.attributes.temperature | float }}"
-            schedule_back: "{{ states('input_number.minisplit_schedule_setpoint') | float(0) }}"
+            schedule_back: >-
+              {{ (states('input_number.minisplit_override_setpoint') if is_state('binary_sensor.minisplit_manual_override', 'on')
+                  else states('input_number.minisplit_schedule_setpoint')) | float(0) }}
         - action: climate.set_temperature
           target:
             entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
@@ -638,7 +643,7 @@
         - action: logbook.log
           data:
             name: "MiniSplit setpoint"
-            message: "unit slipped to {{ slipped }}F on its own -- put back to the schedule's {{ schedule_back }}F (not an override)"
+            message: "unit slipped to {{ slipped }}F on its own -- put back to {{ schedule_back }}F (not an override)"
             entity_id: climate.bedroom_mini_split_ac_bridge_thermostat_6
         - action: shell_command.minisplit_log_override
           data:
@@ -651,6 +656,11 @@
             mode: "{{ trigger.to_state.state }}"
             source: "slip"
         - stop: "1F slip, not an override"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.minisplit_override_setpoint
+      data:
+        value: "{{ trigger.to_state.attributes.temperature | float }}"
     - action: input_datetime.set_datetime
       target:
         entity_id: input_datetime.minisplit_override_until
