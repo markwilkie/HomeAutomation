@@ -279,6 +279,7 @@ automation:
       - trigger: state
         entity_id: binary_sensor.minisplit_follow_me_band_active
         from: "on"
+        to: "off"
     conditions:
       - condition: template
         value_template: "{{ has_value('sensor.0x18690afffe5602f1_temperature') }}"
