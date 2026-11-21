@@ -14,8 +14,8 @@
         "RetryDelay": 2000
     },
     "CameraSettings": {
-        "Slot2FileTypes": ["*.RAF", "*.ARW", "*.CR2", "*.NEF"],
-        "Slot1FileTypes": ["*.JPG", "*.JPEG"],
+        "Slot1FileTypes": ["*.RAF", "*.ARW", "*.CR2", "*.NEF"],
+        "Slot2FileTypes": ["*.JPG", "*.JPEG"],
         "DCIMFolderPattern": "DCIM",
         "MinimumFreeSpace": 1073741824
     },
