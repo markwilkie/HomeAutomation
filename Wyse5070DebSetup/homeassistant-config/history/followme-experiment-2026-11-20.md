@@ -66,6 +66,22 @@ by the gap since the previous start: < 24 min -> +1, 24-40 -> unchanged,
 40-90 -> -1, bounds 6-10 min, 90+ min gaps ignored. Expected not to move
 this afternoon (~30 min gaps at 6 min); it's there for colder conditions.
 
+Rest of the 6-min arm: starts 14:23, 15:01, 15:42, 16:26, 17:13 (gaps
+37-47 min, lengthening into late afternoon), runs 9-10 min, room
+68.4-70.7F. Whole 6-min arm: 8 starts in ~4.6 h (~1.7/hour).
+
+End baseline (17:15 real relay): the 17:13 start ran 13 min under the
+real reading and peaked 71.4F (vs 70.5-70.7F with band), then coasted
+into the 19:00+ night ramp with no restart -- the unit's heat line
+(setpoint - 1C) stayed below the room as the ramp stepped the setpoint
+down. Only one comparable cycle.
+
+Fix for next run: latch heat/stop. At the start line the sensor's 0.18F
+steps (68.54/68.72 around 68.7) flip heat/hold and send 19/21/19/21 within
+a minute (same at the stop line, 69.44/69.62); starts then lag 5-7 min
+instead of ~2, deepening the lows ~0.2F. Once heat is sent, keep it until
+the compressor starts; once stop is sent, keep it until it stops.
+
 ## For cooling (not built)
 
 Start log, 3-starts/hour guard and adaptive min run carry over unchanged.
