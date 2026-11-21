@@ -5,8 +5,8 @@
 // isolated read_voltage() times the isolator's PWM high pulse with
 // pulseIn(pin, HIGH, 400) and returns mV = average high time (us) * 35; with
 // no pulses the pin level decides (80 us if high, else 0). Here the pulse
-// timing is done by MCPWM capture (12.5 ns edge timestamps) and averaged over
-// one second (~12k pulses vs the library's 3000). The pH/ORP conversion and
+// timing is done by MCPWM capture (12.5 ns edge timestamps), each pin averaged
+// over half a second (thousands of pulses vs the library's 3000). The pH/ORP conversion and
 // calibration formulas are the library's, unchanged; Arduino EEPROM becomes
 // NVS, and calibration gains stability/plausibility guards (PLAN.md Phase 3).
 
@@ -15,63 +15,247 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "driver/mcpwm_cap.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "nvs.h"
 
 static const char *TAG = "probes";
 
 // ---------------- PWM capture ----------------
+//
+// Edge labels are not trusted (2026-11-20). With one channel capturing both
+// edges, the driver reads the edge type from a status register separately from
+// the latched time, and the pairing could lock onto the wrong phase: the pH
+// input read 1403 mV in pH 7 buffer, then ~2190-2400 mV in the same buffer after
+// a reboot (1403 + 2193 = one ~103 us period, i.e. the low pulse one boot and
+// the high pulse the next), and pH 4 read below pH 7. Now each pin gets two
+// channels, one capturing only rising edges and one only falling edges, so the
+// edge type is known from which channel fired. The C6 has three capture
+// channels, so the two pins take turns: each is measured for half of every
+// PROBE_SAMPLE_MS.
+//
+// Glitches (2026-11-20, raw edge dump, serial EDGES,0): the isolator signal is a
+// clean 80 us PWM, but its rising edges often carry a 10-100 ns glitch, captured
+// as a fall plus a rise almost on top of each other (every rising edge on pH,
+// some on ORP). Paired naively, those made high pulses of ~0 or ~80 us, which is
+// what produced today's jumping and "inverted" readings. So edges closer than
+// CAP_GLITCH_NS are merged into one transition, timed at its first edge, whose
+// direction is that of its last edge. A pulse is then used only from a clean
+// rise -> fall -> rise sequence with a 60-100 us period. High = fall - rise, as
+// the library times it, but the value is read from the low time (see take_mv). Accepted and rejected counts are logged once a minute.
 
 typedef struct {
     gpio_num_t gpio;
-    uint32_t last_rise;
-    bool have_rise;
-    uint64_t sum_high;           // capture ticks, taken by the sampler each second
-    uint32_t n_high;
+    uint64_t sum_high, sum_low, sum_period;   // capture ticks of accepted pulses
+    uint32_t n_ok, n_rej;
 } cap_chan_t;
 
 static cap_chan_t s_cap[2] = { { .gpio = PIN_PH }, { .gpio = PIN_ORP } };
 static portMUX_TYPE s_cap_mux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t s_res_hz;
+static mcpwm_cap_timer_handle_t s_timer;
+static mcpwm_cap_channel_handle_t s_ch_rise, s_ch_fall;
 
-static bool IRAM_ATTR on_cap(mcpwm_cap_channel_handle_t cap, const mcpwm_capture_event_data_t *e, void *ctx)
+// Edge state for the pin being measured (reset at every switch; under s_cap_mux).
+static cap_chan_t *s_cur;
+static bool s_have_cl;                       // a transition (edge cluster) is open
+static uint32_t s_cl_first, s_cl_last;       // its earliest and latest edge times
+static bool s_cl_rise;                       // direction of its latest edge
+static int s_seq;                            // 0 none, 1 have rise, 2 have rise + fall
+static uint32_t s_rise_t, s_fall_t;
+static uint32_t s_min_period_ticks, s_max_period_ticks, s_glitch_ticks;
+
+#define CAP_MIN_PERIOD_US 60
+#define CAP_GLITCH_NS     1000               // observed glitches are 10-100 ns; pulses are 30-50 us
+
+// Raw edge dump (serial EDGES,0 / EDGES,1): the next DUMP_N edges on that pin.
+#define DUMP_N 256
+static volatile int s_dump_req = -1;     // probe index requested, -1 none
+static bool s_dumping;
+static int s_dump_n;
+static uint32_t s_dump_t[DUMP_N];
+static uint8_t s_dump_rise[DUMP_N];
+
+static inline void IRAM_ATTR dump_edge(uint32_t v, bool rise)
 {
-    cap_chan_t *c = (cap_chan_t *)ctx;
+    if (s_dumping && s_dump_n < DUMP_N) {
+        s_dump_t[s_dump_n] = v;
+        s_dump_rise[s_dump_n] = rise;
+        s_dump_n++;
+    }
+}
+#define CAP_MAX_PERIOD_US 100
+
+// A finished transition at time t: rise -> fall -> rise completes a pulse.
+static inline void IRAM_ATTR transition(uint32_t t, bool rise)
+{
+    if (rise) {
+        if (s_seq == 2) {
+            uint32_t period = t - s_rise_t;
+            if (period >= s_min_period_ticks && period <= s_max_period_ticks) {
+                s_cur->sum_high += s_fall_t - s_rise_t;
+                s_cur->sum_low += t - s_fall_t;
+                s_cur->sum_period += period;
+                s_cur->n_ok++;
+            } else {
+                s_cur->n_rej++;
+            }
+        } else if (s_seq == 1) {
+            s_cur->n_rej++;                      // rise after rise: a fall went missing
+        }
+        s_rise_t = t;
+        s_seq = 1;
+    } else if (s_seq == 1) {
+        s_fall_t = t;
+        s_seq = 2;
+    } else {
+        if (s_seq == 2) s_cur->n_rej++;          // fall after fall: a rise went missing
+        s_seq = 0;
+    }
+}
+
+static inline void IRAM_ATTR on_edge(uint32_t v, bool rise)
+{
     portENTER_CRITICAL_ISR(&s_cap_mux);
-    if (e->cap_edge == MCPWM_CAP_EDGE_POS) {
-        c->last_rise = e->cap_value;
-        c->have_rise = true;
-    } else if (c->have_rise) {
-        c->sum_high += (uint32_t)(e->cap_value - c->last_rise);
-        c->n_high++;
+    dump_edge(v, rise);
+    if (s_cur) {
+        int32_t d = (int32_t)(v - s_cl_first);
+        if (s_have_cl && d > -(int32_t)s_glitch_ticks && d < (int32_t)s_glitch_ticks) {
+            // Part of the open transition (the two channels' interrupts can come in either order).
+            if ((int32_t)(v - s_cl_last) > 0) { s_cl_last = v; s_cl_rise = rise; }
+            if (d < 0) s_cl_first = v;
+        } else if (s_have_cl && d < 0) {
+            s_cur->n_rej++;                      // an interrupt so late it is out of order: start over
+            s_have_cl = false;
+            s_seq = 0;
+        } else {
+            if (s_have_cl) transition(s_cl_first, s_cl_rise);
+            s_have_cl = true;
+            s_cl_first = s_cl_last = v;
+            s_cl_rise = rise;
+        }
     }
     portEXIT_CRITICAL_ISR(&s_cap_mux);
+}
+
+static bool IRAM_ATTR on_rise(mcpwm_cap_channel_handle_t cap, const mcpwm_capture_event_data_t *e, void *ctx)
+{
+    on_edge(e->cap_value, true);
     return false;
 }
 
-// atlas_gravity *_iso_grav::read_voltage(), with the 1 s average.
-static float take_mv(cap_chan_t *c, bool *had_pulses)
+static bool IRAM_ATTR on_fall(mcpwm_cap_channel_handle_t cap, const mcpwm_capture_event_data_t *e, void *ctx)
+{
+    on_edge(e->cap_value, false);
+    return false;
+}
+
+static esp_err_t cap_channel(gpio_num_t gpio, bool rise, mcpwm_cap_channel_handle_t *out)
+{
+    mcpwm_capture_channel_config_t ccfg = {
+        .gpio_num = gpio,
+        .prescale = 1,
+        .flags.pos_edge = rise,
+        .flags.neg_edge = !rise,
+    };
+    esp_err_t err = mcpwm_new_capture_channel(s_timer, &ccfg, out);
+    if (err != ESP_OK) return err;
+    mcpwm_capture_event_callbacks_t cbs = { .on_cap = rise ? on_rise : on_fall };
+    if ((err = mcpwm_capture_channel_register_event_callbacks(*out, &cbs, NULL)) != ESP_OK) return err;
+    return mcpwm_capture_channel_enable(*out);
+}
+
+static void cap_drop(mcpwm_cap_channel_handle_t *ch)
+{
+    if (!*ch) return;
+    mcpwm_capture_channel_disable(*ch);
+    mcpwm_del_capture_channel(*ch);
+    *ch = NULL;
+}
+
+// Point both capture channels at probe i and start its slot.
+static esp_err_t cap_measure(int i)
 {
     portENTER_CRITICAL(&s_cap_mux);
-    uint64_t sum = c->sum_high;
-    uint32_t n = c->n_high;
-    c->sum_high = 0;
-    c->n_high = 0;
+    s_cur = NULL;
     portEXIT_CRITICAL(&s_cap_mux);
+    cap_drop(&s_ch_rise);
+    cap_drop(&s_ch_fall);
+    portENTER_CRITICAL(&s_cap_mux);
+    s_have_cl = false;
+    s_seq = 0;
+    s_cap[i].sum_high = s_cap[i].sum_low = s_cap[i].sum_period = 0;
+    s_cap[i].n_ok = s_cap[i].n_rej = 0;
+    s_cur = &s_cap[i];
+    s_dump_n = 0;
+    s_dumping = (s_dump_req == i);
+    portEXIT_CRITICAL(&s_cap_mux);
+    esp_err_t err = cap_channel(s_cap[i].gpio, true, &s_ch_rise);
+    if (err == ESP_OK) err = cap_channel(s_cap[i].gpio, false, &s_ch_fall);
+    return err;
+}
 
-    float high_us;
+// Print the captured edges as "R/F <us since previous edge>" and stop dumping.
+static void dump_print(int i)
+{
+    portENTER_CRITICAL(&s_cap_mux);
+    s_dumping = false;
+    s_dump_req = -1;
+    int n = s_dump_n;
+    portEXIT_CRITICAL(&s_cap_mux);
+    // The two channels' interrupts can arrive out of order: sort by time first.
+    for (int a = 1; a < n; a++) {
+        for (int b = a; b > 0 && (int32_t)(s_dump_t[b] - s_dump_t[b - 1]) < 0; b--) {
+            uint32_t t = s_dump_t[b]; s_dump_t[b] = s_dump_t[b - 1]; s_dump_t[b - 1] = t;
+            uint8_t r = s_dump_rise[b]; s_dump_rise[b] = s_dump_rise[b - 1]; s_dump_rise[b - 1] = r;
+        }
+    }
+    printf("EDGES %s GPIO%d: %d edges (R/F = rising/falling, us since previous edge)\n",
+           i ? "ORP" : "pH", s_cap[i].gpio, n);
+    for (int k = 0; k < n; k++) {
+        float dt = k ? (float)(s_dump_t[k] - s_dump_t[k - 1]) * 1e6f / s_res_hz : 0.0f;
+        printf("%c%.2f%s", s_dump_rise[k] ? 'R' : 'F', dt, (k % 16 == 15) ? "\n" : " ");
+    }
+    printf("\nEDGES end\n");
+}
+
+void probes_dump_edges(int probe) { s_dump_req = probe; }
+
+typedef struct {
+    float period_us;
+    uint32_t ok, rej;
+} cap_stats_t;
+
+// atlas_gravity *_iso_grav::read_voltage(): mV = pulse time (us) * 35.
+static float take_mv(cap_chan_t *c, bool *had_pulses, cap_stats_t *st)
+{
+    portENTER_CRITICAL(&s_cap_mux);
+    uint64_t sl = c->sum_low, sp = c->sum_period;
+    uint32_t n = c->n_ok, rej = c->n_rej;
+    portEXIT_CRITICAL(&s_cap_mux);
+    st->ok = n;
+    st->rej = rej;
+    st->period_us = n ? (float)sp / n * 1e6f / s_res_hz : 0.0f;
+
+    float us;
     if (n == 0) {
-        high_us = gpio_get_level(c->gpio) ? 80.0f : 0.0f;
+        // No usable pulses: the library's rule (pin high = full scale, low = 0).
+        us = gpio_get_level(c->gpio) ? 0.0f : 80.0f;   // inverted like the pulses
         *had_pulses = false;
     } else {
-        high_us = (float)sum / n * 1e6f / s_res_hz;
+        // The value is in the LOW time (2026-11-20, glitch-free edge dumps, same probe):
+        // pH 7 buffer high 35.4 / low 44.6 us, pH 4 buffer high 19.6 / low 60.3 us.
+        // Low x 35 gives 1561 / 2110 mV, beside the library defaults 1500 / 2030 and
+        // rising in acid as it must; high x 35 (the library) gives 1239 / 686, falling.
+        us = (float)sl / n * 1e6f / s_res_hz;
         *had_pulses = true;
     }
-    return high_us * 35.0f;
+    return us * 35.0f;
 }
 
 // ---------------- calibration (library math) ----------------
@@ -159,15 +343,28 @@ static float hist_mean(const hist_t *h, int n) { return hist_mean_at(h, 0, n); }
 static void sampler_task(void *arg)
 {
     TickType_t last = xTaskGetTickCount();
+    int64_t last_log_us = 0;
     for (;;) {
-        vTaskDelayUntil(&last, pdMS_TO_TICKS(PROBE_SAMPLE_MS));
-        xSemaphoreTake(s_lock, portMAX_DELAY);
-        for (int i = 0; i < 2; i++) {
-            bool pulses;
-            float mv = take_mv(&s_cap[i], &pulses);
-            hist_push(&s_hist[i], mv, pulses);
+        float mv[2];
+        bool pulses[2];
+        cap_stats_t st[2];
+        for (int i = 0; i < 2; i++) {               // each pin gets half the sample period
+            esp_err_t err = cap_measure(i);
+            if (err != ESP_OK) ESP_LOGE(TAG, "capture on GPIO%d: %s", s_cap[i].gpio, esp_err_to_name(err));
+            vTaskDelayUntil(&last, pdMS_TO_TICKS(PROBE_SAMPLE_MS / 2));
+            mv[i] = take_mv(&s_cap[i], &pulses[i], &st[i]);
+            if (s_dumping) dump_print(i);
         }
+        xSemaphoreTake(s_lock, portMAX_DELAY);
+        for (int i = 0; i < 2; i++) hist_push(&s_hist[i], mv[i], pulses[i]);
         xSemaphoreGive(s_lock);
+        if (esp_timer_get_time() - last_log_us > 60 * 1000000LL) {   // the library assumes an 80 us period
+            last_log_us = esp_timer_get_time();
+            ESP_LOGI(TAG, "PWM: pH %.0f mV (period %.2f us, %lu pulses used, %lu rejected), "
+                     "ORP %.0f mV (period %.2f us, %lu used, %lu rejected)",
+                     mv[0], st[0].period_us, (unsigned long)st[0].ok, (unsigned long)st[0].rej,
+                     mv[1], st[1].period_us, (unsigned long)st[1].ok, (unsigned long)st[1].rej);
+        }
     }
 }
 
@@ -279,30 +476,19 @@ esp_err_t probes_init(void)
     cal_load();
     probes_log_calibration();
 
-    mcpwm_cap_timer_handle_t timer;
     mcpwm_capture_timer_config_t tcfg = {
         .group_id = 0,
         .clk_src = MCPWM_CAPTURE_CLK_SRC_DEFAULT,
     };
-    esp_err_t err = mcpwm_new_capture_timer(&tcfg, &timer);
+    esp_err_t err = mcpwm_new_capture_timer(&tcfg, &s_timer);
     if (err != ESP_OK) return err;
-    mcpwm_capture_timer_get_resolution(timer, &s_res_hz);
-
-    for (int i = 0; i < 2; i++) {
-        mcpwm_cap_channel_handle_t ch;
-        mcpwm_capture_channel_config_t ccfg = {
-            .gpio_num = s_cap[i].gpio,
-            .prescale = 1,
-            .flags.pos_edge = true,
-            .flags.neg_edge = true,
-        };
-        if ((err = mcpwm_new_capture_channel(timer, &ccfg, &ch)) != ESP_OK) return err;
-        mcpwm_capture_event_callbacks_t cbs = { .on_cap = on_cap };
-        if ((err = mcpwm_capture_channel_register_event_callbacks(ch, &cbs, &s_cap[i])) != ESP_OK) return err;
-        if ((err = mcpwm_capture_channel_enable(ch)) != ESP_OK) return err;
-    }
-    if ((err = mcpwm_capture_timer_enable(timer)) != ESP_OK) return err;
-    if ((err = mcpwm_capture_timer_start(timer)) != ESP_OK) return err;
+    mcpwm_capture_timer_get_resolution(s_timer, &s_res_hz);
+    s_min_period_ticks = (uint32_t)((uint64_t)CAP_MIN_PERIOD_US * s_res_hz / 1000000);
+    s_glitch_ticks = (uint32_t)((uint64_t)CAP_GLITCH_NS * s_res_hz / 1000000000);
+    s_max_period_ticks = (uint32_t)((uint64_t)CAP_MAX_PERIOD_US * s_res_hz / 1000000);
+    if ((err = mcpwm_capture_timer_enable(s_timer)) != ESP_OK) return err;
+    if ((err = mcpwm_capture_timer_start(s_timer)) != ESP_OK) return err;
+    if ((err = cap_measure(0)) != ESP_OK) return err;      // the sampler takes it from here
 
     xTaskCreate(sampler_task, "probes", 3072, NULL, 5, NULL);
     ESP_LOGI(TAG, "pH on GPIO%d, ORP on GPIO%d (isolator PWM, %lu Hz capture)", PIN_PH, PIN_ORP,

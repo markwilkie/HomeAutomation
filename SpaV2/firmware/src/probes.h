@@ -49,6 +49,7 @@ const char *cal_status_name(cal_status_t s);
 
 // Prints the stored calibration points and pH slope.
 void probes_log_calibration(void);
+void probes_dump_edges(int probe);   // 0 = pH, 1 = ORP: print the next 256 raw edges
 
 #ifdef __cplusplus
 }

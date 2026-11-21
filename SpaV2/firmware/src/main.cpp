@@ -99,6 +99,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "ORPCAL,CLEAR")) r.cmd = CAL_CMD_ORP_CLEAR;
         else if (!strncmp(line, "ORPCAL,", 7)) { r.cmd = CAL_CMD_ORP; r.ref_mv = strtof(line + 7, NULL); }
         else if (!strcmp(line, "STATUS")) { probes_log_calibration(); continue; }
+        else if (!strcmp(line, "EDGES,0") || !strcmp(line, "EDGES,1")) { probes_dump_edges(line[6] - '0'); continue; }
         else { printf("Unknown command: %s\n", line); continue; }
         xQueueSend(s_cal_q, &r, 0);
     }
