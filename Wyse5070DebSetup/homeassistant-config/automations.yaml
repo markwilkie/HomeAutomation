@@ -75,11 +75,6 @@
   - condition: state
     entity_id: binary_sensor.minisplit_manual_override
     state: "off"
-  # 2026-11-20: stands down during the Follow-Me experiment -- its spoofed
-  # values can trip followme_engaged and drop this into the predictive
-  # controller mid-run (packages/minisplit_followme_experiment.yaml).
-  - condition: template
-    value_template: "{{ states('input_select.minisplit_followme_experiment') not in ['band', 'soft_hold'] }}"
   actions:
   - variables:
       target_temp: "{{ states('sensor.minisplit_computed_setpoint') | float(66) }}"
@@ -251,9 +246,13 @@
       # itself (rounded half-up to whole F) while Follow-Me is engaged --
       # the unit then regulates on the real room temperature on its own --
       # and falls back to the controller above otherwise.
+      # 2026-11-20: always direct while Follow-Me band control is active --
+      # its spoofed values trip followme_engaged, and the band's commands
+      # are relative to whatever Desired is (packages/minisplit_followme_band.yaml).
       use_direct: >-
-        {{ is_state('input_select.minisplit_setpoint_strategy', 'direct')
-           and is_state('binary_sensor.minisplit_followme_engaged', 'on') }}
+        {{ is_state('binary_sensor.minisplit_followme_band_active', 'on')
+           or (is_state('input_select.minisplit_setpoint_strategy', 'direct')
+               and is_state('binary_sensor.minisplit_followme_engaged', 'on')) }}
       new_setpoint: "{{ ((target_temp + 0.5) | round(0, 'floor')) if use_direct else controller_setpoint }}"
       # Which direction eases off the current mode (up in Cool, down in
       # Heat) -- always allowed through the compressor/demand guard below.
@@ -437,10 +436,11 @@
   conditions:
     - condition: template
       value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable', 'none'] }}"
-    # 2026-11-20: the Follow-Me experiment sends its own values while active
-    # (packages/minisplit_followme_experiment.yaml).
-    - condition: template
-      value_template: "{{ states('input_select.minisplit_followme_experiment') not in ['band', 'soft_hold'] }}"
+    # 2026-11-20: Follow-Me band control sends its own values while active
+    # (packages/minisplit_followme_band.yaml).
+    - condition: state
+      entity_id: binary_sensor.minisplit_followme_band_active
+      state: "off"
     - condition: template
       value_template: >-
         {% set to_c = (((trigger.to_state.state | float - 32) * 5 / 9) + 0.5) | round(0, 'floor') %}

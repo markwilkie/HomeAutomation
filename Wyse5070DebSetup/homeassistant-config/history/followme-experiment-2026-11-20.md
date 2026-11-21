@@ -1,6 +1,6 @@
 # Follow-Me spoofing experiment — 2026-11-20
 
-Implementation: `packages/minisplit_followme_experiment.yaml`.
+Implementation: `packages/minisplit_followme_experiment.yaml`, renamed `packages/minisplit_followme_band.yaml` when made permanent.
 
 ## Baseline (2026-11-18/19, daytime Heat, target 69.5F, real relay)
 
@@ -81,6 +81,24 @@ steps (68.54/68.72 around 68.7) flip heat/hold and send 19/21/19/21 within
 a minute (same at the stop line, 69.44/69.62); starts then lag 5-7 min
 instead of ~2, deepening the lows ~0.2F. Once heat is sent, keep it until
 the compressor starts; once stop is sent, keep it until it stops.
+
+## Made permanent (2026-11-20, ~22:30, owner's call)
+
+Package renamed `packages/minisplit_followme_band.yaml`; entity IDs keep
+the "experiment" names so history carries on. Changes from the trial:
+- Runs whenever band is selected, the unit is in Heat, there's no manual
+  override and the sensors are up (`binary_sensor.minisplit_followme_band_active`,
+  2-min delay_off). Otherwise it pauses: the real reading is sent again and
+  the normal relay takes over. No schedule; soft_hold removed.
+- Heat/stop latch added (above).
+- The setpoint automation no longer stands down; it's forced onto "direct"
+  (Desired = target, rounded) while band is active, so the unit's own
+  setpoint still follows the day/night ramps.
+- Safety stop now only for real failures: room > target+4F, or < target-4F
+  with the compressor off 30+ min. Mode change / override just pause.
+- Known gap (same as the plain relay): if HA or the Zigbee sensor is down,
+  the bridge keeps sending the last value. A Follow-Me staleness timeout in
+  the bridge firmware would close it.
 
 ## For cooling (not built)
 

@@ -1,72 +1,81 @@
-# MiniSplit Follow-Me spoofing experiment (2026-11-20).
+# MiniSplit Follow-Me band control (permanent since 2026-11-20; trialled
+# that day as the "Follow-Me experiment" -- entity IDs keep that name so
+# their history carries on).
 #
 # Why: in Heat the unit only ever sees whole degrees C over IR (state[11]),
-# and around its ~20.5C setpoint it behaves like a fixed thermostat --
-# Follow-Me 20 = heat, 21 = keep doing whatever it's doing, 22 = stop. That
-# 2C (3.6F) deadband plus the bridge's 3-minute heartbeat is the ~4F
-# room swing seen every daytime cycle (2026-11-18/19: on at ~68.7F, off at
+# and it behaves like a fixed thermostat around its setpoint: Follow-Me at
+# setpoint-1C = heat, setpoint = keep doing whatever it's doing, setpoint+1C
+# = stop. That 2C (3.6F) deadband plus the bridge's 3-minute heartbeat gave
+# a ~4F room swing every cycle (2026-11-18/19: on at ~68.7F, off at
 # ~72.0-72.5F, peak ~72.7-73.0F, ~1 cycle/hour).
 #
-# What: while input_select.minisplit_followme_experiment isn't "off", HA
-# stops relaying the real room temperature to the bridge's Follow-Me
-# endpoint (thermostat_10) and instead sends a chosen whole C so HA decides
-# when the unit heats and stops, inside a band it picks:
-#   band       heat at <= target-0.3F, stop at >= target+0.5F, else hold
-#   soft_hold  heat at <= target-0.3F, stop at >= target+1.5F, else hold (tests
-#              whether the inverter throttles down while it holds)
-# heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil), setpoint (rounded):
-# 19/22/21 at the 20.5C (69F) setpoint, 20/22/21 at 21C (70F).
+# What: while binary_sensor.minisplit_followme_band_active is on
+# (input_select.minisplit_followme_experiment = band, unit in Heat, no
+# manual override, sensors available), HA doesn't relay the real room
+# temperature to the bridge's Follow-Me endpoint (thermostat_10); it sends
+# a chosen whole C so HA decides when the unit heats and stops:
+#   heat at <= target-0.3F, stop at >= target+0.5F, else hold
+# (target = sensor.minisplit_computed_setpoint, so the day/night ramps
+# carry over). heat/stop/hold = setpoint-1C (floor), setpoint+1C (ceil),
+# setpoint (rounded): 19/22/21 at the 20.5C (69F) setpoint.
+# Latch (2026-11-20): once heat is sent it's kept until the compressor
+# starts, and stop until it stops -- the sensor's 0.18F steps straddle the
+# lines and used to flip heat/hold several times a minute, delaying starts
+# 5-7 min.
 # Guards: stop is held back as hold until the compressor has run
 # input_number.minisplit_followme_min_run_min (6-10 min, adaptive -- see
-# below; a fixed 8 until 12:06 and 6 until the adaptive version on
-# 2026-11-20); heat as hold until it has been off 10 min. If the unit ignores heat or
+# below); heat as hold until it has been off 10 min. If the unit ignores heat or
 # stop for 6 min, it escalates one more degree C.
-# Start budget (2026-11-20, owner's limit): at most 3 compressor starts in
-# any rolling 60 minutes. Once the last 3 starts all fall within the past
-# hour, heat is held back as hold until the oldest of them is 60 min old.
-# Pioneer documents only a 3-min restart delay (enforced by the unit
-# itself); 3 starts/hour is the usual HVAC rule of thumb. Starts are
-# recorded in input_text.minisplit_compressor_starts whether or not an arm
-# is active, so the budget is right from the first tick of a run.
-# Adaptive minimum run (2026-11-20): the guard holds the room off below the
-# start line, which hurts most on cold days when the room cools fastest, so
-# starts are kept in line by run length first and the guard is only the
-# backstop. At each start during an arm, the gap since the previous start
-# adjusts the minimum run by 1 min (bounds 6-10): under 24 min (heading
-# above 2.5 starts/hour) -> +1, longer runs store more heat and space
-# starts out at the cost of a warmer peak; 24-40 min -> unchanged; 40-90 min
-# -> -1. Gaps of 90+ min (an idle spell, an arm just starting) are ignored.
-# Driven by measured cycling, not outdoor temperature, so wind, sun, open
-# doors and cold-weather capacity loss are all covered without calibration.
-# While an arm is active, the normal relay ("MiniSplit FollowMe temp relay
-# to firmware") and the setpoint automation stand down -- the spoofed value
-# can trip binary_sensor.minisplit_followme_engaged, which would make the
-# setpoint automation fall back to its predictive controller mid-experiment.
+# Start budget (owner's limit): at most 3 compressor starts in any rolling
+# 60 minutes. Once the last 3 starts all fall within the past hour, heat is
+# held back as hold until the oldest of them is 60 min old. Pioneer
+# documents only a 3-min restart delay (enforced by the unit itself); 3
+# starts/hour is the usual HVAC rule of thumb. Starts are recorded in
+# input_text.minisplit_compressor_starts whatever the mode.
+# Adaptive minimum run: the budget holds the room off below the start line,
+# which hurts most on cold days when the room cools fastest, so starts are
+# kept in line by run length first and the budget is only the backstop. At
+# each start while active, the gap since the previous start adjusts the
+# minimum run by 1 min (bounds 6-10): under 24 min (heading above 2.5
+# starts/hour) -> +1; 24-40 min -> unchanged; 40-90 min -> -1. Gaps of 90+
+# min (an idle spell) are ignored. Driven by measured cycling, not outdoor
+# temperature, so wind, sun, open doors and cold-weather capacity loss are
+# all covered without calibration.
+# Pauses (unit not in Heat, manual override, sensor gone): band_active goes
+# off (2 min delay), the real reading is sent again and the normal relay
+# ("MiniSplit FollowMe temp relay to firmware") takes over. While active, the
+# setpoint automation is forced onto its "direct" strategy (Desired =
+# target) -- the spoofed value trips binary_sensor.minisplit_followme_engaged,
+# which would otherwise drop it into the predictive controller.
+# Safety stop (turns band off and notifies): room more than 4F above target,
+# or more than 4F below it with the compressor off for 30+ min.
+# Not built for Cool yet -- see history/followme-experiment-2026-11-20.md.
 #
-# Results / log: history/followme-experiment-2026-11-20.md.
+# Results / log: history/followme-experiment-2026-11-20.md
+# (2026-11-20: ~4F -> ~2.2F swing, ~1.7 starts/hour, 9-10 min runs).
 
 input_select:
+  # Owner's on/off switch for band control (no initial: restores).
   minisplit_followme_experiment:
-    name: "MiniSplit Follow-Me Experiment"
+    name: "MiniSplit Follow-Me Band Control"
     options:
       - "off"
       - "band"
-      - "soft_hold"
-    icon: mdi:flask
+    icon: mdi:thermostat-auto
 
 input_number:
-  # Whole C the experiment last sent (its history is the experiment's log).
+  # Whole C last sent (its history is the control's log).
   minisplit_followme_sent_c:
-    name: "MiniSplit Follow-Me Experiment Sent"
+    name: "MiniSplit Follow-Me Band Sent"
     min: 15
     max: 30
     step: 1
     unit_of_measurement: "°C"
     mode: box
     icon: mdi:thermometer-lines
-  # Adaptive minimum compressor run while an arm is active (see above).
+  # Adaptive minimum compressor run while active (see above).
   minisplit_followme_min_run_min:
-    name: "MiniSplit Follow-Me Experiment Min Run"
+    name: "MiniSplit Follow-Me Band Min Run"
     min: 6
     max: 10
     step: 1
@@ -92,13 +101,28 @@ template:
           {% set raw = states('input_text.minisplit_compressor_starts') %}
           {% set ts = raw.split(',') | reject('eq', '') | map('int', 0) | list if raw not in ['unknown', 'unavailable'] else [] %}
           {{ ts | select('gt', now().timestamp() - 3600) | list | count }}
+  - binary_sensor:
+      # On while band control is sending the Follow-Me value. delay_off rides
+      # out a brief Matter/Zigbee blip instead of handing back and forth.
+      - name: "MiniSplit Follow-Me Band Active"
+        unique_id: minisplit_followme_band_active
+        icon: mdi:thermostat-auto
+        delay_off: "00:02:00"
+        state: >-
+          {{ is_state('input_select.minisplit_followme_experiment', 'band')
+             and is_state('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'heat')
+             and is_state('binary_sensor.minisplit_manual_override', 'off')
+             and has_value('sensor.0x18690afffe5602f1_temperature')
+             and has_value('sensor.minisplit_computed_setpoint')
+             and state_attr('climate.bedroom_mini_split_ac_bridge_thermostat_6', 'temperature') is not none }}
 
 automation:
   - id: minisplit_compressor_start_log
     alias: MiniSplit compressor start log
     description: >-
       Records each compressor start in input_text.minisplit_compressor_starts
-      for the start budget (packages/minisplit_followme_experiment.yaml).
+      for the start budget, and adapts the minimum run while band control is
+      active (packages/minisplit_followme_band.yaml).
     triggers:
       - trigger: state
         entity_id: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
@@ -120,7 +144,7 @@ automation:
       - if:
           - condition: template
             value_template: >-
-              {{ states('input_select.minisplit_followme_experiment') in ['band', 'soft_hold']
+              {{ is_state('binary_sensor.minisplit_followme_band_active', 'on')
                  and prev_start > 0 and new_run | int != cur_run }}
         then:
           - action: input_number.set_value
@@ -130,7 +154,7 @@ automation:
               value: "{{ new_run | int }}"
           - action: logbook.log
             data:
-              name: "Follow-Me experiment"
+              name: "Follow-Me band"
               message: "minimum run {{ cur_run }} -> {{ new_run | int }} min ({{ gap_min }} min since the previous start)"
               entity_id: input_number.minisplit_followme_min_run_min
       - action: input_text.set_value
@@ -144,28 +168,31 @@ automation:
     mode: queued
 
   - id: minisplit_followme_experiment_control
-    alias: MiniSplit Follow-Me experiment control
+    alias: MiniSplit Follow-Me band control
     description: >-
-      Sends the experiment's chosen Follow-Me value to thermostat_10 while
-      input_select.minisplit_followme_experiment is band or soft_hold. See
-      packages/minisplit_followme_experiment.yaml.
+      Sends band control's chosen Follow-Me value to thermostat_10 while
+      binary_sensor.minisplit_followme_band_active is on. See
+      packages/minisplit_followme_band.yaml.
     triggers:
       - trigger: state
         entity_id: sensor.0x18690afffe5602f1_temperature
       - trigger: state
         entity_id: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
       - trigger: state
-        entity_id: input_select.minisplit_followme_experiment
+        entity_id: binary_sensor.minisplit_followme_band_active
+        to: "on"
       - trigger: time_pattern
         minutes: /1
     conditions:
+      - condition: state
+        entity_id: binary_sensor.minisplit_followme_band_active
+        state: "on"
       - condition: template
-        value_template: "{{ states('input_select.minisplit_followme_experiment') in ['band', 'soft_hold'] }}"
-      - condition: template
-        value_template: "{{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_computed_setpoint') }}"
+        value_template: >-
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_computed_setpoint')
+             and states('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4') in ['on', 'off'] }}
     actions:
       - variables:
-          arm: "{{ states('input_select.minisplit_followme_experiment') }}"
           room: "{{ states('sensor.0x18690afffe5602f1_temperature') | float }}"
           target: "{{ states('sensor.minisplit_computed_setpoint') | float }}"
           comp_on: "{{ is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'on') }}"
@@ -174,9 +201,8 @@ automation:
           prev_c: "{{ states('input_number.minisplit_followme_sent_c') | int(21) }}"
           prev_age_min: >-
             {{ ((now() - states.input_number.minisplit_followme_sent_c.last_changed).total_seconds() / 60) | round(1) }}
-          off_at: "{{ target + (0.5 if arm == 'band' else 1.5) }}"
-          wanted: >-
-            {{ 'heat' if room <= target - 0.3 else ('stop' if room >= off_at else 'hold') }}
+          raw_wanted: >-
+            {{ 'heat' if room <= target - 0.3 else ('stop' if room >= target + 0.5 else 'hold') }}
           # The unit's own band is its setpoint +/- 1C (found 2026-11-20: at a
           # 21C setpoint 20 starts it, at 20.5C it needs 19), so the commands
           # are relative to the setpoint it holds (Desired, 0.5C steps).
@@ -184,6 +210,11 @@ automation:
           heat_c: "{{ (sp_c - 1) | round(0, 'floor') | int }}"
           stop_c: "{{ (sp_c + 1) | round(0, 'ceil') | int }}"
           hold_c: "{{ (sp_c + 0.01) | round(0) | int }}"
+          # Latch: keep heat until the compressor starts, stop until it stops.
+          wanted: >-
+            {% if prev_c <= heat_c and not comp_on and raw_wanted != 'stop' %}heat
+            {% elif prev_c >= stop_c and comp_on and raw_wanted != 'heat' %}stop
+            {% else %}{{ raw_wanted }}{% endif %}
           # Start budget: 3rd most recent start, or 0 if fewer than 3 logged.
           # Read the list inside the template: as its own variable, HA's native
           # typing turns "a,b,c" into a tuple and .split() fails.
@@ -219,9 +250,9 @@ automation:
               value: "{{ desired_c | int }}"
           - action: logbook.log
             data:
-              name: "Follow-Me experiment"
+              name: "Follow-Me band"
               message: >-
-                {{ arm }}: sent {{ desired_c | int }}C (room {{ room }}F, target {{ target }}F,
+                sent {{ desired_c | int }}C (room {{ room }}F, target {{ target }}F,
                 wanted {{ wanted }}, compressor {{ 'on' if comp_on else 'off' }} {{ comp_age_min }} min{{
                 '' if budget_ok or comp_on or wanted != 'heat' else ', start budget used -- next start in ' ~ budget_free_in_min ~ ' min' }})
               entity_id: input_number.minisplit_followme_sent_c
@@ -238,13 +269,16 @@ automation:
     mode: single
     max_exceeded: silent
 
-  # Back to the real reading the moment the experiment ends, however it ends.
+  # Back to the real reading whenever band control stops sending (turned
+  # off, mode change, override, sensor trouble). If the sensor itself is
+  # gone, the last sent value stays -- same as the relay, which can't send
+  # an unavailable reading either.
   - id: minisplit_followme_experiment_restore
-    alias: MiniSplit Follow-Me experiment restore
+    alias: MiniSplit Follow-Me band restore
     triggers:
       - trigger: state
-        entity_id: input_select.minisplit_followme_experiment
-        to: "off"
+        entity_id: binary_sensor.minisplit_followme_band_active
+        from: "on"
     conditions:
       - condition: template
         value_template: "{{ has_value('sensor.0x18690afffe5602f1_temperature') }}"
@@ -256,37 +290,31 @@ automation:
           temperature: "{{ states('sensor.0x18690afffe5602f1_temperature') | float }}"
       - action: logbook.log
         data:
-          name: "Follow-Me experiment"
-          message: "ended -- relaying the real reading again ({{ states('sensor.0x18690afffe5602f1_temperature') }}F)"
+          name: "Follow-Me band"
+          message: "paused -- relaying the real reading again ({{ states('sensor.0x18690afffe5602f1_temperature') }}F)"
           entity_id: input_number.minisplit_followme_sent_c
     mode: single
 
   - id: minisplit_followme_experiment_safety
-    alias: MiniSplit Follow-Me experiment safety stop
+    alias: MiniSplit Follow-Me band safety stop
     description: >-
-      Ends the experiment if the room is more than 4F from the target, the Zigbee sensor is
-      gone for 10 min, the unit leaves Heat, or a manual override starts.
+      Turns band control off and notifies if the room is more than 4F above
+      the target, or more than 4F below it with the compressor off 30+ min.
     triggers:
       - trigger: time_pattern
         minutes: /1
-      - trigger: state
-        entity_id: sensor.0x18690afffe5602f1_temperature
-        to: ["unavailable", "unknown"]
-        for: "00:10:00"
-      - trigger: state
-        entity_id: binary_sensor.minisplit_manual_override
-        to: "on"
     conditions:
-      - condition: template
-        value_template: "{{ states('input_select.minisplit_followme_experiment') in ['band', 'soft_hold'] }}"
+      - condition: state
+        entity_id: binary_sensor.minisplit_followme_band_active
+        state: "on"
       - condition: template
         value_template: >-
-          {% set r = states('sensor.0x18690afffe5602f1_temperature') %}
-          {% set t = states('sensor.minisplit_computed_setpoint') | float(69) %}
-          {{ (trigger.platform == 'state')
-             or (has_value('sensor.0x18690afffe5602f1_temperature') and (r | float < t - 4 or r | float > t + 4))
-             or states('climate.bedroom_mini_split_ac_bridge_thermostat_6') != 'heat'
-             or is_state('binary_sensor.minisplit_manual_override', 'on') }}
+          {% set r = states('sensor.0x18690afffe5602f1_temperature') | float(0) %}
+          {% set t = states('sensor.minisplit_computed_setpoint') | float(0) %}
+          {% set off_min = ((now() - states.binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4.last_changed).total_seconds() / 60) %}
+          {{ has_value('sensor.0x18690afffe5602f1_temperature') and has_value('sensor.minisplit_computed_setpoint')
+             and (r > t + 4
+                  or (r < t - 4 and is_state('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4', 'off') and off_min >= 30)) }}
     actions:
       - action: input_select.select_option
         target:
@@ -295,38 +323,10 @@ automation:
           option: "off"
       - action: persistent_notification.create
         data:
-          title: "Follow-Me experiment stopped"
+          title: "Follow-Me band control stopped"
           message: >-
             Safety stop at {{ now().strftime('%H:%M') }}: room {{ states('sensor.0x18690afffe5602f1_temperature') }}F,
-            mode {{ states('climate.bedroom_mini_split_ac_bridge_thermostat_6') }},
-            override {{ states('binary_sensor.minisplit_manual_override') }}.
-    mode: single
-
-  # 2026-11-20 schedule: band 10:02-17:15, then real readings (end
-  # baseline); 18:45 hard stop before the 19:00 night ramp. Date-gated so it
-  # never fires on another day. The soft_hold slot (14:00) was dropped the
-  # same day: band already sends hold during its 8-min minimum run and the
-  # room rose at the baseline rate, so the inverter doesn't throttle on a
-  # small gap -- and the owner doesn't want shorter-run tests stressing the
-  # compressor, so band ran all day for a firmer number instead.
-  - id: minisplit_followme_experiment_schedule
-    alias: MiniSplit Follow-Me experiment schedule
-    triggers:
-      - trigger: time
-        at: "17:15:00"
-        id: "off"
-      - trigger: time
-        at: "18:45:00"
-        id: "off"
-    conditions:
-      - condition: template
-        value_template: "{{ now().strftime('%Y-%m-%d') == '2026-11-20' }}"
-      - condition: template
-        value_template: "{{ trigger.id == 'off' or is_state('input_select.minisplit_followme_experiment', 'band') }}"
-    actions:
-      - action: input_select.select_option
-        target:
-          entity_id: input_select.minisplit_followme_experiment
-        data:
-          option: "{{ trigger.id }}"
+            target {{ states('sensor.minisplit_computed_setpoint') }}F, compressor
+            {{ states('binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4') }}. Back on the normal relay;
+            turn MiniSplit Follow-Me Band Control back to band once it's sorted.
     mode: single
