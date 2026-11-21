@@ -37,6 +37,7 @@ MAP = {
     (12, "MatterPlug"): ("switch.spa_calibrate_ph_10", "Calibrate pH 10", False),
     (13, "MatterPlug"): ("switch.spa_calibrate_orp", "Calibrate ORP", False),
     (14, "MatterPlug"): ("switch.spa_calibrate_clear", "Clear pH/ORP calibration", False),
+    (15, "HumiditySensor"): ("sensor.smarterspa_readout_raw", "SmarterSpa readout (raw)", True),
 }
 # Per-endpoint plumbing HA adds that means nothing here.
 HIDE_KINDS = ("IdentifyButton", "MatterStartUpOnOff")

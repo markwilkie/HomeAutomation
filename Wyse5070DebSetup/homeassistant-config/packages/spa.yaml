@@ -166,6 +166,17 @@ template:
           {% set v = states('sensor.spa_electrode_hours_raw') %}
           {{ (v | float * 100) | round(0) | int if is_number(v) else none }}
 
+      - name: "SmarterSpa readout"
+        unique_id: smarterspa_readout
+        icon: mdi:counter
+        # Last counted-flash readout, yellow x100 + blue x10 + red x1 (manual p. 14).
+        # Its meaning depends on the button pressed (DOWN in standby = chlorine sensor mV).
+        # Firmware sends the value raw (endpoint 15); HA's /100 -> x100. 0 = none since boot.
+        state: >-
+          {% set v = states('sensor.smarterspa_readout_raw') %}
+          {% set n = (v | float * 100) | round(0) | int if is_number(v) else 0 %}
+          {{ n if n > 0 else none }}
+
       - name: "Spa calibration status"
         unique_id: spa_calibration_status
         icon: mdi:tune-variant

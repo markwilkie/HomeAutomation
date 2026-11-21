@@ -89,6 +89,8 @@ views:
                 name: Generating (24 h)
               - entity: sensor.spa_electrode_hours
                 name: Electrode hours (life ~7,000-10,000 h)
+              - entity: sensor.smarterspa_readout
+                name: SmarterSpa flash readout (press DOWN in standby = chlorine mV)
 
       - type: grid
         cards:
