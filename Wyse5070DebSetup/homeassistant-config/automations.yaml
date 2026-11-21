@@ -250,7 +250,7 @@
       # its spoofed values trip followme_engaged, and the band's commands
       # are relative to whatever Desired is (packages/minisplit_followme_band.yaml).
       use_direct: >-
-        {{ is_state('binary_sensor.minisplit_followme_band_active', 'on')
+        {{ is_state('binary_sensor.minisplit_follow_me_band_active', 'on')
            or (is_state('input_select.minisplit_setpoint_strategy', 'direct')
                and is_state('binary_sensor.minisplit_followme_engaged', 'on')) }}
       new_setpoint: "{{ ((target_temp + 0.5) | round(0, 'floor')) if use_direct else controller_setpoint }}"
@@ -439,7 +439,7 @@
     # 2026-11-20: Follow-Me band control sends its own values while active
     # (packages/minisplit_followme_band.yaml).
     - condition: state
-      entity_id: binary_sensor.minisplit_followme_band_active
+      entity_id: binary_sensor.minisplit_follow_me_band_active
       state: "off"
     - condition: template
       value_template: >-

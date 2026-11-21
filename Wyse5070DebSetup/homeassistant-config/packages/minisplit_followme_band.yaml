@@ -9,7 +9,7 @@
 # a ~4F room swing every cycle (2026-11-18/19: on at ~68.7F, off at
 # ~72.0-72.5F, peak ~72.7-73.0F, ~1 cycle/hour).
 #
-# What: while binary_sensor.minisplit_followme_band_active is on
+# What: while binary_sensor.minisplit_follow_me_band_active is on
 # (input_select.minisplit_followme_experiment = band, unit in Heat, no
 # manual override, sensors available), HA doesn't relay the real room
 # temperature to the bridge's Follow-Me endpoint (thermostat_10); it sends
@@ -144,7 +144,7 @@ automation:
       - if:
           - condition: template
             value_template: >-
-              {{ is_state('binary_sensor.minisplit_followme_band_active', 'on')
+              {{ is_state('binary_sensor.minisplit_follow_me_band_active', 'on')
                  and prev_start > 0 and new_run | int != cur_run }}
         then:
           - action: input_number.set_value
@@ -171,7 +171,7 @@ automation:
     alias: MiniSplit Follow-Me band control
     description: >-
       Sends band control's chosen Follow-Me value to thermostat_10 while
-      binary_sensor.minisplit_followme_band_active is on. See
+      binary_sensor.minisplit_follow_me_band_active is on. See
       packages/minisplit_followme_band.yaml.
     triggers:
       - trigger: state
@@ -179,13 +179,13 @@ automation:
       - trigger: state
         entity_id: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
       - trigger: state
-        entity_id: binary_sensor.minisplit_followme_band_active
+        entity_id: binary_sensor.minisplit_follow_me_band_active
         to: "on"
       - trigger: time_pattern
         minutes: /1
     conditions:
       - condition: state
-        entity_id: binary_sensor.minisplit_followme_band_active
+        entity_id: binary_sensor.minisplit_follow_me_band_active
         state: "on"
       - condition: template
         value_template: >-
@@ -277,7 +277,7 @@ automation:
     alias: MiniSplit Follow-Me band restore
     triggers:
       - trigger: state
-        entity_id: binary_sensor.minisplit_followme_band_active
+        entity_id: binary_sensor.minisplit_follow_me_band_active
         from: "on"
     conditions:
       - condition: template
@@ -305,7 +305,7 @@ automation:
         minutes: /1
     conditions:
       - condition: state
-        entity_id: binary_sensor.minisplit_followme_band_active
+        entity_id: binary_sensor.minisplit_follow_me_band_active
         state: "on"
       - condition: template
         value_template: >-

@@ -87,7 +87,7 @@ the compressor starts; once stop is sent, keep it until it stops.
 Package renamed `packages/minisplit_followme_band.yaml`; entity IDs keep
 the "experiment" names so history carries on. Changes from the trial:
 - Runs whenever band is selected, the unit is in Heat, there's no manual
-  override and the sensors are up (`binary_sensor.minisplit_followme_band_active`,
+  override and the sensors are up (`binary_sensor.minisplit_follow_me_band_active`,
   2-min delay_off). Otherwise it pauses: the real reading is sent again and
   the normal relay takes over. No schedule; soft_hold removed.
 - Heat/stop latch added (above).
