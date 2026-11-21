@@ -1,6 +1,6 @@
 # Photo Workflow Plan: camera → NAS → OneDrive
 
-Status: agreed 2026-11-21, not yet implemented.
+Status: agreed 2026-11-21; implemented 2026-11-21 (see the Roadmap checkboxes for what's left).
 
 ## Decisions
 
@@ -373,39 +373,39 @@ Decided: back up `Xt5` only. For the record, the `photo` share also holds `Art`,
 
 ### Phase 1: Backup first (~1 session)
 Protects what you already have, before touching the import code.
-- [ ] wyse: SMB access to `photo` (rclone `smb` remote with the `mwilkie` account, no system mount needed)
-- [ ] `Wyse5070DebSetup/photo-backup.sh` + `setup-photo-backup.sh` (writes the systemd service + timer)
-- [ ] First full upload of `Xt5` (15 GB, ~1-2 h, in the background)
-- [ ] Status file, dashboard card, README row, failure alert
+- [x] wyse: SMB access to `photo` (rclone `smb` remote `nas` with the `mwilkie` account, no system mount needed)
+- [x] `Wyse5070DebSetup/setup-photo-sync.sh` (both jobs; writes the crontab lines; `--run-backup` / `--run-edits`)
+- [ ] First full upload of `Xt5` (15 GB, ~1-2 h): started 2026-11-21 14:55
+- [x] Status file, dashboard card (live), README rows; alerts via the daily brief
 - [ ] Test a restore: pull one RAF back from OneDrive and compare its hash
-- [ ] Daily brief: `photos` prefetch in `daily-brief/azure/brief.py` + `jobs.json` + rule in `prompts/prompt.md` (backup checks first; edit-saver checks added in 1b); one-line photo summary in the Sunday weekly health check
+- [x] Daily brief: `photos` prefetch in `daily-brief/azure/brief.py` + `jobs.json` + rule in `prompts/prompt.md` (backup checks first; edit-saver checks added in 1b); one-line photo summary in the Sunday weekly health check
 
 **Done when:** the dashboard shows a green nightly backup, and a deleted test file shows up in `_deleted/`.
 
 ### Phase 1b: Edit saver (~1-2 sessions, right after the backup)
 Edits are the only thing not already safe on the NAS, so this comes before the import tool.
-- [ ] Python job in `lightroom/` reusing the existing sign-in and API client: changed-since listing, renditions, verify, name/file, recipes, manifest
-- [ ] Completeness check every run; status file `Xt5\Edited\.status.json`
-- [ ] Backfill: save every already-edited or Pick photo in your library (first run)
-- [ ] wyse: Adobe token stored outside git (`.env` on the host); `setup-photo-sync.sh` writes the nightly (01:00) crontab line
-- [ ] Dashboard card ("Edits on NAS: N of N"), README row, alert on missing after 2 nights or no run in 48 h; a "Save edits now" option for when you don't want to wait
-- [ ] Fallback: Export Outbox filing (in the import tool + daily PC task)
-- [ ] Daily brief: add edit-saver and sign-in-expiry conditions to the `photos` prefetch
-- [ ] Sign-in renewal: expiry warning from 3 days out (dashboard, alert, daily brief); "Renew Lightroom sign-in" shortcut (auto via localhost, paste box if Adobe uses httpbin); copies the token to wyse
-- [ ] Remove the `lightroom` tool's debug print of the sign-in exchange (it prints the one-time code and verifier)
+- [x] Python job in `lightroom/` reusing the existing sign-in and API client: changed-since listing, renditions, verify, name/file, recipes, manifest
+- [x] Completeness check every run; status file `/mnt/data/appdata/photo-sync/edit-saver-status.json`, manifest `Xt5\Edited\.manifest.csv`
+- [x] Backfill: all 70 edited photos saved (2026-11-21, from the PC; wyse picked up the same state)
+- [x] wyse: Adobe token stored outside git (`.env` on the host); `setup-photo-sync.sh` writes the nightly (01:00) crontab line
+- [x] Dashboard card ("Edits on NAS: N of N"), README row, alert on missing after 2 nights or no run in 48 h; "save now" = `setup-photo-sync.sh --run-edits`
+- [x] Fallback: Export Outbox filing (in Import Photos; a daily PC task not added: run Import Photos)
+- [x] Daily brief: add edit-saver and sign-in-expiry conditions to the `photos` prefetch
+- [x] Sign-in renewal: expiry warning from 3 days out (dashboard, alert, daily brief); "Renew Lightroom sign-in" shortcut (auto via localhost, paste box if Adobe uses httpbin); copies the token to wyse
+- [x] Remove the `lightroom` tool's debug print of the sign-in exchange (it prints the one-time code and verifier)
 
 **Done when:** an edit made in Lightroom shows up in `Edited\YYYY\YYYY-MM Month\` the next morning, a re-edit replaces it, and the dashboard says `N of N ✔`.
 
 ### Phase 2: New import tool (~2 sessions)
-- [ ] `Plan` as a pure function, tested first (Pester)
-- [ ] Manifest + building it from the existing folders
-- [ ] Camera-over-USB source with `.incoming` staging + size check + repeat passes
-- [ ] Card-reader source with robocopy
-- [ ] Preflight, verdict, notification, per-run logs, backup status line
-- [ ] Two-hop copy: camera → local staging → NAS; new JPGs left in the Lightroom inbox; inbox cleanup after 14 days (only if verified on NAS)
-- [ ] Desktop shortcut "Import Photos"; the verdict shows the inbox folder to add in Lightroom
-- [ ] Show the edit saver's status line ("Edits on NAS: N of N") in the verdict
-- [ ] Switch `lightroom/config.yaml` to `capture` dates; test the cleanup dry run
+- [x] `Plan` as a pure function, tested first (Pester, 11 tests)
+- [x] Manifest + building it from the existing folders (475 photos indexed)
+- [x] Camera-over-USB source with `.incoming` staging + size check + repeat passes (tested with the camera 2026-11-21)
+- [x] Card-reader source (Copy-Item to local staging; tested with a simulated card)
+- [x] Preflight, verdict, notification, per-run logs, backup status line
+- [x] Two-hop copy: camera → local staging → NAS; new JPGs left in the Lightroom inbox; inbox cleanup after 14 days (only if verified on NAS)
+- [x] Desktop shortcut "Import Photos"; the verdict shows the inbox folder to add in Lightroom
+- [x] Show the edit saver's status line ("Edits on NAS: N of N") in the verdict
+- [x] Switch `lightroom/config.yaml` to `capture` dates (cleanup dry run still to test)
 - [ ] Delete old scripts (tag `cam_copy-v1` first); README becomes a one-page runbook
 
 **Done when:** all acceptance tests in §9 pass.
