@@ -312,9 +312,18 @@ setpoint_reconcile_action_t setpoint_reconcile_decide(const setpoint_reconcile_i
     // The unit moved since last poll, not to something the bridge just sent,
     // and not as part of a mode change: someone changed it by hand. A missed
     // update looks different -- the unit stays at its previous value.
+    // 2026-11-21 (1.3.2): ...unless it's within 1F of Desired. The unit's
+    // setpoint slips half a degree C (1F) on its own now and then -- five
+    // times 2026-11-18..21, none by hand -- and adopting it held the schedule
+    // off for hours each time. A 1F slip is resent like a missed update, and
+    // this resend's frame (not a heartbeat built from the slipped status) is
+    // what goes out this poll. Remote changes of 2F+ are still adopted; HA
+    // treats a 1F non-HA change the same way (automations.yaml, "MiniSplit
+    // Manual Override Detect").
     bool unit_moved = in->prev_unit_f != SETPOINT_UNKNOWN_F && in->unit_f != in->prev_unit_f;
     bool our_echo = in->sent_recently && in->unit_f == in->last_sent_f;
-    if (unit_moved && !our_echo && !in->mode_changed) {
+    int16_t off_by = (int16_t)(in->unit_f > in->desired_f ? in->unit_f - in->desired_f : in->desired_f - in->unit_f);
+    if (unit_moved && !our_echo && !in->mode_changed && off_by >= 2) {
         *pending_f = in->unit_f;
         return SETPOINT_RECONCILE_WAIT;
     }

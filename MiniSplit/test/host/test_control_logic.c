@@ -180,6 +180,23 @@ static void test_setpoint_reconcile(void)
     CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_IN_SYNC);
     CHECK(pending == SETPOINT_UNKNOWN_F);
 
+    // 1F slip on its own (65 -> 64 with Desired 65, 2026-11-20/21): resend,
+    // never wait/adopt -- and not even on a second poll at the slipped value.
+    in.desired_f = 65; in.unit_f = 64; in.prev_unit_f = 65; in.sent_recently = false; in.last_sent_f = 65;
+    pending = SETPOINT_UNKNOWN_F;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+    CHECK(pending == SETPOINT_UNKNOWN_F);
+    in.prev_unit_f = 64;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+    in.desired_f = 70; in.unit_f = 71; in.prev_unit_f = 70;   // upward slip too
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
+    // A 2F remote press is still a person: wait, then adopt.
+    in.unit_f = 72; in.prev_unit_f = 70;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_WAIT);
+    in.prev_unit_f = 72;
+    CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_ADOPT);
+    in.desired_f = 68; in.unit_f = 68; in.prev_unit_f = 68;
+
     // Remote MODE press (carries the remote's temp) -> resend Desired.
     in.unit_f = 75; in.prev_unit_f = 68; in.mode_changed = true; in.sent_recently = false;
     CHECK(setpoint_reconcile_decide(&in, &pending) == SETPOINT_RECONCILE_RESEND);
