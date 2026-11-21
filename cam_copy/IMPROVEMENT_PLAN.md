@@ -2,6 +2,8 @@
 
 Status: agreed 2026-11-21; implemented 2026-11-21 (see the Roadmap checkboxes for what's left).
 
+**For day-to-day use, see [PHOTO_WORKFLOW.md](PHOTO_WORKFLOW.md)** (the runbook). This file records the plan and decisions.
+
 ## Decisions
 
 | Question | Decision | Why |

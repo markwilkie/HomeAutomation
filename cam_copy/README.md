@@ -12,7 +12,7 @@ Double-click **Import Photos** on the desktop (runs `Import-Photos.ps1`) with th
 - Remembers what's been imported in `P:\Xt5\.import\manifest.csv` (name + size), so old photos left on a card are skipped.
 - `.\Import-Photos.ps1 -Preview` lists what would be copied; `-Rescan` rebuilds the manifest. Settings: `import-config.json`. Logs: `logs\`. Tests: `Invoke-Pester .\tests`.
 
-Whole workflow (camera → NAS → Lightroom → OneDrive, edit saver, daily-brief checks): [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).
+**How the whole workflow works and what to do when something's wrong: [PHOTO_WORKFLOW.md](PHOTO_WORKFLOW.md).** Why it's built this way: [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).
 
 The old Camera Copy scripts below stay until Import Photos has been used with the camera a few times; then they'll be deleted (tagged `cam_copy-v1` first).
 
