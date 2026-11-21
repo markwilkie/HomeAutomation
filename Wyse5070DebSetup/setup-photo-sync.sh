@@ -16,7 +16,10 @@
 # and the weekly health check) and copy it into the dashboard's html dir as photo-status.json
 # (the dashboard card shows it live).
 #
-# NAS access: DSM user `photo-sync` -- read-only on the `photo` share, write only to Xt5/Edited.
+# NAS access: the mwilkie DSM account (the same one the PC maps P: with). The `photo` share uses
+# Linux permissions, not Windows ACLs, so DSM can't grant a separate limited user access to Xt5 alone
+# (tried 2026-11-21: a `photo-sync` user could read `photo` but was denied on Xt5). The backup only
+# reads; the edit saver only writes inside Xt5/Edited and never deletes.
 # Its password lives in /mnt/data/appdata/photo-sync/.env (NAS_USER, NAS_PASS; chmod 600), written by
 # hand, never in git. The rclone remote `nas` (type smb) is (re)created from it on every install.
 #

@@ -10,7 +10,7 @@ Status: agreed 2026-11-21, not yet implemented.
 | Backup method | **rclone on wyse, nightly** | wyse is already signed in to the work OneDrive (no new sign-in); verifies uploads; keeps deleted photos 90 days; shows on the dashboard; all in git (§7) |
 | Backup scope | **`Xt5` only** (15 GB) | Your call; the job can take more folders later |
 | Import sources | **Both the camera over USB and an SD card reader**, detected automatically | Your call (§4) |
-| NAS account for wyse | **New DSM user `photo-sync`: read-only on `photo`, write access only to `Xt5\Edited`** | wyse needs a NAS login for the backup (read) and the edit saver (write). This way a bug or compromise on wyse can't delete or overwrite your originals. One 5-minute visit to DSM |
+| NAS account for wyse | **Your `mwilkie` DSM account** (changed 2026-11-21 from a limited `photo-sync` user: the `photo` share uses Linux permissions, so DSM can't give another user access to `Xt5` alone) | wyse needs a NAS login for the backup (read) and the edit saver (write). This way a bug or compromise on wyse can't delete or overwrite your originals. One 5-minute visit to DSM |
 | Card formatting | **In camera, both cards, just before the next shoot**, and only after ✔ | §5 |
 | Runs crossing midnight | Not handled specially | Your call; taken-date folders make it moot anyway |
 | Faster Lightroom: adding photos | **Import tool also drops new JPGs in a local Lightroom inbox** (`C:\Photos\Lightroom Inbox\YYYY-MM-DD`); you add from there, not from the NAS | Adding from the NAS runs over Wi-Fi and is very slow (measured 1.2 MB/s, ~20 min for 62 JPGs). From `C:` it takes seconds (§6) |
@@ -257,7 +257,7 @@ Lightroom (cloud) ──01:00 nightly, API──► wyse "edit saver" ──► 
 
 It shows on the wyse dashboard, in the Import Photos window, and in the status file. A failed photo is retried on the next night's run. If anything is still missing after 2 nights, or the job hasn't run in 48 hours, **you get an alert** (the same channel as backup failures).
 
-**Where it runs:** wyse, nightly at 01:00 (before the 02:00 backup), systemd timer, checked-in setup script, dashboard card and README row (house rules). It runs on wyse, not the PC, so it works when the PC is off. It writes through the `photo-sync` DSM user, which can only write to `Xt5\Edited`.
+**Where it runs:** wyse, nightly at 01:00 (before the 02:00 backup), crontab written by `Wyse5070DebSetup/setup-photo-sync.sh`, dashboard card and README row (house rules). It runs on wyse, not the PC, so it works when the PC is off. It writes through the `photo-sync` DSM user, which can only write to `Xt5\Edited`.
 
 **Adobe sign-in lasts 14 days, then needs a 30-second renewal.** Tested 2026-11-21: your Adobe credential (type "OAuth Single-Page App") issues a refresh token that lasts exactly 14 days, and refreshing does *not* extend it. A Web App credential might, but Adobe no longer offers the Lightroom API to add to projects, so we keep the working credential and make renewal painless:
 - **Warning:** every run reads the sign-in's expiry. From 3 days before, the dashboard shows "Lightroom sign-in expires in N days" and you get an alert.
@@ -319,12 +319,12 @@ NAS \\192.168.15.10\photo\Xt5  ──(rclone, SMB, read-only user)──►  One
 
 - **What's covered:** `Xt5\raw`, `Xt5\jpg`, `Xt5\Edited` (edited photos and recipes, §6) and both manifests. Not `.incoming` (half-copied files).
 - **Order:** the edit saver's 01:00 run finishes before the 02:00 backup, so a day's edits reach OneDrive the same night.
-- **Nightly at 02:00**, systemd timer, script checked in under `Wyse5070DebSetup/` (house rule: a script writes the unit; no hand-run commands).
+- **Nightly at 02:00**, crontab line written by `Wyse5070DebSetup/setup-photo-sync.sh` (no sudo; same pattern as TripTracker's backup).
 - **Command:** `rclone sync` with `--backup-dir`. New and changed photos are uploaded. Anything deleted or replaced on the NAS (e.g. the `lightroom` tool's reject cleanup, or an accident) is *moved* to `OneDrive: Backups/Photos/_deleted/YYYY-MM-DD/`, not lost. Kept 90 days, then pruned.
 - **Checks:** after uploading, run `rclone check --size-only` on new files. A weekly full `rclone check` against OneDrive's hashes.
 - **Status file:** writes `P:\Xt5\.import\backup-status.json` (last run, result, newest photo backed up). The import tool reads this to say "✔ also in OneDrive" or "⏳ OneDrive backup tonight", which drives the formatting advice in §5.
 - **Visible:** a card on the wyse dashboard (8085) showing last backup time, result and size, plus a row in `Wyse5070DebSetup/README.md` (house rule). An SMS or notification on failure.
-- **Limited NAS account** for wyse (DSM user `photo-sync`): read-only on `photo`, write only to `Xt5\Edited`. If wyse were ever compromised, it couldn't delete or encrypt your originals.
+- **NAS account:** wyse uses your `mwilkie` DSM account (password in `/mnt/data/appdata/photo-sync/.env`, chmod 600, never in git). A limited user wasn't possible because the `photo` share uses Linux permissions. The backup only reads; the edit saver only writes inside `Xt5\Edited` and never deletes. OneDrive's `_deleted` folder and version history cover the rest.
 - **Size and speed:** `Xt5` is **15 GB** today (the `lightroom` cleanup keeps it lean), so the first upload takes about an hour or two. After that, each session is ~4-5 GB (60 shots × ~70 MB per RAF+JPG pair), minutes per night.
 
 ### Why not the alternatives
@@ -364,7 +364,7 @@ Decided: back up `Xt5` only. For the record, the `photo` share also holds `Art`,
 ## 8. Roadmap
 
 ### Phase 0: Decisions ✔, quick settings, and the edit-saver spike
-- [ ] You: create the DSM user `photo-sync` (read-only on `photo`, write on `Xt5\Edited`); steps given when Phase 1 starts
+- [x] NAS login for wyse: `mwilkie` account (the `photo-sync` user couldn't be given access to `Xt5`; it can be deleted in DSM)
 - [ ] You, now (2 min): Lightroom → Preferences → Local Storage → tick **Store a copy of all originals locally** (§6). Faster editing from today.
 - [ ] You, now (5 min): create the Lightroom export preset **"To NAS"** → `C:\Photos\Export Outbox\`, full-size JPG, quality 90-100, sRGB. A stopgap until the edit saver runs; I'll file anything there by hand until then.
 - [x] **Spike: GO** (2026-11-21). `lightroom` tool set up on this PC (`.venv`, `.env`, signed in); full-resolution edited renders confirmed for RAF and JPG; "edited" = `develop.fromDefaults == false` (§6).
@@ -373,7 +373,7 @@ Decided: back up `Xt5` only. For the record, the `photo` share also holds `Art`,
 
 ### Phase 1: Backup first (~1 session)
 Protects what you already have, before touching the import code.
-- [ ] wyse: SMB access to `photo` (rclone `smb` remote with the `photo-sync` user, no system mount needed)
+- [ ] wyse: SMB access to `photo` (rclone `smb` remote with the `mwilkie` account, no system mount needed)
 - [ ] `Wyse5070DebSetup/photo-backup.sh` + `setup-photo-backup.sh` (writes the systemd service + timer)
 - [ ] First full upload of `Xt5` (15 GB, ~1-2 h, in the background)
 - [ ] Status file, dashboard card, README row, failure alert
@@ -387,7 +387,7 @@ Edits are the only thing not already safe on the NAS, so this comes before the i
 - [ ] Python job in `lightroom/` reusing the existing sign-in and API client: changed-since listing, renditions, verify, name/file, recipes, manifest
 - [ ] Completeness check every run; status file `Xt5\Edited\.status.json`
 - [ ] Backfill: save every already-edited or Pick photo in your library (first run)
-- [ ] wyse: Adobe token stored outside git (`.env` on the host); `setup-edit-saver.sh` writes the nightly (01:00) systemd timer
+- [ ] wyse: Adobe token stored outside git (`.env` on the host); `setup-photo-sync.sh` writes the nightly (01:00) crontab line
 - [ ] Dashboard card ("Edits on NAS: N of N"), README row, alert on missing after 2 nights or no run in 48 h; a "Save edits now" option for when you don't want to wait
 - [ ] Fallback: Export Outbox filing (in the import tool + daily PC task)
 - [ ] Daily brief: add edit-saver and sign-in-expiry conditions to the `photos` prefetch
