@@ -101,6 +101,16 @@ template:
           {% set raw = states('input_text.minisplit_compressor_starts') %}
           {% set ts = raw.split(',') | reject('eq', '') | map('int', 0) | list if raw not in ['unknown', 'unavailable'] else [] %}
           {{ ts | select('gt', now().timestamp() - 3600) | list | count }}
+      # The sent value in F, for the dashboard (whole C, so 66.2/69.8/71.6...).
+      - name: "MiniSplit Follow-Me Band Sent F"
+        unique_id: minisplit_followme_band_sent_f
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >-
+          {% set c = states('input_number.minisplit_followme_sent_c') %}
+          {{ ((c | float * 1.8) + 32) | round(1) if is_number(c) else none }}
   - binary_sensor:
       # On while band control is sending the Follow-Me value. delay_off rides
       # out a brief Matter/Zigbee blip instead of handing back and forth.
