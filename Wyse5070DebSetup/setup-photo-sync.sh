@@ -141,7 +141,12 @@ install() {
     "${RCLONE}" config delete nas >/dev/null 2>&1 || true
     "${RCLONE}" config create nas smb host "${NAS_HOST}" user "${NAS_USER}" \
         pass "$("${RCLONE}" obscure "${NAS_PASS}")" >/dev/null
-    "${RCLONE}" lsf --max-depth 1 nas:photo/Xt5 >/dev/null && echo "    can read photo/Xt5"
+    if ! "${RCLONE}" lsf --max-depth 1 nas:photo/Xt5 >/dev/null 2>&1; then
+        echo "!! ${NAS_USER} can't read photo/Xt5. In DSM File Station: photo/Xt5 > Properties > Permission >"
+        echo "   add ${NAS_USER} with Read (this folder, child folders and files), and Read+Write on Xt5/Edited."
+        exit 1
+    fi
+    echo "    can read photo/Xt5"
 
     echo "==> Python venv for the edit saver (${VENV})"
     [[ -d "${VENV}" ]] || python3 -m venv "${VENV}"

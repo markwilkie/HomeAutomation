@@ -173,6 +173,28 @@ function Assert-FreeSpace {
 
 # ---------------------------------------------------------------- sources ----
 
+function Get-MtpSize {
+    # Over MTP the X-T5 reports FolderItem.Size = 0; the real size is the System.Size property.
+    param($Item)
+    $s = $Item.ExtendedProperty('System.Size')
+    if ($s) { return [long]$s }
+    [long]$Item.Size
+}
+
+function Get-MtpTaken {
+    # Over MTP, System.DateModified is empty and ModifyDate is 1899-12-30. System.Photo.DateTaken (or
+    # System.DateCreated) holds the camera's clock time, handed back converted to UTC: convert it back so
+    # the folder date is the camera's own date, the same as a card reader's file time.
+    param($Item)
+    foreach ($p in 'System.Photo.DateTaken', 'System.DateCreated') {
+        $v = $Item.ExtendedProperty($p)
+        if ($v) { return [datetime]::SpecifyKind([datetime]$v, 'Utc').ToLocalTime() }
+    }
+    $m = [datetime]$Item.ModifyDate
+    if ($m.Year -gt 1980) { return $m }
+    Get-Date
+}
+
 function Get-CameraPhotos {
     # Every photo on the camera's cards over USB (MTP), both slots. Returns @() if the camera isn't connected.
     param($Config)
@@ -186,10 +208,8 @@ function Get-CameraPhotos {
             if ($it.IsFolder) { & $walk $it.GetFolder $slot; continue }
             $type = Get-PhotoType ([IO.Path]::GetExtension($it.Name)) $Config.Extensions
             if (-not $type) { continue }
-            $taken = $it.ExtendedProperty('System.DateModified')
-            if (-not $taken) { $taken = $it.ModifyDate }
             [void]$out.Add([pscustomobject]@{ Source = "$($Config.CameraName) $slot"; Kind = 'Camera'; Name = $it.Name
-                                             Size = [long]$it.Size; Taken = [datetime]$taken; Type = $type; Item = $it })
+                                             Size = Get-MtpSize $it; Taken = Get-MtpTaken $it; Type = $type; Item = $it })
         }
     }
     foreach ($storage in @($cam.GetFolder.Items())) {
