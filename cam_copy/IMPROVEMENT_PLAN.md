@@ -377,9 +377,9 @@ Decided: back up `Xt5` only. For the record, the `photo` share also holds `Art`,
 Protects what you already have, before touching the import code.
 - [x] wyse: SMB access to `photo` (rclone `smb` remote `nas` with the `mwilkie` account, no system mount needed)
 - [x] `Wyse5070DebSetup/setup-photo-sync.sh` (both jobs; writes the crontab lines; `--run-backup` / `--run-edits`)
-- [ ] First full upload of `Xt5` (15 GB, ~1-2 h): started 2026-11-21 14:55
+- [x] First full upload of `Xt5`: done 2026-11-21 15:28, 651 files / 16.4 GB, size check clean
 - [x] Status file, dashboard card (live), README rows; alerts via the daily brief
-- [ ] Test a restore: pull one RAF back from OneDrive and compare its hash
+- [x] Restore test: WJD01472.RAF from OneDrive identical to the NAS original; deleted test file landed in `_deleted/2026-11-21/` (2026-11-21)
 - [x] Daily brief: `photos` prefetch in `daily-brief/azure/brief.py` + `jobs.json` + rule in `prompts/prompt.md` (backup checks first; edit-saver checks added in 1b); one-line photo summary in the Sunday weekly health check
 
 **Done when:** the dashboard shows a green nightly backup, and a deleted test file shows up in `_deleted/`.
