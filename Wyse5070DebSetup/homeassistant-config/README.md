@@ -90,6 +90,8 @@ real starting value from config alone — both need a one-time `docker stop` / e
 setpoints above (2026-10-01), the shadow-mode rework's target/Wanted/Satisfied entities (2026-10-04),
 and `input_datetime.minisplit_predictive_last_write` (2026-10-05). Removed again on 2026-10-05: the
 `minisplit_mode_cool_outdoor_min`/`_heat_outdoor_max` and predictor-weight helpers and the three trend sensors.
+Removed 2026-11-22 with the predictive controller: its gain/sign/last-write helpers, the strategy select and
+`sensor.minisplit_duty_cycle_ewma`.
 
 This history — the *why* behind each change — lives in this repo's git log for this directory, not in the
 live HA instance itself.

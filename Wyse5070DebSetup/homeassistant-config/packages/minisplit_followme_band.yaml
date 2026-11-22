@@ -49,10 +49,9 @@
 # all covered without calibration.
 # Pauses (unit not in Heat, sensor gone): band_active goes
 # off (2 min delay), the real reading is sent again and the normal relay
-# ("MiniSplit FollowMe temp relay to firmware") takes over. While active, the
-# setpoint automation is forced onto its "direct" strategy (Desired =
-# target) -- the spoofed value trips binary_sensor.minisplit_followme_engaged,
-# which would otherwise drop it into the predictive controller.
+# ("MiniSplit FollowMe temp relay to firmware") takes over. Desired comes
+# from "MiniSplit schedule setpoint" (the target, whole F) -- band's
+# commands are relative to it.
 # Safety stop (turns band off and notifies): room more than 4F above target,
 # or more than 4F below it with the compressor off for 30+ min.
 # Not built for Cool yet -- see history/followme-experiment-2026-11-20.md.
