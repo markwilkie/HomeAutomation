@@ -10,6 +10,7 @@ Double-click **Import Photos** on the desktop (runs `Import-Photos.ps1`) with th
 - Files anything in `C:\Photos\Export Outbox\` (Lightroom "To NAS" export preset) into `P:\Xt5\Edited\YYYY\YYYY-MM Month\`. Normally edits are saved there automatically every night by the edit saver on wyse.
 - Never deletes anything from the camera or a card. **Format both cards in the camera before your next shoot**, once the verdict is ✔ (ideally after that night's OneDrive backup).
 - Remembers what's been imported in `P:\Xt5\.import\manifest.csv` (name + size), so old photos left on a card are skipped.
+- `.\Import-Photos.ps1 -Check <folder>` (or right-click a folder → Send to → **Check against NAS**) lists which photos in it are already on the NAS and safe to delete; deletes nothing.
 - `.\Import-Photos.ps1 -Preview` lists what would be copied; `-Rescan` rebuilds the manifest. Settings: `import-config.json`. Logs: `logs\`. Tests: `Invoke-Pester .\tests`.
 
 **How the whole workflow works and what to do when something's wrong: [PHOTO_WORKFLOW.md](PHOTO_WORKFLOW.md).** Why it's built this way: [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).

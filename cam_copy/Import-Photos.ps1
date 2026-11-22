@@ -15,14 +15,19 @@
 .PARAMETER Preview
   List what would be copied and where; change nothing.
 
+.PARAMETER Check
+  Check a folder instead of importing: lists which photos in it are already on the NAS
+  (safe to delete) and which are only there. Deletes nothing. Also on right-click > Send to > Check against NAS.
+
 .PARAMETER Rescan
   Rebuild the import manifest from what's already in P:\Xt5\raw and P:\Xt5\jpg.
 
 .EXAMPLE
   .\Import-Photos.ps1            # the desktop shortcut runs this
   .\Import-Photos.ps1 -Preview
+  .\Import-Photos.ps1 -Check C:\Users\Administrator\Desktop\scotland-photos
 #>
-param([switch]$Preview, [switch]$Rescan, [string]$ConfigPath = (Join-Path $PSScriptRoot 'import-config.json'),
+param([switch]$Preview, [switch]$Rescan, [string]$Check, [string]$ConfigPath = (Join-Path $PSScriptRoot 'import-config.json'),
       [switch]$NoPause)
 
 $ErrorActionPreference = 'Stop'
@@ -30,7 +35,8 @@ Import-Module (Join-Path $PSScriptRoot 'PhotoImport\PhotoImport.psm1') -Force
 $code = 1
 try {
     $config = Get-PhotoImportConfig $ConfigPath
-    $code = Invoke-PhotoImport -Config $config -Preview:$Preview -Rescan:$Rescan
+    if ($Check) { $code = Test-FolderAgainstNas -Config $config -Folder $Check }
+    else { $code = Invoke-PhotoImport -Config $config -Preview:$Preview -Rescan:$Rescan }
 } catch {
     Write-ImportLog "Import could not run: $($_.Exception.Message)" ERROR
     $code = 1

@@ -46,10 +46,10 @@ OneDrive (work)  Backups/Photos/Xt5
 1. Do the basic edits in Lightroom first.
 2. In Lightroom: right-click the photo → **Edit in Photoshop** (Ctrl+E). Photoshop opens a copy with the Lightroom edits applied.
 3. Work in Photoshop, then **File → Save** (Ctrl+S) and close. Lightroom adds the result as a new photo next to the original (usually `NAME-Edit`), layers intact, synced to Adobe's cloud.
-4. **Keep the layers on the NAS:** in Photoshop also **File → Save a Copy** (as PSD) into `C:\Photos\Export Outbox\`. The next Import Photos files it into `P:\Xt5\Edited\_photoshop\`. (Adobe's API won't hand out original files, so this one step stays manual.)
+4. **Keep the layers on the NAS:** in Photoshop also **File → Save a Copy** (as TIFF or PSD; TIFF with ZIP compression keeps the size down) into `C:\Photos\Export Outbox\`. The next Import Photos files it into `P:\Xt5\Edited\_photoshop\`. (Adobe's API won't hand out original files, so this one step stays manual.)
 5. That night the edit saver saves the flattened full-size JPEG of the Photoshop version to `Edited\YYYY\YYYY-MM Month\YYYY-MM-DD NAME-Edit.jpg` by itself (no Pick needed). If a Photoshop photo still has no layered copy in `_photoshop` after 2 nights, the daily brief names it.
 
-For a file that never goes through Lightroom: save the finished JPEG (and the PSD if you want the layers) into `C:\Photos\Export Outbox\`; Import Photos files them.
+For a file that never goes through Lightroom: save the finished JPEG (and the TIFF or PSD if you want the layers) into `C:\Photos\Export Outbox\`; Import Photos files them.
 
 ### Before the next shoot
 
@@ -99,6 +99,23 @@ For a file that never goes through Lightroom: save the finished JPEG (and the PS
 | 📷 Edited photos not saved / edit saver hasn't run | On wyse: `~/github/HomeAutomation/Wyse5070DebSetup/setup-photo-sync.sh --run-edits`, then `tail ~/photo-sync.log` |
 | 📷 Backup failed / photos not in OneDrive | On wyse: `setup-photo-sync.sh --run-backup`; `tail -30 ~/photo-sync.log`; list of missing files in `/mnt/data/appdata/photo-sync/not-in-onedrive.txt`. If OneDrive sign-in expired: `TripTracker/scripts/setup_onedrive_remote.sh` |
 | NAS password changed | ssh to wyse, then: `read -rsp "mwilkie NAS password: " p && printf 'NAS_USER=mwilkie\nNAS_PASS=%s\n' "$p" > /mnt/data/appdata/photo-sync/.env && chmod 600 /mnt/data/appdata/photo-sync/.env && unset p`; then rerun `setup-photo-sync.sh` |
+
+## Cleaning up local copies
+
+| Local copy | What happens | Safe to delete? |
+|---|---|---|
+| `C:\Photos\Lightroom Inbox\<date>\` | Cleared automatically after 14 days, only if every file is verified on the NAS | Yes, once the import said ✔ and you've done Add Photos |
+| Lightroom's own storage (`%LOCALAPPDATA%\Adobe\Lightroom CC\...`) | Managed by Lightroom ("Store a copy of all originals locally" is on) | **Never by hand.** To free space, untick that setting or lower the cache in Lightroom's Preferences |
+| `C:\Photos\.staging\` | Temporary; emptied as photos reach the NAS | Should be empty; anything left is reused or cleared by the next run |
+| `C:\Photos\Export Outbox\` | Emptied by Import Photos as files are filed into `Edited` | Anything still there isn't filed yet: run Import Photos |
+| Any other folder (e.g. on the desktop) | Not tracked | **Right-click the folder → Send to → Check against NAS** (or `.\Import-Photos.ps1 -Check <folder>`) |
+
+**Check against NAS** lists every photo in the folder and deletes nothing:
+- **✔ safe**: the same original is on the NAS, or the edited version is in `Edited` (renamed exports are matched by the time they were taken).
+- **≈ covered**: a smaller or different copy; the NAS has the full original.
+- **✘ ONLY HERE**: not on the NAS. Keep it, or import it (Fujifilm files) / put finished edits in the Export Outbox.
+
+It ends with one line, e.g. "✔ 21 photos checked: all 21 are on the NAS (or a better version is). This folder is safe to delete."
 
 ## Getting a photo back
 

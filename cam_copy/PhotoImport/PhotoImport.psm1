@@ -366,6 +366,123 @@ function Show-ImportToast {
     } catch { }
 }
 
+# ------------------------------------------------------------ folder check ----
+
+function Get-CameraNumber {
+    # 'WJD01486 (1)' / '2026-08-20 WJD01486-Edit' -> 'WJD01486'; $null if there's no camera number
+    param([string]$Name)
+    if ($Name -match '([A-Za-z_]{3,4}\d{4,5})') { return $Matches[1].ToUpperInvariant() }
+    $null
+}
+
+function Get-ExifTaken {
+    # DateTimeOriginal from a JPEG/TIFF, or $null
+    param([string]$Path)
+    try {
+        Add-Type -AssemblyName System.Drawing
+        $img = [Drawing.Image]::FromFile($Path)
+        try {
+            $raw = [Text.Encoding]::ASCII.GetString($img.GetPropertyItem(36867).Value).Trim([char]0)
+            return [datetime]::ParseExact($raw, 'yyyy:MM:dd HH:mm:ss', $null)
+        } finally { $img.Dispose() }
+    } catch { return $null }
+}
+
+function Get-FolderCheckResult {
+    <#
+      Pure: classify one file against what's known to be on the NAS.
+      Originals: hashtable 'NAME.EXT' (upper) -> @(sizes on the NAS). Edited: hashtable camera number -> path.
+      EditedByTime: hashtable 'yyyy-MM-dd HH:mm:ss' -> path (edited files by their capture time).
+      Returns Status (Safe / Covered / OnlyHere) and Why.
+    #>
+    param([string]$Name, [long]$Size, [Nullable[datetime]]$Taken, [hashtable]$Originals, [hashtable]$Edited, [hashtable]$EditedByTime)
+    $ext = [IO.Path]::GetExtension($Name).ToUpperInvariant()
+    $base = ([IO.Path]::GetFileNameWithoutExtension($Name) -replace '\s*\(\d+\)$', '').ToUpperInvariant()
+    $num = Get-CameraNumber $base
+    $sizes = $Originals["$base$ext"]
+    if ($ext -eq '.JPEG' -and -not $sizes) { $sizes = $Originals["$base.JPG"] }
+    if ($sizes -and ($sizes -contains $Size)) { return [pscustomobject]@{ Status = 'Safe'; Why = 'same original is on the NAS' } }
+    if ($num -and $Edited.ContainsKey($num) -and $base -ne $num) {
+        return [pscustomobject]@{ Status = 'Safe'; Why = "edited version on the NAS: $($Edited[$num])" }
+    }
+    if ($sizes) {
+        $big = ($sizes | Measure-Object -Maximum).Maximum
+        $note = if ($num -and $Edited.ContainsKey($num)) { "; edited version too: $($Edited[$num])" } else { '' }
+        $what = if ($big -gt $Size) { 'a smaller copy' } else { 'a different version' }
+        return [pscustomobject]@{ Status = 'Covered'; Why = ('{0}; the NAS has the original ({1:N0} MB){2}' -f $what, ($big / 1MB), $note) }
+    }
+    if ($num -and $Edited.ContainsKey($num)) { return [pscustomobject]@{ Status = 'Safe'; Why = "edited version on the NAS: $($Edited[$num])" } }
+    if ($Taken) {
+        $k = ([datetime]$Taken).ToString('yyyy-MM-dd HH:mm:ss')
+        if ($EditedByTime.ContainsKey($k)) {
+            return [pscustomobject]@{ Status = 'Safe'; Why = "same photo as $($EditedByTime[$k]) (matched by the time it was taken)" }
+        }
+    }
+    [pscustomobject]@{ Status = 'OnlyHere'; Why = 'not on the NAS' }
+}
+
+function Test-FolderAgainstNas {
+    # Report, for every photo in a folder, whether the NAS already has it. Deletes nothing.
+    param($Config, [Parameter(Mandatory)][string]$Folder)
+    if (-not (Test-Path -LiteralPath $Folder)) { throw "No such folder: $Folder" }
+    Test-ImportPreflight $Config
+    $photoExt = '^\.(raf|jpe?g|tiff?|psd|psb|png|heic|dng)$'
+    $files = @(Get-ChildItem -LiteralPath $Folder -Recurse -File | Where-Object { $_.Extension -match $photoExt })
+    $other = @(Get-ChildItem -LiteralPath $Folder -Recurse -File | Where-Object { $_.Extension -notmatch $photoExt })
+    if (-not (Test-Path -LiteralPath $Config.Manifest)) { New-ImportManifest $Config }
+
+    $originals = @{}
+    foreach ($r in Import-Csv -LiteralPath $Config.Manifest) {
+        $k = $r.Name.ToUpperInvariant()
+        if (-not $originals.ContainsKey($k)) { $originals[$k] = @() }
+        $originals[$k] += [long]$r.Size
+    }
+    $edited = @{}; $editedFiles = @()
+    if (Test-Path -LiteralPath $Config.Edited) {
+        $editedFiles = @(Get-ChildItem -LiteralPath $Config.Edited -Recurse -File |
+                         Where-Object { $_.FullName -notmatch '\\(\.incoming|_recipes)\\' -and $_.Extension -match $photoExt })
+        foreach ($e in $editedFiles) {
+            $n = Get-CameraNumber $e.BaseName
+            if ($n -and -not $edited.ContainsKey($n)) { $edited[$n] = $e.FullName.Substring($Config.Edited.Length).TrimStart('\') }
+        }
+    }
+    $byTime = $null
+    $results = foreach ($f in $files) {
+        $taken = $null
+        $r = Get-FolderCheckResult $f.Name $f.Length $null $originals $edited @{}
+        if ($r.Status -eq 'OnlyHere' -and $f.Extension -match '^\.(jpe?g|tiff?)$') {
+            if ($null -eq $byTime) {   # only read Edited's capture times when it's needed
+                $byTime = @{}
+                foreach ($e in $editedFiles | Where-Object { $_.Extension -match '^\.(jpe?g|tiff?)$' }) {
+                    $t = Get-ExifTaken $e.FullName
+                    if ($t) { $byTime[$t.ToString('yyyy-MM-dd HH:mm:ss')] = $e.FullName.Substring($Config.Edited.Length).TrimStart('\') }
+                }
+            }
+            $taken = Get-ExifTaken $f.FullName
+            if ($taken) { $r = Get-FolderCheckResult $f.Name $f.Length $taken $originals $edited $byTime }
+        }
+        [pscustomobject]@{ File = $f.FullName.Substring($Folder.TrimEnd('\').Length + 1); MB = [math]::Round($f.Length / 1MB, 1); Status = $r.Status; Why = $r.Why }
+    }
+    $results = @($results)
+    $mark = @{ Safe = '✔ safe   '; Covered = '≈ covered'; OnlyHere = '✘ ONLY HERE' }
+    $color = @{ Safe = 'Green'; Covered = 'Cyan'; OnlyHere = 'Red' }
+    Write-Host ''
+    foreach ($r in $results | Sort-Object @{ e = { @{ OnlyHere = 0; Covered = 1; Safe = 2 }[$_.Status] } }, File) {
+        Write-Host ('{0}  {1,-30} {2,6:N1} MB  {3}' -f $mark[$r.Status], $r.File, $r.MB, $r.Why) -ForegroundColor $color[$r.Status]
+    }
+    foreach ($o in $other) { Write-Host ('?          {0}  (not a photo; not checked)' -f $o.FullName.Substring($Folder.TrimEnd('\').Length + 1)) -ForegroundColor DarkGray }
+    $only = @($results | Where-Object Status -eq 'OnlyHere')
+    $ok = $results.Count - $only.Count
+    Write-Host ''
+    if ($only.Count -eq 0) {
+        Write-ImportLog ("✔ {0} photos checked: all {0} are on the NAS (or a better version is). This folder is safe to delete{1}." -f $results.Count, $(if ($other.Count) { " (except the $($other.Count) non-photo files, not checked)" } else { '' })) OK
+    } else {
+        Write-ImportLog ("✘ {0} of {1} photos are ONLY in this folder: keep them, or import them (Fujifilm files) / put finished edits in the Export Outbox. The other {2} are safe to delete." -f $only.Count, $results.Count, $ok) ERROR
+    }
+    if ($only.Count) { return 2 }
+    0
+}
+
 # ------------------------------------------------------------------- run ----
 
 function Invoke-PhotoImport {
@@ -447,4 +564,5 @@ function Invoke-PhotoImport {
 }
 
 Export-ModuleMember -Function Get-PhotoImportConfig, Get-PhotoType, Get-ImportKey, Get-DateFolder, Get-ImportPlan,
-    Get-EditedRelPath, Get-Verdict, Read-ImportManifest, New-ImportManifest, Invoke-PhotoImport, Write-ImportLog
+    Get-EditedRelPath, Get-Verdict, Read-ImportManifest, New-ImportManifest, Invoke-PhotoImport, Write-ImportLog,
+    Get-CameraNumber, Get-FolderCheckResult, Test-FolderAgainstNas

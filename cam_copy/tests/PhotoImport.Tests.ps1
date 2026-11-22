@@ -73,3 +73,26 @@ Describe 'Get-PhotoImportConfig' {
         Remove-Item $tmp
     }
 }
+
+Describe 'Get-FolderCheckResult' {
+    $orig = @{ 'WJD01468.RAF' = @(40976240); 'WJD01468.JPG' = @(26000000); 'WJD01486.JPG' = @(25000000) }
+    $ed = @{ 'WJD01486' = '2026\2026-08 August\2026-08-20 WJD01486.jpg' }
+    It 'same name and size on the NAS is safe' {
+        (Get-FolderCheckResult 'WJD01468.RAF' 40976240 $null $orig $ed @{}).Status | Should Be 'Safe'
+    }
+    It 'a smaller copy of a NAS original is covered' {
+        $r = Get-FolderCheckResult 'WJD01468.JPG' 5887020 $null $orig $ed @{}
+        $r.Status | Should Be 'Covered'; $r.Why | Should Match 'smaller copy'
+    }
+    It 'strips duplicate-import suffixes' {
+        (Get-FolderCheckResult 'WJD01468 (1).RAF' 40976240 $null $orig $ed @{}).Status | Should Be 'Safe'
+    }
+    It 'a renamed export matches an edited photo by capture time' {
+        $t = [datetime]'2026-08-20 15:16:36'
+        $r = Get-FolderCheckResult 'WeDrive.jpg' 1800000 $t $orig $ed @{ '2026-08-20 15:16:36' = 'Edited\x.jpg' }
+        $r.Status | Should Be 'Safe'; $r.Why | Should Match 'matched by the time'
+    }
+    It 'an unknown photo is only here' {
+        (Get-FolderCheckResult 'IMG_0001.jpg' 3000000 $null $orig $ed @{}).Status | Should Be 'OnlyHere'
+    }
+}
