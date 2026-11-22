@@ -192,7 +192,16 @@ days after my latest ask (see "How long items stay"). Sources:
   after my latest ask. A reply to an earlier message in the thread
   doesn't count — e.g. they said "you can bring your passport in" and I
   then asked twice what time works: that's waiting on them, not
-  confirmed.
+  confirmed. A holding reply doesn't count either: one that only
+  acknowledges or gives status without the thing I asked for
+  ("submitted", "escalated", "under review", "with our specialized
+  team", "we'll update you", a ticket auto-reply). Keep the item and say
+  where it stands, e.g. "Google Cloud — you asked for the $2,424.44
+  Places API refund; Nov 2, followed up 4 times; Google said Thu it's
+  with their specialized team, no decision yet." Its 10 days count from
+  the later of my latest ask and their latest holding reply
+  (2026-11-21: Google Support's Nov 19 "please wait" reply made the
+  refund drop out of the brief with no decision made).
 - Texts and WhatsApp: the "my unanswered asks" gathered above.
 
 Read the whole message and the one it answers, and say what I actually
