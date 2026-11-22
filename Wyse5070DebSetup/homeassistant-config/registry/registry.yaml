@@ -1,0 +1,470 @@
+# Floors, areas, device and entity settings, and the default dashboard -- the
+# parts of Home Assistant that live in .storage with no YAML support. Applied by
+# registry/apply_registry.py on every ./deploy.sh (fully declarative: anything
+# set in the UI that isn't here gets reset, and each change is printed).
+# `./deploy.sh --registry-check` shows the drift without changing anything.
+#
+# Areas follow the SmartThings rooms while devices migrate from SmartThings to
+# HA ("Main Floor" = SmartThings' "Upstairs"); Shop and TV Room are HA-only.
+# devices: matched by the integration's device name, or by `id:`
+#   (identifier domain:value) when two devices share a name. `rename:` sets the
+#   name shown in HA, `disabled: true` disables it. Unlisted devices: no area.
+# entities: only ones with a setting -- area (when it differs from or there's
+#   no device), name (overrides the integration's), hidden.
+frontend:
+  default_panel: dashboard-home
+floors:
+  dormer:
+    name: Dormer
+    level: 2
+    icon: mdi:home-roof
+  main_floor:
+    name: Main Floor
+    level: 1
+    icon: mdi:home-floor-1
+  lower_level:
+    name: Lower Level
+    level: 0
+    icon: mdi:home-floor-0
+  outside:
+    name: Outside
+    icon: mdi:tree
+areas:
+  dormer:
+    name: Dormer
+    floor: dormer
+    icon: mdi:bed
+    aliases:
+    - Bedroom
+  basement:
+    name: Basement
+    floor: lower_level
+  shop:
+    name: Shop
+    floor: lower_level
+    icon: mdi:hammer-wrench
+  kitchen:
+    name: Kitchen
+    floor: main_floor
+    icon: mdi:stove
+  upstairs:
+    name: Main Floor
+    floor: main_floor
+    icon: mdi:sofa
+  tv_room:
+    name: TV Room
+    floor: main_floor
+    icon: mdi:television
+  deck:
+    name: Deck
+    floor: outside
+    icon: mdi:deck
+  garage:
+    name: Garage
+    floor: outside
+    icon: mdi:garage
+  roof:
+    name: Roof
+    floor: outside
+    icon: mdi:weather-partly-cloudy
+  under_deck:
+    name: Under Deck
+    floor: outside
+    icon: mdi:hot-tub
+devices:
+- name: Downstairs door
+  area: basement
+- name: Hottub Button
+  area: basement
+- name: Web Requestor v1.2
+  area: basement
+- name: Arlo
+  area: deck
+- name: Awning Down
+  area: deck
+- name: Awning Up
+  area: deck
+- name: Bug light
+  area: deck
+- name: Deck Lights
+  area: deck
+- name: End Left Shade (2)
+  area: deck
+- name: End Right Shade (1)
+  area: deck
+- name: Left Side Shade (5)
+  area: deck
+- name: MQTT End Shades
+  area: deck
+- name: MQTT Side Shades
+  area: deck
+- name: Middle Side Shade (3)
+  area: deck
+- name: Side Right Shade (4)
+  area: deck
+- name: Dormer Shade
+  area: dormer
+- name: minisplit_followme_temp
+  rename: Follow-Me Sensor
+  area: dormer
+- name: Mini-Split AC Bridge
+  id: matter:deviceid_B4E7B3A239A2583F-0000000000000027-MatterNodeDevice
+  area: dormer
+- name: Mini-Split AC Bridge
+  id: smartthings:b2e07b6a-44aa-4c3a-b31f-62add983204d
+  area: dormer
+  disabled: true
+- name: Upstairs Hallway
+  area: dormer
+- name: Garage Door
+  area: garage
+- name: 'Garage Door #2'
+  area: garage
+- name: Truck Heater
+  area: garage
+- name: Kitchen Smoke Detector
+  area: kitchen
+- name: Kitchen display
+  area: kitchen
+- name: Refrigerator
+  area: kitchen
+- name: Admin Device
+  area: roof
+- name: Rain Info
+  area: roof
+- name: Weather Device
+  area: roof
+- name: Wind Info
+  area: roof
+- name: Shop speaker
+  area: shop
+- name: Thread Router
+  area: shop
+- name: SHIELD
+  area: tv_room
+- name: TV Smoke Detector
+  area: tv_room
+- name: Zigbee2MQTT Bridge
+  area: tv_room
+- name: Z‐Stick Gen5 USB Controller
+  area: tv_room
+- name: Candy Tuffs (#15)
+  area: under_deck
+- name: Deckpots (#20)
+  area: under_deck
+- name: Flwrs - Side (#17)
+  area: under_deck
+- name: Flwrs - by brick (#16)
+  area: under_deck
+- name: Landscape
+  area: under_deck
+- name: Spa
+  area: under_deck
+- name: Spa Monitor
+  area: under_deck
+- name: String lights
+  area: under_deck
+- name: Baseboards
+  area: upstairs
+- name: Deck Lights Button
+  area: upstairs
+- name: FRONT DOOR
+  area: upstairs
+- name: Garage Button
+  area: upstairs
+- name: Living Room speaker
+  area: upstairs
+- name: Sengled Dimmer Switch
+  area: upstairs
+- name: SmartThings v3 Hub
+  area: upstairs
+- name: Soil Gateway
+  area: upstairs
+- name: Spa View Device
+  area: upstairs
+- name: living room light plug
+  area: upstairs
+entities:
+  automation.minisplit_auto_mode_shadow_decision:
+    area: dormer
+  automation.minisplit_bme280_predictive_setpoint_correction:
+    area: dormer
+  automation.minisplit_compressor_start_log:
+    area: dormer
+  automation.minisplit_follow_me_experiment_control:
+    area: dormer
+  automation.minisplit_follow_me_experiment_restore:
+    area: dormer
+  automation.minisplit_follow_me_experiment_safety_stop:
+    area: dormer
+  automation.minisplit_followme_temp_relay_to_firmware:
+    area: dormer
+  automation.minisplit_manual_override_detect:
+    area: dormer
+  automation.minisplit_manual_override_end:
+    area: dormer
+  automation.spa_alert_chlorine_low:
+    area: under_deck
+  automation.spa_alert_ph_out_of_range:
+    area: under_deck
+  automation.spa_alert_salt_low:
+    area: under_deck
+  automation.spa_alert_smarterspa_fault_no_power:
+    area: under_deck
+  automation.spa_alert_smarterspa_shut_down_salt_over_max:
+    area: under_deck
+  automation.spa_record_orp_calibration_date:
+    area: under_deck
+  automation.spa_record_ph_calibration_date:
+    area: under_deck
+  automation.spa_seed_threshold_helpers_on_first_install:
+    area: under_deck
+  binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4:
+    name: Compressor Running
+  binary_sensor.bedroom_mini_split_ac_bridge_occupancy_7:
+    name: Active Outage
+  binary_sensor.minisplit_follow_me_band_active:
+    area: dormer
+  binary_sensor.minisplit_followme_engaged:
+    area: dormer
+  binary_sensor.minisplit_manual_override:
+    area: dormer
+  binary_sensor.minisplit_shadow_cool_satisfied:
+    area: dormer
+  binary_sensor.minisplit_shadow_cool_wanted:
+    area: dormer
+  binary_sensor.minisplit_shadow_heat_satisfied:
+    area: dormer
+  binary_sensor.minisplit_shadow_heat_wanted:
+    area: dormer
+  binary_sensor.smarterspa_fault:
+    area: under_deck
+  binary_sensor.smarterspa_generating:
+    area: under_deck
+  binary_sensor.smarterspa_salt_high:
+    area: under_deck
+  binary_sensor.smarterspa_salt_low:
+    area: under_deck
+  binary_sensor.smarterspa_salt_shutdown:
+    area: under_deck
+  binary_sensor.spa_pump_running:
+    name: Spa pump running
+  binary_sensor.spa_readings_live:
+    name: Spa pH/ORP readings live
+  button.bedroom_mini_split_ac_bridge_identify_11:
+    area: dormer
+  button.spa_monitor_identify_1:
+    hidden: true
+  button.spa_monitor_identify_10:
+    hidden: true
+  button.spa_monitor_identify_11:
+    hidden: true
+  button.spa_monitor_identify_12:
+    hidden: true
+  button.spa_monitor_identify_13:
+    hidden: true
+  button.spa_monitor_identify_14:
+    hidden: true
+  button.spa_monitor_identify_15:
+    hidden: true
+  button.spa_monitor_identify_2:
+    hidden: true
+  button.spa_monitor_identify_3:
+    hidden: true
+  button.spa_monitor_identify_4:
+    hidden: true
+  button.spa_monitor_identify_5:
+    hidden: true
+  button.spa_monitor_identify_6:
+    hidden: true
+  button.spa_monitor_identify_7:
+    hidden: true
+  button.spa_monitor_identify_8:
+    hidden: true
+  button.spa_monitor_identify_9:
+    hidden: true
+  climate.bedroom_mini_split_ac_bridge_thermostat_10:
+    area: dormer
+    name: Follow Me Temp
+    hidden: true
+  climate.bedroom_mini_split_ac_bridge_thermostat_6:
+    area: dormer
+    name: Mini-Split
+  climate.mini_split_ac_bridge_thermostat_1:
+    name: Current Status
+    hidden: true
+  input_button.minisplit_resume_schedule:
+    area: dormer
+  input_datetime.minisplit_override_until:
+    area: dormer
+  input_datetime.minisplit_shadow_last_change:
+    area: dormer
+  input_datetime.spa_last_orp_calibration:
+    area: under_deck
+  input_datetime.spa_last_ph_calibration:
+    area: under_deck
+  input_number.minisplit_cool_offset:
+    area: dormer
+  input_number.minisplit_followme_min_run_min:
+    area: dormer
+  input_number.minisplit_followme_sent_c:
+    area: dormer
+  input_number.minisplit_mode_cool_band:
+    area: dormer
+  input_number.minisplit_mode_heat_band:
+    area: dormer
+  input_number.minisplit_override_setpoint:
+    area: dormer
+  input_number.minisplit_schedule_setpoint:
+    area: dormer
+  input_number.minisplit_summer_day:
+    area: dormer
+  input_number.minisplit_summer_night:
+    area: dormer
+  input_number.minisplit_winter_day:
+    area: dormer
+  input_number.minisplit_winter_night:
+    area: dormer
+  input_number.spa_orp_high_mv:
+    area: under_deck
+  input_number.spa_orp_low_mv:
+    area: under_deck
+  input_number.spa_orp_offset:
+    area: under_deck
+  input_number.spa_ph_high:
+    area: under_deck
+  input_number.spa_ph_low:
+    area: under_deck
+  input_number.spa_ph_offset:
+    area: under_deck
+  input_select.minisplit_followme_experiment:
+    area: dormer
+  input_select.minisplit_shadow_mode:
+    area: dormer
+  input_text.minisplit_compressor_starts:
+    area: dormer
+  input_text.minisplit_last_override:
+    area: dormer
+  input_text.minisplit_shadow_prev_mode:
+    area: dormer
+  light.hidden_master_awning_don_t_use:
+    hidden: true
+  light.hidden_repeater:
+    hidden: true
+  select.bedroom_mini_split_ac_bridge_power_on_behavior_11:
+    area: dormer
+  select.spa_monitor_power_on_behavior_10:
+    hidden: true
+  select.spa_monitor_power_on_behavior_11:
+    hidden: true
+  select.spa_monitor_power_on_behavior_12:
+    hidden: true
+  select.spa_monitor_power_on_behavior_13:
+    hidden: true
+  select.spa_monitor_power_on_behavior_14:
+    hidden: true
+  sensor.bedroom_mini_split_ac_bridge_humidity_3:
+    name: Compressor Load
+  sensor.bedroom_mini_split_ac_bridge_humidity_8:
+    name: Raw reboot reason
+    hidden: true
+  sensor.bedroom_mini_split_ac_bridge_humidity_9:
+    name: Raw rssi
+    hidden: true
+  sensor.mini_split_ac_bridge_temperature_1:
+    name: Indoor Temp (from Tuya)
+  sensor.minisplit_auto_mode_decision_inputs:
+    area: dormer
+  sensor.minisplit_compressor_starts_last_hour:
+    area: dormer
+  sensor.minisplit_computed_setpoint:
+    area: dormer
+    name: MiniSplit Target Temp
+  sensor.minisplit_cool_target:
+    area: dormer
+  sensor.minisplit_follow_me_band_sent_f:
+    area: dormer
+  sensor.minisplit_follow_me_band_target:
+    area: dormer
+  sensor.minisplit_heat_target:
+    area: dormer
+  sensor.minisplit_outage_status:
+    area: dormer
+  sensor.minisplit_outdoor_7d_avg:
+    area: dormer
+  sensor.minisplit_outdoor_temp:
+    area: dormer
+  sensor.minisplit_room_trend:
+    area: dormer
+  sensor.minisplit_season:
+    area: dormer
+  sensor.minisplit_thread_rssi:
+    area: dormer
+    name: Thread RSSI
+  sensor.smarterspa_generating_24h:
+    area: under_deck
+  sensor.smarterspa_readout:
+    area: under_deck
+  sensor.smarterspa_readout_raw:
+    name: SmarterSpa readout (raw)
+    hidden: true
+  sensor.smarterspa_state:
+    area: under_deck
+  sensor.spa_calibration_status:
+    area: under_deck
+  sensor.spa_calibration_status_raw:
+    name: Spa calibration status (raw)
+    hidden: true
+  sensor.spa_chlorine:
+    area: under_deck
+  sensor.spa_electrode_hours:
+    area: under_deck
+  sensor.spa_electrode_hours_raw:
+    name: Spa electrode hours (raw)
+    hidden: true
+  sensor.spa_orp:
+    area: under_deck
+  sensor.spa_orp_raw:
+    name: Spa ORP (raw)
+    hidden: true
+  sensor.spa_ph:
+    area: under_deck
+  sensor.spa_ph_raw:
+    name: Spa pH (raw)
+    hidden: true
+  sensor.spa_pump_current:
+    area: under_deck
+  sensor.spa_pump_current_raw:
+    name: Spa pump current (raw)
+    hidden: true
+  sensor.spa_pump_runtime_24h:
+    area: under_deck
+  sensor.spa_pump_speed:
+    area: under_deck
+  sensor.spa_smarterspa_state_raw:
+    name: SmarterSpa state (raw)
+    hidden: true
+  sensor.spa_water_temperature:
+    area: under_deck
+  sensor.spa_water_temperature_raw:
+    name: Spa water temperature (raw)
+    hidden: true
+  switch.bedroom_mini_split_ac_bridge:
+    name: Main Power (True Off)
+  switch.hidden_awning_state_on_down:
+    hidden: true
+  switch.hidden_shade_checker:
+    hidden: true
+  switch.minisplit_fresh_air:
+    area: dormer
+    name: MiniSplit Fresh Air
+  switch.spa_calibrate_clear:
+    name: Clear pH/ORP calibration
+  switch.spa_calibrate_orp:
+    name: Calibrate ORP
+  switch.spa_calibrate_ph_10:
+    name: Calibrate pH 10
+  switch.spa_calibrate_ph_4:
+    name: Calibrate pH 4
+  switch.spa_calibrate_ph_7:
+    name: Calibrate pH 7

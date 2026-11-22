@@ -1,0 +1,167 @@
+# Dashboard 'System' (/dashboard-system). Deployed by deploy.sh; edit here, not in the HA UI.
+views:
+- title: System
+  path: system
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Needs a battery
+      icon: mdi:battery-alert
+    - type: entity-filter
+      entities:
+      - sensor.garage_garage_door_2_battery
+      - sensor.upstairs_garage_button_battery
+      - sensor.deck_side_right_shade_4_battery
+      - sensor.deck_middle_side_shade_3_battery
+      - sensor.deck_end_right_shade_1_battery
+      - sensor.deck_end_left_shade_2_battery
+      - sensor.basement_hottub_button_battery
+      - sensor.upstairs_front_door_battery
+      - sensor.kitchen_kitchen_smoke_detector_battery
+      - sensor.upstairs_tv_smoke_detector_battery
+      - sensor.upstairs_deck_lights_button_battery
+      - sensor.0x18690afffe5602f1_battery
+      - sensor.0x70d07efffea47190_battery
+      - sensor.basement_downstairs_door_battery
+      - sensor.deck_arlo_battery
+      - sensor.deck_left_side_shade_5_battery
+      - sensor.dormer_dormer_shade_battery
+      - sensor.upstairs_sengled_dimmer_switch_battery
+      conditions:
+      - condition: numeric_state
+        below: 30
+      card:
+        type: entities
+        state_color: true
+      show_empty: true
+    - type: heading
+      heading: All batteries
+      icon: mdi:battery
+      heading_style: subtitle
+    - type: entities
+      entities:
+      - sensor.garage_garage_door_2_battery
+      - sensor.upstairs_garage_button_battery
+      - sensor.deck_side_right_shade_4_battery
+      - sensor.deck_middle_side_shade_3_battery
+      - sensor.deck_end_right_shade_1_battery
+      - sensor.deck_end_left_shade_2_battery
+      - sensor.basement_hottub_button_battery
+      - sensor.upstairs_front_door_battery
+      - sensor.kitchen_kitchen_smoke_detector_battery
+      - sensor.upstairs_tv_smoke_detector_battery
+      - sensor.upstairs_deck_lights_button_battery
+      - sensor.0x18690afffe5602f1_battery
+      - sensor.0x70d07efffea47190_battery
+      - sensor.basement_downstairs_door_battery
+      - sensor.deck_arlo_battery
+      - sensor.deck_left_side_shade_5_battery
+      - sensor.dormer_dormer_shade_battery
+      - sensor.upstairs_sengled_dimmer_switch_battery
+      state_color: true
+  - type: grid
+    cards:
+    - type: heading
+      heading: Not responding
+      icon: mdi:lan-disconnect
+    - type: entity-filter
+      entities:
+      - lock.upstairs_front_door
+      - lock.basement_downstairs_door
+      - cover.garage_garage_door
+      - cover.deck_end_left_shade_2
+      - cover.deck_end_right_shade_1
+      - cover.deck_left_side_shade_5
+      - cover.deck_middle_side_shade_3
+      - cover.deck_side_right_shade_4
+      - cover.dormer_dormer_shade
+      - switch.deck_arlo
+      - switch.deck_bug_light
+      - switch.deck_deck_lights
+      - switch.garage_truck_heater
+      - switch.under_deck_landscape
+      - switch.upstairs_living_room_light_plug
+      - light.under_deck_string_lights
+      - light.upstairs_sengled_dimmer_switch
+      - light.deck_awning_down
+      - light.deck_awning_up
+      - binary_sensor.basement_downstairs_door_door
+      - binary_sensor.deck_arlo_motion
+      - sensor.upstairs_spa_view_device_temperature
+      - sensor.under_deck_candy_tuffs_15_signal_strength
+      - sensor.under_deck_deckpots_20_signal_strength
+      - sensor.under_deck_flwrs_by_brick_16_signal_strength
+      - sensor.under_deck_flwrs_side_17_signal_strength
+      - climate.bedroom_mini_split_ac_bridge_thermostat_6
+      - sensor.0x18690afffe5602f1_temperature
+      - sensor.0x70d07efffea47190_temperature
+      - sensor.spa_water_temperature
+      - sensor.roof_weather_device_temperature
+      - sensor.kitchen_refrigerator_fridge_temperature
+      - binary_sensor.garage_garage_door_2_door
+      conditions:
+      - condition: state
+        state:
+        - unavailable
+        - unknown
+      card:
+        type: entities
+      show_empty: true
+  - type: grid
+    cards:
+    - type: heading
+      heading: Infrastructure
+      icon: mdi:server-network
+    - type: tile
+      entity: binary_sensor.zigbee2mqtt_bridge_connection_state
+      name: Zigbee2MQTT
+    - type: tile
+      entity: sensor.zigbee2mqtt_bridge_version
+      name: Z2M version
+    - type: tile
+      entity: sensor.minisplit_outage_status
+      name: Mini-split link
+    - type: tile
+      entity: sensor.minisplit_thread_rssi
+      name: Mini-split Thread signal
+    - type: tile
+      entity: binary_sensor.spa_readings_live
+      name: Spa monitor live
+    - type: tile
+      entity: switch.zigbee2mqtt_bridge_permit_join
+      name: Zigbee pairing
+    - type: heading
+      heading: Updates available
+      icon: mdi:update
+      heading_style: subtitle
+    - type: entity-filter
+      entities:
+      - update.0x18690afffe5602f1
+      - update.0x70d07efffea47190
+      - update.basement_hottub_button_firmware
+      - update.deck_bug_light_firmware
+      - update.deck_deck_lights_firmware
+      - update.deck_end_left_shade_2_firmware
+      - update.deck_end_right_shade_1_firmware
+      - update.deck_left_side_shade_5_firmware
+      - update.deck_middle_side_shade_3_firmware
+      - update.deck_side_right_shade_4_firmware
+      - update.dormer_dormer_shade_firmware
+      - update.under_deck_landscape_firmware
+      - update.upstairs_deck_lights_button_firmware
+      - update.upstairs_garage_button_firmware
+      - update.upstairs_living_room_light_plug_firmware
+      - update.upstairs_sengled_dimmer_switch_firmware
+      - update.z_stick_gen5_usb_controller_firmware
+      conditions:
+      - condition: state
+        state: 'on'
+      card:
+        type: entities
+      show_empty: true
+    - type: markdown
+      content: 'Repairs and integration problems: [Settings > Repairs](/config/repairs). Thread border router crash history
+        is on wyse (watchdog.log), not in HA yet.'

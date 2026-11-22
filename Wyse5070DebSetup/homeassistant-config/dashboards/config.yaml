@@ -1,0 +1,462 @@
+# Dashboard 'Config' (/dashboard-config). Deployed by deploy.sh; edit here, not in the HA UI.
+views:
+- title: Dormer
+  path: dormer
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Temperature schedule
+      icon: mdi:calendar-clock
+    - type: entities
+      entities:
+      - entity: input_number.minisplit_winter_day
+        name: Winter day (09:00-19:00)
+      - entity: input_number.minisplit_winter_night
+        name: Winter night (22:00-06:00)
+      - entity: input_number.minisplit_summer_day
+        name: Summer day
+      - entity: input_number.minisplit_summer_night
+        name: Summer night
+      - entity: input_number.minisplit_cool_offset
+        name: Cool runs this much above heat
+      - entity: sensor.minisplit_season
+        name: Season now (% summer)
+      - entity: sensor.minisplit_computed_setpoint
+        name: Target now
+    - type: markdown
+      content: Day/night ramps 06:00-09:00 and 19:00-22:00. Season blends winter to summer by the 7-day outdoor average (45F
+        and below = winter, 70F and above = summer).
+  - type: grid
+    cards:
+    - type: heading
+      heading: Band control (heat)
+      icon: mdi:sine-wave
+    - type: entities
+      entities:
+      - entity: input_select.minisplit_followme_experiment
+        name: Band control
+      - entity: input_number.minisplit_followme_min_run_min
+        name: Minimum run (adapts 6-10 min)
+      - entity: binary_sensor.minisplit_follow_me_band_active
+        name: Active now
+      - entity: sensor.minisplit_compressor_starts_last_hour
+        name: Starts last hour (max 3)
+  - type: grid
+    cards:
+    - type: heading
+      heading: Auto mode (shadow only)
+      icon: mdi:sun-snowflake-variant
+    - type: entities
+      entities:
+      - entity: input_number.minisplit_mode_heat_band
+        name: Heat wanted below target by
+      - entity: input_number.minisplit_mode_cool_band
+        name: Cool wanted above target by
+      - entity: input_select.minisplit_shadow_mode
+        name: Shadow decision
+      - entity: binary_sensor.minisplit_shadow_heat_wanted
+        name: Heat wanted
+      - entity: binary_sensor.minisplit_shadow_cool_wanted
+        name: Cool wanted
+      - entity: binary_sensor.minisplit_shadow_heat_satisfied
+        name: Heat satisfied
+      - entity: binary_sensor.minisplit_shadow_cool_satisfied
+        name: Cool satisfied
+      - entity: input_text.minisplit_shadow_prev_mode
+        name: Previous mode
+      - entity: input_datetime.minisplit_shadow_last_change
+        name: Last change
+  - type: grid
+    cards:
+    - type: heading
+      heading: Sensors & bridge
+      icon: mdi:thermometer-lines
+    - type: entities
+      entities:
+      - entity: number.0x18690afffe5602f1_temperature_calibration
+        name: Follow-Me sensor temp calibration
+      - entity: number.0x18690afffe5602f1_humidity_calibration
+        name: Follow-Me sensor humidity calibration
+      - entity: number.0x70d07efffea47190_temperature_calibration
+        name: Hallway sensor temp calibration
+      - entity: number.0x70d07efffea47190_humidity_calibration
+        name: Hallway sensor humidity calibration
+      - entity: switch.minisplit_fresh_air
+        name: Fresh air
+      - entity: select.bedroom_mini_split_ac_bridge_power_on_behavior
+        name: Bridge power-on behavior (5)
+      - entity: select.bedroom_mini_split_ac_bridge_power_on_behavior_11
+        name: Bridge power-on behavior (11)
+      - entity: sensor.minisplit_outage_status
+        name: Bridge link
+  - type: grid
+    cards:
+    - type: heading
+      heading: Automations
+      icon: mdi:robot
+    - type: entities
+      entities:
+      - entity: automation.minisplit_bme280_predictive_setpoint_correction
+        name: Schedule setpoint
+      - entity: automation.minisplit_follow_me_experiment_control
+        name: Band control
+      - entity: automation.minisplit_follow_me_experiment_restore
+        name: Band restore
+      - entity: automation.minisplit_follow_me_experiment_safety_stop
+        name: Band safety stop
+      - entity: automation.minisplit_compressor_start_log
+        name: Compressor start log
+      - entity: automation.minisplit_followme_temp_relay_to_firmware
+        name: Follow-Me relay
+      - entity: automation.minisplit_manual_override_detect
+        name: Override detect
+      - entity: automation.minisplit_manual_override_end
+        name: Override end
+      - entity: automation.minisplit_auto_mode_shadow_decision
+        name: Auto mode shadow
+    - type: entities
+      entities:
+      - entity: update.0x18690afffe5602f1
+        name: Follow-Me sensor firmware
+      - entity: update.0x70d07efffea47190
+        name: Hallway sensor firmware
+      - entity: update.dormer_dormer_shade_firmware
+        name: Dormer shade firmware
+      title: Firmware
+- title: Main Floor
+  path: main-floor
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Heating
+      icon: mdi:radiator
+    - type: entities
+      entities:
+      - entity: sensor.upstairs_baseboards_heating_setpoint
+        name: Baseboards set to
+      - entity: sensor.upstairs_baseboards_temperature
+        name: Baseboards temperature
+    - type: markdown
+      content: The baseboards are read-only in HA; set them in SmartThings until they move over.
+  - type: grid
+    cards:
+    - type: heading
+      heading: Buttons & firmware
+      icon: mdi:gesture-tap-button
+    - type: entities
+      entities:
+      - entity: sensor.upstairs_deck_lights_button_battery
+        name: Deck lights button battery
+      - entity: sensor.upstairs_garage_button_battery
+        name: Garage button battery
+      - entity: update.upstairs_deck_lights_button_firmware
+        name: Deck lights button firmware
+      - entity: update.upstairs_garage_button_firmware
+        name: Garage button firmware
+      - entity: update.upstairs_living_room_light_plug_firmware
+        name: Living room plug firmware
+      - entity: update.upstairs_sengled_dimmer_switch_firmware
+        name: Sengled dimmer firmware
+- title: Kitchen
+  path: kitchen
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Refrigerator
+      icon: mdi:fridge
+    - type: tile
+      entity: number.kitchen_refrigerator_fridge_temperature
+      name: Fridge set to
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: tile
+      entity: number.kitchen_refrigerator_freezer_temperature
+      name: Freezer set to
+      features:
+      - type: numeric-input
+        style: buttons
+      features_position: inline
+    - type: entities
+      entities:
+      - entity: switch.kitchen_refrigerator_power_cool
+        name: Power cool
+      - entity: switch.kitchen_refrigerator_power_freeze
+        name: Power freeze
+      - entity: switch.kitchen_refrigerator_cubed_ice
+        name: Cubed ice
+      - entity: switch.kitchen_refrigerator_sabbath_mode
+        name: Sabbath mode
+- title: TV Room
+  path: tv-room
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Home server radios
+      icon: mdi:access-point-network
+    - type: entities
+      entities:
+      - entity: switch.zigbee2mqtt_bridge_permit_join
+        name: Zigbee pairing
+      - entity: binary_sensor.zigbee2mqtt_bridge_connection_state
+        name: Zigbee2MQTT connected
+      - entity: select.zigbee2mqtt_bridge_log_level
+        name: Zigbee2MQTT log level
+      - entity: sensor.zigbee2mqtt_bridge_version
+        name: Zigbee2MQTT version
+      - entity: update.z_stick_gen5_usb_controller_firmware
+        name: Z-Wave stick firmware
+      - entity: sensor.upstairs_tv_smoke_detector_battery
+        name: Smoke detector battery
+    - type: markdown
+      content: The wyse home server and its Zigbee, Z-Wave and Thread (OTBR) dongles live here. OTBR has no HA controls; its
+        health is on wyse.
+- title: Deck
+  path: deck
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Awning & shades
+      icon: mdi:blinds
+    - type: entities
+      entities:
+      - entity: switch.hidden_awning_state_on_down
+        name: Awning state (on = out)
+      - entity: switch.hidden_shade_checker
+        name: Shade checker
+      - entity: sensor.deck_end_left_shade_2_battery
+        name: End left (2) battery
+      - entity: sensor.deck_end_right_shade_1_battery
+        name: End right (1) battery
+      - entity: sensor.deck_middle_side_shade_3_battery
+        name: Middle side (3) battery
+      - entity: sensor.deck_side_right_shade_4_battery
+        name: Side right (4) battery
+      - entity: sensor.deck_left_side_shade_5_battery
+        name: Left side (5) battery
+    - type: markdown
+      content: Awning and shade logic runs in SmartThings for now.
+  - type: grid
+    cards:
+    - type: heading
+      heading: Firmware
+      icon: mdi:update
+    - type: entities
+      entities:
+      - entity: update.deck_end_left_shade_2_firmware
+        name: End left shade (2)
+      - entity: update.deck_end_right_shade_1_firmware
+        name: End right shade (1)
+      - entity: update.deck_middle_side_shade_3_firmware
+        name: Middle side shade (3)
+      - entity: update.deck_side_right_shade_4_firmware
+        name: Side right shade (4)
+      - entity: update.deck_left_side_shade_5_firmware
+        name: Left side shade (5)
+      - entity: update.deck_deck_lights_firmware
+        name: Deck lights
+      - entity: update.deck_bug_light_firmware
+        name: Bug light
+- title: Under Deck
+  path: under-deck
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Spa calibration
+      icon: mdi:tune-variant
+    - type: entities
+      state_color: false
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_calibration_status
+        name: Status
+      - entity: input_datetime.spa_last_ph_calibration
+        name: pH last calibrated
+      - entity: input_number.spa_ph_offset
+        name: pH offset (added to the probe's pH)
+      - entity: input_datetime.spa_last_orp_calibration
+        name: ORP last calibrated
+      - entity: input_number.spa_orp_offset
+        name: ORP offset (added to the probe's ORP)
+      - type: section
+        label: 'Probe in solution, wait ~1 min, then press. pH: 7 first, then 4 (10 optional).'
+      - type: button
+        name: pH 7 buffer
+        icon: mdi:numeric-7-circle
+        action_name: Calibrate
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.spa_calibrate_ph_7
+      - type: button
+        name: pH 4 buffer
+        icon: mdi:numeric-4-circle
+        action_name: Calibrate
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.spa_calibrate_ph_4
+      - type: button
+        name: pH 10 buffer
+        icon: mdi:numeric-10-circle
+        action_name: Calibrate
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.spa_calibrate_ph_10
+      - type: button
+        name: ORP reference (225 mV)
+        icon: mdi:flash-triangle-outline
+        action_name: Calibrate
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.spa_calibrate_orp
+      - type: button
+        name: Clear pH + ORP calibration
+        icon: mdi:backup-restore
+        action_name: Clear
+        tap_action:
+          action: perform-action
+          perform_action: switch.turn_on
+          target:
+            entity_id: switch.spa_calibrate_clear
+          confirmation:
+            text: Reset pH and ORP calibration to factory defaults?
+  - type: grid
+    cards:
+    - type: heading
+      heading: Spa alert thresholds
+      icon: mdi:alert-circle-outline
+    - type: entities
+      grid_options:
+        columns: full
+      entities:
+      - entity: input_number.spa_orp_low_mv
+        name: Chlorine Low below
+      - entity: input_number.spa_orp_high_mv
+        name: Chlorine High above
+      - entity: input_number.spa_ph_low
+        name: pH alert below
+      - entity: input_number.spa_ph_high
+        name: pH alert above
+    - type: markdown
+      content: Tune against test strips.
+  - type: grid
+    cards:
+    - type: heading
+      heading: Spa alerts & device
+      icon: mdi:bell-cog
+    - type: entities
+      entities:
+      - entity: automation.spa_alert_chlorine_low
+        name: 'Alert: chlorine low'
+      - entity: automation.spa_alert_ph_out_of_range
+        name: 'Alert: pH out of range'
+      - entity: automation.spa_alert_salt_low
+        name: 'Alert: salt low'
+      - entity: automation.spa_alert_smarterspa_fault_no_power
+        name: 'Alert: SmarterSpa fault / no power'
+      - entity: automation.spa_alert_smarterspa_shut_down_salt_over_max
+        name: 'Alert: salt shutdown'
+      - entity: automation.spa_record_ph_calibration_date
+        name: Record pH calibration date
+      - entity: automation.spa_record_orp_calibration_date
+        name: Record ORP calibration date
+    - type: entities
+      entities:
+      - entity: select.spa_monitor_power_on_behavior_10
+        name: Power-on behavior (10)
+      - entity: select.spa_monitor_power_on_behavior_11
+        name: Power-on behavior (11)
+      - entity: select.spa_monitor_power_on_behavior_12
+        name: Power-on behavior (12)
+      - entity: select.spa_monitor_power_on_behavior_13
+        name: Power-on behavior (13)
+      - entity: select.spa_monitor_power_on_behavior_14
+        name: Power-on behavior (14)
+      - entity: update.under_deck_landscape_firmware
+        name: Landscape firmware
+      title: Devices
+- title: Shop
+  path: shop
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Thread router
+      icon: mdi:router-wireless
+    - type: entities
+      entities:
+      - entity: switch.thread_router
+        name: Thread router
+      - entity: select.thread_router_power_on_behavior
+        name: Power-on behavior
+- title: Garage, Basement & Roof
+  path: other
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Garage
+      icon: mdi:garage
+    - type: entities
+      entities:
+      - entity: switch.garage_truck_heater
+        name: Truck heater
+      - entity: sensor.garage_truck_heater_energy
+        name: Truck heater energy
+      - entity: sensor.garage_garage_door_2_battery
+        name: Garage door 2 sensor battery
+  - type: grid
+    cards:
+    - type: heading
+      heading: Basement
+      icon: mdi:stairs-down
+    - type: entities
+      entities:
+      - entity: sensor.basement_hottub_button_battery
+        name: Hot tub button battery
+      - entity: update.basement_hottub_button_firmware
+        name: Hot tub button firmware
+      - entity: sensor.basement_downstairs_door_battery
+        name: Downstairs lock battery
+  - type: grid
+    cards:
+    - type: heading
+      heading: Roof weather station
+      icon: mdi:weather-partly-cloudy
+    - type: entities
+      entities:
+      - entity: sensor.roof_admin_device_signal_strength
+        name: Station signal
+      - entity: automation.smartthings_stream_watchdog
+        name: SmartThings stream watchdog

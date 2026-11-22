@@ -1,0 +1,232 @@
+# Dashboard 'Home' (/dashboard-home). Deployed by deploy.sh; edit here, not in the HA UI.
+views:
+- title: Home
+  path: home
+  type: sections
+  max_columns: 4
+  badges:
+  - type: entity
+    entity: lock.upstairs_front_door
+    name: Front door
+  - type: entity
+    entity: cover.garage_garage_door
+    name: Garage
+  - type: entity
+    entity: sensor.minisplit_outdoor_temp
+    name: Outside
+  - type: entity
+    entity: sensor.0x18690afffe5602f1_temperature
+    name: Dormer
+  - type: entity
+    entity: sensor.upstairs_baseboards_temperature
+    name: Main floor
+  - type: entity
+    entity: sensor.spa_water_temperature
+    name: Spa
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Climate
+      icon: mdi:thermostat
+      tap_action:
+        action: navigate
+        navigation_path: /dashboard-minisplit
+    - type: tile
+      entity: climate.bedroom_mini_split_ac_bridge_thermostat_6
+      name: Dormer mini-split
+      features:
+      - type: target-temperature
+      - type: climate-hvac-modes
+        hvac_modes:
+        - 'off'
+        - heat
+        - cool
+        - auto
+      features_position: bottom
+      grid_options:
+        columns: 12
+    - type: tile
+      entity: sensor.0x18690afffe5602f1_temperature
+      name: Dormer room
+    - type: tile
+      entity: binary_sensor.minisplit_follow_me_band_active
+      name: Band control
+    - type: tile
+      entity: sensor.0x70d07efffea47190_temperature
+      name: Upstairs hallway
+    - type: tile
+      entity: binary_sensor.minisplit_manual_override
+      name: Override
+    - type: tile
+      entity: sensor.upstairs_baseboards_temperature
+      name: Main floor
+    - type: tile
+      entity: sensor.upstairs_baseboards_heating_setpoint
+      name: Baseboards set to
+  - type: grid
+    cards:
+    - type: heading
+      heading: Deck
+      icon: mdi:deck
+    - type: tile
+      entity: cover.deck_mqtt_end_shades
+      name: End shades
+      features:
+      - type: cover-open-close
+      features_position: inline
+    - type: tile
+      entity: cover.deck_mqtt_side_shades
+      name: Side shades
+      features:
+      - type: cover-open-close
+      features_position: inline
+    - type: tile
+      entity: light.deck_awning_down
+      name: Awning out
+      icon: mdi:arrow-expand-down
+      hide_state: true
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        target:
+          entity_id: light.deck_awning_down
+      icon_tap_action:
+        action: none
+    - type: tile
+      entity: light.deck_awning_up
+      name: Awning in
+      icon: mdi:arrow-collapse-up
+      hide_state: true
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        target:
+          entity_id: light.deck_awning_up
+      icon_tap_action:
+        action: none
+    - type: tile
+      entity: switch.hidden_awning_state_on_down
+      name: Awning out?
+      tap_action:
+        action: more-info
+      icon_tap_action:
+        action: none
+    - type: tile
+      entity: switch.deck_deck_lights
+      name: Deck lights
+    - type: tile
+      entity: switch.deck_bug_light
+      name: Bug light
+  - type: grid
+    cards:
+    - type: heading
+      heading: Under Deck
+      icon: mdi:hot-tub
+      tap_action:
+        action: navigate
+        navigation_path: /spa-dashboard
+    - type: tile
+      entity: sensor.spa_water_temperature
+      name: Spa
+    - type: tile
+      entity: sensor.smarterspa_state
+      name: Salt system
+    - type: tile
+      entity: sensor.spa_chlorine
+      name: Chlorine
+    - type: tile
+      entity: sensor.spa_ph
+      name: pH
+    - type: tile
+      entity: binary_sensor.spa_pump_running
+      name: Pump
+    - type: tile
+      entity: sensor.spa_pump_speed
+      name: Pump speed
+    - type: tile
+      entity: light.under_deck_string_lights
+      name: String lights
+    - type: tile
+      entity: switch.under_deck_landscape
+      name: Landscape
+  - type: grid
+    cards:
+    - type: heading
+      heading: Doors & Safety
+      icon: mdi:shield-home
+    - type: tile
+      entity: lock.upstairs_front_door
+      name: Front door
+      features:
+      - type: lock-commands
+      features_position: inline
+    - type: tile
+      entity: lock.basement_downstairs_door
+      name: Downstairs door
+      features:
+      - type: lock-commands
+      features_position: inline
+    - type: tile
+      entity: cover.garage_garage_door
+      name: Garage door
+      features:
+      - type: cover-open-close
+      features_position: inline
+    - type: tile
+      entity: binary_sensor.garage_garage_door_2_door
+      name: Garage door 2
+    - type: tile
+      entity: sensor.kitchen_kitchen_smoke_detector_smoke_detector
+      name: Kitchen smoke
+    - type: tile
+      entity: sensor.kitchen_kitchen_smoke_detector_carbon_monoxide_detector
+      name: Kitchen CO
+    - type: tile
+      entity: sensor.upstairs_tv_smoke_detector_smoke_detector
+      name: TV room smoke
+    - type: tile
+      entity: sensor.upstairs_tv_smoke_detector_carbon_monoxide_detector
+      name: TV room CO
+    - type: tile
+      entity: switch.garage_truck_heater
+      name: Truck heater
+  - type: grid
+    cards:
+    - type: heading
+      heading: Kitchen
+      icon: mdi:fridge
+    - type: tile
+      entity: sensor.kitchen_refrigerator_fridge_temperature
+      name: Fridge
+    - type: tile
+      entity: sensor.kitchen_refrigerator_freezer_temperature
+      name: Freezer
+    - type: tile
+      entity: binary_sensor.kitchen_refrigerator_fridge_door
+      name: Fridge door
+    - type: tile
+      entity: binary_sensor.kitchen_refrigerator_freezer_door
+      name: Freezer door
+  - type: grid
+    cards:
+    - type: heading
+      heading: Weather
+      icon: mdi:weather-partly-cloudy
+    - type: weather-forecast
+      entity: weather.forecast_home
+      forecast_type: daily
+      show_current: true
+      show_forecast: true
+    - type: tile
+      entity: sensor.roof_weather_device_temperature
+      name: Roof temp
+    - type: tile
+      entity: binary_sensor.roof_rain_info_moisture
+      name: Raining
+    - type: tile
+      entity: sensor.roof_weather_device_uv_index
+      name: UV
+    - type: tile
+      entity: sensor.roof_weather_device_illuminance
+      name: Light

@@ -1,26 +1,27 @@
-# Home Assistant config (tracked copy)
+# Home Assistant config (source of truth)
 
-Home Assistant itself runs as a Container install (see [../setup-homeassistant.sh](../setup-homeassistant.sh)),
-with its live config at `/mnt/data/appdata/homeassistant/config` on the server — outside git, and with no
-backup of any kind (no `backup:` integration configured, no Supervisor, no cron/systemd job covering it).
+Home Assistant runs as a Container install (see [../setup-homeassistant.sh](../setup-homeassistant.sh)), live
+config at `/mnt/data/appdata/homeassistant/config` on wyse. **Everything configurable is code in this
+directory** and goes live only through `./deploy.sh` (commit, push, run it from this checkout):
 
-This directory is a **manually-updated copy** of the two files most worth having history and documentation
-for: `automations.yaml` and `configuration.yaml`, plus `packages/*.yaml` (one file per feature, e.g. `packages/spa.yaml`
-for SpaV2, loaded by `configuration.yaml`'s `packages: !include_dir_named packages`). `deploy.sh` deploys all of them. It is not live-synced — editing here does nothing to the
-running instance, and editing the live files does nothing here. After changing either live file, re-copy it
-here and commit, so the change and its rationale (commit message) are preserved.
+| Here | What it is |
+|---|---|
+| `configuration.yaml`, `automations.yaml`, `scripts.yaml`, `scenes.yaml` | core config and automations |
+| `packages/*.yaml` | one file per feature (e.g. `spa.yaml`, `minisplit_followme_band.yaml`) |
+| `dashboards/*.yaml` | every dashboard (YAML mode, listed under `lovelace:` in `configuration.yaml`) -- not editable in the HA UI |
+| `registry/registry.yaml` | floors, areas, which area each device/entity is in, renames, hidden/disabled, the default dashboard -- applied by `registry/apply_registry.py` through the HA API, since HA has no YAML for these |
 
-```bash
-cp /mnt/data/appdata/homeassistant/config/automations.yaml automations.yaml
-cp /mnt/data/appdata/homeassistant/config/configuration.yaml configuration.yaml
-```
+`deploy.sh` refuses a live file edited on the box since the last deploy, config-checks with rollback, then
+reloads (or `--restart`), and applies the registry on every run, printing each change. Anything set in the
+HA UI that the registry file doesn't say gets reset; `./deploy.sh --registry-check` shows that drift without
+changing anything. Areas follow the SmartThings rooms while devices migrate from SmartThings into HA.
 
-This is documentation and change history, **not a backup** — it doesn't cover the recorder database
-(`home-assistant_v2.db`, i.e. all sensor/state history), `.storage/` (entity registry, area/device
-registry, auth, `input_number`/`input_boolean` current values), `secrets.yaml`, or any other integration's
-config. Losing the server today would mean rebuilding entities/automations from these files but losing all
-history and any state (like the MiniSplit cascade automation's learned `input_number.minisplit_adaptive_gain`)
-that isn't captured in the YAML itself.
+Not code (and can't usefully be): integrations and their logins (SmartThings OAuth, Matter, Z-Wave, MQTT,
+Cast, mobile app), users/auth, `secrets.yaml`, the recorder database, and helper *values* (the current
+setting of an `input_number`). The nightly `homeassistant-backup.timer` on wyse covers those.
+
+One-off live actions with no ongoing state (deleting an orphaned entity, clearing old statistics) are
+recorded in `history/`.
 
 ## MiniSplit cascade setpoint correction
 

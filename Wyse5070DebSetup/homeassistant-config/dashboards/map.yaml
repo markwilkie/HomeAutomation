@@ -1,0 +1,3 @@
+# Dashboard 'Map' (/dashboard-map). Deployed by deploy.sh; edit here, not in the HA UI.
+strategy:
+  type: map

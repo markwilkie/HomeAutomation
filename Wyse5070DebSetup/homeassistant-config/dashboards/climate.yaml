@@ -1,0 +1,94 @@
+# Dashboard 'Climate' (/dashboard-minisplit). Deployed by deploy.sh; edit here, not in the HA UI.
+views:
+- type: sections
+  title: Now
+  path: now
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Live Status
+    - type: entities
+      entities:
+      - entity: climate.bedroom_mini_split_ac_bridge_thermostat_6
+        name: Desired
+      - entity: climate.mini_split_ac_bridge_thermostat_1
+        name: Unit (actual)
+      - entity: binary_sensor.minisplit_manual_override
+        name: Manual override
+      - entity: input_datetime.minisplit_override_until
+        name: Override until
+      - entity: input_text.minisplit_last_override
+        name: Last override
+      - type: button
+        entity: input_button.minisplit_resume_schedule
+        name: Resume schedule
+        action_name: Resume
+      - entity: sensor.0x18690afffe5602f1_temperature
+        name: Room
+      - entity: sensor.minisplit_room_trend
+        name: Room trend
+      - entity: binary_sensor.minisplit_followme_engaged
+        name: Follow-Me OK
+      - entity: sensor.minisplit_outdoor_temp
+        name: Outdoor
+      - entity: sensor.minisplit_outdoor_7d_avg
+        name: Outdoor 7-day
+      - entity: sensor.minisplit_season
+        name: Season (% summer)
+      - entity: switch.minisplit_fresh_air
+        name: Fresh Air
+    - type: history-graph
+      title: Room / Target / Outdoor / Compressor
+      hours_to_show: 24
+      entities:
+      - entity: sensor.0x18690afffe5602f1_temperature
+        name: Room
+      - entity: sensor.minisplit_computed_setpoint
+        name: Target
+      - entity: sensor.minisplit_outdoor_temp
+        name: Outdoor
+      - entity: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
+        name: Compressor
+    - type: history-graph
+      title: Room trend (F/hr)
+      hours_to_show: 24
+      entities:
+      - entity: sensor.minisplit_room_trend
+        name: Room trend
+  - type: grid
+    cards:
+    - type: heading
+      heading: Follow-Me Band Control
+    - type: entities
+      entities:
+      - entity: input_select.minisplit_followme_experiment
+        name: Band control
+      - entity: binary_sensor.minisplit_follow_me_band_active
+        name: Active now
+      - entity: sensor.minisplit_follow_me_band_sent_f
+        name: Sent to unit
+      - entity: input_number.minisplit_followme_min_run_min
+        name: Minimum run
+      - entity: sensor.minisplit_compressor_starts_last_hour
+        name: Starts last hour
+    - type: history-graph
+      title: 'Band: room / target / sent (F)'
+      hours_to_show: 12
+      entities:
+      - entity: sensor.0x18690afffe5602f1_temperature
+        name: Room
+      - entity: sensor.minisplit_follow_me_band_target
+        name: Target
+      - entity: sensor.minisplit_follow_me_band_sent_f
+        name: Sent to unit
+    - type: history-graph
+      title: 'Band: compressor / load / active'
+      hours_to_show: 12
+      entities:
+      - entity: binary_sensor.bedroom_mini_split_ac_bridge_occupancy_4
+        name: Compressor
+      - entity: binary_sensor.minisplit_follow_me_band_active
+        name: Active
+      - entity: sensor.bedroom_mini_split_ac_bridge_humidity_3
+        name: Compressor load (%)

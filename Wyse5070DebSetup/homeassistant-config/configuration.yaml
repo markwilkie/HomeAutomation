@@ -6,6 +6,53 @@ default_config:
 frontend:
   themes: !include_dir_merge_named themes
 
+# Dashboards (2026-11-22): YAML files in dashboards/, deployed by deploy.sh --
+# not editable in the HA UI; change them here. Home is the default dashboard
+# (registry/registry.yaml, frontend.default_panel). Adding or removing a
+# dashboard here needs ./deploy.sh --restart; editing a file only needs a
+# browser refresh after deploying.
+lovelace:
+  dashboards:
+    dashboard-home:
+      mode: yaml
+      filename: dashboards/home.yaml
+      title: Home
+      icon: mdi:home
+      show_in_sidebar: true
+    dashboard-minisplit:
+      mode: yaml
+      filename: dashboards/climate.yaml
+      title: Climate
+      icon: mdi:thermostat
+      show_in_sidebar: true
+    spa-dashboard:
+      mode: yaml
+      filename: dashboards/spa.yaml
+      title: Spa
+      icon: mdi:hot-tub
+      show_in_sidebar: true
+    dashboard-system:
+      mode: yaml
+      filename: dashboards/system.yaml
+      title: System
+      icon: mdi:server
+      show_in_sidebar: true
+      require_admin: true
+    dashboard-config:
+      mode: yaml
+      filename: dashboards/config.yaml
+      title: Config
+      icon: mdi:cog-outline
+      show_in_sidebar: true
+      require_admin: true
+    # url needs a hyphen in YAML mode (HA's own storage one was just /map)
+    dashboard-map:
+      mode: yaml
+      filename: dashboards/map.yaml
+      title: Map
+      icon: mdi:map
+      show_in_sidebar: false
+
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml

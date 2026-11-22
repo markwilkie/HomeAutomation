@@ -1,0 +1,89 @@
+# Dashboard 'Spa' (/spa-dashboard). Deployed by deploy.sh; edit here, not in the HA UI.
+views:
+- title: Spa
+  path: spa
+  icon: mdi:hot-tub
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Now
+      icon: mdi:hot-tub
+    - type: tile
+      entity: sensor.spa_water_temperature
+      name: Water
+    - type: tile
+      entity: sensor.spa_ph
+      name: pH
+    - type: tile
+      entity: sensor.spa_chlorine
+      name: Chlorine
+    - type: tile
+      entity: sensor.smarterspa_state
+      name: Chlorinator
+    - type: tile
+      entity: sensor.spa_pump_speed
+      name: Pump
+    - type: tile
+      entity: binary_sensor.spa_readings_live
+      name: pH/ORP live
+    - type: gauge
+      entity: sensor.spa_ph
+      name: pH
+      min: 6.5
+      max: 8.5
+      needle: true
+      grid_options:
+        columns: full
+      segments:
+      - from: 6.5
+        color: '#db4437'
+      - from: 7.2
+        color: '#43a047'
+      - from: 7.8
+        color: '#db4437'
+  - type: grid
+    cards:
+    - type: heading
+      heading: Last 24 hours
+      icon: mdi:chart-line
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_ph
+      - entity: sensor.spa_orp
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_water_temperature
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: full
+      entities:
+      - entity: binary_sensor.spa_pump_running
+        name: Pump
+      - entity: binary_sensor.smarterspa_generating
+        name: Generating
+    - type: entities
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_orp
+        name: ORP
+      - entity: sensor.spa_pump_current
+        name: Pump current
+      - entity: sensor.spa_pump_runtime_24h
+        name: Pump runtime (24 h)
+      - entity: sensor.smarterspa_generating_24h
+        name: Generating (24 h)
+      - entity: sensor.spa_electrode_hours
+        name: Electrode hours (life ~7,000-10,000 h)
+      - entity: sensor.smarterspa_readout
+        name: SmarterSpa flash readout (press DOWN in standby = chlorine mV)

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Deploy configuration.yaml / automations.yaml / packages/*.yaml to the live Home Assistant on
+# Deploy configuration.yaml / automations.yaml / packages/*.yaml / dashboards/*.yaml and the
+# registry (registry/registry.yaml: floors, areas, device/entity settings, default dashboard) to the live Home Assistant on
 # wyse from GitHub: pull ~/github/HomeAutomation on wyse, refuse if the live
 # file was edited outside this script, back up, copy in from that clone,
 # config-check (rolling back on failure), then reload -- or restart with
@@ -9,6 +10,8 @@
 #   ./deploy.sh --restart  same, but full container restart (needed for new
 #                          entity types/platforms, e.g. a new template block)
 #   ./deploy.sh --force    deploy even if the live file has drifted
+#   ./deploy.sh --registry-check  show how the live registry differs from
+#                          registry/registry.yaml; change nothing
 #
 # Drift detection: each deploy records the deployed file's sha256 under
 # /config/.deployed/; a live file that no longer matches was edited by
@@ -23,23 +26,33 @@ cd "$(dirname "$0")"
 # packages/<name>.yaml -> /config/packages/<name>.yaml (configuration.yaml's
 # `packages: !include_dir_named packages`). Removing a package here does not
 # delete it on the box: delete it there by hand in the same change.
-FILES=(configuration.yaml automations.yaml packages/*.yaml)
+FILES=(configuration.yaml automations.yaml scripts.yaml scenes.yaml packages/*.yaml dashboards/*.yaml)
+REGISTRY=(registry/registry.yaml registry/apply_registry.py)
 RESTART=0
 FORCE=0
+REGCHECK=0
 for arg in "$@"; do
     case "$arg" in
         --restart) RESTART=1 ;;
         --force) FORCE=1 ;;
+        --registry-check) REGCHECK=1 ;;
         *) echo "unknown option: $arg" >&2; exit 2 ;;
     esac
 done
 
 remote() { ssh "$HOST" "$@"; }
 sha() { sha256sum | cut -d' ' -f1; }
+# The token stays on the host: read and used in the same remote shell.
+read_token='T=$(sed -n "s/^HA_TOKEN=//p" /mnt/data/appdata/homeassistant/.env 2>/dev/null)'
+# registry/registry.yaml -> live floors/areas/devices/entities, via the HA API
+# from inside the container. $1 = --check to only report.
+apply_registry() {
+    remote "docker cp $REMOTE_DIR/registry/registry.yaml homeassistant:/tmp/registry.yaml && docker cp $REMOTE_DIR/registry/apply_registry.py homeassistant:/tmp/apply_registry.py && $read_token && docker exec -e HA_TOKEN=\"\$T\" homeassistant python3 /tmp/apply_registry.py /tmp/registry.yaml ${1:-}"
+}
 
 # wyse deploys what's on GitHub, so what's here must be committed and pushed.
-if ! git diff --quiet HEAD -- "${FILES[@]}"; then
-    echo "Uncommitted changes to ${FILES[*]} -- commit and push first." >&2
+if ! git diff --quiet HEAD -- "${FILES[@]}" "${REGISTRY[@]}"; then
+    echo "Uncommitted changes to ${FILES[*]} ${REGISTRY[*]} -- commit and push first." >&2
     exit 1
 fi
 git fetch -q
@@ -48,12 +61,17 @@ if ! git merge-base --is-ancestor HEAD '@{u}'; then
     exit 1
 fi
 remote "git -C $REMOTE_REPO pull -q --ff-only"
-for f in "${FILES[@]}"; do
+for f in "${FILES[@]}" "${REGISTRY[@]}"; do
     if [[ "$(remote "cat $REMOTE_DIR/$f" | sha)" != "$(sha < "$f")" ]]; then
         echo "$f: wyse's clone doesn't match this checkout after pulling (local branch behind GitHub?)." >&2
         exit 1
     fi
 done
+
+if [[ $REGCHECK -eq 1 ]]; then
+    apply_registry --check
+    exit $?
+fi
 
 stamp=$(date +%Y%m%d-%H%M%S)
 changed=()
@@ -83,7 +101,8 @@ for f in "${FILES[@]}"; do
 done
 
 if [[ ${#changed[@]} -eq 0 ]]; then
-    echo "Nothing to deploy."
+    echo "No YAML changes."
+    apply_registry
     exit 0
 fi
 
@@ -118,8 +137,6 @@ for f in "${changed[@]}"; do
     remote "docker exec homeassistant sh -c 'mkdir -p /config/.deployed/$(dirname "$f") && sha256sum /config/$f | cut -d\" \" -f1 > /config/.deployed/$f.sha256'"
 done
 
-# The token stays on the host: read and used in the same remote shell.
-read_token='T=$(sed -n "s/^HA_TOKEN=//p" /mnt/data/appdata/homeassistant/.env 2>/dev/null)'
 if [[ $RESTART -eq 0 ]] && remote "$read_token; test -n \"\$T\""; then
     remote "$read_token; curl -sf -X POST -H \"Authorization: Bearer \$T\" -H 'Content-Type: application/json' \
         http://localhost:8123/api/services/homeassistant/reload_all >/dev/null"
@@ -131,3 +148,5 @@ else
         2>/dev/null; do sleep 5; done"
     echo "Home Assistant restarted."
 fi
+
+apply_registry
