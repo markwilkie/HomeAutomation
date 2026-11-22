@@ -137,13 +137,14 @@ template:
       - name: "Spa pump speed"
         unique_id: spa_pump_speed
         icon: mdi:pump
-        # Clamp reads ~7.8 A on low (2026-11-17); Mark: under 9 A = Low, over 9 A = High.
+        # Clamp on the pump's white common wire (moved off heater lead P4 on 2026-11-22):
+        # low 3.0 A, high 9.4 A, noise ~0.15 A. Split at 6 A.
         # Off follows the firmware's running flag (on > 1.5 A, off < 1.0 A).
         state: >-
           {% set a = states('sensor.spa_pump_current') %}
           {% if not is_number(a) %}{{ none }}
           {% elif is_state('binary_sensor.spa_pump_running', 'off') %}Off
-          {% elif a | float > 9 %}High
+          {% elif a | float > 6 %}High
           {% else %}Low{% endif %}
 
       - name: "SmarterSpa state"

@@ -20,9 +20,10 @@
 #define CT_A_PER_V          30.0f
 #define CT_SAMPLES          1000            // 5 kHz x 200 ms = 12 cycles at 60 Hz
 #define CT_PERIOD_US        200
-// Measured 2026-11-15: pump low speed 2.6 A, high 8.0 A; noise floor ~0.31 A
-// (heater test 2026-11-14). Thresholds sit well between noise and low speed
-// (PLAN.md Phase 4). HA derives Low/High speed from the current (split at 5 A).
+// Clamp on the pump's white common wire (until 2026-11-22 it was on heater lead
+// P4, ~7.8 A). Measured 2026-11-22: low 3.0 A, high 9.4 A, noise ~0.15 A.
+// Thresholds sit well between noise and low speed. HA derives Low/High from
+// the current (split at 6 A).
 #define CT_ON_A             1.5f
 #define CT_OFF_A            1.0f
 
