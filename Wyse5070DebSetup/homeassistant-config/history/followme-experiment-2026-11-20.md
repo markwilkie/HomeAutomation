@@ -134,3 +134,16 @@ start value setpoint+1C, stop value setpoint-1C; step-up direction reversed;
 safety stop must allow Cool. Verify the unit's cool band first (assumed
 mirror of heat's setpoint +/- 1C). Use longer min runs (10-15 min) and a
 slightly wider band for dehumidification.
+
+## 2026-11-23: morning overshoot -> early stop, no heat re-send while running
+
+06:13 start (night target 65, ramp step to 65.5 at 06:15): room 64.6 -> 67.5F
+in 8 min, compressor load only 30-33%. Stop line (66.0) passed 06:17:48, stop
+held by the 6-min minimum run until 06:19:44, unit off 06:23:12 (~3.5 min
+relay lag). Same shape as the 2026-11-21 06:13 start (64.4 -> 68.0F). The
+06:15 ramp step also re-sent heat (17C) to the already running compressor.
+Changes: sensor.minisplit_room_rate (3-min derivative); stop sent early when
+rising 0.3F/min+ at/above target and projected past the stop line within 3 min,
+with the minimum run counted 3 min short for that case; heat isn't re-sent to a
+running compressor unless the room is 1.5F+ under target. Check the next few
+morning starts for peak overshoot and run length.

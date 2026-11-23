@@ -32,6 +32,15 @@
 # sends Follow-Me with its poll), so "ignored for 6 min" was mostly that lag,
 # and the extra degree looked to make the unit start at full output
 # (64.4 -> 68.0F in 7 min on the 2026-11-21 06:13 start).
+# Already running (2026-11-23): heat isn't re-sent to a running compressor
+# (a target ramp step used to re-send it) unless the room is 1.5F+ under
+# target -- hold lets the unit ease off instead of pushing harder.
+# Early stop (2026-11-23): rising 0.3F/min+ (sensor.minisplit_room_rate)
+# with the room at target and projected past the stop line within 3 min,
+# stop is sent early, and the minimum run counts 3 min less because the
+# unit only acts on it ~3.5 min later. Before: the 06:13 start overshot
+# to 67.5F against a 65.5F target (stop line passed 06:17:48, unit off
+# 06:23:12).
 # Start budget (owner's limit): at most 3 compressor starts in any rolling
 # 60 minutes. Once the last 3 starts all fall within the past hour, heat is
 # held back as hold until the oldest of them is 60 min old. Pioneer
@@ -95,6 +104,19 @@ input_text:
     name: "MiniSplit Compressor Starts (log)"
     max: 100
     icon: mdi:counter
+
+# How fast the room is moving right now (F/min over the last 3 min) -- the
+# 1 h sensor.minisplit_room_trend is far too slow to catch a start blowing
+# hot air. Feeds the early stop below. Only updates when the reading
+# changes, so the automation ignores it once it's 3+ min old.
+sensor:
+  - platform: derivative
+    source: sensor.0x18690afffe5602f1_temperature
+    name: "MiniSplit Room Rate"
+    unique_id: minisplit_room_rate
+    unit_time: min
+    time_window: "00:03:00"
+    round: 2
 
 template:
   - sensor:
@@ -227,8 +249,17 @@ automation:
           prev_c: "{{ states('input_number.minisplit_followme_sent_c') | int(21) }}"
           prev_age_min: >-
             {{ ((now() - states.input_number.minisplit_followme_sent_c.last_changed).total_seconds() / 60) | round(1) }}
+          rate: >-
+            {{ states('sensor.minisplit_room_rate') | float(0)
+               if has_value('sensor.minisplit_room_rate')
+                  and (now() - states.sensor.minisplit_room_rate.last_updated).total_seconds() < 180
+               else 0 }}
+          # Early stop: rising 0.3F/min+ with the room already at target -- a
+          # stop takes ~3.5 min to land, so stop when it's projected to pass
+          # the stop line within 3 min (2026-11-23 06:13: 64.6 -> 67.5F).
+          fast_rise: "{{ comp_on and rate >= 0.3 and room >= target and room + rate * 3 >= target + 0.5 }}"
           raw_wanted: >-
-            {{ 'heat' if room <= target - 0.3 else ('stop' if room >= target + 0.5 else 'hold') }}
+            {{ 'heat' if room <= target - 0.3 else ('stop' if room >= target + 0.5 or fast_rise else 'hold') }}
           # The unit's own band is its setpoint +/- 1C (found 2026-11-20: at a
           # 21C setpoint 20 starts it, at 20.5C it needs 19), so the commands
           # are relative to the setpoint it holds (Desired, 0.5C steps).
@@ -252,12 +283,13 @@ automation:
           budget_free_in_min: "{{ ((third_start + 3600 - now().timestamp()) / 60) | round(0) | int }}"
           desired_c: >-
             {% if wanted == 'stop' %}
-              {% if comp_on and comp_age_min < states('input_number.minisplit_followme_min_run_min') | int(6) %}{{ hold_c }}
+              {% if comp_on and comp_age_min < states('input_number.minisplit_followme_min_run_min') | int(6) - (3 if fast_rise else 0) %}{{ hold_c }}
               {% elif comp_on and prev_c >= stop_c and prev_age_min >= 6 %}{{ stop_c + 1 }}
               {% elif prev_c == stop_c + 1 %}{{ stop_c + 1 }}
               {% else %}{{ stop_c }}{% endif %}
             {% elif wanted == 'heat' %}
-              {% if not comp_on and comp_age_min < 10 %}{{ hold_c }}
+              {% if comp_on and room > target - 1.5 %}{{ hold_c }}
+              {% elif not comp_on and comp_age_min < 10 %}{{ hold_c }}
               {% elif not comp_on and not budget_ok %}{{ hold_c }}
               {% else %}{{ heat_c }}{% endif %}
             {% else %}{{ hold_c }}{% endif %}
