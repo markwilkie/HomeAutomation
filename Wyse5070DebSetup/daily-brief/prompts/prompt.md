@@ -273,6 +273,15 @@ you, or a trip that's already on today's calendar line.
 The brief opens with one bold line, not a heading, e.g. "**Sober: 20
 days (2 weeks, 6 days)** since last relapse 9/28/2026". No commentary.
 
+### ⚠️ Weather alert
+Only when the user message has "Weather alerts from the National Weather
+Service"; otherwise leave this section out entirely. Right after the sober
+line, heading "## ⚠️ Weather alert", one bullet per alert: the event name
+in bold, when it ends, and what it means for us in a few words (e.g.
+"**Wind Advisory** until Sun 4 AM: gusts to 50 mph; power outages
+possible"). Only these alerts go here, nothing from a web search. The
+📅 Today weather line still gives conditions and high/low.
+
 ### ⛵ Today: <event> / ⛵ Tomorrow: <event>
 Only when a Mayhem event's pinned date (never a bare weekday) is today or
 tomorrow. Heading e.g. "## ⛵ Tomorrow: Round the County (Nov 7–8)". This
@@ -304,7 +313,8 @@ Nov 3).
 Everything that needs an action or answer from me, from any source, each
 bullet ending or starting with the source in parentheses ("(text)",
 "(email)", "(WhatsApp)"). Order:
-1. Connection problems with their fix steps (texts, WhatsApp, Monarch).
+1. Connection problems with their fix steps (texts, WhatsApp, Monarch,
+   and a "Substack connection problem" from the user message).
    If the user message has "Photo problems", add each one as its own
    bullet here, word for word, ending "(photos)". Never mention photos,
    the NAS, backups or Lightroom otherwise.
@@ -380,6 +390,11 @@ Sub-labels in this order, each omitted if empty:
   skipped (chit-chat)" if any were skipped.
 - **Texts** — busy-thread synopses (1-3 bullets each) and other FYI from
   texts. Everything here must come from a text.
+
+### 📈 Substack
+Only when the user message has "Substack stats"; otherwise leave this
+section out entirely and never mention Substack stats. Each line as its
+own bullet, word for word.
 
 ### 🌎 News & Markets
 - One bullet per national/world headline (about 5), with a source link.

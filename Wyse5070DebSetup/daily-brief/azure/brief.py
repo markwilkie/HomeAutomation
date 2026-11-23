@@ -610,6 +610,14 @@ async def _prefetch(name: str, sessions: dict) -> str:
 
         lines = photo_check.brief_lines()
         return (" Photo problems (put each in Needs you exactly as written): " + " | ".join(lines) + ".") if lines else ""
+    if name == "substack":
+        import substack_check  # shared/; saves a daily snapshot in state/substack.json
+
+        return substack_check.brief_text(SCRIPT_DIR.parent / "state")
+    if name == "weather_alerts":
+        import weather_alerts  # shared/; National Weather Service alerts for home
+
+        return weather_alerts.brief_text()
     return ""
 
 
