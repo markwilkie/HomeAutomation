@@ -64,12 +64,25 @@ if (-not $target) {
 Write-Host "Flashing $ProjectDir to $($target.Port) (MAC $($target.Mac))"
 Push-Location $ProjectDir
 try {
-    if (Test-Path builduild.ninja) {
-        ninja -C build -j $Jobs
-        if ($LASTEXITCODE -ne 0) { throw "build failed ($LASTEXITCODE)" }
+    if ($NoBuild) {
+        if (-not (Test-Path build\flash_args)) { throw "No build\flash_args -- build first." }
+        $app = Get-ChildItem build\*.bin | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        $b = [IO.File]::ReadAllBytes($app.FullName)
+        $ver = [Text.Encoding]::ASCII.GetString($b, 48, 32).Trim([char]0)
+        Write-Host "Writing prebuilt $($app.Name) ($ver, built $($app.LastWriteTime)) -- no compile"
+        Push-Location build
+        try {
+            python -m esptool --chip esp32c6 -p $target.Port -b 460800 --before default_reset --after hard_reset write_flash '@flash_args'
+            if ($LASTEXITCODE -ne 0) { throw "esptool write_flash failed ($LASTEXITCODE)" }
+        } finally { Pop-Location }
+    } else {
+        if (Test-Path build\build.ninja) {
+            ninja -C build -j $Jobs
+            if ($LASTEXITCODE -ne 0) { throw "build failed ($LASTEXITCODE)" }
+        }
+        idf.py -p $target.Port flash          # nothing left to compile when the build above ran
+        if ($LASTEXITCODE -ne 0) { throw "idf.py flash failed ($LASTEXITCODE)" }
     }
-    idf.py -p $target.Port flash          # nothing left to compile when the build above ran
-    if ($LASTEXITCODE -ne 0) { throw "idf.py flash failed ($LASTEXITCODE)" }
 } finally {
     Pop-Location
 }
