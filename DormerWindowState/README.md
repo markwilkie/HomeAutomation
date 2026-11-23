@@ -59,14 +59,16 @@ idf.py build
 idf.py -p <PORT> flash monitor
 ```
 
-Or use the helper script:
-
-```bash
-./build.sh esp32c6 <PORT>   # PORT defaults to COM6 — Linux/macOS/WSL2
-```
+Or use the helper script, which builds only what changed (see
+../tools/ESP_BUILDS.md), then flash by hand:
 
 ```powershell
-.\build.ps1 -Target esp32c6 -Port COM6   # native Windows
+.\build.ps1                               # native Windows
+idf.py -p <PORT> flash                    # after ..\tools\esp-build.ps1 -ProjectDir . -ActivateOnly
+```
+
+```bash
+./build.sh                                # Linux/macOS/WSL2
 ```
 
 ## Commissioning
@@ -90,8 +92,9 @@ as a Contact Sensor reporting Open/Closed.
 CMakeLists.txt          Root build file (ESP-IDF project)
 partitions.csv           Flash partition table (3MB factory app)
 sdkconfig.defaults        Target, BLE, mbedTLS, NVS-encryption defaults
-build.sh                  Convenience build/flash/monitor script (bash)
-build.ps1                 Convenience build/flash/monitor script (Windows)
+build.sh                  Build script (bash)
+build.ps1                 Build script (Windows) -- compiles only what changed
+version.txt               Firmware version (bump on behavior changes)
 setup-toolchain.ps1       Installs ESP-IDF natively on Windows (EIM)
 setup-toolchain.sh        WSL2/Linux fallback toolchain install
 WINDOWS_TOOLCHAIN_SETUP.md  Windows build/flash walkthrough

@@ -28,18 +28,24 @@ $env:IDF_COMPONENT_CACHE_PATH = "C:\icc"
 # 3. From the project root
 cd C:\Users\Administrator\Documents\GitHub\HomeAutomation\MiniSplit
 
-# 4. Target is ESP32-C6 (RISC-V). Only needed once, or after fullclean.
-#    (Usually not needed -- the committed sdkconfig already targets esp32c6.)
-idf.py set-target esp32c6
+# Steps 1-4 are what .\build.ps1 does for you (2026-11-23) -- prefer it: it
+# picks the right ESP-IDF install, caps parallel jobs, and compiles only what
+# changed. See ../tools/ESP_BUILDS.md.
+#
+# 4. Target is ESP32-C6 (RISC-V). Only once, when there's no sdkconfig yet:
+#    set-target wipes build/ (full rebuild). The committed sdkconfig already
+#    targets esp32c6.
+#    idf.py set-target esp32c6
 
-# 5. Build
-idf.py build
+# 5. Build -- only what changed (seconds if nothing did)
+.\build.ps1
 
 # 6. Flash -- use flash.ps1 (2026-10-05), which only flashes the board whose MAC
 #    is the bridge's (58:8C:81:5D:89:04). VID/PID and COM number are NOT enough:
 #    ../ThreadRouter is the same chip with the same VID/PID, and on 2026-10-04 it
 #    got overwritten with this firmware because COM4 "looked right".
-.\flash.ps1                  # or .\flash.ps1 -Port COM3
+#    It builds first if anything changed; -NoBuild writes build/ as-is.
+.\flash.ps1                  # or .\flash.ps1 -Port COM3, or .\flash.ps1 -NoBuild
 
 # 7. Monitor: idf.py monitor requires an interactive TTY and will fail in any
 #    non-interactive/automated shell ("Monitor requires standard input to be
@@ -77,8 +83,8 @@ There can be **two different, non-interchangeable** ESP-IDF installs on a Window
      sourcing `export.ps1` directly creates a *second, separate* venv under
      `%USERPROFILE%\.espressif` that the project's existing `build/` cache was never
      configured with)
-   - `build.ps1` in this repo already knows this and auto-activates the EIM profile script
-     if `idf.py` isn't on PATH — prefer running that over reinventing activation.
+   - `build.ps1` / `flash.ps1` (via `../tools/esp-build.ps1`) activate whichever
+     install made the project's `build/` — prefer them over reinventing activation.
 2. **Plain upstream ESP-IDF** (`install.sh`/`install.ps1` from a `git clone` of the esp-idf
    repo, or the "offline installer"), which uses `export.ps1`/`export.sh` and puts its venv
    under `%USERPROFILE%\.espressif`.

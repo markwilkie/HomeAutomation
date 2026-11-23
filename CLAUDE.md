@@ -8,6 +8,9 @@
 
 Before proposing a networking or deployment change, state which host it runs on and check whether an existing pattern (Caddy site block, docker-compose service) already covers it.
 
+## Firmware builds (ESP-IDF projects)
+- Build with the project's `build.ps1`, flash with its `flash.ps1` (MAC-checked; builds first only if something changed, `-NoBuild` writes build/ as-is). Never `idf.py set-target` on an existing project, never switch ESP-IDF installs on an existing `build/`, never put a git hash in `PROJECT_VER` — each forces a full rebuild. Every project's CMakeLists includes `tools/cmake/idf_project_defaults.cmake`; the version is its `version.txt`. Why: `tools/ESP_BUILDS.md`.
+
 ## Host Access
 - `wyse` (hostname `wilkie-home-server`, IP `192.168.15.30`) is directly SSH-reachable as user `mwilkie` via a key already trusted in `~/.ssh/config` — no password prompt. Use it directly (`docker ps`, `docker logs`, `docker exec`, reading `.env`/appdata files, `mosquitto_pub`/`mosquitto_sub` via the `mosquitto` container, etc.) to verify state or diagnose issues, rather than asking the user to paste output.
 - Home Assistant, Zigbee2MQTT, and Z-Wave JS UI all run as containers on this host (`homeassistant`, `zigbee2mqtt`, `mosquitto`). Their live state (paired devices, entity registry, recorder history) is queryable by execing into the container rather than guessing from repo config alone — e.g. `docker exec homeassistant python3 -c "..."` against `/config/.storage/*` or `/config/home-assistant_v2.db`, or publishing to `zigbee2mqtt/bridge/request/...` topics via the `mosquitto` container for Zigbee2MQTT bridge commands.

@@ -3,6 +3,11 @@
 # flashed onto the ThreadRouter: both are ESP32-C6 boards with the same USB
 # VID:PID, and COM numbers move, so the port alone says nothing.
 #
+# Builds first only if something changed (tools/esp-build.ps1 -- seconds when
+# nothing did), then writes build/ with esptool. -NoBuild writes what's in
+# build/ as-is and only warns if it's out of date. Never erases flash, so
+# Matter commissioning and NVS survive. See tools/ESP_BUILDS.md.
+#
 # Identification, least intrusive first:
 #   1. USB serial number -- the C6's USB-Serial-JTAG reports its MAC there,
 #      readable from Windows without touching the board.
@@ -11,16 +16,15 @@
 param(
     [Parameter(Mandatory)] [string]$ProjectDir,
     [Parameter(Mandatory)] [string]$ExpectedMac,
-    [Parameter(Mandatory)] [string]$IdfActivate,
     [string]$Port,
-    # Cap on parallel compiles: idf.py has no job limit, and a full-parallel
-    # esp-matter build (~800-2000 files) runs this PC out of memory.
-    [int]$Jobs = 4
+    [int]$Jobs = 4,
+    [switch]$NoBuild
 )
 # No global ErrorActionPreference=Stop: Windows PowerShell 5.1 turns any
 # native-tool stderr (ESP-IDF's activation, idf.py progress) into a
 # terminating error. Failures are thrown explicitly below instead.
 $ExpectedMac = $ExpectedMac.ToUpper()
+$ProjectDir = (Resolve-Path $ProjectDir).Path
 
 function Get-EspPorts {
     Get-CimInstance Win32_PnPEntity |
@@ -37,8 +41,7 @@ function Get-EspPorts {
         }
 }
 
-. $IdfActivate *> $null
-$env:IDF_COMPONENT_CACHE_PATH = 'C:\icc'
+& "$PSScriptRoot\esp-build.ps1" -ProjectDir $ProjectDir -ActivateOnly
 
 $ports = @(Get-EspPorts)
 if ($Port) { $ports = @($ports | Where-Object { $_.Port -eq $Port }) }
@@ -61,28 +64,28 @@ if (-not $target) {
     }
 }
 
-Write-Host "Flashing $ProjectDir to $($target.Port) (MAC $($target.Mac))"
-Push-Location $ProjectDir
-try {
-    if ($NoBuild) {
-        if (-not (Test-Path build\flash_args)) { throw "No build\flash_args -- build first." }
-        $app = Get-ChildItem build\*.bin | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        $b = [IO.File]::ReadAllBytes($app.FullName)
-        $ver = [Text.Encoding]::ASCII.GetString($b, 48, 32).Trim([char]0)
-        Write-Host "Writing prebuilt $($app.Name) ($ver, built $($app.LastWriteTime)) -- no compile"
-        Push-Location build
-        try {
-            python -m esptool --chip esp32c6 -p $target.Port -b 460800 --before default_reset --after hard_reset write_flash '@flash_args'
-            if ($LASTEXITCODE -ne 0) { throw "esptool write_flash failed ($LASTEXITCODE)" }
-        } finally { Pop-Location }
-    } else {
-        if (Test-Path build\build.ninja) {
-            ninja -C build -j $Jobs
-            if ($LASTEXITCODE -ne 0) { throw "build failed ($LASTEXITCODE)" }
-        }
-        idf.py -p $target.Port flash          # nothing left to compile when the build above ran
-        if ($LASTEXITCODE -ne 0) { throw "idf.py flash failed ($LASTEXITCODE)" }
+if ($NoBuild) {
+    # Dry run. ESP-IDF's bootloader sub-build and partition size check show up
+    # every time; anything else means build/ is behind the source.
+    $steps = @(ninja -C (Join-Path $ProjectDir build) -n 2>&1 |
+        Where-Object { $_ -match '^\[\d+/\d+\]' -and $_ -notmatch "bootloader'|check_sizes\.py" })
+    if ($steps.Count) {
+        Write-Warning "build/ is out of date with the source -- writing it anyway (-NoBuild). Drop -NoBuild to build first."
     }
+} else {
+    & "$PSScriptRoot\esp-build.ps1" -ProjectDir $ProjectDir -Jobs $Jobs
+}
+
+$build = Join-Path $ProjectDir 'build'
+if (-not (Test-Path (Join-Path $build 'flash_args'))) { throw "No build\flash_args in $ProjectDir -- build it first." }
+$desc = Get-Content (Join-Path $build 'project_description.json') -Raw | ConvertFrom-Json
+$bin = Get-Item (Join-Path $build $desc.app_bin)
+Write-Host "Flashing $($desc.app_bin) $($desc.project_version) (built $($bin.LastWriteTime)) to $($target.Port) (MAC $($target.Mac))"
+Push-Location $build
+try {
+    # The same files and offsets idf.py flash writes, without its build step.
+    python -m esptool --chip $desc.target -p $target.Port -b 460800 --before default_reset --after hard_reset write_flash '@flash_args'
+    if ($LASTEXITCODE -ne 0) { throw "esptool write_flash failed ($LASTEXITCODE)" }
 } finally {
     Pop-Location
 }
