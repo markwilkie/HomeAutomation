@@ -147,3 +147,14 @@ rising 0.3F/min+ at/above target and projected past the stop line within 3 min,
 with the minimum run counted 3 min short for that case; heat isn't re-sent to a
 running compressor unless the room is 1.5F+ under target. Check the next few
 morning starts for peak overshoot and run length.
+
+## 2026-11-24: firmware 1.3.2 flashed, HA slip patch removed
+
+Bridge flashed with 1.3.2 at 21:28 (MAC-checked; build from bfec1c4, no
+recompile at flash time). HA reported firmware 1.3.2 within ~20 s of the
+reset. Follow-Me engaged straight after: unit indoor 68.0F vs room 67.3F
+(off would read ~75-77F). With the firmware now resending a 1F setpoint
+slip instead of adopting it as a remote change, the 2026-11-21 "1F slip"
+branch in "MiniSplit Manual Override Detect" (automations.yaml) was removed.
+Anything that does reach that automation is a real change (2F+ from the
+remote/app, or the HA card).
