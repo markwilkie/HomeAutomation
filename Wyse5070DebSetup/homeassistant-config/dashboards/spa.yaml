@@ -4,8 +4,8 @@
 # Layout: Now and Details on top, then the 24 h and 7 day graphs as full-width
 # sections (column_span 3, three graphs per row, each with a pump or chlorinator
 # timeline), then Log and Electrode at the end. Graphs use the "per run"
-# sensors: one value at the end of each pump run (packages/spa.yaml), so
-# pump-off time shows no stale flatline or pipe cooling.
+# sensors: a value every 30 min while the pump runs and one at the end of each
+# run (packages/spa.yaml), so pump-off time shows no stale flatline or pipe cooling.
 views:
 - title: Spa
   path: spa
@@ -86,7 +86,7 @@ views:
     column_span: 3
     cards:
     - type: heading
-      heading: Last 24 hours (one point per pump run)
+      heading: Last 24 hours (pump-running readings only)
       icon: mdi:chart-line
     - type: history-graph
       hours_to_show: 24
@@ -123,7 +123,7 @@ views:
     column_span: 3
     cards:
     - type: heading
-      heading: Last 7 days (one point per pump run)
+      heading: Last 7 days (pump-running readings only)
       icon: mdi:chart-timeline-variant
     - type: history-graph
       hours_to_show: 168

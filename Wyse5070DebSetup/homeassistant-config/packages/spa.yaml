@@ -272,12 +272,21 @@ template:
   # (readings live -> off), i.e. after the longest settling. Between runs the
   # value holds the last real measurement, so graphs show no pump-off flatline
   # of stale data or the pipe cooling (the temperature probe is in the plumbing).
-  # Runs under 5 min (never live) record nothing.
+  # Runs under 5 min (never live) record nothing. Long runs (the chlorinator
+  # keeps the pump on for hours) also get a point every 30 min while live, so
+  # the graph isn't empty until the run ends.
   - triggers:
       - trigger: state
         entity_id: binary_sensor.spa_readings_live
         from: "on"
         to: "off"
+        id: run_end
+      - trigger: time_pattern
+        minutes: "/30"
+        id: during_run
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.id == 'run_end' or is_state('binary_sensor.spa_readings_live', 'on') }}"
     sensor:
       - name: "Spa pH per run"
         unique_id: spa_ph_per_run
