@@ -97,6 +97,22 @@ input_datetime:
     has_date: true
     has_time: false
 
+# Dashboard "Log" buttons: a press is the record (logbook + the timeline sensor
+# "Spa chemistry log" below).
+input_button:
+  spa_log_ph_down:
+    name: "Spa: pH down added"
+    icon: mdi:arrow-down-bold-circle-outline
+  spa_log_salt:
+    name: "Spa: salt added"
+    icon: mdi:shaker-outline
+  spa_log_boost:
+    name: "Spa: boost pressed"
+    icon: mdi:rocket-launch-outline
+  spa_log_strip_test:
+    name: "Spa: strip test"
+    icon: mdi:test-tube
+
 template:
   - sensor:
       - name: "Spa water temperature"
@@ -251,6 +267,61 @@ template:
         unique_id: smarterspa_fault
         device_class: problem
         state: "{{ (states('sensor.spa_smarterspa_state_raw') | float(0) | round(0) | int) == 6 }}"
+
+  # Graph-friendly readings: one value per pump run, taken when the run ends
+  # (readings live -> off), i.e. after the longest settling. Between runs the
+  # value holds the last real measurement, so graphs show no pump-off flatline
+  # of stale data or the pipe cooling (the temperature probe is in the plumbing).
+  # Runs under 5 min (never live) record nothing.
+  - triggers:
+      - trigger: state
+        entity_id: binary_sensor.spa_readings_live
+        from: "on"
+        to: "off"
+    sensor:
+      - name: "Spa pH per run"
+        unique_id: spa_ph_per_run
+        device_class: ph
+        state_class: measurement
+        icon: mdi:ph
+        state: >-
+          {% set v = states('sensor.spa_ph') %}
+          {{ v if is_number(v) else this.state }}
+      - name: "Spa ORP per run"
+        unique_id: spa_orp_per_run
+        unit_of_measurement: mV
+        device_class: voltage
+        state_class: measurement
+        icon: mdi:flash-triangle-outline
+        state: >-
+          {% set v = states('sensor.spa_orp') %}
+          {{ v if is_number(v) else this.state }}
+      - name: "Spa water temperature per run"
+        unique_id: spa_water_temperature_per_run
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°F"
+        state: >-
+          {% set v = states('sensor.spa_water_temperature') %}
+          {{ v if is_number(v) else this.state }}
+
+  # Timeline marker for the dashboard's Log buttons: the most recent action for
+  # 30 min after its press, otherwise nothing (now() re-renders this each minute).
+  - sensor:
+      - name: "Spa chemistry log"
+        unique_id: spa_chemistry_log
+        icon: mdi:flask-outline
+        state: >-
+          {% set items = [('pH down', 'input_button.spa_log_ph_down'),
+                          ('Salt', 'input_button.spa_log_salt'),
+                          ('Boost', 'input_button.spa_log_boost'),
+                          ('Strip test', 'input_button.spa_log_strip_test')] %}
+          {% set ns = namespace(name=none, t=now() - timedelta(minutes=30)) %}
+          {% for label, e in items %}
+            {% set t = as_datetime(states(e), none) %}
+            {% if t is not none and t > ns.t %}{% set ns.name = label %}{% set ns.t = t %}{% endif %}
+          {% endfor %}
+          {{ ns.name }}
 
 sensor:
   - platform: history_stats

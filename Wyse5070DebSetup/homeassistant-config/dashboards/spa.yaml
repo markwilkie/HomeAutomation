@@ -44,33 +44,42 @@ views:
         color: '#43a047'
       - from: 7.8
         color: '#db4437'
+  # Graphs use the "per run" sensors: one value at the end of each pump run
+  # (packages/spa.yaml), so pump-off time shows no stale flatline or pipe cooling.
   - type: grid
     cards:
     - type: heading
-      heading: Last 24 hours
+      heading: Last 24 hours (one point per pump run)
       icon: mdi:chart-line
     - type: history-graph
       hours_to_show: 24
       grid_options:
         columns: full
       entities:
-      - entity: sensor.spa_ph
-      - entity: sensor.spa_orp
+      - entity: sensor.spa_ph_per_run
+        name: pH
+      - entity: sensor.spa_chemistry_log
+        name: Log
     - type: history-graph
       hours_to_show: 24
       grid_options:
         columns: full
       entities:
-      - entity: sensor.spa_water_temperature
-    - type: history-graph
-      hours_to_show: 24
-      grid_options:
-        columns: full
-      entities:
-      - entity: binary_sensor.spa_pump_running
-        name: Pump
+      - entity: sensor.spa_orp_per_run
+        name: ORP
       - entity: binary_sensor.smarterspa_generating
         name: Generating
+      - entity: sensor.spa_chemistry_log
+        name: Log
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_water_temperature_per_run
+        name: Water
+      - entity: binary_sensor.spa_pump_running
+        name: Pump
     - type: entities
       grid_options:
         columns: full
@@ -104,3 +113,79 @@ views:
           perform_action: script.spa_new_electrode
           confirmation:
             text: Start the new electrode's hours at 0? Also press all three SmarterSpa buttons at once to reset its own counter.
+  - type: grid
+    cards:
+    - type: heading
+      heading: Last 7 days (one point per pump run)
+      icon: mdi:chart-timeline-variant
+    - type: history-graph
+      hours_to_show: 168
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_ph_per_run
+        name: pH
+      - entity: sensor.spa_chemistry_log
+        name: Log
+    - type: history-graph
+      hours_to_show: 168
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_orp_per_run
+        name: ORP
+      - entity: binary_sensor.smarterspa_generating
+        name: Generating
+    - type: history-graph
+      hours_to_show: 168
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_water_temperature_per_run
+        name: Water
+  - type: grid
+    cards:
+    - type: heading
+      heading: Log what you add
+      icon: mdi:flask-outline
+    - type: tile
+      entity: input_button.spa_log_ph_down
+      name: pH down
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_ph_down
+    - type: tile
+      entity: input_button.spa_log_salt
+      name: Salt
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_salt
+    - type: tile
+      entity: input_button.spa_log_boost
+      name: Boost
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_boost
+    - type: tile
+      entity: input_button.spa_log_strip_test
+      name: Strip test
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_strip_test
+    - type: logbook
+      hours_to_show: 336
+      grid_options:
+        columns: full
+      entities:
+      - input_button.spa_log_ph_down
+      - input_button.spa_log_salt
+      - input_button.spa_log_boost
+      - input_button.spa_log_strip_test
