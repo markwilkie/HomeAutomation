@@ -26,8 +26,18 @@
 #define ADC_CH_BATT_NTC     ADC_CHANNEL_6
 #define PIN_BUCK_EN         GPIO_NUM_7      // LP IO, solar buck enable; held through sleep
 
-// ---- Still TBD (PLAN.md): pick from header pins exposed on both boards ----
-// I2C SDA/SCL (BME280), MUX EN/SEL0/SEL1, moisture, vane power enable.
+// ---- Digital (decided 2026-11-25, Mark kept the 74HC4051) ----
+// Pins on both headers (FireBeetle V1.1 schematic P1/P2, DevKitC J1/J3):
+// 1-9, 15-23. Minus strapping 8/9/15 (also LEDs/BOOT), 16/17 (DevKitC UART0
+// console) leaves 1 and 18-23 -- all used here, none spare.
+#define PIN_I2C_SDA         GPIO_NUM_19     // BME280; FireBeetle header label SDA
+#define PIN_I2C_SCL         GPIO_NUM_20     // BME280; FireBeetle header label SCL
+#define PIN_MUX_EN          GPIO_NUM_21     // active low, also gates UV/LDR power (PNP); ext 100K pull-up = off; held in sleep
+#define PIN_MUX_SEL0        GPIO_NUM_22
+#define PIN_MUX_SEL1        GPIO_NUM_23
+#define PIN_MOISTURE        GPIO_NUM_18     // digital in, external 1M pull-down
+#define PIN_SENSE_PWR       GPIO_NUM_1      // high = power vane + battery NTC dividers; ext pull-down = off; held in sleep.
+                                            // FireBeetle: only wired to the GDI connector's LCD_CS (free with no display)
 
 // ---- Per board ----
 #if CONFIG_WS_BOARD_FIREBEETLE

@@ -214,10 +214,29 @@ wiring** — taken from memory and from the FireBeetle schematic extract):
 | Rain pulse (LP IO) | 5 | LP IO; FireBeetle label LP_TX |
 | Battery thermistor (ADC) | 6 | Cold-charge cutoff, see Power §5. FireBeetle: GDI connector pin, free with no display |
 | Buck converter EN (cold cutoff) | 7 | LP IO so it can be held through sleep, see Power §5. Hardware pull to *enabled* |
-| I2C SDA / SCL (BME280) | TBD | Pick from header pins exposed on **both** boards, outside the above — check the FireBeetle pinout |
-| MUX EN, SEL0, SEL1 | TBD | Any free digital GPIO exposed on both. EN: external 100K pull-up (off), held in sleep — Power §4 |
-| Moisture (digital) | TBD | Any free digital GPIO |
-| Vane power enable | TBD | New; external pull-down (off), held in sleep — Power §4 |
+| I2C SDA / SCL (BME280) | 19 / 20 | FireBeetle header labels SDA/SCL |
+| MUX EN (active low; also gates UV/LDR power) | 21 | External 100K pull-up (off), held in sleep — Power §4 |
+| MUX SEL0, SEL1 | 22, 23 | |
+| Moisture (digital) | 18 | 1M pull-down as before |
+| Vane + battery NTC power | 1 | One line for both dividers (read in the same cycle). External pull-down (off), held in sleep — Power §4 |
+
+**Pin check (2026-11-25)** against the FireBeetle V1.1 schematic (headers
+P1/P2) and the DevKitC-1 user guide (J1/J3):
+- Headers on both boards: GPIO1–9, 15–23. FireBeetle has no GPIO10/11 (QFN32
+  chip); the DevKitC doesn't break out GPIO14. FireBeetle GPIO0 is the
+  onboard 1M/1M battery divider and is not on the header.
+- **GPIO1 is free on the FireBeetle** — it only goes to the GDI connector's
+  LCD_CS. (Was "unconfirmed" above.)
+- Free digital pins after strapping 8/9/15 and the DevKitC console 16/17:
+  1 and 18–23. **All seven are now used; none spare.**
+- **Why the 74HC4051 stays (Mark, 2026-11-25):** ADC is GPIO0–6 only, and
+  0/4/5 are taken (battery, wind, rain), leaving 4 ADC pins for 6 analog
+  signals. Vane (2) and NTC (6) get their own; LDR + UV1–3 share the mux (3).
+  An ADS1115 on I2C was the alternative (frees 21–23); not chosen.
+- Correction: GPIO4/5 are also strapping pins (MTMS/MTDI). On the C6 they
+  only set SDIO-slave timing at reset, so a rain bucket resting closed on
+  GPIO5 at power-up should be harmless — VERIFY against the datasheet's
+  strapping table before M3 wiring.
 
 ---
 
