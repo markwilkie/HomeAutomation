@@ -45,7 +45,7 @@ def test_quiet_day_has_no_flags():
 
 
 def test_report_uses_previous_day_and_test_runs_never_become_baseline(tmp_path, monkeypatch):
-    monkeypatch.setattr(bc, "model_check", lambda t, p, d: {"concerns": ["Heather item vanished"], "summary": "ok"})
+    monkeypatch.setattr(bc, "model_check", lambda t, p, d, same_day=False: {"concerns": ["Heather item vanished"], "summary": "ok"})
     body, n = bc.report(tmp_path, DAY, PREV, {}, use_model=True)
     assert n == 0 and "comparisons start tomorrow" in body
 
@@ -54,7 +54,7 @@ def test_report_uses_previous_day_and_test_runs_never_become_baseline(tmp_path, 
     assert n == 1 and "Heather item vanished" in body and "2026-11-25" in body
     assert "| Input tokens | 735,000 | 250,000 |" in body and "| Uncached | 285,000 | 50,000 |" in body
 
-    bc.save(tmp_path, DAY, PREV, {}, test=True)
+    bc.save(tmp_path, DAY, PREV, {}, kind="test")
     assert bc._previous(tmp_path / "briefs", DAY + datetime.timedelta(days=1))[0] == "2026-11-25"
 
 
@@ -65,3 +65,20 @@ def test_model_failure_still_reports(tmp_path, monkeypatch):
     bc.save(tmp_path, DAY - datetime.timedelta(days=1), PREV, {})
     body, n = bc.report(tmp_path, DAY, PREV, {})
     assert n == 0 and "model check failed" in body and "Nothing unexpected" in body
+
+
+def test_trial_compares_with_same_mornings_original(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake(t, p, d, same_day=False):
+        seen["same_day"] = same_day
+        return {"concerns": ["Seven Pillars homework missing"], "extra": ["Zoe vet visit"], "summary": "one miss"}
+    monkeypatch.setattr(bc, "model_check", fake)
+    bc.save(tmp_path, DAY, PREV, {"input": 735_000, "cached": 450_000})
+    body, n = bc.report(tmp_path, DAY, PREV, {"input": 588_000, "cached": 408_000, "check_added": "homework"}, kind="trial")
+    assert seen["same_day"] and n == 1
+    assert "Digest trial vs this morning's original" in body and "Seven Pillars homework missing" in body
+    assert "## Only in the digest version" in body and "Zoe vet visit" in body
+    assert "| Input tokens | 735,000 | 588,000 |" in body and "Completeness check added:** homework" in body
+    bc.save(tmp_path, DAY, PREV, {}, kind="trial")
+    assert bc._previous(tmp_path / "briefs", DAY + datetime.timedelta(days=1))[1].name == "2026-11-26.md"

@@ -13,6 +13,8 @@
       "footer_what": "the brief",
       "prefetch": ["mail_backstop", "sober", "photos", "substack", "weather_alerts", "preferences", "mail_digest", "whatsapp_digest", "texts_digest"],
       "compare": true,
+      "_digest_trial": "2026-11-25: the 6:30 run is the original brief (digests off) for Mark + Jennie; run.sh --trial right after sends the digest version to Mark only, compared with it. Set false to end the trial.",
+      "digest_trial": true,
       "todays_events": true
     },
     "events": {

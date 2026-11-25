@@ -19,6 +19,10 @@ Every job does the same steps, configured in shared/jobs.json:
 
 --only-me: a test send to Mark alone, subject marked [test]; logged as
 "brief-test", saved as briefs/<date>-test.md (never tomorrow's baseline).
+--trial: the digest trial (user, 2026-11-25): digests on, to Mark alone,
+subject marked [digest trial], compared item by item with that morning's
+original. While jobs.json "digest_trial" is true, the normal run is the
+original (digests off, whatever .env says) and saves without a report.
 
 Events state: each events email is kept in ../state/events-<date>.md; a
 refresh builds on this week's Thursday file (or runs full without one), a
@@ -137,19 +141,27 @@ def main() -> None:
     p.add_argument("mode", nargs="?", choices=["full", "refresh"], help="events only")
     p.add_argument("--dry-run", action="store_true", help="print instead of emailing; nothing saved or changed")
     p.add_argument("--only-me", action="store_true", help="test send to Mark only, subject marked [test]")
+    p.add_argument("--trial", action="store_true", help="digest trial: digests on, Mark only, compared with this morning's original")
     args = p.parse_args()
+    kind = "trial" if args.trial else "test" if args.only_me else ""
+    args.only_me = bool(kind)
     job = CONFIG["jobs"][args.job]
+    if args.trial:
+        os.environ["BRIEF_DIGESTS"] = "on"
+    elif job.get("digest_trial") and not kind:
+        os.environ["BRIEF_DIGESTS"] = "off"  # the original brief, for everyone
     today = datetime.datetime.now(brief.TZ).date()
     STATE.mkdir(exist_ok=True)
 
     try:
-        asyncio.run(replies.main(args.dry_run))
+        if not args.trial:  # the original run right before has applied them
+            asyncio.run(replies.main(args.dry_run))
     except Exception as exc:  # never blocks the email
         log(f"replies failed; continuing: {type(exc).__name__}: {exc}")
 
     request, save_to, subject = None, None, job["subject"]
-    if args.only_me:
-        subject = "[test] " + subject
+    if kind:
+        subject = f"[{'digest trial' if args.trial else 'test'}] " + subject
     if args.job == "events":
         mode, previous = events_plan(args.mode, today)
         request = brief.events_request(mode, previous)
@@ -176,24 +188,33 @@ def main() -> None:
     if args.dry_run:
         print(f"\n----- {subject} (dry run, not emailed or saved) -----\n\n{text}")
         return
-    record_usage(args.job + ("-test" if args.only_me else ""), len(text))
+    record_usage(args.job + (f"-{kind}" if kind else ""), len(text))
     if save_to:  # without the footer: the next run builds on this
         save_to.write_text(text + "\n", encoding="utf-8")
     send(subject, f"{text}\n\n---\n\n{footer(job)}\n", args.only_me)
     if job.get("compare"):
-        compare(text, today, args.only_me)
+        compare(text, today, kind, quiet=bool(job.get("digest_trial")) and not kind)
 
 
-def compare(text: str, today: datetime.date, test: bool) -> None:
-    """Save the brief and send the day-to-day comparison to Mark (never blocks)."""
+def compare(text: str, today: datetime.date, kind: str, quiet: bool = False) -> None:
+    """Save the brief and send its comparison to Mark (never blocks). quiet: just save
+    (the original during the digest trial; the trial's report covers both)."""
     try:
         stats = dict(brief.LAST_USAGE)
-        body, flags = brief_compare.report(STATE, today, text, stats, test)
-        brief_compare.save(STATE, today, text, stats, test)
+        if quiet:
+            brief_compare.save(STATE, today, text, stats)
+            return
+        body, flags = brief_compare.report(STATE, today, text, stats, kind)
+        brief_compare.save(STATE, today, text, stats, kind)
         log(f"Compare: {flags} flag(s)")
-        if test or flags or today.isoformat() <= CONFIG.get("compare_email_daily_until", ""):
-            what = f"{flags} thing{'s' if flags != 1 else ''} to look at" if flags else "nothing unexpected"
-            send(f"{'[test] ' if test else ''}Brief check {today.strftime('%a %b %-d')}: {what}", body, only_me=True)
+        if kind or flags or today.isoformat() <= CONFIG.get("compare_email_daily_until", ""):
+            if kind == "trial":
+                what = f"{flags} missing or wrong" if flags else "nothing missing"
+                subject = f"Digest trial check {today.strftime('%a %b %-d')}: {what}"
+            else:
+                what = f"{flags} thing{'s' if flags != 1 else ''} to look at" if flags else "nothing unexpected"
+                subject = f"{'[test] ' if kind else ''}Brief check {today.strftime('%a %b %-d')}: {what}"
+            send(subject, body, only_me=True)
     except Exception as exc:
         log(f"compare failed: {type(exc).__name__}: {exc}")
 
