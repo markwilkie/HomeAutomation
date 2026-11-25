@@ -158,3 +158,12 @@ slip instead of adopting it as a remote change, the 2026-11-21 "1F slip"
 branch in "MiniSplit Manual Override Detect" (automations.yaml) was removed.
 Anything that does reach that automation is a real change (2F+ from the
 remote/app, or the HA card).
+
+## 2026-11-25: stop-line hysteresis with the compressor off
+
+First day on firmware 1.3.2: Follow-Me engaged throughout, no phantom
+overrides, runs peaked +0.8 to +1.4F over target. But the sent value
+flipped hold/stop (21/22C) every 10 s at 09:23 and 10:37-10:38 while the
+room read 69.44/69.62F against a 69F target (stop line 69.5F), compressor
+off -- the stop latch only held while the compressor ran. Now, with it off,
+stop is kept until the room is back to target+0.3F.

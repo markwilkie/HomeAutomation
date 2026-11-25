@@ -23,7 +23,8 @@
 # Latch (2026-11-20): once heat is sent it's kept until the compressor
 # starts, and stop until it stops -- the sensor's 0.18F steps straddle the
 # lines and used to flip heat/hold several times a minute, delaying starts
-# 5-7 min.
+# 5-7 min. With the compressor off, stop is kept until the room is back to
+# target+0.3F (2026-11-25: hold/stop flipped every 10 s at the stop line).
 # Guards: stop is held back as hold until the compressor has run
 # input_number.minisplit_followme_min_run_min (6-10 min, adaptive -- see
 # below); heat as hold until it has been off 10 min. If the unit ignores
@@ -268,9 +269,13 @@ automation:
           stop_c: "{{ (sp_c + 1) | round(0, 'ceil') | int }}"
           hold_c: "{{ (sp_c + 0.01) | round(0) | int }}"
           # Latch: keep heat until the compressor starts, stop until it stops.
+          # With it off, stop is kept until the room is back to target+0.3F
+          # (2026-11-25: 69.44/69.62F readings at a 69F target flipped
+          # hold/stop every 10 s).
           wanted: >-
             {% if prev_c <= heat_c and not comp_on and raw_wanted != 'stop' %}heat
             {% elif prev_c >= stop_c and comp_on and raw_wanted != 'heat' %}stop
+            {% elif prev_c >= stop_c and room > target + 0.3 %}stop
             {% else %}{{ raw_wanted }}{% endif %}
           # Start budget: 3rd most recent start, or 0 if fewer than 3 logged.
           # Read the list inside the template: as its own variable, HA's native
