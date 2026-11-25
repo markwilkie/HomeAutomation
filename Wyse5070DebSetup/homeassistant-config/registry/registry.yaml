@@ -116,6 +116,8 @@ devices:
   disabled: true
 - name: Upstairs Hallway
   area: dormer
+- name: Zigbee Repeater Plug
+  area: dormer
 - name: Garage Door
   area: garage
 - name: 'Garage Door #2'
