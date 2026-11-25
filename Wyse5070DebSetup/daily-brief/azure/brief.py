@@ -620,11 +620,7 @@ async def _prefetch(name: str, sessions: dict) -> str:
         return mail_backstop()
     if name == "preferences" and "trilium" in sessions:
         text = await trilium_note(sessions["trilium"], "Daily Brief Preferences")
-        return f" Daily Brief Preferences note (already read for you; don't fetch it):
-
-{text}
-
-" if text else ""
+        return f" Daily Brief Preferences note (already read for you; don't fetch it):\n\n{text}\n\n" if text else ""
     if name == "mail_digest":
         return " Email digest (Outlook, gathered in code for you; JSON): " + digests.mail_digest(TZ)
     if name == "whatsapp_digest" and "whatsapp" in sessions:

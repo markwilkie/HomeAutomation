@@ -125,3 +125,17 @@ def test_names_label_channels_and_look_up_missing_people():
     names = asyncio.run(digests._names(None, chats, {"limit": 200}))
     assert names == {"12036300": "a WhatsApp channel (broadcast)"}
     assert asyncio.run(digests._names(None, chats, {"query": "15550001111"})) == {"15550001111": "Heather"}
+
+
+def test_preferences_prefetched_and_rollback_switch(monkeypatch):
+    import brief
+
+    async def trilium(session, name, args):
+        if name == "search_notes":
+            return json.dumps([{"title": "Daily Brief Preferences", "noteId": "n1"}])
+        return json.dumps({"content": "Less sports."})
+    monkeypatch.setattr(brief, "call_mcp", trilium)
+    out = asyncio.run(brief._prefetch("preferences", {"trilium": object()}))
+    assert "Less sports." in out and "don't fetch it" in out
+    monkeypatch.setenv("BRIEF_DIGESTS", "off")
+    assert not brief.digests_on() and "preferences" in brief.DIGEST_PREFETCH
