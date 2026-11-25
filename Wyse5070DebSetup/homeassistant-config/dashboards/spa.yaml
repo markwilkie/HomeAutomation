@@ -21,6 +21,15 @@ views:
       entity: sensor.spa_chlorine
       name: Chlorine
     - type: tile
+      entity: sensor.spa_orp_per_run
+      name: ORP (last pump run)
+      grid_options:
+        columns: full
+      features_position: bottom
+      features:
+      - type: trend-graph
+        hours_to_show: 24
+    - type: tile
       entity: sensor.smarterspa_state
       name: Chlorinator
     - type: tile
