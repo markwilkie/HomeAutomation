@@ -1,4 +1,10 @@
 # Dashboard 'Spa' (/spa-dashboard). Deployed by deploy.sh; edit here, not in the HA UI.
+# Calibration buttons and thresholds live on the Config dashboard (config.yaml).
+#
+# Layout: three columns on top (Now / Log / Details), then the 24 h and 7 day
+# graphs as full-width sections at the bottom (column_span 3), three graphs per
+# row. Graphs use the "per run" sensors: one value at the end of each pump run
+# (packages/spa.yaml), so pump-off time shows no stale flatline or pipe cooling.
 views:
 - title: Spa
   path: spa
@@ -21,15 +27,6 @@ views:
       entity: sensor.spa_chlorine
       name: Chlorine
     - type: tile
-      entity: sensor.spa_orp_per_run
-      name: ORP (last pump run)
-      grid_options:
-        columns: full
-      features_position: bottom
-      features:
-      - type: trend-graph
-        hours_to_show: 24
-    - type: tile
       entity: sensor.smarterspa_state
       name: Chlorinator
     - type: tile
@@ -38,6 +35,15 @@ views:
     - type: tile
       entity: binary_sensor.spa_readings_live
       name: pH/ORP live
+    - type: tile
+      entity: sensor.spa_orp_per_run
+      name: ORP (last pump run)
+      grid_options:
+        columns: full
+      features_position: bottom
+      features:
+      - type: trend-graph
+        hours_to_show: 24
     - type: gauge
       entity: sensor.spa_ph
       name: pH
@@ -53,105 +59,7 @@ views:
         color: '#43a047'
       - from: 7.8
         color: '#db4437'
-  # Graphs use the "per run" sensors: one value at the end of each pump run
-  # (packages/spa.yaml), so pump-off time shows no stale flatline or pipe cooling.
-  - type: grid
-    cards:
-    - type: heading
-      heading: Last 24 hours (one point per pump run)
-      icon: mdi:chart-line
-    - type: history-graph
-      hours_to_show: 24
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_ph_per_run
-        name: pH
-      - entity: sensor.spa_chemistry_log
-        name: Log
-    - type: history-graph
-      hours_to_show: 24
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_orp_per_run
-        name: ORP
-      - entity: binary_sensor.smarterspa_generating
-        name: Generating
-      - entity: sensor.spa_chemistry_log
-        name: Log
-    - type: history-graph
-      hours_to_show: 24
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_water_temperature_per_run
-        name: Water
-      - entity: binary_sensor.spa_pump_running
-        name: Pump
-    - type: entities
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_orp
-        name: ORP
-      - entity: sensor.spa_pump_current
-        name: Pump current
-      - entity: sensor.spa_pump_runtime_24h
-        name: Pump runtime (24 h)
-      - entity: sensor.smarterspa_generating_24h
-        name: Generating (24 h)
-      - entity: sensor.smarterspa_readout
-        name: SmarterSpa flash readout (press DOWN in standby = chlorine mV)
-      - type: section
-        label: Electrode
-      - entity: sensor.spa_electrode_hours
-        name: Electrode hours (life ~7,000-10,000 h)
-      - entity: sensor.spa_electrode_life_used
-        name: Life used (SmarterSpa Boost+Down shows the same %)
-      - entity: input_datetime.spa_electrode_installed
-        name: Installed
-      - entity: input_number.spa_electrode_hours_at_install
-        name: Hours it had before SpaV2 counted
-      - type: button
-        name: New electrode installed
-        icon: mdi:autorenew
-        action_name: Reset
-        tap_action:
-          action: perform-action
-          perform_action: script.spa_new_electrode
-          confirmation:
-            text: Start the new electrode's hours at 0? Also press all three SmarterSpa buttons at once to reset its own counter.
-  - type: grid
-    cards:
-    - type: heading
-      heading: Last 7 days (one point per pump run)
-      icon: mdi:chart-timeline-variant
-    - type: history-graph
-      hours_to_show: 168
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_ph_per_run
-        name: pH
-      - entity: sensor.spa_chemistry_log
-        name: Log
-    - type: history-graph
-      hours_to_show: 168
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_orp_per_run
-        name: ORP
-      - entity: binary_sensor.smarterspa_generating
-        name: Generating
-    - type: history-graph
-      hours_to_show: 168
-      grid_options:
-        columns: full
-      entities:
-      - entity: sensor.spa_water_temperature_per_run
-        name: Water
+
   - type: grid
     cards:
     - type: heading
@@ -198,3 +106,113 @@ views:
       - input_button.spa_log_salt
       - input_button.spa_log_boost
       - input_button.spa_log_strip_test
+
+  - type: grid
+    cards:
+    - type: heading
+      heading: Details
+      icon: mdi:information-outline
+    - type: entities
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_orp
+        name: ORP (live)
+      - entity: sensor.spa_pump_current
+        name: Pump current
+      - entity: sensor.spa_pump_runtime_24h
+        name: Pump runtime (24 h)
+      - entity: sensor.smarterspa_generating_24h
+        name: Generating (24 h)
+      - entity: sensor.smarterspa_readout
+        name: SmarterSpa flash readout (DOWN in standby = chlorine sensor)
+    - type: entities
+      title: Electrode
+      grid_options:
+        columns: full
+      entities:
+      - entity: sensor.spa_electrode_hours
+        name: Electrode hours (life ~7,000-10,000 h)
+      - entity: sensor.spa_electrode_life_used
+        name: Life used (SmarterSpa Boost+Down shows the same %)
+      - entity: input_datetime.spa_electrode_installed
+        name: Installed
+      - entity: input_number.spa_electrode_hours_at_install
+        name: Hours it had before SpaV2 counted
+      - type: button
+        name: New electrode installed
+        icon: mdi:autorenew
+        action_name: Reset
+        tap_action:
+          action: perform-action
+          perform_action: script.spa_new_electrode
+          confirmation:
+            text: Start the new electrode's hours at 0? Also press all three SmarterSpa buttons at once to reset its own counter.
+
+  - type: grid
+    column_span: 3
+    cards:
+    - type: heading
+      heading: Last 24 hours (one point per pump run)
+      icon: mdi:chart-line
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.spa_ph_per_run
+        name: pH
+      - entity: sensor.spa_chemistry_log
+        name: Log
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.spa_orp_per_run
+        name: ORP
+      - entity: binary_sensor.smarterspa_generating
+        name: Generating
+      - entity: sensor.spa_chemistry_log
+        name: Log
+    - type: history-graph
+      hours_to_show: 24
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.spa_water_temperature_per_run
+        name: Water
+      - entity: binary_sensor.spa_pump_running
+        name: Pump
+
+  - type: grid
+    column_span: 3
+    cards:
+    - type: heading
+      heading: Last 7 days (one point per pump run)
+      icon: mdi:chart-timeline-variant
+    - type: history-graph
+      hours_to_show: 168
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.spa_ph_per_run
+        name: pH
+      - entity: sensor.spa_chemistry_log
+        name: Log
+    - type: history-graph
+      hours_to_show: 168
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.spa_orp_per_run
+        name: ORP
+      - entity: binary_sensor.smarterspa_generating
+        name: Generating
+    - type: history-graph
+      hours_to_show: 168
+      grid_options:
+        columns: 12
+      entities:
+      - entity: sensor.spa_water_temperature_per_run
+        name: Water
