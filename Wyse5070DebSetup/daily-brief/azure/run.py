@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run one of this project's emails end to end (user, 2026-11-14: one runner).
 
-    run.py brief [--dry-run]                    the daily brief (cron 6:30am via run.sh)
+    run.py brief [--dry-run] [--only-me]        the daily brief (cron 6:30am via run.sh)
     run.py events [full|refresh] [--dry-run]    Weekend & Ahead (cron Thu / Sat 5:00am via run_events.sh)
 
 Every job does the same steps, configured in shared/jobs.json:
@@ -14,6 +14,11 @@ Every job does the same steps, configured in shared/jobs.json:
      saved events emails (todays_events.py); append the reply footer, send
      to Mark + also_to.
   6. Log the run's tokens and searches to ../state/usage.csv.
+  7. Brief only: save it in ../state/briefs/ and compare with the previous
+     one (brief_compare.py); the report goes to Mark only.
+
+--only-me: a test send to Mark alone, subject marked [test]; logged as
+"brief-test", saved as briefs/<date>-test.md (never tomorrow's baseline).
 
 Events state: each events email is kept in ../state/events-<date>.md; a
 refresh builds on this week's Thursday file (or runs full without one), a
@@ -33,6 +38,7 @@ import sys
 from pathlib import Path
 
 import brief
+import brief_compare
 import gcal_links
 import mail_guide
 import replies
@@ -88,9 +94,9 @@ def footer(job: dict) -> str:
     return CONFIG["footer"].format(what=job["footer_what"])
 
 
-def send(subject: str, body: str) -> None:
+def send(subject: str, body: str, only_me: bool = False) -> None:
     args = [sys.executable, str(project_file("send_mail.py")), "--subject", subject]
-    for addr in CONFIG.get("also_to", []):
+    for addr in ([] if only_me else CONFIG.get("also_to", [])):
         args += ["--also-to", addr]
     subprocess.run(args, input=body, text=True, check=True)
 
@@ -107,15 +113,16 @@ def record_usage(job_name: str, chars: int) -> None:
                     u.get("output", 0), u.get("searches", 0), chars])
 
 
-def fallback(job_name: str, job: dict, request: str | None, subject: str, save_to: Path | None, dry: bool) -> None:
+def fallback(job_name: str, job: dict, request: str | None, subject: str, save_to: Path | None, dry: bool,
+             only_me: bool = False) -> None:
     """Hand the job to Claude Code; replaces this process."""
     log(f"Azure run failed; falling back to Claude Code ({CLAUDE_RUN})")
     env = dict(os.environ,
                BRIEF_PROMPT_FILES=" ".join(job["prompts"]),
-               BRIEF_SUBJECT=job.get("fallback_subject", subject),
+               BRIEF_SUBJECT=("[test] " if only_me else "") + job.get("fallback_subject", subject),
                BRIEF_FAIL_SUBJECT=job["fail_subject"],
                BRIEF_FOOTER=footer(job),
-               BRIEF_ALSO_TO=" ".join(CONFIG.get("also_to", [])),
+               BRIEF_ALSO_TO="" if only_me else " ".join(CONFIG.get("also_to", [])),
                BRIEF_EVENTS_STATE=str(STATE) if job.get("todays_events") else "")
     if request:
         env["BRIEF_REQUEST"] = request
@@ -129,6 +136,7 @@ def main() -> None:
     p.add_argument("job", choices=sorted(CONFIG["jobs"]))
     p.add_argument("mode", nargs="?", choices=["full", "refresh"], help="events only")
     p.add_argument("--dry-run", action="store_true", help="print instead of emailing; nothing saved or changed")
+    p.add_argument("--only-me", action="store_true", help="test send to Mark only, subject marked [test]")
     args = p.parse_args()
     job = CONFIG["jobs"][args.job]
     today = datetime.datetime.now(brief.TZ).date()
@@ -140,6 +148,8 @@ def main() -> None:
         log(f"replies failed; continuing: {type(exc).__name__}: {exc}")
 
     request, save_to, subject = None, None, job["subject"]
+    if args.only_me:
+        subject = "[test] " + subject
     if args.job == "events":
         mode, previous = events_plan(args.mode, today)
         request = brief.events_request(mode, previous)
@@ -156,7 +166,7 @@ def main() -> None:
     except BaseException as exc:
         cause = brief.root_cause(exc)
         log(f"ERROR: {type(cause).__name__}: {cause}")
-        fallback(args.job, job, request, subject, save_to, args.dry_run)
+        fallback(args.job, job, request, subject, save_to, args.dry_run, args.only_me)
         return
 
     text = gcal_links.expand(text)
@@ -166,10 +176,26 @@ def main() -> None:
     if args.dry_run:
         print(f"\n----- {subject} (dry run, not emailed or saved) -----\n\n{text}")
         return
-    record_usage(args.job, len(text))
+    record_usage(args.job + ("-test" if args.only_me else ""), len(text))
     if save_to:  # without the footer: the next run builds on this
         save_to.write_text(text + "\n", encoding="utf-8")
-    send(subject, f"{text}\n\n---\n\n{footer(job)}\n")
+    send(subject, f"{text}\n\n---\n\n{footer(job)}\n", args.only_me)
+    if job.get("compare"):
+        compare(text, today, args.only_me)
+
+
+def compare(text: str, today: datetime.date, test: bool) -> None:
+    """Save the brief and send the day-to-day comparison to Mark (never blocks)."""
+    try:
+        stats = dict(brief.LAST_USAGE)
+        body, flags = brief_compare.report(STATE, today, text, stats, test)
+        brief_compare.save(STATE, today, text, stats, test)
+        log(f"Compare: {flags} flag(s)")
+        if test or flags or today.isoformat() <= CONFIG.get("compare_email_daily_until", ""):
+            what = f"{flags} thing{'s' if flags != 1 else ''} to look at" if flags else "nothing unexpected"
+            send(f"{'[test] ' if test else ''}Brief check {today.strftime('%a %b %-d')}: {what}", body, only_me=True)
+    except Exception as exc:
+        log(f"compare failed: {type(exc).__name__}: {exc}")
 
 
 if __name__ == "__main__":
