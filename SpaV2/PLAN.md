@@ -60,7 +60,7 @@ This unit has **no green LED**: where the manual says green, it means the **yell
 | Solid RED | Generating, salt low |
 | Solid YELLOW | Generating, salt high |
 | Solid RED + YELLOW | Shut down — salt over max |
-| RED / BLUE / YELLOW **flashing** | Same as solid, in a cycle started with **Boost** (manual p. 10: "the above lights may flash instead of being solid"). Firmware counts a colour lit within the last 2.5 s as on (`LED_FLASH_HOLD_MS`) |
+| RED / BLUE / YELLOW **flashing** | Same as solid, in a cycle started with **Boost** (manual p. 10: "the above lights may flash instead of being solid"). Firmware counts a colour lit within the last 2.5 s as on (`LED_FLASH_HOLD_MS`). **Confirmed on this unit 2026-11-25:** an automatic cycle (sensor < zero point) shows solid blue; a Boost cycle blinks blue. Both read as Generating in HA |
 | No lights (no standby blink) | No power / GFCI / supply fault |
 | WHITE solid | User in power-change or zero-point edit mode (ignore) |
 | YELLOW+BLUE flash | Boost confirmation (ignore) |
@@ -72,7 +72,16 @@ every 10 s. Ignore the whole sequence in the decoder.
 
 Other facts: cycle starts when sensor < zero point; cycle length by power level
 (L3 default = 2 h); electrode life ~7,000–10,000 production hours; DOWN during a
-cycle shows electrode current (>160 too much salt, <125 + low output = add salt).
+cycle shows electrode current (>160 too much salt, <125 + low output = add salt; the
+2020+ manual says >240 too much, <150 may add salt).
+
+Measured on this unit (2026-11-25, old electrode): DOWN in standby read 110 at ~1.3 ppm
+chlorine and 30 at near zero, so the sensor tracks chlorine but sits above the factory
+zero point (15) even when chlorine is gone. **Zero point set to 35.** To set it: hold UP
+until WHITE is solid, release, let it flash the current value, then tap UP/DOWN slowly
+(~1/s) while WHITE is still solid; hands off ~3 s and it flashes the new value (SpaV2's
+readout entity shows it). Boost+Down = % electrode life used (39% on 11-25); all three
+buttons = reset it after an electrode swap.
 
 ---
 
@@ -224,9 +233,9 @@ and ORP calibration stores one offset against a reference solution.
 - RMS of 1000 samples at 5 kHz (200 ms, 12 cycles), hysteresis `CT_ON_A` / `CT_OFF_A` in `firmware/src/spa_config.h`.
   Heater test 2026-11-14: noise floor **0.30–0.34 A** (10 mV RMS); fan ~0.4 A; heater low 7.4 A, high 11.0 A.
   The old 0.5 / 0.3 A thresholds sat in the noise (stuck ON after the load stopped).
-  **Pump measured 2026-11-15: low speed 2.6 A, high speed 8.0 A.** Thresholds **on > 1.5 A, off < 1.0 A**:
-  ~4× the noise floor, with margin below low speed. HA's *Spa pump speed* template reads Off / Low / High from
-  the current (Low/High split at 5 A, midway).
+  ~~Pump measured 2026-11-15: low 2.6 A, high 8.0 A~~ -- that clamp was on heater lead P4, not the pump.
+  **Clamp on the pump's white common since 2026-11-22: low 3.0 A, high 9.4 A, noise ~0.15 A.** Thresholds
+  **on > 1.5 A, off < 1.0 A**. HA's *Spa pump speed* template reads Off / Low / High (Low/High split at 6 A).
 - Publish pH/ORP only after pump has run ≥5 min; hold last good value otherwise (`binary_sensor.spa_readings_live`).
 - **Exit:** pH/ORP update only during pump runs.
 
@@ -276,5 +285,10 @@ All times PST. Values before each change aren't comparable with values after it.
 | 2026-11-17 8:04:30 am | HA offsets set to match a strip: pH −0.6 (strip ~7.1 vs 7.72), ORP +265 mV (usual strip sanitizer level → mid "Good", 725). ORP "low" threshold reset 895 → 650 | pH/ORP/chlorine history before 8:04:31 am was deleted from HA (2026-11-17); HA trends start here |
 | 2026-11-19 ~8:40–11 pm | **Leak; pump stopped; partial refill with cold water.** Last normal pump run 7:56–8:37 pm at ~101 °F; by the next pump run (11:13 pm) the water was ~88–90 °F | Temperature drop is the cold top-up, not a heater fault. Salt, pH and sanitizer diluted |
 | 2026-11-19 11:13 pm – 11-20 1:28 am | Pump short-cycled (on 20 s–5 min every ~15 min, ~7.9 A), then stopped; panel showed FLO (low flow) | No pH/ORP readings after 11:52 pm (gated on pump) |
-
-Pending: proper buffer calibration (clear cal, pH 7/4, ORP 225 mV), then both HA offsets back to 0. Add a row here when it's done.
+| 2026-11-20 ~3:35 pm | **pH/ORP pulse-timing fix flashed** (committed as 3a3390e; the board reports `0.1.0+0e09b37-dirty`). The old firmware timed the wrong half of the PWM pulse, so readings were mirrored (real ≈ 2831 − old board mV) | **pH/ORP history before this is invalid** |
+| 2026-11-20 3:39 pm | pH buffer calibration (7 / 4); HA pH offset back to 0 by 11-22 | pH trusted from here |
+| 2026-11-22 ~2:30 pm | **Pump CT moved** off heater lead P4 (its "pump" current was the heater, ~7.8 A) onto the pump's white common: low 3.0 A, high 9.4 A, noise ~0.15 A. HA Low/High split 9 A → 6 A | Pump running/current history before this is the heater, not the pump |
+| 2026-11-22 ~2:30–3:05 pm | ORP chain tested: BNC shorted = 1468 board mV; pH probe on the ORP board read −80 mV vs −83 expected; old ORP probe +~500 mV in bleach. **ORP calibrated in 225 mV** at 3:03:55 pm with the old probe; HA ORP offset 265 → 0 at 2:58 pm. Swapping probes, a probe in air reads strongly negative (−615 mV) | ORP trusted from here. The earlier ~0 mV ORP was not the board, isolator or firmware |
+| 2026-11-22 3:10 – 6:50 pm | SmarterSpa boost (generated 3 h 40 min) | Strip TBr 0–1 → 2–3; ORP climbed slowly overnight (~220 → 720 mV), partly probe settling |
+| 2026-11-22 ~4:45 pm | pH down added: pH 8.0 → 6.56 (first reading after mixing), then rose ~0.4/day by aeration (7.43 on 11-23 5 pm, 7.9 on 11-25) | Alkalinity ~120 → ~80–100 |
+| 2026-11-25 9:50–9:55 am | **SmarterSpa zero point 15 → 35.** At near-zero chlorine (strip TBr 0–1, ORP ~693 mV, pH 7.9) DOWN in standby read **30**, above the factory 15, so the unit never started a cycle on its own. It started generating at 9:55 am. During the cycle DOWN read **136 (1.36 A, salt OK/low end)**; Boost+Down read **39% electrode life used**. The new SS-Electrode (arrived 11-24) was not installed, kept as a spare | The old electrode is fine; the zero point was the fault. Retune ±few counts from strips over the next days |

@@ -57,6 +57,27 @@ input_number:
     unit_of_measurement: mV
     mode: box
     icon: mdi:plus-minus-variant
+  # Electrode hours = Spa Monitor count - count at install + hours it already had.
+  # The firmware's count (endpoint 8) never resets: it's the monitor's lifetime
+  # generating time. "New electrode installed" (script below) zeroes this
+  # electrode's hours. 2026-11-25: the old electrode, still in use, read 39% of
+  # ~7,000 h on the SmarterSpa (Boost+Down) -> 2,730 h at monitor count 12.
+  spa_electrode_hours_at_install:
+    name: "Spa electrode hours before counting"
+    min: 0
+    max: 20000
+    step: 1
+    unit_of_measurement: h
+    mode: box
+    icon: mdi:timer-sand
+  spa_electrode_monitor_count_at_install:
+    name: "Spa Monitor hours at electrode install"
+    min: 0
+    max: 100000
+    step: 1
+    unit_of_measurement: h
+    mode: box
+    icon: mdi:counter
 
 # No `initial:` on purpose: it would reset tuned values on every restart. A
 # brand-new input_number starts at its `min`, so the "spa_seed_thresholds"
@@ -71,6 +92,10 @@ input_datetime:
     name: "Spa ORP last calibrated"
     has_date: true
     has_time: true
+  spa_electrode_installed:
+    name: "Spa electrode installed"
+    has_date: true
+    has_time: false
 
 template:
   - sensor:
@@ -162,10 +187,26 @@ template:
         unit_of_measurement: h
         state_class: total_increasing
         icon: mdi:timer-sand
-        # firmware sends whole hours; HA's /100 -> x100
+        # This electrode's generating hours (see input_number.spa_electrode_hours_at_install).
+        # Firmware sends the monitor's lifetime whole hours; HA's /100 -> x100.
         state: >-
           {% set v = states('sensor.spa_electrode_hours_raw') %}
-          {{ (v | float * 100) | round(0) | int if is_number(v) else none }}
+          {% if is_number(v) %}
+            {% set count = (v | float * 100) | round(0) | int %}
+            {% set at_install = states('input_number.spa_electrode_monitor_count_at_install') | int(0) %}
+            {% set before = states('input_number.spa_electrode_hours_at_install') | int(0) %}
+            {{ [count - at_install, 0] | max + before }}
+          {% else %}{{ none }}{% endif %}
+
+      - name: "Spa electrode life used"
+        unique_id: spa_electrode_life_used
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:battery-clock-outline
+        # Same scale as the SmarterSpa's Boost+Down readout: % of ~7,000 generating hours.
+        state: >-
+          {% set h = states('sensor.spa_electrode_hours') %}
+          {{ (h | float / 7000 * 100) | round(0) | int if is_number(h) else none }}
 
       - name: "SmarterSpa readout"
         unique_id: smarterspa_readout
@@ -228,6 +269,30 @@ sensor:
     type: time
     start: "{{ now() - timedelta(hours=24) }}"
     end: "{{ now() }}"
+
+script:
+  spa_new_electrode:
+    alias: "Spa: new electrode installed"
+    icon: mdi:autorenew
+    description: >-
+      Start this electrode's hours at 0. Also reset the SmarterSpa's own counter:
+      press all three buttons on its control box at once.
+    sequence:
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.spa_electrode_monitor_count_at_install
+        data:
+          value: "{{ (states('sensor.spa_electrode_hours_raw') | float(0) * 100) | round(0) | int }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.spa_electrode_hours_at_install
+        data:
+          value: 0
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.spa_electrode_installed
+        data:
+          date: "{{ now().date() }}"
 
 automation:
   - id: spa_seed_thresholds
