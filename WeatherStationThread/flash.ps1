@@ -13,7 +13,7 @@ param(
     [string]$Port
 )
 $Macs = @{
-    devkitc    = ''   # not recorded yet
+    devkitc    = 'ac:eb:e6:d2:94:0c'   # DevKitC-1-N8, read 2026-11-25
     firebeetle = ''   # not recorded yet
 }
 if (-not $Mac) { $Mac = $Macs[$Board] }

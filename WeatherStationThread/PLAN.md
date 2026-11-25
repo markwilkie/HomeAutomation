@@ -255,9 +255,11 @@ Done 2026-11-16 (see Decisions). M1 can start.
   console setting so the same build logs on the FireBeetle.
 - **Status 2026-11-16:** scaffold written and built for the DevKitC
   (`build.ps1`; `-Board firebeetle` for the deploy board). App image 182 KB
-  of a 1920 KB slot. Not flashed yet — no board attached; pass `-Mac` to
-  `flash.ps1` the first time and record the MAC there. Still to check on
-  hardware: blink, and the log on both DevKitC ports.
+  of a 1920 KB slot.
+- **Done 2026-11-25 on the DevKitC** (MAC `AC:EB:E6:D2:94:0C`, recorded in
+  `flash.ps1`; QFN40, 8 MB flash, chip rev v0.2). 4 MB image boots from
+  `ota_0`; LED blinks; boot log and heartbeat appear on both ports — UART
+  bridge (CP210x, COM10 on this PC) and native USB-Serial/JTAG (COM9).
 
 ### M2 — Sensors, awake (DevKitC)
 - BME280 over I2C (forced mode). Dew point and heat index ported from the
