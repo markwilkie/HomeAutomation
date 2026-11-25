@@ -65,7 +65,7 @@ NUDGE = ("That isn't what I asked for. This is my own personal email, built from
 CALENDARS_PATH = Path(os.environ.get("CALENDARS_FILE", str(CONFIG_DIR / "calendars.json")))
 # Rollback switch for the digests (2026-11-25): BRIEF_DIGESTS=off in config/.env
 # and the model gathers email, WhatsApp and texts with tool calls again.
-DIGEST_PREFETCH = {"mail_digest", "whatsapp_digest", "texts_digest"}
+DIGEST_PREFETCH = {"mail_digest", "whatsapp_digest", "texts_digest", "preferences"}
 
 
 def digests_on() -> bool:
@@ -583,6 +583,15 @@ def create_with_rate_limit_retry(client: OpenAI, **kwargs):
             time.sleep(65)
 
 
+async def trilium_note(session: ClientSession, title: str) -> str:
+    """A Trilium note's content by exact title ("" if there's none)."""
+    found = json.loads(await call_mcp(session, "search_notes", {"searchCriteria": [{"type": "noteProperty", "property": "title", "op": "=", "value": title, "logic": "AND"}], "limit": 10}))
+    match = next((n for n in found if n.get("title") == title), None)
+    if not match:
+        return ""
+    return json.loads(await call_mcp(session, "get_note", {"noteId": match["noteId"]})).get("content", "")
+
+
 async def events_taste(session: ClientSession) -> str:
     """Both taste notes for the events email, read in code. The Music Taste
     Profile is ~50 KB, cut at MAX_TOOL_OUTPUT_CHARS per read, so the first
@@ -609,6 +618,13 @@ async def _prefetch(name: str, sessions: dict) -> str:
     (jobs.json "prefetch"): cheaper and steadier than a tool call."""
     if name == "mail_backstop":
         return mail_backstop()
+    if name == "preferences" and "trilium" in sessions:
+        text = await trilium_note(sessions["trilium"], "Daily Brief Preferences")
+        return f" Daily Brief Preferences note (already read for you; don't fetch it):
+
+{text}
+
+" if text else ""
     if name == "mail_digest":
         return " Email digest (Outlook, gathered in code for you; JSON): " + digests.mail_digest(TZ)
     if name == "whatsapp_digest" and "whatsapp" in sessions:

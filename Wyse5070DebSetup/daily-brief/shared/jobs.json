@@ -11,7 +11,7 @@
       "fallback_subject": "Daily Brief (Claude Code)",
       "fail_subject": "Daily Brief FAILED - action needed",
       "footer_what": "the brief",
-      "prefetch": ["mail_backstop", "sober", "photos", "substack", "weather_alerts", "mail_digest", "whatsapp_digest", "texts_digest"],
+      "prefetch": ["mail_backstop", "sober", "photos", "substack", "weather_alerts", "preferences", "mail_digest", "whatsapp_digest", "texts_digest"],
       "compare": true,
       "todays_events": true
     },
