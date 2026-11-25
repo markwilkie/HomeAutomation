@@ -83,6 +83,21 @@ until WHITE is solid, release, let it flash the current value, then tap UP/DOWN 
 readout entity shows it). Boost+Down = % electrode life used (39% on 11-25); all three
 buttons = reset it after an electrode swap.
 
+How it decides on/off (manual in Trilium, pp. 11–13, 17): the sensor detects whether any
+chlorine is left, not how much. When it reads below the zero point a cycle starts and
+runs a **fixed time set by the power level** (L1 30 min, L2 1 h, L3 2 h, L4 3 h … L10
+9 h, one hour per level above 2); it never stops early because chlorine is high. After
+a cycle it waits **at least 3 h** before an automatic cycle can start again. Boost starts
+one cycle of the same length regardless of the zero point; Boost during a cycle cancels
+it. The manual's fix for consistently low chlorine is a higher power level (the zero point
+only changes how early it starts). Size chart: < 200 gal L1–3, 200–300 L4, 300–400 L5,
+400–500 L6, > 500 L7. **This tub is 250 gal, so L4 (3 h)**; it was on the factory L3
+(11-25 cycle 9:55–11:54 am, exactly 2 h, then standby with ORP falling to ~447 mV).
+Change (p. 12): press UP and DOWN together → WHITE solid (power-change mode); each UP =
++1 (GREEN flashes; solid at 10), each DOWN = −1 (RED flashes; solid at 1); hands off 3 s and
+WHITE flashes the new level. To only view it: press UP or DOWN once and count WHITE flashes.
+Tune by strip at the end of a cycle, ±1 level per day.
+
 ---
 
 ## 2. Target architecture
