@@ -39,15 +39,24 @@ views:
     - type: tile
       entity: binary_sensor.spa_readings_live
       name: pH/ORP live
-    - type: tile
-      entity: sensor.spa_orp_per_run
-      name: ORP (last pump run)
+    - type: gauge
+      entity: sensor.spa_orp
+      name: ORP
+      unit: mV
+      min: 400
+      max: 900
+      needle: true
       grid_options:
         columns: full
-      features_position: bottom
-      features:
-      - type: trend-graph
-        hours_to_show: 24
+      segments:
+      - from: 400
+        color: '#db4437'
+      - from: 550
+        color: '#ffa600'
+      - from: 650
+        color: '#43a047'
+      - from: 800
+        color: '#ffa600'
     - type: gauge
       entity: sensor.spa_ph
       name: pH
