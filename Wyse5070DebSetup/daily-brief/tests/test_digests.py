@@ -139,3 +139,13 @@ def test_preferences_prefetched_and_rollback_switch(monkeypatch):
     assert "Less sports." in out and "don't fetch it" in out
     monkeypatch.setenv("BRIEF_DIGESTS", "off")
     assert not brief.digests_on() and "preferences" in brief.DIGEST_PREFETCH
+
+
+def test_completeness_check_reply_parsing():
+    import brief
+    draft = "draft " * 300
+    final = "## 🎯 Needs you\n- Seven Pillars homework (email)\n" + "x" * 900
+    assert brief.after_check(f"ADDED: Seven Pillars homework\n---BRIEF---\n{final}", draft) == (final, "Seven Pillars homework")
+    assert brief.after_check(f"ADDED: nothing.\n---BRIEF---\n{final}", draft) == (final, "")
+    assert brief.after_check("Looks complete to me.", draft) == (draft, "")  # not a brief: keep the draft
+    assert any(m in " Email digest (Outlook...): {}" for m in brief.DIGEST_MARKERS)

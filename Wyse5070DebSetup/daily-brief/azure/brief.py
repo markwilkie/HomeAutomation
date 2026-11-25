@@ -648,6 +648,33 @@ async def _prefetch(name: str, sessions: dict) -> str:
     return ""
 
 
+DIGEST_MARKERS = (" Email digest (", " WhatsApp digest (", " Texts digest (")
+COMPLETENESS_CHECK = """Before this goes out, check it for completeness. Go through the Email digest
+(inbox, clutter and my_threads), the WhatsApp digest and the Texts digest one message or thread
+at a time. For each one that asks me for something, gives me a task (homework, a form, a
+document, something to bring), has a date or deadline, is an RSVP, a bill or a question to me,
+or is my own ask nobody answered: confirm it's in the brief, or that the rules drop it (settled
+in any channel, its date passed, older than its window, automated or marketing). Add anything
+missing to the section where it belongs, following every rule above. Don't drop or shorten
+anything already in the brief unless it breaks a rule.
+
+Reply in exactly this form, nothing else:
+ADDED: <each item you added, separated by "; ", or "nothing">
+---BRIEF---
+<the complete final brief>"""
+
+
+def after_check(reply: str, draft: str) -> tuple[str, str]:
+    """(final brief, what the check added). Keeps the draft if the reply isn't a usable brief."""
+    head, sep, body = reply.partition("---BRIEF---")
+    body = body.strip()
+    if not sep or len(body) < MIN_BRIEF_CHARS:
+        log("  WARN: completeness check reply wasn't a brief; sending the draft")
+        return draft, ""
+    added = head.strip().removeprefix("ADDED:").strip()
+    return body, ("" if added.lower().rstrip(".") == "nothing" else added)
+
+
 # Token totals of the last generate_brief call, for the runner's cost line.
 LAST_USAGE: dict = {}
 
@@ -704,6 +731,8 @@ async def generate_brief(prompt_text: str, request: str | None = None, prefetch:
                                   "parameters": {"type": "object", "properties": {}}})
         previous_id = None
         nudged = False
+        digest_used = any(m in next_input for m in DIGEST_MARKERS)
+        draft = None
         totals = {"input": 0, "cached": 0, "output": 0}
         for turn in range(1, MAX_TURNS + 1):
             totals["turns"] = turn
@@ -744,9 +773,22 @@ async def generate_brief(prompt_text: str, request: str | None = None, prefetch:
                     log(f"  WARN: reply too short to be a brief ({len(text.strip())} chars): {text.strip()[:200]!r}; asking again")
                     next_input = NUDGE
                     continue
+                if digest_used and draft is None:
+                    # Completeness check (user, 2026-11-25: completeness is a must). The first digest
+                    # test left out a homework email that was right there in the digest.
+                    draft = text
+                    log("  completeness check")
+                    next_input = COMPLETENESS_CHECK
+                    continue
+                added = ""
+                if draft is not None:
+                    text, added = after_check(text, draft)
+                    log(f"  completeness check added: {added or 'nothing'}")
                 log(f"  total tokens: {totals}")
                 LAST_USAGE.clear()
                 LAST_USAGE.update(totals)
+                if draft is not None:
+                    LAST_USAGE["check_added"] = added or "nothing"
                 return text
 
             outputs = []

@@ -152,6 +152,8 @@ def report(state: Path, day: datetime.date, text: str, stats: dict, test: bool =
         return f"{n:,}" if isinstance(n, int) else "—"
 
     lines = [f"**Compared with the {prev_day} brief.** " + (summary or ""), ""]
+    if stats.get("check_added"):
+        lines += [f"**Completeness check added:** {stats['check_added']}", ""]
     if flags or concerns:
         lines += ["## Look at these", ""] + [f"- {f}" for f in flags + concerns] + [""]
     else:
