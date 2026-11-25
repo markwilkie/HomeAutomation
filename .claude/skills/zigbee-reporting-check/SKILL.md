@@ -23,6 +23,12 @@ original investigation and rationale.
 | SNZB-02P | `msTemperatureMeasurement` | 10s | 3600s | `10` (0.1°C) | Tightened from Z2M's factory default of `100` (1.0°C) |
 | SNZB-02P | `msRelativeHumidity` | 10s | 3600s | `100` (1.0%) | Left at factory default — no need identified yet to tighten |
 
+Exception: `minisplit_followme_temp` (the MiniSplit Follow-Me room sensor) uses a
+**30s** minimum interval on both clusters (owner's call 2026-11-25), same
+max/change. 10s let a reading dithering on a 0.1°C step report every 10 s;
+the Follow-Me band needs about one reading a minute, so 30s keeps that with
+margin and saves battery.
+
 If auditing a device model not in this table, treat Z2M's factory default
 (`min 10s / max 3600s / change 100`, i.e. whatever the converter's raw scale
 implies as 1.0 unit) as the baseline to compare against, and ask whether it
