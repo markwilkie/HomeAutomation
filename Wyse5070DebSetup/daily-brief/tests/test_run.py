@@ -106,11 +106,8 @@ def test_trial_saves_original_quietly_and_reports_trial(monkeypatch, tmp_path):
     monkeypatch.setattr(run, "send", lambda subject, body, only_me=False: sent.append((subject, only_me)))
     monkeypatch.setattr(brief_compare, "model_check", lambda *a, **k: {"concerns": [], "extra": [], "summary": "same"})
     today = run.datetime.date(2026, 11, 26)
-    run.compare("## 🎯 Needs you
-- thing
-", today, "", quiet=True)
+    text = "## 🎯 Needs you\n- thing\n"
+    run.compare(text, today, "", quiet=True)
     assert sent == [] and (tmp_path / "briefs" / "2026-11-26.md").exists()
-    run.compare("## 🎯 Needs you
-- thing
-", today, "trial")
+    run.compare(text, today, "trial")
     assert sent == [("Digest trial check Thu Nov 26: nothing missing", True)]
