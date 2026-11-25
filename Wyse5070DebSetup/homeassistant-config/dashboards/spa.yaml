@@ -4,8 +4,8 @@
 # Layout: Now and Details on top, then the 24 h and 7 day graphs as full-width
 # sections (column_span 3, three graphs per row, each with a pump or chlorinator
 # timeline), then Log and Electrode at the end. Graphs use the "per run"
-# sensors: a value every 30 min while the pump runs and one at the end of each
-# run (packages/spa.yaml), so pump-off time shows no stale flatline or pipe cooling.
+# sensors: a value when readings go live, every 30 min while the pump runs and
+# at the end of each run (packages/spa.yaml), so pump-off time shows no stale flatline or pipe cooling.
 views:
 - title: Spa
   path: spa
