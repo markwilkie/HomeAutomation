@@ -53,7 +53,7 @@ REQUEST="${BRIEF_REQUEST:-${REQUEST}}"
 SUBJECT="${BRIEF_SUBJECT:-$(job subject)}"
 FAIL_SUBJECT="${BRIEF_FAIL_SUBJECT:-$(job fail)}"
 FOOTER="${BRIEF_FOOTER:-$(job footer)}"
-ALSO_TO="${BRIEF_ALSO_TO-$(job also)}"  # set but empty = Mark only (run.py --only-me)
+ALSO_TO="${BRIEF_ALSO_TO:-$(job also)}"
 # Saved events emails for the brief's "Events today" section; empty (set by run.py) for other jobs.
 EVENTS_STATE="${BRIEF_EVENTS_STATE-$(job events)}"
 

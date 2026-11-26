@@ -83,31 +83,3 @@ def test_events_request_includes_previous_email(tmp_path):
     msg = brief.events_request("refresh", prev)
     assert "REFRESH run" in msg and "Thursday's email (2026-11-19)" in msg and "- thing" in msg
     assert "Last Saturday's email" in brief.events_request("full", prev)
-
-
-def test_only_me_never_reaches_also_to(monkeypatch):
-    seen = {}
-    monkeypatch.setattr(run.os, "execve", lambda path, argv, env: seen.update(env=env))
-    run.fallback("brief", run.CONFIG["jobs"]["brief"], None, "[test] Daily Brief", None, dry=False, only_me=True)
-    assert seen["env"]["BRIEF_ALSO_TO"] == "" and seen["env"]["BRIEF_SUBJECT"].startswith("[test] ")
-    sent = {}
-    monkeypatch.setattr(run.subprocess, "run", lambda args, **kw: sent.update(args=args))
-    run.send("[test] Daily Brief", "body", only_me=True)
-    assert "--also-to" not in sent["args"]
-    run.send("Daily Brief", "body")
-    assert "--also-to" in sent["args"]
-
-
-
-def test_trial_saves_original_quietly_and_reports_trial(monkeypatch, tmp_path):
-    import brief_compare
-    monkeypatch.setattr(run, "STATE", tmp_path)
-    sent = []
-    monkeypatch.setattr(run, "send", lambda subject, body, only_me=False: sent.append((subject, only_me)))
-    monkeypatch.setattr(brief_compare, "model_check", lambda *a, **k: {"concerns": [], "extra": [], "summary": "same"})
-    today = run.datetime.date(2026, 11, 26)
-    text = "## 🎯 Needs you\n- thing\n"
-    run.compare(text, today, "", quiet=True)
-    assert sent == [] and (tmp_path / "briefs" / "2026-11-26.md").exists()
-    run.compare(text, today, "trial")
-    assert sent == [("Digest trial check Thu Nov 26: nothing missing", True)]

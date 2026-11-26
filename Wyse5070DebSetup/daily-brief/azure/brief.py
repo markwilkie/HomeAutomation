@@ -43,7 +43,6 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from openai import OpenAI, RateLimitError
 
-import digests  # email + WhatsApp gathered in code for the first message
 import gcal_links  # shared with daily-brief-cc (copied in by setup-daily-brief-oai.sh)
 import mail  # the one way to find mail (mail_sources.json)
 
@@ -63,13 +62,6 @@ NUDGE = ("That isn't what I asked for. This is my own personal email, built from
          "accounts and local event listings, which I asked you to read. Write it in full now from what you gathered, "
          "following the instructions. If one item is something you won't summarize, leave just that item out.")
 CALENDARS_PATH = Path(os.environ.get("CALENDARS_FILE", str(CONFIG_DIR / "calendars.json")))
-# Rollback switch for the digests (2026-11-25): BRIEF_DIGESTS=off in config/.env
-# and the model gathers email, WhatsApp and texts with tool calls again.
-DIGEST_PREFETCH = {"mail_digest", "whatsapp_digest", "texts_digest", "preferences"}
-
-
-def digests_on() -> bool:
-    return os.environ.get("BRIEF_DIGESTS", "on").strip().lower() not in ("off", "0", "false", "no")
 
 
 MCP_SERVERS = {
@@ -490,8 +482,7 @@ def outlook_email_search(args: dict) -> str:
 
 
 def read_resource(args: dict) -> str:
-    message_id = str(args["id"]).strip()
-    message_id = digests.MAIL_REFS.get(message_id, message_id)  # "m12" from the email digest
+    message_id = args["id"]
     try:
         m = graph_get(f"/me/messages/{urllib.parse.quote(message_id)}", {"$select": "subject,from,receivedDateTime,body"})
     except RuntimeError as exc:
@@ -549,7 +540,7 @@ LOCAL_TOOLS = {
     ),
     "read_resource": (
         read_resource,
-        "Read the full text of one Outlook message by its id from outlook_email_search, or its `n` (e.g. m12) from the email digest.",
+        "Read the full text of one Outlook message by its id from outlook_email_search.",
         {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]},
     ),
 }
@@ -583,15 +574,6 @@ def create_with_rate_limit_retry(client: OpenAI, **kwargs):
             time.sleep(65)
 
 
-async def trilium_note(session: ClientSession, title: str) -> str:
-    """A Trilium note's content by exact title ("" if there's none)."""
-    found = json.loads(await call_mcp(session, "search_notes", {"searchCriteria": [{"type": "noteProperty", "property": "title", "op": "=", "value": title, "logic": "AND"}], "limit": 10}))
-    match = next((n for n in found if n.get("title") == title), None)
-    if not match:
-        return ""
-    return json.loads(await call_mcp(session, "get_note", {"noteId": match["noteId"]})).get("content", "")
-
-
 async def events_taste(session: ClientSession) -> str:
     """Both taste notes for the events email, read in code. The Music Taste
     Profile is ~50 KB, cut at MAX_TOOL_OUTPUT_CHARS per read, so the first
@@ -618,15 +600,6 @@ async def _prefetch(name: str, sessions: dict) -> str:
     (jobs.json "prefetch"): cheaper and steadier than a tool call."""
     if name == "mail_backstop":
         return mail_backstop()
-    if name == "preferences" and "trilium" in sessions:
-        text = await trilium_note(sessions["trilium"], "Daily Brief Preferences")
-        return f" Daily Brief Preferences note (already read for you; don't fetch it):\n\n{text}\n\n" if text else ""
-    if name == "mail_digest":
-        return " Email digest (Outlook, gathered in code for you; JSON): " + digests.mail_digest(TZ)
-    if name == "whatsapp_digest" and "whatsapp" in sessions:
-        return " WhatsApp digest (gathered in code for you; JSON): " + await digests.whatsapp_digest(sessions["whatsapp"], call_mcp, TZ)
-    if name == "texts_digest" and "texts" in sessions:
-        return " Texts digest (the texts_digest result, already gathered for you; JSON): " + await texts_digest(sessions["texts"])
     if name == "sober" and "trilium" in sessions:
         sober = await sober_line(sessions["trilium"])
         return f" Sober count: {sober}." if sober else ""
@@ -646,33 +619,6 @@ async def _prefetch(name: str, sessions: dict) -> str:
 
         return weather_alerts.brief_text()
     return ""
-
-
-DIGEST_MARKERS = (" Email digest (", " WhatsApp digest (", " Texts digest (")
-COMPLETENESS_CHECK = """Before this goes out, check it for completeness. Go through the Email digest
-(inbox, clutter and my_threads), the WhatsApp digest and the Texts digest one message or thread
-at a time. For each one that asks me for something, gives me a task (homework, a form, a
-document, something to bring), has a date or deadline, is an RSVP, a bill or a question to me,
-or is my own ask nobody answered: confirm it's in the brief, or that the rules drop it (settled
-in any channel, its date passed, older than its window, automated or marketing). Add anything
-missing to the section where it belongs, following every rule above. Don't drop or shorten
-anything already in the brief unless it breaks a rule.
-
-Reply in exactly this form, nothing else:
-ADDED: <each item you added, separated by "; ", or "nothing">
----BRIEF---
-<the complete final brief>"""
-
-
-def after_check(reply: str, draft: str) -> tuple[str, str]:
-    """(final brief, what the check added). Keeps the draft if the reply isn't a usable brief."""
-    head, sep, body = reply.partition("---BRIEF---")
-    body = body.strip()
-    if not sep or len(body) < MIN_BRIEF_CHARS:
-        log("  WARN: completeness check reply wasn't a brief; sending the draft")
-        return draft, ""
-    added = head.strip().removeprefix("ADDED:").strip()
-    return body, ("" if added.lower().rstrip(".") == "nothing" else added)
 
 
 # Token totals of the last generate_brief call, for the runner's cost line.
@@ -703,8 +649,7 @@ async def generate_brief(prompt_text: str, request: str | None = None, prefetch:
                     "strict": False,
                 }
             )
-        wanted = [n for n in prefetch if digests_on() or n not in DIGEST_PREFETCH]
-        if "texts" in sessions and "texts_digest" not in wanted:
+        if "texts" in sessions:
             tools.append(
                 {
                     "type": "function",
@@ -717,25 +662,15 @@ async def generate_brief(prompt_text: str, request: str | None = None, prefetch:
         tools.append(web_search_tool())
 
         next_input = request or f"Generate today's brief. Today is {today.isoformat()}, a {today.strftime('%A')}."
-        for name in wanted:
+        for name in prefetch:
             try:
-                extra = await _prefetch(name, sessions)
-                next_input += extra
-                if name in DIGEST_PREFETCH:
-                    log(f"  {name}: {len(extra):,} chars")
+                next_input += await _prefetch(name, sessions)
             except Exception as exc:  # a missing extra never stops the email
-                log(f"WARN: prefetch {name} failed: {type(exc).__name__}: {exc}")
-                if name == "texts_digest" and "texts" in sessions:  # let the model call it after all
-                    tools.append({"type": "function", "name": "texts_digest", "strict": False,
-                                  "description": "My SMS + RCS texts: every recent conversation in one call.",
-                                  "parameters": {"type": "object", "properties": {}}})
+                log(f"WARN: prefetch {name} failed: {exc}")
         previous_id = None
         nudged = False
-        digest_used = any(m in next_input for m in DIGEST_MARKERS)
-        draft = None
         totals = {"input": 0, "cached": 0, "output": 0}
         for turn in range(1, MAX_TURNS + 1):
-            totals["turns"] = turn
             response = create_with_rate_limit_retry(
                 client,
                 model=MODEL,
@@ -773,22 +708,9 @@ async def generate_brief(prompt_text: str, request: str | None = None, prefetch:
                     log(f"  WARN: reply too short to be a brief ({len(text.strip())} chars): {text.strip()[:200]!r}; asking again")
                     next_input = NUDGE
                     continue
-                if digest_used and draft is None:
-                    # Completeness check (user, 2026-11-25: completeness is a must). The first digest
-                    # test left out a homework email that was right there in the digest.
-                    draft = text
-                    log("  completeness check")
-                    next_input = COMPLETENESS_CHECK
-                    continue
-                added = ""
-                if draft is not None:
-                    text, added = after_check(text, draft)
-                    log(f"  completeness check added: {added or 'nothing'}")
                 log(f"  total tokens: {totals}")
                 LAST_USAGE.clear()
                 LAST_USAGE.update(totals)
-                if draft is not None:
-                    LAST_USAGE["check_added"] = added or "nothing"
                 return text
 
             outputs = []
