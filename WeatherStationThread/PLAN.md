@@ -272,9 +272,24 @@ source).** The mapping works; these are the rules it depends on:
   the rotor stops in the "on" position; with the internal ~45K pull-up
   that's ~73 µA continuously. Use an external 470K–1M pull-up (like the
   rain pulldown fix) and measure the resting current in M3.
-- Not a pin issue, but check before wiring: the old sensor box took "VIN"
-  from the main box — confirm what voltage the FireBeetle header's VCC pin
-  carries on battery only, and that the mux/UV box gets 3.3 V.
+- **Sensor box power (checked 2026-11-25, FireBeetle V1.1 schematic):**
+  - Header **VCC (P1 pin 1) is the 5 V/solar *input***, not an output.
+    Q1 (AO3407, gate = VUSB, R11 pull-down) joins VCC to VCC1, the CN3165
+    charger input; USB feeds VCC1 through D2. The battery reaches only the
+    3V3 buck: VBAT → Q2 (AO3407, gate = VCC1, R10 pull-down) → TPS62A02,
+    with D4 stopping VCC1 → buck back-feed. So **on battery alone VCC is
+    ~0 V**, and it also drops whenever the cold cutoff disables the solar
+    buck. **Never power sensors from VCC.**
+  - **3V3 (P1 pin 2 / P2 pin 2) is always on** from battery or input:
+    TPS62A02, EN tied to VIN, Vout = 0.6 × (1 + 453K/100K) ≈ 3.32 V. Feed
+    the sensor box, BME280, vane and anemometer from 3V3. Below ~3.4 V
+    battery the buck runs in dropout and 3V3 follows the battery.
+  - **Sensor box internals: unknown — Mark to open/measure.** The old readme
+    says the box took "VIN" (5 V from the boost) while the UV sensors got
+    "3.3 V via PNP". Either there's a regulator in the box (an LDO fed 3.3 V
+    will drop out — bypass it), or the 4051 ran at 5 V (3.3 V SEL logic is
+    marginal at 5 V VCC: 74HC VIH ≈ 0.7 × VCC = 3.5 V). Measure on the old
+    station: 4051 pin 16 (VCC), the PNP emitter, and a UV sensor's supply.
 
 ---
 
