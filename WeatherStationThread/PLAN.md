@@ -82,14 +82,20 @@ mode plus sensor quiescent current, not by bursts of 5V load.
    in light sleep at ~0.25 mA average is ~6 mAh/day → months of autonomy
    with zero sun. Even at 1 mA average it is ~40 days. Capacity is not the
    constraint; cold-weather charging is (see §5).
-3. **Solar: keep the 10 W / 12 V panel and add a small buck converter to
-   ~5.0 V into FireBeetle VIN.** The FireBeetle's solar input is 4.5–6 V, so
-   the 12 V panel cannot connect directly. A buck keeps the existing panel
-   and mount. Alternative: swap to a 5–6 V panel, but check its *open-circuit*
-   voltage stays under 6 V, which many "6 V" panels exceed. Buck converter
-   quiescent current must be low (sub-100 µA) or it runs only off panel
-   power — verify the part chosen does not back-feed or drain the battery
-   at night.
+3. **Solar: keep the 10 W / 12 V panel; step it down with a PlusRoc
+   PR4A063 (Mark, 2026-11-25)** — potted, waterproof 15 W car converter,
+   "12V/24V" in, 5 V 3 A out, 4 wires, no enable pin. Output goes to
+   FireBeetle header VCC (P1 pin 1), the 4.5–6 V solar input, through the
+   charge switch (§5). Why it fits: the panel is ~17 V working, ~21–22 V
+   open-circuit, up to ~24 V on cold mornings; 3 A is far above the
+   CN3165's ~540 mA, so it never runs near its limit; potted suits the pole.
+   Its idle current comes from the panel, not the battery (FireBeetle D4/Q1
+   stop back-feed), so it doesn't matter.
+   **Before wiring:** confirm the listing's input range reaches ≥30 V, and
+   measure its output with no load — must be ≤6.0 V (typically 5.0–5.2 V).
+   Rejected: Pololu D36V6F5 (600 mA too tight), D36V28F5 (fine, $24, not
+   sealed), S13V20F5 (22 V max input), S7V7F5 (11.8 V max), 7805 linear
+   (~6.5 W heat at full charge, no enable).
 4. **Gate sensor power.** The old build powered the wind vane, anemometer
    and BME280 from 3.3 V continuously. The vane is a resistor divider and can
    draw hundreds of µA depending on direction (verify against the vane's
@@ -108,20 +114,29 @@ mode plus sensor quiescent current, not by bursts of 5V load.
 5. **Cold-charge cutoff (decided: add it).** LiPo must not charge below
    0 °C, and charging is hardware-driven by the CN3165, so cut the solar
    input instead:
-   - Choose the 12 V→5 V buck with an **EN pin**, and drive EN from
-     **GPIO7 (an LP IO pin)**. The cutoff matters most while the station
-     sleeps, which is nearly all the time, so EN must be driven *during*
-     sleep: hold it with `rtc_gpio_hold_en()` / `gpio_hold_en()` before
-     every sleep and release it after waking to change it. A normal digital
-     GPIO would fall back to its reset state in sleep, and the hardware
-     pull would turn charging back on.
-     Disabling the buck removes FireBeetle VIN, which stops charging; the
+   - **Charge switch on the 5 V side** (the PlusRoc has no enable pin),
+     between the converter's 5 V output and FireBeetle VCC:
+     ```
+     PlusRoc 5V ──┬── AO3401 P-FET source ── drain ──► FireBeetle VCC
+                  └── 100K ── P-FET gate ── 2N7002 N-FET drain; source → GND
+     GPIO7 ── 2N7002 gate, 100K pull-up to 3V3
+     ```
+     GPIO7 high (or floating, via the pull-up) → N-FET on → P-FET on →
+     charging. GPIO7 low → cut off. A P-FET alone won't do: 3.3 V on its
+     gate can't turn it off with 5 V on the source. The P-FET's body diode
+     points VCC → converter, so nothing flows to VCC when it's off.
+     Opening the switch removes FireBeetle VCC, which stops charging; the
      board keeps running from the battery.
+   - Drive it from **GPIO7 (an LP IO pin)**. The cutoff matters most while
+     the station sleeps, which is nearly all the time, so GPIO7 must be
+     driven *during* sleep: hold it with `gpio_hold_en()` before every sleep
+     and release it after waking to change it (every GPIO floats in light
+     sleep otherwise, and the pull-up would turn charging back on).
    - **Temperature source: the BME280's air temperature (Mark, 2026-11-25 —
      battery thermistor cut).** Air in the radiation shield is not the
      cell's temperature (the box lags on cold mornings and runs warm in
      sun), so the thresholds carry extra margin.
-   - Firmware: disable the buck below **4 °C air**, re-enable above **7 °C
+   - Firmware: open the charge switch below **4 °C air**, re-enable above **7 °C
      air** (hysteresis), Kconfig values. Check every report cycle. If the
      BME280 read fails, keep the previous state. Retune the margin after
      M8 if the box temperature turns out to track air closely.
@@ -215,7 +230,7 @@ wiring** — taken from memory and from the FireBeetle schematic extract):
 | Wind pulse (LP IO) | 4 | LP IO; FireBeetle label LP_RX (LP UART unused) |
 | Rain pulse (LP IO) | 5 | LP IO; FireBeetle label LP_TX |
 | **Spare** | 6 | Was the battery thermistor (cut 2026-11-25). ADC1_CH6, LP IO, holdable. Has an internal pull-up after reset (MTCK, Table 2-2 note 5) — disable it if used for ADC. FireBeetle: GDI connector pin, free with no display |
-| Buck converter EN (cold cutoff) | 7 | LP IO so it can be held through sleep, see Power §5. Hardware pull to *enabled* |
+| Charge switch (cold cutoff) | 7 | Drives the 2N7002 gate of the P-FET switch, high = charging. LP IO, held through sleep, see Power §5. 100K pull-up to 3V3 = charging by default |
 | I2C SDA / SCL (BME280) | 19 / 20 | FireBeetle header labels SDA/SCL |
 | MUX EN (active low; also gates UV/LDR power) | 21 | External 100K pull-up (off), held in sleep — Power §4 |
 | MUX SEL0, SEL1 | 22, 23 | |
@@ -255,8 +270,8 @@ source).** The mapping works; these are the rules it depends on:
 - **Every GPIO floats in light sleep** unless held: ESP-IDF's
   `CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND` (on in our sdkconfig) sets every
   pin's sleep config to disabled/floating. So the external pull-up on MUX
-  EN (21) and pull-down on vane power (1) are **required**; buck EN (7)
-  must be `gpio_hold_en`'d; and **hold MUX SEL0/SEL1 (22/23) low** in
+  EN (21) and pull-down on vane power (1) are **required**; the charge
+  switch (7) must be `gpio_hold_en`'d; and **hold MUX SEL0/SEL1 (22/23) low** in
   sleep too — floating CMOS select inputs on an always-powered 4051 can
   draw current. All GPIOs on the C6 are holdable through deep sleep
   (`GPIO_HOLD_MASK`, `SOC_GPIO_SUPPORT_HOLD_IO_IN_DSLP`). Configure the
@@ -278,8 +293,8 @@ source).** The mapping works; these are the rules it depends on:
     charger input; USB feeds VCC1 through D2. The battery reaches only the
     3V3 buck: VBAT → Q2 (AO3407, gate = VCC1, R10 pull-down) → TPS62A02,
     with D4 stopping VCC1 → buck back-feed. So **on battery alone VCC is
-    ~0 V**, and it also drops whenever the cold cutoff disables the solar
-    buck. **Never power sensors from VCC.**
+    ~0 V**, and it also drops whenever the cold cutoff opens the charge
+    switch. **Never power sensors from VCC.**
   - **3V3 (P1 pin 2 / P2 pin 2) is always on** from battery or input:
     TPS62A02, EN tied to VIN, Vout = 0.6 × (1 + 453K/100K) ≈ 3.32 V. Feed
     the sensor box, BME280, vane and anemometer from 3V3. Below ~3.4 V
@@ -500,7 +515,8 @@ before concluding a failure is a routing problem.
 ### M7 — Port to FireBeetle
 - Build with `sdkconfig.defaults.firebeetle`. Verify battery ADC on GPIO0
   against a multimeter and calibrate the divider factor.
-- Wire the power path: panel → buck (5.0 V) → VIN; LiPo on battery connector.
+- Wire the power path: panel → PlusRoc (5 V) → charge switch → VCC (P1
+  pin 1); LiPo on battery connector (P4); sensors on 3V3.
 - **Measure average current on battery** with a meter in series. This is the
   number that counts. Record it here.
 - Confirm console via USB-Serial/JTAG reconnects after wake (or accept no
@@ -527,7 +543,9 @@ before concluding a failure is a routing problem.
 3. **Hardware:** same anemometer, wind vane and rain gauge as the old
    station. Their quiescent current, 3.3 V operation and the vane resistor
    table still have to be **measured** in M2/M3. Record the results here.
-4. **Cold-charge cutoff: add it.** Buck EN on held LP IO GPIO7 (Power §5).
+4. **Cold-charge cutoff: add it.** P-FET charge switch on held LP IO GPIO7
+   after the PlusRoc converter (Power §3, §5; was buck EN until the
+   converter choice on 2026-11-25).
    Firmware-only cutoff accepted, no hardware cutoff. **Revised
    2026-11-25:** battery thermistor cut; the cutoff uses the BME280 air
    temperature with extra margin (off < 4 °C, on > 7 °C).

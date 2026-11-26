@@ -24,7 +24,8 @@
 #define PIN_RAIN_PULSE      GPIO_NUM_5      // LP IO, rain gauge (rising edges)
 // GPIO6: spare (battery thermistor cut 2026-11-25; cold cutoff uses BME280).
 //        ADC1_CH6 / LP IO. Internal pull-up is on after reset (MTCK): disable it for ADC use.
-#define PIN_BUCK_EN         GPIO_NUM_7      // LP IO, solar buck enable; held through sleep
+#define PIN_CHARGE_EN       GPIO_NUM_7      // LP IO, solar charge switch (2N7002 gate): high = charging,
+                                            // 100K pull-up = charging by default; held through sleep
 
 // ---- Digital (decided 2026-11-25, Mark kept the 74HC4051) ----
 // Pins on both headers (FireBeetle V1.1 schematic P1/P2, DevKitC J1/J3):
