@@ -200,6 +200,46 @@ views:
         perform_action: input_button.press
         target:
           entity_id: input_button.spa_log_strip_test
+    - type: tile
+      entity: input_button.spa_log_mps
+      name: MPS shock
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_mps
+    - type: tile
+      entity: input_button.spa_log_borates
+      name: Borates
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_borates
+    - type: tile
+      entity: input_button.spa_log_calcium
+      name: Calcium
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_calcium
+    - type: tile
+      entity: input_button.spa_log_phosphate_remover
+      name: Phosphate remover
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_phosphate_remover
+    - type: tile
+      entity: input_button.spa_log_soak
+      name: Soak
+      tap_action:
+        action: perform-action
+        perform_action: input_button.press
+        target:
+          entity_id: input_button.spa_log_soak
     - type: logbook
       hours_to_show: 336
       grid_options:
@@ -209,6 +249,11 @@ views:
       - input_button.spa_log_salt
       - input_button.spa_log_boost
       - input_button.spa_log_strip_test
+      - input_button.spa_log_mps
+      - input_button.spa_log_borates
+      - input_button.spa_log_calcium
+      - input_button.spa_log_phosphate_remover
+      - input_button.spa_log_soak
   - type: grid
     cards:
     - type: heading

@@ -112,6 +112,21 @@ input_button:
   spa_log_strip_test:
     name: "Spa: strip test"
     icon: mdi:test-tube
+  spa_log_mps:
+    name: "Spa: MPS shock added"
+    icon: mdi:flash-outline
+  spa_log_borates:
+    name: "Spa: borates added"
+    icon: mdi:shield-check-outline
+  spa_log_calcium:
+    name: "Spa: calcium added"
+    icon: mdi:bone
+  spa_log_phosphate_remover:
+    name: "Spa: phosphate remover added"
+    icon: mdi:filter-variant-remove
+  spa_log_soak:
+    name: "Spa: soak started"
+    icon: mdi:hot-tub
 
 template:
   - sensor:
@@ -329,7 +344,12 @@ template:
           {% set items = [('pH down', 'input_button.spa_log_ph_down'),
                           ('Salt', 'input_button.spa_log_salt'),
                           ('Boost', 'input_button.spa_log_boost'),
-                          ('Strip test', 'input_button.spa_log_strip_test')] %}
+                          ('Strip test', 'input_button.spa_log_strip_test'),
+                          ('MPS shock', 'input_button.spa_log_mps'),
+                          ('Borates', 'input_button.spa_log_borates'),
+                          ('Calcium', 'input_button.spa_log_calcium'),
+                          ('Phosphate remover', 'input_button.spa_log_phosphate_remover'),
+                          ('Soak', 'input_button.spa_log_soak')] %}
           {% set ns = namespace(name=none, t=now() - timedelta(minutes=30)) %}
           {% for label, e in items %}
             {% set t = as_datetime(states(e), none) %}
