@@ -22,8 +22,8 @@
 #define ADC_CH_MUX          ADC_CHANNEL_3
 #define PIN_WIND_PULSE      GPIO_NUM_4      // LP IO, anemometer (falling edges)
 #define PIN_RAIN_PULSE      GPIO_NUM_5      // LP IO, rain gauge (rising edges)
-#define PIN_BATT_NTC        GPIO_NUM_6      // ADC1_CH6, battery thermistor (cold cutoff)
-#define ADC_CH_BATT_NTC     ADC_CHANNEL_6
+// GPIO6: spare (battery thermistor cut 2026-11-25; cold cutoff uses BME280).
+//        ADC1_CH6 / LP IO. Internal pull-up is on after reset (MTCK): disable it for ADC use.
 #define PIN_BUCK_EN         GPIO_NUM_7      // LP IO, solar buck enable; held through sleep
 
 // ---- Digital (decided 2026-11-25, Mark kept the 74HC4051) ----
@@ -36,7 +36,7 @@
 #define PIN_MUX_SEL0        GPIO_NUM_22
 #define PIN_MUX_SEL1        GPIO_NUM_23
 #define PIN_MOISTURE        GPIO_NUM_18     // digital in, external 1M pull-down
-#define PIN_SENSE_PWR       GPIO_NUM_1      // high = power vane + battery NTC dividers; ext pull-down = off; held in sleep.
+#define PIN_VANE_PWR        GPIO_NUM_1      // high = power the vane divider; ext pull-down = off; held in sleep.
                                             // FireBeetle: only wired to the GDI connector's LCD_CS (free with no display)
 
 // ---- Per board ----

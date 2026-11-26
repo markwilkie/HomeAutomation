@@ -117,18 +117,20 @@ mode plus sensor quiescent current, not by bursts of 5V load.
      pull would turn charging back on.
      Disabling the buck removes FireBeetle VIN, which stops charging; the
      board keeps running from the battery.
-   - Sense **battery** temperature with an NTC thermistor taped to the LiPo,
-     in a divider on ADC GPIO6. Don't use the BME280: it measures air in the
-     radiation shield, not the battery. Gate the divider's supply from a
-     GPIO (or use a high-value NTC) so it doesn't drain the battery.
-   - Firmware: disable the buck below **2 °C**, re-enable above **5 °C**
-     (hysteresis). Check every report cycle.
+   - **Temperature source: the BME280's air temperature (Mark, 2026-11-25 —
+     battery thermistor cut).** Air in the radiation shield is not the
+     cell's temperature (the box lags on cold mornings and runs warm in
+     sun), so the thresholds carry extra margin.
+   - Firmware: disable the buck below **4 °C air**, re-enable above **7 °C
+     air** (hysteresis), Kconfig values. Check every report cycle. If the
+     BME280 read fails, keep the previous state. Retune the margin after
+     M8 if the box temperature turns out to track air closely.
    - **Fail-safe default:** pull EN to the *enabled* state in hardware, so
      if firmware hangs, charging continues rather than the station dying.
      This means the cutoff only works while firmware runs (including sleep,
-     thanks to the hold) — **accepted by Mark 2026-11-16**; no hardware NTC
+     thanks to the hold) — **accepted by Mark 2026-11-16**; no hardware
      cutoff.
-   - Report battery temperature and the cutoff state in every report.
+   - Report the cutoff state in every report.
 6. **Measure, don't assume:** final average current is measured on the
    FireBeetle running from battery (Milestone 7). DevKitC readings are only
    useful for relative comparisons — its UART bridge and LEDs swamp the chip.
@@ -212,13 +214,13 @@ wiring** — taken from memory and from the FireBeetle schematic extract):
 | MUX common: LDR / UV (ADC) | 3 | ADC1, free on both |
 | Wind pulse (LP IO) | 4 | LP IO; FireBeetle label LP_RX (LP UART unused) |
 | Rain pulse (LP IO) | 5 | LP IO; FireBeetle label LP_TX |
-| Battery thermistor (ADC) | 6 | Cold-charge cutoff, see Power §5. FireBeetle: GDI connector pin, free with no display |
+| **Spare** | 6 | Was the battery thermistor (cut 2026-11-25). ADC1_CH6, LP IO, holdable. Has an internal pull-up after reset (MTCK, Table 2-2 note 5) — disable it if used for ADC. FireBeetle: GDI connector pin, free with no display |
 | Buck converter EN (cold cutoff) | 7 | LP IO so it can be held through sleep, see Power §5. Hardware pull to *enabled* |
 | I2C SDA / SCL (BME280) | 19 / 20 | FireBeetle header labels SDA/SCL |
 | MUX EN (active low; also gates UV/LDR power) | 21 | External 100K pull-up (off), held in sleep — Power §4 |
 | MUX SEL0, SEL1 | 22, 23 | |
 | Moisture (digital) | 18 | 1M pull-down as before |
-| Vane + battery NTC power | 1 | One line for both dividers (read in the same cycle). External pull-down (off), held in sleep — Power §4 |
+| Vane power enable | 1 | External pull-down (off), held in sleep — Power §4 |
 
 **Pin check (2026-11-25)** against the FireBeetle V1.1 schematic (headers
 P1/P2) and the DevKitC-1 user guide (J1/J3):
@@ -228,15 +230,51 @@ P1/P2) and the DevKitC-1 user guide (J1/J3):
 - **GPIO1 is free on the FireBeetle** — it only goes to the GDI connector's
   LCD_CS. (Was "unconfirmed" above.)
 - Free digital pins after strapping 8/9/15 and the DevKitC console 16/17:
-  1 and 18–23. **All seven are now used; none spare.**
+  1 and 18–23, all used. With the thermistor cut, **GPIO6 is the one spare**.
 - **Why the 74HC4051 stays (Mark, 2026-11-25):** ADC is GPIO0–6 only, and
-  0/4/5 are taken (battery, wind, rain), leaving 4 ADC pins for 6 analog
-  signals. Vane (2) and NTC (6) get their own; LDR + UV1–3 share the mux (3).
-  An ADS1115 on I2C was the alternative (frees 21–23); not chosen.
-- Correction: GPIO4/5 are also strapping pins (MTMS/MTDI). On the C6 they
-  only set SDIO-slave timing at reset, so a rain bucket resting closed on
-  GPIO5 at power-up should be harmless — VERIFY against the datasheet's
-  strapping table before M3 wiring.
+  0/4/5 are taken (battery, wind, rain), and GPIO1 is a digital output
+  (vane power), leaving 3 ADC pins (2, 3, 6) for 5 analog signals. Vane (2)
+  gets its own; LDR + UV1–3 share the mux (3). An ADS1115 on I2C was the
+  alternative (frees 21–23); not chosen.
+
+**Datasheet check (2026-11-25, ESP32-C6 datasheet v1.6 + ESP-IDF 5.4.1
+source).** The mapping works; these are the rules it depends on:
+- **Strapping GPIO4/5 (MTMS/MTDI) are harmless:** they only select SDIO
+  clock edges (Table 3-4), latched at reset; SPI boot needs only GPIO9=1
+  (Table 3-3). A rain bucket resting closed at power-up is fine.
+- **JTAG pins GPIO4–7 are free:** with unburned eFuses JTAG comes from
+  USB-Serial/JTAG and GPIO15 is ignored (Table 3-7).
+- **ADC:** ADC1_CH0–6 = GPIO0–6, no ADC2 (Table 2-9). ATTEN3 (12 dB)
+  range 0–3300 mV, ±40 mV after calibration (Table 5-6) — battery divider
+  ≤2.1 V and vane ≤3.3 V fit. Datasheet accuracy is with the radio off:
+  read the ADC before the Thread exchange, not during it.
+- **GPIO0/1 are the 32 kHz crystal pins**; the FireBeetle has no 32 kHz
+  crystal, so they're free — but the LP timer then runs on the internal
+  RC slow clock, which drifts with temperature. Scale gust intervals by
+  the measured slow-clock calibration (`esp_clk_slowclk_cal_get()`).
+- **Every GPIO floats in light sleep** unless held: ESP-IDF's
+  `CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND` (on in our sdkconfig) sets every
+  pin's sleep config to disabled/floating. So the external pull-up on MUX
+  EN (21) and pull-down on vane power (1) are **required**; buck EN (7)
+  must be `gpio_hold_en`'d; and **hold MUX SEL0/SEL1 (22/23) low** in
+  sleep too — floating CMOS select inputs on an always-powered 4051 can
+  draw current. All GPIOs on the C6 are holdable through deep sleep
+  (`GPIO_HOLD_MASK`, `SOC_GPIO_SUPPORT_HOLD_IO_IN_DSLP`). Configure the
+  pulse pins through `rtc_gpio_*` (LP IO), not `gpio_*`. Verify each
+  line's sleep level with a meter in M5.
+- **Reset states (Table 2-2):** GPIO18–23 have a weak pull-up *at reset*
+  (MUX EN stays off — good). GPIO1 and GPIO7 have no pull, so the
+  external resistors decide: vane off, charging on (fail-safe).
+- **LP core:** wind and rain share one LP IO interrupt and the example's
+  `ulp_lp_core_gpio_clear_intr_status()` clears all pins; read
+  `rtcio_ll_get_interrupt_status()` first to tell GPIO4 from GPIO5.
+- **Wind pull-up current:** the anemometer's NPN output sits low whenever
+  the rotor stops in the "on" position; with the internal ~45K pull-up
+  that's ~73 µA continuously. Use an external 470K–1M pull-up (like the
+  rain pulldown fix) and measure the resting current in M3.
+- Not a pin issue, but check before wiring: the old sensor box took "VIN"
+  from the main box — confirm what voltage the FireBeetle header's VCC pin
+  carries on battery only, and that the mux/UV box gets 3.3 V.
 
 ---
 
@@ -361,13 +399,13 @@ before concluding a failure is a routing problem.
 - **Home Assistant:** MQTT discovery. Retained config at
   `homeassistant/sensor/weatherstation/<id>/config` for every field, with
   device class and units (wind in **knots**, rain in **inches**, pressure,
-  temperature, humidity, lux, UV index, battery V, battery temp), grouped
+  temperature, humidity, lux, UV index, battery V, charge cutoff), grouped
   under one HA device. State on `weatherstation/state` as one JSON object.
   Set `expire_after` so stale data shows unavailable. Republish discovery
   config on boot and when the firmware version changes, not every cycle.
 - **Payload:** the fields from the old `/weather`, `/wind`, `/rain`, `/admin`
-  posts minus PMS and cap/boost fields, plus battery voltage, battery
-  temperature, charge-cutoff state, firmware version, reset reason, Thread
+  posts minus PMS and cap/boost fields, plus battery voltage,
+  charge-cutoff state, firmware version, reset reason, Thread
   RSSI/LQI and parent RLOC16.
 - **Report interval:** `CYCLETIME` configurable via Kconfig and overridable
   remotely (retained `weatherstation/cmd/interval` in B1, relay reply in
@@ -473,8 +511,10 @@ before concluding a failure is a routing problem.
 3. **Hardware:** same anemometer, wind vane and rain gauge as the old
    station. Their quiescent current, 3.3 V operation and the vane resistor
    table still have to be **measured** in M2/M3. Record the results here.
-4. **Cold-charge cutoff: add it.** Buck EN on held LP IO GPIO7 + battery NTC
-   (Power §5). Firmware-only cutoff accepted, no hardware NTC cutoff.
+4. **Cold-charge cutoff: add it.** Buck EN on held LP IO GPIO7 (Power §5).
+   Firmware-only cutoff accepted, no hardware cutoff. **Revised
+   2026-11-25:** battery thermistor cut; the cutoff uses the BME280 air
+   temperature with extra margin (off < 4 °C, on > 7 °C).
 5. **Sensors:** keep all three GY-8511 UV sensors (report each, plus the
    max as `uv`) and the moisture sensor.
 6. **OTA images:** served by an existing web server on wyse (was open item B).
