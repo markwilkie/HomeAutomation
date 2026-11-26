@@ -284,12 +284,13 @@ source).** The mapping works; these are the rules it depends on:
     TPS62A02, EN tied to VIN, Vout = 0.6 × (1 + 453K/100K) ≈ 3.32 V. Feed
     the sensor box, BME280, vane and anemometer from 3V3. Below ~3.4 V
     battery the buck runs in dropout and 3V3 follows the battery.
-  - **Sensor box internals: unknown — Mark to open/measure.** The old readme
-    says the box took "VIN" (5 V from the boost) while the UV sensors got
-    "3.3 V via PNP". Either there's a regulator in the box (an LDO fed 3.3 V
-    will drop out — bypass it), or the 4051 ran at 5 V (3.3 V SEL logic is
-    marginal at 5 V VCC: 74HC VIH ≈ 0.7 × VCC = 3.5 V). Measure on the old
-    station: 4051 pin 16 (VCC), the PNP emitter, and a UV sensor's supply.
+  - **Everything runs on 3.3 V (Mark, 2026-11-25).** The PMS5003 was the
+    only 5 V load — old readme: "VDD 3.3V which powers all sensors except
+    for the PMS5003 (which is 5v) and LDR/UV which is an output pin". The
+    74HC4051 (2–6 V) and GY-8511/ML8511 (2.7–3.6 V) are fine at 3.3 V, and
+    3.3 V SEL logic is then within spec. The old readme's "Red - VIN" to
+    the sensor box is ambiguous: when rewiring, feed the box from 3V3 and,
+    if the box has its own regulator, bypass it (an LDO fed 3.3 V drops out).
 
 ---
 
