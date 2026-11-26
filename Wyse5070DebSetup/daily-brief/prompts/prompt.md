@@ -124,7 +124,11 @@ From these, find:
   delivery/appointment bots, political or marketing blasts, short-code
   senders).
 - **My unanswered asks**: my latest message asks something and nothing
-  came back after it.
+  came back after it. Invitations and offers count, not just questions
+  marked with "?": "come over for Thanksgiving if you're still in town",
+  "you're welcome to stay with us", "let me know if you want the
+  tickets" all wait on an answer (2026-11-26: an unanswered Thanksgiving
+  invitation by text was missed).
 - **Busy threads**: 3+ messages since yesterday morning that are actually
   interesting (family and friends planning things, news, decisions) —
   what happened and anything I may have missed (a plan that changed, a
@@ -179,7 +183,7 @@ chats. Gather:
 - **Other chats**: questions or requests aimed at me, plans and dates,
   news from family and friends. Skip chit-chat, stickers and reactions.
 - **My unanswered asks**: a question of mine to a person or small group
-  with no answer after it.
+  with no answer after it, including invitations and offers (see Texts).
 
 ## Waiting on others
 Questions or requests I sent that nobody has answered yet, kept for 10
