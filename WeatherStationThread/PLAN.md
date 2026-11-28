@@ -560,6 +560,18 @@ before concluding a failure is a routing problem.
 
 ---
 
+## Parts to buy
+
+- [x] PlusRoc PR4A063 12/24 V → 5 V converter (arrived 2026-11-27)
+- [ ] AO3401 P-FET, SOT-23 (charge switch, power §5)
+- [ ] 2N7002 N-FET, SOT-23 (charge switch)
+- [ ] 100K resistors ×4: charge switch (2), vane power pull-down, MUX EN pull-up
+- [ ] 1M resistor: rain pull-down (replaces the 10K)
+- [ ] Stainless screws for the enclosures. Size and count still to be
+      measured from the existing screws.
+
+---
+
 ## Decisions (Mark, 2026-11-16)
 
 1. **Transport:** originally "plain Thread + MQTT". Revised the same day
