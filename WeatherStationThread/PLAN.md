@@ -548,10 +548,10 @@ before concluding a failure is a routing problem.
   | BME280 Blue (SDA) | 21 | 19 | |
   | BME280 Blue/White (SCL) | 22 | 20 | |
   | BME280 Orange / Orange-White | VCC / GND | 3V3 / GND | Mark, 2026-11-27: was on the old board's VCC (battery-or-USB rail, 3.5–5 V), not 3.3 V as the readme says. Must move: the C6 board's VCC is the 5 V input only, 0 V on battery |
-  | Anemometer Blue (NPN pulse) | 14 | 4 | Brown 3V3, Black GND unchanged; Green unused |
+  | Anemometer Blue (NPN pulse) | 14 | 4 | Brown 3V3 (confirmed on the 3.3 V rail, Mark 2026-11-27), Black GND unchanged; Green unused |
   | Rain White (pulse) | 26 | 5 | Swap the 10K pull-down on the perma-proto for 1M |
   | Vane Yellow (signal) | 36 | 2 | |
-  | Vane Blue (3.3 V) | 3V3 | 1 (`PIN_VANE_PWR`) | Add an external pull-down (100K) |
+  | Vane Blue (3.3 V, confirmed Mark 2026-11-27) | 3V3 | 1 (`PIN_VANE_PWR`) | Add an external pull-down (100K) |
   | Moisture White | 13 | 18 | 1M pull-down stays |
   | Sensor box Black (MUX EN) | 27 | 21 | Add 100K pull-up to 3V3 (none in the old wiring) |
   | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0; not visible in the sensor box photo. Swapping them only swaps UV2 and UV3 (LDR = 11 and UV1 = 00 are symmetric), so check S0 = pin 11 with a meter or just swap in board.h if UV2/UV3 look reversed |
