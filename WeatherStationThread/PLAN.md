@@ -361,6 +361,11 @@ Done 2026-11-16 (see Decisions). M1 can start.
 ### M2 — Sensors, awake (DevKitC)
 - BME280 over I2C (forced mode). Dew point and heat index ported from the
   old handler.
+  Board is the Adafruit BME280 (STEMMA QT version, photo 2026-11-27):
+  wired to VIN, GND, SCK, SDI only, so SDO floats on the board's pull-up →
+  **I2C address 0x77**, not 0x76. VIN takes 3–5 V through the board's own
+  LDO and level shifters; the old readme says it's fed 3.3 V (Orange). At
+  3.3 V in, the LDO drops out and the sensor sees ~3.1 V: still in spec.
 - ADC oneshot with calibration (curve fitting) for: wind direction, MUX
   (LDR + UV1–3, select via SEL0/SEL1, EN low), battery (DevKitC stub).
   Port the resample/tolerance logic from `ADCHandler` only if readings are
