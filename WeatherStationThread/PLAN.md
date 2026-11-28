@@ -364,8 +364,9 @@ Done 2026-11-16 (see Decisions). M1 can start.
   Board is the Adafruit BME280 (STEMMA QT version, photo 2026-11-27):
   wired to VIN, GND, SCK, SDI only, so SDO floats on the board's pull-up →
   **I2C address 0x77**, not 0x76. VIN takes 3–5 V through the board's own
-  LDO and level shifters; the old readme says it's fed 3.3 V (Orange). At
-  3.3 V in, the LDO drops out and the sensor sees ~3.1 V: still in spec.
+  LDO and level shifters. It was on the old board's 5 V VIN (Mark,
+  2026-11-27); on the C6 it moves to 3V3. At 3.3 V in, the LDO drops out
+  and the sensor sees ~3.1 V: still in spec.
 - ADC oneshot with calibration (curve fitting) for: wind direction, MUX
   (LDR + UV1–3, select via SEL0/SEL1, EN low), battery (DevKitC stub).
   Port the resample/tolerance logic from `ADCHandler` only if readings are
@@ -545,7 +546,7 @@ before concluding a failure is a routing problem.
   |---|---|---|---|
   | BME280 Blue (SDA) | 21 | 19 | |
   | BME280 Blue/White (SCL) | 22 | 20 | |
-  | BME280 Orange / Orange-White | 3V3 / GND | 3V3 / GND | |
+  | BME280 Orange / Orange-White | VIN (5 V) / GND | 3V3 / GND | Mark, 2026-11-27: was on the old board's VIN, not 3.3 V as the readme says. Must move: C6 VCC is 0 V on battery |
   | Anemometer Blue (NPN pulse) | 14 | 4 | Brown 3V3, Black GND unchanged; Green unused |
   | Rain White (pulse) | 26 | 5 | Swap the 10K pull-down on the perma-proto for 1M |
   | Vane Yellow (signal) | 36 | 2 | |
