@@ -309,8 +309,12 @@ source).** The mapping works; these are the rules it depends on:
     for the PMS5003 (which is 5v) and LDR/UV which is an output pin". The
     74HC4051 (2–6 V) and GY-8511/ML8511 (2.7–3.6 V) are fine at 3.3 V, and
     3.3 V SEL logic is then within spec. The old readme's "Red - VIN" to
-    the sensor box is ambiguous: when rewiring, feed the box from 3V3 and,
-    if the box has its own regulator, bypass it (an LDO fed 3.3 V drops out).
+    the sensor box is ambiguous: when rewiring, feed the box from 3V3.
+    Sensor box photo (2026-11-27): Perma-Proto with the 74HC4051 (NXP DIP),
+    a 2N2907 PNP high-side switch for UV/LDR power, ~5 resistors, and **no
+    regulator**. 3V3 is required, not just preferred: with the PNP emitter
+    on 5 V, a 3.3 V-high GPIO can't turn it off (base 1.7 V below emitter),
+    and 3.3 V SEL/EN highs are below the 74HC4051's 3.5 V VIH at 5 V.
 
 ---
 
@@ -545,7 +549,7 @@ before concluding a failure is a routing problem.
   | Sensor box Black (MUX EN) | 27 | 21 | Add 100K pull-up to 3V3 (none in the old wiring) |
   | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0: check at the 74HC4051 (S0 = pin 11) |
   | Sensor box Blue (MUX out) | 34 | 3 | |
-  | Sensor box Red (power) | VIN | 3V3 | Bypass any regulator in the box |
+  | Sensor box Red (power) | VIN | 3V3 | No regulator in the box (photo 2026-11-27); 3V3 needed to switch the PNP off |
   | Cap divider 10K/10K → 39 | 39 | — | Remove (caps gone) |
   | VCC divider 2K4/3K3 → 35 | 35 | — | Remove; C6 board has its own on GPIO0 (and the 2K4/3K3 divider draws ~0.7 mA) |
   | PMS5003 Brown, Green, Green/White | 5V, 16, 25 | — | Remove |
@@ -567,8 +571,8 @@ before concluding a failure is a routing problem.
 - [ ] 2N7002 N-FET, SOT-23 (charge switch)
 - [ ] 100K resistors ×4: charge switch (2), vane power pull-down, MUX EN pull-up
 - [ ] 1M resistor: rain pull-down (replaces the 10K)
-- [ ] Stainless screws for the enclosures. Size and count still to be
-      measured from the existing screws.
+- [ ] Stainless screws for the enclosures. Lids thread into brass inserts;
+      size and count still to be measured from the existing screws.
 
 ---
 
