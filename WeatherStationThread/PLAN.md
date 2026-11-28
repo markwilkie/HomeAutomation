@@ -547,7 +547,7 @@ before concluding a failure is a routing problem.
   | Vane Blue (3.3 V) | 3V3 | 1 (`PIN_VANE_PWR`) | Add an external pull-down (100K) |
   | Moisture White | 13 | 18 | 1M pull-down stays |
   | Sensor box Black (MUX EN) | 27 | 21 | Add 100K pull-up to 3V3 (none in the old wiring) |
-  | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0: check at the 74HC4051 (S0 = pin 11) |
+  | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0; not visible in the sensor box photo. Swapping them only swaps UV2 and UV3 (LDR = 11 and UV1 = 00 are symmetric), so check S0 = pin 11 with a meter or just swap in board.h if UV2/UV3 look reversed |
   | Sensor box Blue (MUX out) | 34 | 3 | |
   | Sensor box Red (power) | VIN | 3V3 | No regulator in the box (photo 2026-11-27); 3V3 needed to switch the PNP off |
   | Cap divider 10K/10K → 39 | 39 | — | Remove (caps gone) |
