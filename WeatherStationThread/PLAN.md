@@ -77,6 +77,11 @@ With the PMS5003 gone, the station's average draw is set by the C6's sleep
 mode plus sensor quiescent current, not by bursts of 5V load.
 
 1. **Remove the supercaps and MiniBoost.** Nothing needs 5V anymore.
+   The old "protection circuits" (photo 2026-11-27) are two round GSD-026
+   35.5 mm boards soldered on the supercap terminals: per-cell shunt
+   balancers (U1 + Q2 DPAK dumping into R4-R6 low-ohm resistors) that clamp
+   each cap at ~2.7 V. The panel feeds the caps directly; there is no
+   regulator. They go with the caps and can't feed VCC, hence the PlusRoc.
 2. **Battery: keep the existing 1000 mAh LiPo**, connected to the FireBeetle
    battery connector. Budget check (calculated, not measured): a Thread SED
    in light sleep at ~0.25 mA average is ~6 mAh/day → months of autonomy
