@@ -539,6 +539,7 @@ before concluding a failure is a routing problem.
   console and rely on reported diagnostics).
 - Weatherproof enclosure; reuse the existing sensor wiring harness where
   possible (see wiring section of the old readme).
+- **Drawings:** schematic `docs/wiring/schematic.html` (https://claude.ai/artifact/V2VC1sKuLB2ycN9ddvPRSK) and protoboard layout `docs/wiring/protoboard.html` (https://claude.ai/artifact/3dSLxHkozqiZrfZhQFSF1c).
 - **Rewire list** (old FireBeetle ESP32 DFR0478 → FireBeetle 2 C6). Colors
   are from the old readme; confirm each one with a meter before moving it,
   and tag every wire with its old GPIO before pulling it off the header.
@@ -580,7 +581,10 @@ before concluding a failure is a routing problem.
 - [ ] AO3401 P-FET, SOT-23 (charge switch, power §5)
 - [ ] 2N7002 N-FET, SOT-23 (charge switch)
 - [ ] 100K resistors ×4: charge switch (2), vane power pull-down, MUX EN pull-up
-- [ ] 1M resistor: rain pull-down (replaces the 10K)
+- [ ] 1M resistors ×3: rain pull-down (replaces the 10K), moisture
+      pull-down, anemometer pull-up
+- [ ] SOT-23-to-DIP adapters ×2, for the two FETs on the protoboard
+- [ ] EPLZON half-size breadboard PCB (have one, photo 2026-11-27)
 - [ ] Stainless screws for the enclosures. Lids thread into brass inserts;
       size and count still to be measured from the existing screws.
 
