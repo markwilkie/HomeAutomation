@@ -528,6 +528,29 @@ before concluding a failure is a routing problem.
   console and rely on reported diagnostics).
 - Weatherproof enclosure; reuse the existing sensor wiring harness where
   possible (see wiring section of the old readme).
+- **Rewire list** (old FireBeetle ESP32 DFR0478 → FireBeetle 2 C6). Colors
+  are from the old readme; confirm each one with a meter before moving it,
+  and tag every wire with its old GPIO before pulling it off the header.
+
+  | Wire (old readme) | Old | New | Change |
+  |---|---|---|---|
+  | BME280 Blue (SDA) | 21 | 19 | |
+  | BME280 Blue/White (SCL) | 22 | 20 | |
+  | BME280 Orange / Orange-White | 3V3 / GND | 3V3 / GND | |
+  | Anemometer Blue (NPN pulse) | 14 | 4 | Brown 3V3, Black GND unchanged; Green unused |
+  | Rain White (pulse) | 26 | 5 | Swap the 10K pull-down on the perma-proto for 1M |
+  | Vane Yellow (signal) | 36 | 2 | |
+  | Vane Blue (3.3 V) | 3V3 | 1 (`PIN_VANE_PWR`) | Add an external pull-down (100K) |
+  | Moisture White | 13 | 18 | 1M pull-down stays |
+  | Sensor box Black (MUX EN) | 27 | 21 | Add 100K pull-up to 3V3 (none in the old wiring) |
+  | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0: check at the 74HC4051 (S0 = pin 11) |
+  | Sensor box Blue (MUX out) | 34 | 3 | |
+  | Sensor box Red (power) | VIN | 3V3 | Bypass any regulator in the box |
+  | Cap divider 10K/10K → 39 | 39 | — | Remove (caps gone) |
+  | VCC divider 2K4/3K3 → 35 | 35 | — | Remove; C6 board has its own on GPIO0 (and the 2K4/3K3 divider draws ~0.7 mA) |
+  | PMS5003 Brown, Green, Green/White | 5V, 16, 25 | — | Remove |
+  | MiniBoost EN | 12 | — | Remove with the MiniBoost |
+  | Charge switch gate | — | 7 | New (power §5) |
 
 ### M8 — Deploy and retire the old station
 - Run side-by-side with the old station for a few days if possible; compare
