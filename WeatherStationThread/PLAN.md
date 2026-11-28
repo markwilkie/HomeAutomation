@@ -309,12 +309,12 @@ source).** The mapping works; these are the rules it depends on:
     for the PMS5003 (which is 5v) and LDR/UV which is an output pin". The
     74HC4051 (2–6 V) and GY-8511/ML8511 (2.7–3.6 V) are fine at 3.3 V, and
     3.3 V SEL logic is then within spec. The old readme's "Red - VIN" to
-    the sensor box is ambiguous: when rewiring, feed the box from 3V3.
+    the sensor box is wrong: Mark confirmed (2026-11-27) the box is already
+    on the 3.3 V rail. Keep it there; it must stay on 3V3 (the 2N2907 PNP
+    switch only turns off if its emitter is at the GPIO high level).
     Sensor box photo (2026-11-27): Perma-Proto with the 74HC4051 (NXP DIP),
-    a 2N2907 PNP high-side switch for UV/LDR power, ~5 resistors, and **no
-    regulator**. 3V3 is required, not just preferred: with the PNP emitter
-    on 5 V, a 3.3 V-high GPIO can't turn it off (base 1.7 V below emitter),
-    and 3.3 V SEL/EN highs are below the 74HC4051's 3.5 V VIH at 5 V.
+    a 2N2907 PNP high-side switch for UV/LDR power, ~5 resistors, no
+    regulator.
 
 ---
 
@@ -549,7 +549,7 @@ before concluding a failure is a routing problem.
   | Sensor box Black (MUX EN) | 27 | 21 | Add 100K pull-up to 3V3 (none in the old wiring) |
   | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0; not visible in the sensor box photo. Swapping them only swaps UV2 and UV3 (LDR = 11 and UV1 = 00 are symmetric), so check S0 = pin 11 with a meter or just swap in board.h if UV2/UV3 look reversed |
   | Sensor box Blue (MUX out) | 34 | 3 | |
-  | Sensor box Red (power) | VIN | 3V3 | No regulator in the box (photo 2026-11-27); 3V3 needed to switch the PNP off |
+  | Sensor box Red (power) | 3V3 | 3V3 | Already on 3.3 V (Mark, 2026-11-27; readme's "VIN" is wrong). No change |
   | Cap divider 10K/10K → 39 | 39 | — | Remove (caps gone) |
   | VCC divider 2K4/3K3 → 35 | 35 | — | Remove; C6 board has its own on GPIO0 (and the 2K4/3K3 divider draws ~0.7 mA) |
   | PMS5003 Brown, Green, Green/White | 5V, 16, 25 | — | Remove |
