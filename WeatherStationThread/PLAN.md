@@ -542,6 +542,9 @@ before concluding a failure is a routing problem.
 - **Rewire list** (old FireBeetle ESP32 DFR0478 → FireBeetle 2 C6). Colors
   are from the old readme; confirm each one with a meter before moving it,
   and tag every wire with its old GPIO before pulling it off the header.
+  The old board's header is labelled D/A numbers, not GPIOs (Arduino
+  variant `firebeetle32`): D2=25, D3=26, D4=27, D7=13, D8=5, D9=2, A0=36,
+  A1=39, A2=34, A3=35.
 
   | Wire (old readme) | Old | New | Change |
   |---|---|---|---|
@@ -554,7 +557,7 @@ before concluding a failure is a routing problem.
   | Vane Blue (3.3 V, confirmed Mark 2026-11-27) | 3V3 | 1 (`PIN_VANE_PWR`) | Add an external pull-down (100K) |
   | Moisture White | 13 | 18 | 1M pull-down stays |
   | Sensor box Black (MUX EN) | 27 | 21 | Add 100K pull-up to 3V3 (none in the old wiring) |
-  | Sensor box Yellow / White (SEL) | 2 / 5 | 22 / 23 | Readme doesn't say which color is SEL0; not visible in the sensor box photo. Swapping them only swaps UV2 and UV3 (LDR = 11 and UV1 = 00 are symmetric), so check S0 = pin 11 with a meter or just swap in board.h if UV2/UV3 look reversed |
+  | Sensor box White (SEL0) / Yellow (SEL1) | 2 / 5 | 22 / 23 | White is on header label D9 = GPIO2 = old `MUX_SEL_0` (Mark, 2026-11-27); so Yellow is D8 = GPIO5 = SEL1 |
   | Sensor box Blue (MUX out) | 34 | 3 | |
   | Sensor box Red (power) | 3V3 | 3V3 | Already on 3.3 V (Mark, 2026-11-27; readme's "VIN" is wrong). No change |
   | Cap divider 10K/10K → 39 | 39 | — | Remove (caps gone) |
